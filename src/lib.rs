@@ -5,6 +5,10 @@ use std::path::PathBuf;
 
 use chrono::{Duration, NaiveDateTime};
 
+pub use crate::ods::OdsError;
+pub use crate::ods::read_ods;
+pub use crate::ods::write_ods;
+
 pub mod ods;
 
 /// Book is the main structure for the Spreadsheet.
@@ -521,6 +525,12 @@ impl From<String> for Value {
     }
 }
 
+impl From<&String> for Value {
+    fn from(s: &String) -> Self {
+        Value::Text(s.to_string())
+    }
+}
+
 impl From<f64> for Value {
     fn from(f: f64) -> Self {
         Value::Number(f)
@@ -530,6 +540,24 @@ impl From<f64> for Value {
 impl From<i64> for Value {
     fn from(i: i64) -> Self {
         Value::Number(i as f64)
+    }
+}
+
+impl From<i32> for Value {
+    fn from(i: i32) -> Self {
+        Value::Number(i as f64)
+    }
+}
+
+impl From<u64> for Value {
+    fn from(u: u64) -> Self {
+        Value::Number(u as f64)
+    }
+}
+
+impl From<u32> for Value {
+    fn from(u: u32) -> Self {
+        Value::Number(u as f64)
     }
 }
 
