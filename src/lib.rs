@@ -1,5 +1,4 @@
 use std::collections::{BTreeMap, HashMap};
-use std::collections::btree_map::Range;
 use std::fmt;
 use std::path::PathBuf;
 
@@ -65,7 +64,7 @@ impl WorkBook {
     }
 
     /// Number of sheets.
-    pub fn sheet_num(&self) -> usize {
+    pub fn num_sheets(&self) -> usize {
         self.sheets.len()
     }
 
@@ -82,8 +81,8 @@ impl WorkBook {
     }
 
     /// Replaces the existing sheet.
-    pub fn set_sheet(&mut self, i: usize, sheet: Sheet) {
-        self.sheets[i] = sheet;
+    pub fn insert_sheet(&mut self, i: usize, sheet: Sheet) {
+        self.sheets.insert(i, sheet);
     }
 
     /// Adds a sheet.
@@ -174,50 +173,50 @@ impl WorkBook {
 /// And dates are european DMY style.
 ///
 pub fn create_default_styles(book: &mut WorkBook) {
-    let mut s = ValueStyle::new_named(Origin::Content, "BOOL1", ValueType::Boolean);
+    let mut s = ValueStyle::with_name(Origin::Content, "BOOL1", ValueType::Boolean);
     s.push_part(Part::new(PartType::Boolean));
     book.add_value_style(s);
 
-    let mut s = ValueStyle::new_named(Origin::Content, "NUM1", ValueType::Number);
+    let mut s = ValueStyle::with_name(Origin::Content, "NUM1", ValueType::Number);
     s.push_part(Part::def_number(2, false));
     book.add_value_style(s);
 
-    let mut s = ValueStyle::new_named(Origin::Content, "PERCENT1", ValueType::Percentage);
+    let mut s = ValueStyle::with_name(Origin::Content, "PERCENT1", ValueType::Percentage);
     s.push_parts(Part::def_percentage(2));
     book.add_value_style(s);
 
-    let mut s = ValueStyle::new_named(Origin::Content, "CURRENCY1", ValueType::Currency);
+    let mut s = ValueStyle::with_name(Origin::Content, "CURRENCY1", ValueType::Currency);
     s.push_parts(Part::def_euro());
     book.add_value_style(s);
 
-    let mut s = ValueStyle::new_named(Origin::Content, "DATE1", ValueType::DateTime);
+    let mut s = ValueStyle::with_name(Origin::Content, "DATE1", ValueType::DateTime);
     s.push_parts(Part::def_date());
     book.add_value_style(s);
 
-    let mut s = ValueStyle::new_named(Origin::Content, "DATETIME1", ValueType::DateTime);
+    let mut s = ValueStyle::with_name(Origin::Content, "DATETIME1", ValueType::DateTime);
     s.push_parts(Part::def_datetime());
     book.add_value_style(s);
 
-    let mut s = ValueStyle::new_named(Origin::Content, "TIME1", ValueType::TimeDuration);
+    let mut s = ValueStyle::with_name(Origin::Content, "TIME1", ValueType::TimeDuration);
     s.push_parts(Part::def_time());
     book.add_value_style(s);
 
-    let s = Style::new_named(Origin::Content, Family::TableCell, "DEFAULT-BOOL", "BOOLEAN1");
+    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-BOOL", "BOOLEAN1");
     book.add_style(s);
 
-    let s = Style::new_named(Origin::Content, Family::TableCell, "DEFAULT-NUM", "NUM1");
+    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-NUM", "NUM1");
     book.add_style(s);
 
-    let s = Style::new_named(Origin::Content, Family::TableCell, "DEFAULT-PERCENT", "PERCENT1");
+    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-PERCENT", "PERCENT1");
     book.add_style(s);
 
-    let s = Style::new_named(Origin::Content, Family::TableCell, "DEFAULT-CURRENCY", "CURRENCY1");
+    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-CURRENCY", "CURRENCY1");
     book.add_style(s);
 
-    let s = Style::new_named(Origin::Content, Family::TableCell, "DEFAULT-DATE", "DATE1");
+    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-DATE", "DATE1");
     book.add_style(s);
 
-    let s = Style::new_named(Origin::Content, Family::TableCell, "DEFAULT-TIME", "TIME1");
+    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-TIME", "TIME1");
     book.add_style(s);
 
     book.add_def_style(ValueType::Boolean, "DEFAULT-BOOL");
@@ -271,9 +270,9 @@ impl Sheet {
     }
 
     // New, empty, but with a name.
-    pub fn new_named(name: &str) -> Self {
+    pub fn with_name<V: Into<String>>(name: V) -> Self {
         Sheet {
-            name: name.to_string(),
+            name: name.into(),
             data: BTreeMap::new(),
             style: None,
             columns: BTreeMap::new(),
@@ -281,8 +280,28 @@ impl Sheet {
         }
     }
 
-    pub fn set_name(&mut self, name: &str) {
-        self.name = name.to_string();
+    /// Creates a cell-reference for use in formulas.
+    pub fn colrow(row: usize, col: usize) -> String {
+        let mut col_str = String::new();
+
+        let mut col2 = col;
+        while col2 > 0 {
+            let digit = (col % 26) as u8;
+            let cc = ('A' as u8 + digit) as char;
+            col_str.insert(0, cc);
+            col2 /= 26;
+        }
+
+        let mut cell = String::from("[.");
+        cell.push_str(&col_str);
+        cell.push_str(&(row + 1).to_string());
+        cell.push_str("]");
+
+        cell
+    }
+
+    pub fn set_name<V: Into<String>>(&mut self, name: V) {
+        self.name = name.into();
     }
 
     pub fn name(&self) -> &String {
@@ -290,8 +309,8 @@ impl Sheet {
     }
 
     /// Sets the table-style
-    pub fn set_style(&mut self, style: &str) {
-        self.style = Some(style.to_string());
+    pub fn set_style<V: Into<String>>(&mut self, style: V) {
+        self.style = Some(style.into());
     }
 
     pub fn style(&self) -> Option<&String> {
@@ -299,9 +318,9 @@ impl Sheet {
     }
 
     /// Column wide style.
-    pub fn set_column_style(&mut self, col: usize, style: &str) {
+    pub fn set_column_style<V: Into<String>>(&mut self, col: usize, style: V) {
         let v = self.columns.entry(col).or_insert(SColumn::new());
-        v.style = Some(String::from(style));
+        v.style = Some(style.into());
     }
 
     pub fn column_style(&self, col: usize) -> Option<&String> {
@@ -313,9 +332,9 @@ impl Sheet {
     }
 
     /// Default cell style for this column.
-    pub fn set_column_cell_style(&mut self, col: usize, style: &str) {
+    pub fn set_column_cell_style<V: Into<String>>(&mut self, col: usize, style: V) {
         let v = self.columns.entry(col).or_insert(SColumn::new());
-        v.def_cell_style = Some(String::from(style));
+        v.def_cell_style = Some(String::from(style.into()));
     }
 
     pub fn column_cell_style(&self, col: usize) -> Option<&String> {
@@ -327,9 +346,9 @@ impl Sheet {
     }
 
     /// Row style.
-    pub fn set_row_style(&mut self, row: usize, style: &str) {
+    pub fn set_row_style<V: Into<String>>(&mut self, row: usize, style: V) {
         let v = self.rows.entry(row).or_insert(SRow::new());
-        v.style = Some(String::from(style));
+        v.style = Some(style.into());
     }
 
     pub fn row_style(&self, row: usize) -> Option<&String> {
@@ -340,13 +359,8 @@ impl Sheet {
         }
     }
 
-    /// Returns all row data.
-    pub fn row(&self, row: usize) -> Range<(usize, usize), SCell> {
-        self.data.range((row, 0)..(row, usize::max_value()))
-    }
-
     /// Returns a tuple of (max(row)+1, max(col)+1)
-    pub fn max_cell(&self) -> (usize, usize) {
+    pub fn used_grid_size(&self) -> (usize, usize) {
         let max = self.data.keys().fold((0, 0), |mut max, (r, c)| {
             max.0 = usize::max(max.0, *r);
             max.1 = usize::max(max.1, *c);
@@ -361,32 +375,76 @@ impl Sheet {
         self.data.get(&(row, col))
     }
 
-    /// Returns a mutable cell. Creates one if necessary.
-    /// Does not apply default styles.
-    pub fn cell_mut(&mut self, row: usize, col: usize) -> &mut SCell {
+    /// Returns a mutable reference to the cell.
+    pub fn cell_mut(&mut self, row: usize, col: usize) -> Option<&mut SCell> {
+        self.data.get_mut(&(row, col))
+    }
+
+    /// Creates an empty cell if the position is currently empty and returns
+    /// a reference.
+    pub fn create_cell(&mut self, row: usize, col: usize) -> &mut SCell {
         self.data.entry((row, col)).or_insert(SCell::new())
     }
 
-    /// Adds a value. Replaces an existing one.
-    /// If no style is set it updates the default one.
-    pub fn add_cell(&mut self, row: usize, col: usize, cell: SCell) {
-        self.data.insert((row, col), cell);
+    /// Adds a cell. Replaces an existing one.
+    pub fn add_cell(&mut self, row: usize, col: usize, cell: SCell) -> Option<SCell> {
+        self.data.insert((row, col), cell)
     }
 
     // Removes a value.
-    pub fn remove_cell(&mut self, row: usize, col: usize) {
-        self.data.remove(&(row, col));
+    pub fn remove_cell(&mut self, row: usize, col: usize) -> Option<SCell> {
+        self.data.remove(&(row, col))
     }
 
-    /// Sets a value.
-    pub fn add_value(&mut self, row: usize, col: usize, value: Value) {
-        self.add_cell(row, col, SCell::new_value(value));
+    /// Sets a value for the specified cell. Creates a new cell if necessary.
+    pub fn set_value<V: Into<Value>>(&mut self, row: usize, col: usize, value: V) {
+        let mut cell = self.data.entry((row, col)).or_insert(SCell::new());
+        cell.value = Some(value.into());
     }
 
     /// Returns a value
-    pub fn value(&self, row: usize, col: usize) -> Option<&Value> {
+    pub fn value(&self, row: usize, col: usize) -> Option<Value> {
+        if let Some(cell) = self.data.get(&(row, col)) {
+            cell.value.as_ref().map(|v| v.clone())
+        } else {
+            None
+        }
+    }
+
+    /// Returns a value
+    pub fn value_ref(&self, row: usize, col: usize) -> Option<&Value> {
+        if let Some(cell) = self.data.get(&(row, col)) {
+            cell.value.as_ref()
+        } else {
+            None
+        }
+    }
+
+    /// Sets a formula for the specified cell. Creates a new cell if necessary.
+    pub fn set_formula<V: Into<String>>(&mut self, row: usize, col: usize, formula: V) {
+        let mut cell = self.data.entry((row, col)).or_insert(SCell::new());
+        cell.formula = Some(formula.into());
+    }
+
+    /// Returns a value
+    pub fn formula(&self, row: usize, col: usize) -> Option<&String> {
         if let Some(c) = self.data.get(&(row, col)) {
-            Some(&c.value)
+            c.formula.as_ref()
+        } else {
+            None
+        }
+    }
+
+    /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
+    pub fn set_cell_style<V: Into<String>>(&mut self, row: usize, col: usize, style: V) {
+        let mut cell = self.data.entry((row, col)).or_insert(SCell::new());
+        cell.style = Some(style.into());
+    }
+
+    /// Returns a value
+    pub fn cell_style(&self, row: usize, col: usize) -> Option<&String> {
+        if let Some(c) = self.data.get(&(row, col)) {
+            c.style.as_ref()
         } else {
             None
         }
@@ -428,7 +486,7 @@ impl SColumn {
 /// One Cell of the spreadsheet.
 #[derive(Debug)]
 pub struct SCell {
-    value: Value,
+    value: Option<Value>,
     /// Unparsed formula string.
     formula: Option<String>,
     /// Cell style name.
@@ -438,47 +496,47 @@ pub struct SCell {
 impl SCell {
     pub fn new() -> Self {
         SCell {
-            value: Value::Empty,
+            value: None,
             formula: None,
             style: None,
         }
     }
 
-    pub fn new_value(value: Value) -> Self {
+    pub fn with_value<V: Into<Value>>(value: V) -> Self {
         SCell {
-            value,
+            value: Some(value.into()),
             formula: None,
             style: None,
         }
     }
 
-    pub fn value(&self) -> &Value {
-        &self.value
+    pub fn value(&self) -> Option<&Value> {
+        self.value.as_ref()
     }
 
-    pub fn set_value(&mut self, value: Value) {
-        self.value = value;
+    pub fn set_value<V: Into<Value>>(&mut self, value: V) {
+        self.value = Some(value.into());
     }
 
     pub fn formula(&self) -> Option<&String> {
         self.formula.as_ref()
     }
 
-    pub fn set_formula(&mut self, formula: &str) {
-        self.formula = Some(formula.to_string());
+    pub fn set_formula<V: Into<String>>(&mut self, formula: V) {
+        self.formula = Some(formula.into());
     }
 
     pub fn style(&self) -> Option<&String> {
         self.style.as_ref()
     }
 
-    pub fn set_style(&mut self, style: &str) {
-        self.style = Some(style.to_string());
+    pub fn set_style<V: Into<String>>(&mut self, style: V) {
+        self.style = Some(style.into());
     }
 }
 
 /// Content-Values
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Boolean(bool),
     DateTime(NaiveDateTime),
@@ -487,7 +545,6 @@ pub enum Value {
     Currency(String, f64),
     Percentage(f64),
     Text(String),
-    Empty,
 }
 
 impl Value {
@@ -500,7 +557,6 @@ impl Value {
             Value::Text(_) => ValueType::Text,
             Value::TimeDuration(_) => ValueType::TimeDuration,
             Value::DateTime(_) => ValueType::DateTime,
-            Value::Empty => ValueType::Text,
         }
     }
 
@@ -626,7 +682,7 @@ impl Style {
         }
     }
 
-    pub fn new_named(origin: Origin, family: Family, name: &str, value_style: &str) -> Self {
+    pub fn with_name(origin: Origin, family: Family, name: &str, value_style: &str) -> Self {
         Style {
             name: name.to_string(),
             display_name: None,
@@ -818,7 +874,7 @@ impl ValueStyle {
         }
     }
 
-    pub fn new_named(origin: Origin, name: &str, value_type: ValueType) -> Self {
+    pub fn with_name(origin: Origin, name: &str, value_type: ValueType) -> Self {
         ValueStyle {
             name: name.to_string(),
             v_type: value_type,

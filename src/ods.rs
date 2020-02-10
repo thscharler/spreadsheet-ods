@@ -209,7 +209,7 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                     b"table:table-row" => {
                         if let Some(style) = row_style {
                             for r in row..row + row_advance {
-                                sheet.set_row_style(r, &style);
+                                sheet.set_row_style(r, style.clone());
                             }
                             row_style = None;
                         }
@@ -219,85 +219,97 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         row_advance = 1;
                     }
                     b"table:table-cell" => {
+                        let mut cell = sheet.create_cell(row, col);
+
                         match cell_type.as_str() {
                             "string" => {
-                                sheet.add_value(row, col, Value::from(cell_string.unwrap()));
-                                cell_string = None;
+                                if let Some(cs) = cell_string {
+                                    cell.value = Some(Value::from(cs));
+                                }
                             }
                             "float" => {
-                                let f = cell_value.unwrap().parse::<f64>()?;
-                                sheet.add_value(row, col, Value::from(f));
+                                if let Some(cs) = cell_value {
+                                    let f = cs.parse::<f64>()?;
+                                    cell.value = Some(Value::from(f));
+                                }
                                 cell_value = None;
                             }
                             "percentage" => {
-                                let f = cell_value.unwrap().parse::<f64>()?;
-                                sheet.add_value(row, col, Value::percentage(f));
+                                if let Some(cs) = cell_value {
+                                    let f = cs.parse::<f64>()?;
+                                    cell.value = Some(Value::percentage(f));
+                                }
                                 cell_value = None;
                             }
                             "date" => {
-                                let dv = cell_value.unwrap();
-
-                                let td;
-                                if dv.len() == 10 {
-                                    td = NaiveDate::parse_from_str(dv.as_str(), "%Y-%m-%d")?.and_hms(0, 0, 0);
-                                } else {
-                                    td = NaiveDateTime::parse_from_str(dv.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?;
+                                if let Some(cs) = cell_value {
+                                    let td;
+                                    if cs.len() == 10 {
+                                        td = NaiveDate::parse_from_str(cs.as_str(), "%Y-%m-%d")?.and_hms(0, 0, 0);
+                                    } else {
+                                        td = NaiveDateTime::parse_from_str(cs.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?;
+                                    }
+                                    cell.value = Some(Value::from(td));
                                 }
-                                sheet.add_value(row, col, Value::from(td));
                                 cell_value = None;
                             }
                             "time" => {
-                                let mut dv = cell_value.unwrap();
-                                let mut h: u32 = 0;
-                                let mut have_h = false;
-                                let mut m: u32 = 0;
-                                let mut have_m = false;
-                                let mut s: u32 = 0;
-                                let mut have_s = false;
-                                let mut n: u32 = 0;
-                                let mut cn: u8 = 0;
+                                if let Some(mut cs) = cell_value {
+                                    let mut h: u32 = 0;
+                                    let mut have_h = false;
+                                    let mut m: u32 = 0;
+                                    let mut have_m = false;
+                                    let mut s: u32 = 0;
+                                    let mut have_s = false;
+                                    let mut n: u32 = 0;
+                                    let mut cn: u8 = 0;
 
-                                for c in dv.drain(..) {
-                                    match c {
-                                        'P' | 'T' => {}
-                                        '0'..='9' => {
-                                            if !have_h {
-                                                h = h * 10 + (c as u32 - '0' as u32);
-                                            } else if !have_m {
-                                                m = m * 10 + (c as u32 - '0' as u32);
-                                            } else if !have_s {
-                                                s = s * 10 + (c as u32 - '0' as u32);
-                                            } else {
-                                                n = n * 10 + (c as u32 - '0' as u32);
-                                                cn += 1;
+                                    for c in cs.drain(..) {
+                                        match c {
+                                            'P' | 'T' => {}
+                                            '0'..='9' => {
+                                                if !have_h {
+                                                    h = h * 10 + (c as u32 - '0' as u32);
+                                                } else if !have_m {
+                                                    m = m * 10 + (c as u32 - '0' as u32);
+                                                } else if !have_s {
+                                                    s = s * 10 + (c as u32 - '0' as u32);
+                                                } else {
+                                                    n = n * 10 + (c as u32 - '0' as u32);
+                                                    cn += 1;
+                                                }
                                             }
+                                            'H' => have_h = true,
+                                            'M' => have_m = true,
+                                            '.' => have_s = true,
+                                            'S' => {}
+                                            _ => {}
                                         }
-                                        'H' => have_h = true,
-                                        'M' => have_m = true,
-                                        '.' => have_s = true,
-                                        'S' => {}
-                                        _ => {}
                                     }
-                                }
-                                // unseen nano digits
-                                while cn < 9 {
-                                    n = n * 10;
-                                    cn += 1;
-                                }
+                                    // unseen nano digits
+                                    while cn < 9 {
+                                        n = n * 10;
+                                        cn += 1;
+                                    }
 
-                                let secs: u64 = h as u64 * 3600 + m as u64 * 60 + s as u64;
-                                let dur = Duration::from_std(std::time::Duration::new(secs, n))?;
+                                    let secs: u64 = h as u64 * 3600 + m as u64 * 60 + s as u64;
+                                    let dur = Duration::from_std(std::time::Duration::new(secs, n))?;
 
-                                sheet.add_value(row, col, Value::from(dur));
+                                    cell.value = Some(Value::from(dur));
+                                }
                                 cell_value = None;
                             }
                             "boolean" => {
-                                sheet.add_value(row, col, Value::from(&cell_value.unwrap() == "true"));
+                                if let Some(cs) = cell_value {
+                                    cell.value = Some(Value::from(&cs == "true"));
+                                }
                                 cell_value = None;
                             }
                             "currency" => {
-                                let f = cell_value.unwrap().parse::<f64>()?;
-                                sheet.add_value(row, col, Value::currency(&cell_currency.unwrap(), f));
+                                if let Some(cs) = cell_value {
+                                    let f = cs.parse::<f64>()?;
+                                    cell.value = Some(Value::currency(&cell_currency.unwrap(), f));
+                                }
                                 cell_value = None;
                                 cell_currency = None;
                             }
@@ -307,15 +319,16 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         }
 
                         if let Some(formula) = cell_formula {
-                            sheet.cell_mut(row, col).formula = Some(formula);
+                            cell.formula = Some(formula);
                         }
                         cell_formula = None;
                         if let Some(style) = cell_style {
-                            sheet.cell_mut(row, col).style = Some(style);
+                            cell.style = Some(style);
                         }
                         cell_style = None;
 
                         cell_type = String::from("");
+                        cell_string = None;
                         col += 1;
                     }
                     _ => {}
@@ -814,7 +827,7 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
     }
     writer.write_event(xml_start_a("table:table", attr))?;
 
-    let max_cell = sheet.max_cell();
+    let max_cell = sheet.used_grid_size();
 
     // table:table-column
     for c in sheet.columns.keys() {
@@ -927,8 +940,10 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
         if let Some(style) = &cell.style {
             attr.push(("table:style-name", style.to_string()));
         } else {
-            if let Some(style) = book.def_style(cell.value.value_type()) {
-                attr.push(("table:style-name", style.to_string()));
+            if let Some(value) = &cell.value {
+                if let Some(style) = book.def_style(value.value_type()) {
+                    attr.push(("table:style-name", style.to_string()));
+                }
             }
         }
 
@@ -942,10 +957,10 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
 
         let mut is_empty = false;
         match &cell.value {
-            Value::Empty => {
+            None => {
                 is_empty = true;
             }
-            Value::Text(s) => {
+            Some(Value::Text(s)) => {
                 attr.push(("office:value-type", String::from("string")));
                 if let Some(value_style) = value_style {
                     content = value_style.format_str(s);
@@ -953,7 +968,7 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
                     content = s.to_string();
                 }
             }
-            Value::DateTime(d) => {
+            Some(Value::DateTime(d)) => {
                 attr.push(("office:value-type", String::from("date")));
                 attr.push(("office:date-value", d.format("%Y-%m-%dT%H:%M:%S%.f").to_string()));
                 if let Some(value_style) = value_style {
@@ -962,7 +977,7 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
                     content = d.format("%d.%m.%Y").to_string();
                 }
             }
-            Value::TimeDuration(d) => {
+            Some(Value::TimeDuration(d)) => {
                 attr.push(("office:value-type", String::from("time")));
 
                 let mut buf = String::from("PT");
@@ -988,7 +1003,7 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
                     content.push_str(&(d.num_milliseconds() % 1000).to_string());
                 }
             }
-            Value::Boolean(b) => {
+            Some(Value::Boolean(b)) => {
                 attr.push(("office:value-type", String::from("boolean")));
                 attr.push(("office:boolean-value", b.to_string()));
                 if let Some(value_style) = value_style {
@@ -997,7 +1012,7 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
                     content = b.to_string();
                 }
             }
-            Value::Currency(c, v) => {
+            Some(Value::Currency(c, v)) => {
                 attr.push(("office:value-type", String::from("currency")));
                 attr.push(("office:currency", c.to_string()));
                 attr.push(("office:value", v.to_string()));
@@ -1009,7 +1024,7 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
                     content.push_str(&v.to_string());
                 }
             }
-            Value::Number(v) => {
+            Some(Value::Number(v)) => {
                 attr.push(("office:value-type", String::from("float")));
                 attr.push(("office:value", v.to_string()));
                 if let Some(value_style) = value_style {
@@ -1018,7 +1033,7 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
                     content = v.to_string();
                 }
             }
-            Value::Percentage(v) => {
+            Some(Value::Percentage(v)) => {
                 attr.push(("office:value-type", String::from("percentage")));
                 attr.push(("office:value", format!("{}%", v)));
                 if let Some(value_style) = value_style {
