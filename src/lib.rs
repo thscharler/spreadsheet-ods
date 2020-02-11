@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
+use std::collections::btree_map::Range;
 use std::fmt;
 use std::path::PathBuf;
 
@@ -370,6 +371,11 @@ impl Sheet {
         (max.0 + 1, max.1 + 1)
     }
 
+    /// Returns a row of data.
+    pub fn row_cells(&self, row: usize) -> Range<(usize, usize), SCell> {
+        self.data.range((row, 0)..(row + 1, 0))
+    }
+
     /// Returns the cell if available.
     pub fn cell(&self, row: usize, col: usize) -> Option<&SCell> {
         self.data.get(&(row, col))
@@ -484,7 +490,7 @@ impl SColumn {
 }
 
 /// One Cell of the spreadsheet.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SCell {
     value: Option<Value>,
     /// Unparsed formula string.
@@ -700,8 +706,8 @@ impl Style {
         }
     }
 
-    pub fn set_name(&mut self, name: &str) {
-        self.name = name.to_string();
+    pub fn set_name<V: Into<String>>(&mut self, name: V) {
+        self.name = name.into();
     }
 
     pub fn name(&self) -> &String {
@@ -884,8 +890,8 @@ impl ValueStyle {
         }
     }
 
-    pub fn set_name(&mut self, name: &str) {
-        self.name = name.to_string();
+    pub fn set_name<V: Into<String>>(&mut self, name: V) {
+        self.name = name.into();
     }
 
     pub fn name(&self) -> &String {

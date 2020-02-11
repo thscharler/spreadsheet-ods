@@ -14,7 +14,7 @@ use zip;
 use zip::read::ZipFile;
 use zip::write::FileOptions;
 
-use crate::{Family, Origin, Part, PartType, SColumn, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
+use crate::{Family, Origin, Part, PartType, SCell, SColumn, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
 
 #[derive(Debug)]
 pub enum OdsError {
@@ -101,6 +101,8 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
     // Empty rows are omitted and marked with a repeat-count.
     // Empty columns the same, but it's in an empty tag, we can handle there.
     let mut row_advance: usize = 1;
+    // Columns can be repeated, not only empty ones.
+    let mut col_repeat: usize = 1;
 
     let mut row_style: Option<String> = None;
 
@@ -126,11 +128,11 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         for a in e.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"table:name" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     sheet.set_name(v);
                                 }
                                 Ok(ref attr) if attr.key == b"table:style-name" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     sheet.set_style(v);
                                 }
                                 _ => {}
@@ -141,11 +143,11 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         for a in e.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"table:number-rows-repeated" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     row_advance = v.parse::<usize>()?;
                                 }
                                 Ok(ref attr) if attr.key == b"table:style-name" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     row_style = Some(v.to_string());
                                 }
                                 _ => {}
@@ -156,36 +158,40 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         for a in e.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"office:value-type" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     cell_type = v.to_string();
                                 }
                                 Ok(ref attr) if attr.key == b"office:date-value" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     cell_value = Some(v.to_string());
                                 }
                                 Ok(ref attr) if attr.key == b"office:time-value" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     cell_value = Some(v.to_string());
                                 }
                                 Ok(ref attr) if attr.key == b"office:value" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     cell_value = Some(v.to_string());
                                 }
                                 Ok(ref attr) if attr.key == b"office:boolean-value" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     cell_value = Some(v.to_string());
                                 }
                                 Ok(ref attr) if attr.key == b"office:currency" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     cell_currency = Some(v.to_string());
                                 }
                                 Ok(ref attr) if attr.key == b"table:formula" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     cell_formula = Some(v.to_string());
                                 }
                                 Ok(ref attr) if attr.key == b"table:style-name" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     cell_style = Some(v.to_string());
+                                }
+                                Ok(ref attr) if attr.key == b"table:number-columns-repeated" => {
+                                    let v = attr.unescape_and_decode_value(&xml)?;
+                                    col_repeat = v.parse::<usize>()?;
                                 }
                                 _ => {}
                             }
@@ -219,7 +225,7 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         row_advance = 1;
                     }
                     b"table:table-cell" => {
-                        let mut cell = sheet.create_cell(row, col);
+                        let mut cell = SCell::new();
 
                         match cell_type.as_str() {
                             "string" => {
@@ -327,6 +333,13 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         }
                         cell_style = None;
 
+                        while col_repeat > 1 {
+                            sheet.add_cell(row, col, cell.clone());
+                            col += 1;
+                            col_repeat -= 1;
+                        }
+                        sheet.add_cell(row, col, cell);
+
                         cell_type = String::from("");
                         cell_string = None;
                         col += 1;
@@ -344,15 +357,15 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         for a in e.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"table:style-name" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     column.style = Some(v.to_string());
                                 }
                                 Ok(ref attr) if attr.key == b"table:number-columns-repeated" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     repeat = v.parse()?;
                                 }
                                 Ok(ref attr) if attr.key == b"table:default-cell-style-name" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     column.def_cell_style = Some(v.to_string());
                                 }
                                 _ => {}
@@ -372,7 +385,7 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         for a in e.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"table:number-columns-repeated" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     col += v.parse::<usize>()?;
                                 }
                                 _ => {}
@@ -384,8 +397,9 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
             }
             Event::Text(e) => {
                 if DUMP_XML { log::debug!("{:?}", e); }
-                let v = xml.decode(&e)?;
-                cell_string = Some(v.to_string());
+                let v = e.unescape_and_decode(&xml)?;
+                println!("cell value {:?} -> {:?}", e, v);
+                cell_string = Some(v);
             }
             Event::Eof => {
                 if DUMP_XML { log::debug!("eof"); }
@@ -423,12 +437,12 @@ fn read_ods_styles(book: &mut WorkBook,
                         for a in e.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"style:name" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     style.set_name(v);
                                 }
                                 Ok(ref attr) if attr.key == b"style:family" => {
-                                    let v = xml.decode(&attr.value)?;
-                                    match v {
+                                    let v = attr.unescape_and_decode_value(&xml)?;
+                                    match v.as_ref() {
                                         "table" => style.family = Family::Table,
                                         "table-column" => style.family = Family::TableColumn,
                                         "table-row" => style.family = Family::TableRow,
@@ -437,12 +451,12 @@ fn read_ods_styles(book: &mut WorkBook,
                                     }
                                 }
                                 Ok(ref attr) if attr.key == b"style:parent-style-name" => {
-                                    let v = xml.decode(&attr.value)?;
-                                    style.parent = Some(v.to_string());
+                                    let v = attr.unescape_and_decode_value(&xml)?;
+                                    style.parent = Some(v);
                                 }
                                 Ok(ref attr) if attr.key == b"style:data-style-name" => {
-                                    let v = xml.decode(&attr.value)?;
-                                    style.value_style = Some(v.to_string());
+                                    let v = attr.unescape_and_decode_value(&xml)?;
+                                    style.value_style = Some(v);
                                 }
                                 _ => { /* noop */ }
                             }
@@ -458,8 +472,8 @@ fn read_ods_styles(book: &mut WorkBook,
                         for a in e.attributes().with_checks(false) {
                             if let Ok(attr) = a {
                                 let k = xml.decode(&attr.key)?;
-                                let v = xml.decode(&attr.value)?;
-                                style.set_table_prp(k, v.to_owned());
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                style.set_table_prp(k, v);
                             }
                         }
                     }
@@ -467,8 +481,8 @@ fn read_ods_styles(book: &mut WorkBook,
                         for a in e.attributes().with_checks(false) {
                             if let Ok(attr) = a {
                                 let k = xml.decode(&attr.key)?;
-                                let v = xml.decode(&attr.value)?;
-                                style.set_table_col_prp(k, v.to_owned());
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                style.set_table_col_prp(k, v);
                             }
                         }
                     }
@@ -476,8 +490,8 @@ fn read_ods_styles(book: &mut WorkBook,
                         for a in e.attributes().with_checks(false) {
                             if let Ok(attr) = a {
                                 let k = xml.decode(&attr.key)?;
-                                let v = xml.decode(&attr.value)?;
-                                style.set_table_row_prp(k, v.to_owned());
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                style.set_table_row_prp(k, v);
                             }
                         }
                     }
@@ -485,8 +499,8 @@ fn read_ods_styles(book: &mut WorkBook,
                         for a in e.attributes().with_checks(false) {
                             if let Ok(attr) = a {
                                 let k = xml.decode(&attr.key)?;
-                                let v = xml.decode(&attr.value)?;
-                                style.set_table_cell_prp(k, v.to_owned());
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                style.set_table_cell_prp(k, v);
                             }
                         }
                     }
@@ -494,8 +508,8 @@ fn read_ods_styles(book: &mut WorkBook,
                         for a in e.attributes().with_checks(false) {
                             if let Ok(attr) = a {
                                 let k = xml.decode(&attr.key)?;
-                                let v = xml.decode(&attr.value)?;
-                                style.set_text_prp(k, v.to_owned());
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                style.set_text_prp(k, v);
                             }
                         }
                     }
@@ -503,8 +517,8 @@ fn read_ods_styles(book: &mut WorkBook,
                         for a in e.attributes().with_checks(false) {
                             if let Ok(attr) = a {
                                 let k = xml.decode(&attr.key)?;
-                                let v = xml.decode(&attr.value)?;
-                                style.set_paragraph_prp(k, v.to_owned());
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                style.set_paragraph_prp(k, v);
                             }
                         }
                     }
@@ -530,13 +544,13 @@ fn read_ods_styles(book: &mut WorkBook,
                         for a in e.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"style:name" => {
-                                    let v = xml.decode(&attr.value)?;
+                                    let v = attr.unescape_and_decode_value(&xml)?;
                                     value_style.set_name(v);
                                 }
                                 Ok(ref attr) => {
                                     let k = xml.decode(&attr.key)?;
-                                    let v = xml.decode(&attr.value)?;
-                                    value_style.set_prp(k, v.to_owned());
+                                    let v = attr.unescape_and_decode_value(&xml)?;
+                                    value_style.set_prp(k, v);
                                 }
                                 _ => {}
                             }
@@ -588,8 +602,8 @@ fn read_ods_styles(book: &mut WorkBook,
             Event::Text(ref e) => {
                 if DUMP_XML { log::debug!(" style {:?}", e); }
 
-                let v = xml.decode(&e)?;
-                cell_string = Some(v.to_string());
+                let v = e.unescape_and_decode(&xml)?;
+                cell_string = Some(v);
             }
 
             Event::End(ref e) => {
@@ -655,8 +669,8 @@ fn attr_to_map(xml: &mut Reader<BufReader<&mut ZipFile>>, e: &BytesStart) -> Res
     for a in e.attributes().with_checks(false) {
         if let Ok(ref attr) = a {
             let k = xml.decode(&attr.key)?;
-            let v = xml.decode(&attr.value)?;
-            m.insert(k.to_owned(), v.to_owned());
+            let v = attr.unescape_and_decode_value(&xml)?;
+            m.insert(k.to_owned(), v);
         }
     }
 
