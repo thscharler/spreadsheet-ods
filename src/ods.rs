@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::Path;
+use std::rc::Rc;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime};
 use log;
@@ -214,8 +215,9 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                     }
                     b"table:table-row" => {
                         if let Some(style) = row_style {
+                            let style_rc = Rc::new(style);
                             for r in row..row + row_advance {
-                                sheet.set_row_style(r, style.clone());
+                                sheet.set_row_style_rc(r, Rc::clone(&style_rc));
                             }
                             row_style = None;
                         }
@@ -398,7 +400,6 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
             Event::Text(e) => {
                 if DUMP_XML { log::debug!("{:?}", e); }
                 let v = e.unescape_and_decode(&xml)?;
-                println!("cell value {:?} -> {:?}", e, v);
                 cell_string = Some(v);
             }
             Event::Eof => {
