@@ -1,19 +1,18 @@
-use std::collections::{BTreeMap, HashMap};
-use std::fs::File;
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::fs::{File, rename};
 use std::io;
 use std::io::{BufReader, BufWriter, Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime};
 use log;
-use quick_xml::{Reader, Writer};
+use quick_xml;
 use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
-use tempfile::TempDir;
-use walkdir::WalkDir;
 use zip;
 use zip::read::ZipFile;
 use zip::write::FileOptions;
+use zip::ZipWriter;
 
 use crate::{Family, Origin, Part, PartType, SCell, SColumn, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
 
@@ -26,6 +25,7 @@ pub enum OdsError {
     ParseFloat(std::num::ParseFloatError),
     Chrono(chrono::format::ParseError),
     Duration(time::OutOfRangeError),
+    SystemTime(std::time::SystemTimeError),
 }
 
 impl From<time::OutOfRangeError> for OdsError {
@@ -67,6 +67,12 @@ impl From<std::num::ParseFloatError> for OdsError {
 impl From<chrono::format::ParseError> for OdsError {
     fn from(err: chrono::format::ParseError) -> OdsError {
         OdsError::Chrono(err)
+    }
+}
+
+impl From<std::time::SystemTimeError> for OdsError {
+    fn from(err: std::time::SystemTimeError) -> OdsError {
+        OdsError::SystemTime(err)
     }
 }
 
@@ -416,7 +422,7 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
 }
 
 fn read_ods_styles(book: &mut WorkBook,
-                   xml: &mut Reader<BufReader<&mut ZipFile>>,
+                   xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                    end_tag: &[u8]) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
@@ -664,7 +670,7 @@ fn read_ods_styles(book: &mut WorkBook,
     Ok(())
 }
 
-fn attr_to_map(xml: &mut Reader<BufReader<&mut ZipFile>>, e: &BytesStart) -> Result<HashMap<String, String>, OdsError> {
+fn attr_to_map(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>, e: &BytesStart) -> Result<HashMap<String, String>, OdsError> {
     let mut m = HashMap::<String, String>::new();
 
     for a in e.attributes().with_checks(false) {
@@ -678,57 +684,138 @@ fn attr_to_map(xml: &mut Reader<BufReader<&mut ZipFile>>, e: &BytesStart) -> Res
     Ok(m)
 }
 
-/// Writes the ODS.
-pub fn write_ods(book: &WorkBook, path: &Path) -> Result<(), OdsError> {
-    let tmp_dir = tempfile::tempdir()?;
+fn xml_start(tag: &str) -> Event {
+    let b = BytesStart::owned_name(tag.as_bytes());
+    Event::Start(b)
+}
 
-    if let Some(file) = &book.file {
-        unzip(file, &tmp_dir)?;
+fn xml_start_a<'a>(tag: &'a str, attr: Vec<(&'a str, String)>) -> Event::<'a> {
+    let mut b = BytesStart::owned_name(tag.as_bytes());
+
+    for (a, v) in attr {
+        b.push_attribute((a, v.as_ref()));
     }
 
-    let mut tmp_buf = tmp_dir.path().to_path_buf();
-    tmp_buf.push("content.xml");
-    write_ods_content(&tmp_buf, book)?;
+    Event::Start(b)
+}
 
-    let mut tmp_buf = tmp_dir.path().to_path_buf();
-    tmp_buf.push("META-INF/manifest.xml");
-    if !tmp_buf.exists() {
-        write_data(&tmp_buf, MANIFEST_XML_CONTENT)?;
+fn xml_start_o<'a>(tag: &'a str, attr: Option<&'a HashMap<String, String>>) -> Event::<'a> {
+    if let Some(attr) = attr {
+        xml_start_m(tag, attr)
+    } else {
+        xml_start(tag)
+    }
+}
+
+fn xml_start_m<'a>(tag: &'a str, attr: &'a HashMap<String, String>) -> Event::<'a> {
+    let mut b = BytesStart::owned_name(tag.as_bytes());
+
+    for (a, v) in attr {
+        b.push_attribute((a.as_str(), v.as_str()));
     }
 
-    create_zip(path, &tmp_dir)?;
+    Event::Start(b)
+}
+
+fn xml_text(text: &str) -> Event {
+    Event::Text(BytesText::from_plain_str(text))
+}
+
+fn xml_end(tag: &str) -> Event {
+    let b = BytesEnd::borrowed(tag.as_bytes());
+    Event::End(b)
+}
+
+fn xml_empty(tag: &str) -> Event {
+    let b = BytesStart::owned_name(tag.as_bytes());
+    Event::Empty(b)
+}
+
+fn xml_empty_a<'a>(tag: &'a str, attr: Vec<(&'a str, String)>) -> Event::<'a> {
+    let mut b = BytesStart::owned_name(tag.as_bytes());
+
+    for (a, v) in attr {
+        b.push_attribute((a, v.as_ref()));
+    }
+
+    Event::Empty(b)
+}
+
+fn xml_empty_o<'a>(tag: &'a str, attr: Option<&'a HashMap<String, String>>) -> Event::<'a> {
+    if let Some(attr) = attr {
+        xml_empty_m(tag, attr)
+    } else {
+        xml_empty(tag)
+    }
+}
+
+fn xml_empty_m<'a>(tag: &'a str, attr: &'a HashMap<String, String>) -> Event::<'a> {
+    let mut b = BytesStart::owned_name(tag.as_bytes());
+
+    for (a, v) in attr.iter() {
+        b.push_attribute((a.as_str(), v.as_str()));
+    }
+
+    Event::Empty(b)
+}
+
+/// Writes the ODS file.
+pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
+    let orig_bak = if let Some(ods_orig) = &book.file {
+        let mut orig_bak = ods_orig.clone();
+        orig_bak.set_extension("bak");
+        rename(&ods_orig, &orig_bak)?;
+        Some(orig_bak)
+    } else {
+        None
+    };
+
+    let zip_file = File::create(ods_path)?;
+    let mut zip_writer = zip::ZipWriter::new(BufWriter::new(zip_file));
+
+    let mut file_set = HashSet::<String>::new();
+
+    if let Some(orig_bak) = orig_bak {
+        copy_workbook(&orig_bak, &mut file_set, &mut zip_writer)?;
+    }
+
+    write_mimetype(&mut zip_writer, &mut file_set)?;
+    write_manifest(&mut zip_writer, &mut file_set)?;
+    write_manifest_rdf(&mut zip_writer, &mut file_set)?;
+    write_meta(&mut zip_writer, &mut file_set)?;
+    //write_settings(&mut zip_writer, &mut file_set)?;
+    //write_configurations(&mut zip_writer, &mut file_set)?;
+
+    write_ods_styles(&mut zip_writer, &mut file_set)?;
+    write_ods_content(&book, &mut zip_writer, &mut file_set)?;
 
     Ok(())
 }
 
-// Unzips all files to the tmpdir.
-fn unzip(zip_file_path: &Path, tmpdir: &TempDir) -> Result<(), io::Error> {
-    let zip_file = File::open(zip_file_path)?;
-    // ods is a zip-archive, we read content.xml
-    let mut zip = zip::ZipArchive::new(zip_file)?;
+fn copy_workbook(ods_orig_name: &PathBuf, file_set: &mut HashSet<String>, zip_writer: &mut ZipWriter<BufWriter<File>>) -> Result<(), OdsError> {
+    let ods_orig = File::open(ods_orig_name)?;
+    let mut zip_orig = zip::ZipArchive::new(ods_orig)?;
 
-    for i in 0..zip.len() {
-        let mut zip_entry = zip.by_index(i)?;
+    for i in 0..zip_orig.len() {
+        let mut zip_entry = zip_orig.by_index(i)?;
 
         if zip_entry.is_dir() {
-            let mut out_dir_path = tmpdir.path().to_path_buf();
-            out_dir_path.push(Path::new(zip_entry.name()));
-            std::fs::create_dir_all(out_dir_path)?;
+            if !file_set.contains(zip_entry.name()) {
+                file_set.insert(zip_entry.name().to_string());
+                zip_writer.add_directory(zip_entry.name(), FileOptions::default())?;
+            }
         } else {
-            let mut out_file_path = tmpdir.path().to_path_buf();
-            out_file_path.push(Path::new(zip_entry.name()));
-            if let Some(parent) = out_file_path.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-            let mut out_file = File::create(out_file_path)?;
-
-            let mut buf: [u8; 1024] = [0; 1024];
-            loop {
-                let n = zip_entry.read(&mut buf)?;
-                if n == 0 {
-                    break;
-                } else {
-                    out_file.write_all(&buf[0..n])?;
+            if !file_set.contains(zip_entry.name()) {
+                file_set.insert(zip_entry.name().to_string());
+                zip_writer.start_file(zip_entry.name(), FileOptions::default())?;
+                let mut buf: [u8; 1024] = [0; 1024];
+                loop {
+                    let n = zip_entry.read(&mut buf)?;
+                    if n == 0 {
+                        break;
+                    } else {
+                        zip_writer.write_all(&buf[0..n])?;
+                    }
                 }
             }
         }
@@ -737,45 +824,272 @@ fn unzip(zip_file_path: &Path, tmpdir: &TempDir) -> Result<(), io::Error> {
     Ok(())
 }
 
-fn create_zip(zip_path: &Path, tmp_dir: &TempDir) -> Result<(), io::Error> {
-    let zip_file = File::create(zip_path)?;
-    let mut zip_writer = zip::ZipWriter::new(BufWriter::new(zip_file));
-    let options = FileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated)
-        .unix_permissions(0o644);
+fn write_mimetype(zip_out: &mut ZipWriter<BufWriter<File>>, file_set: &mut HashSet<String>) -> Result<(), io::Error> {
+    if !file_set.contains("mimetype") {
+        file_set.insert(String::from("mimetype"));
 
-    let walk = WalkDir::new(tmp_dir.path());
-    for it in walk.into_iter().filter_map(|e| e.ok()) {
-        let path = it.path();
-        let name = path.strip_prefix(Path::new(tmp_dir.path())).unwrap().to_str().unwrap();
+        zip_out.start_file("mimetype", FileOptions::default().compression_method(zip::CompressionMethod::Stored))?;
 
-        if path.is_file() {
-            zip_writer.start_file(name, options)?;
-
-            let mut reader = File::open(path)?;
-            let mut buf: [u8; 1024] = [0; 1024];
-            loop {
-                let n = reader.read(&mut buf)?;
-                if n == 0 {
-                    break;
-                } else {
-                    zip_writer.write_all(&buf[0..n])?;
-                }
-            }
-        }
+        let mime = "application/vnd.oasis.opendocument.spreadsheet";
+        zip_out.write_all(mime.as_bytes())?;
     }
 
     Ok(())
 }
 
-fn write_ods_content(path: &Path, book: &WorkBook) -> Result<(), OdsError> {
-    let f = File::create(path)?;
+fn write_manifest(zip_out: &mut ZipWriter<BufWriter<File>>, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+    if !file_set.contains("META-INF/manifest.xml") {
+        file_set.insert(String::from("META-INF/manifest.xml"));
 
-    let mut writer = Writer::new(BufWriter::new(f));
+        zip_out.add_directory("META-INF", FileOptions::default())?;
+        zip_out.start_file("META-INF/manifest.xml", FileOptions::default())?;
 
-    writer.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
-    writer.write(b"\n")?;
-    writer.write_event(xml_start_a("office:document-content", vec![
+        let mut xml_out = quick_xml::Writer::new_with_indent(zip_out, 32, 1);
+
+        xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
+
+        xml_out.write_event(xml_start_a("manifest:manifest", vec![
+            ("xmlns:manifest", String::from("urn:oasis:names:tc:opendocument:xmlns:manifest:1.0")),
+            ("manifest:version", String::from("1.2")),
+        ]))?;
+
+        xml_out.write_event(xml_empty_a("manifest:file-entry", vec![
+            ("manifest:full-path", String::from("/")),
+            ("manifest:version", String::from("1.2")),
+            ("manifest:media-type", String::from("application/vnd.oasis.opendocument.spreadsheet")),
+        ]))?;
+//        xml_out.write_event(xml_empty_a("manifest:file-entry", vec![
+//            ("manifest:full-path", String::from("Configurations2/")),
+//            ("manifest:media-type", String::from("application/vnd.sun.xml.ui.configuration")),
+//        ]))?;
+        xml_out.write_event(xml_empty_a("manifest:file-entry", vec![
+            ("manifest:full-path", String::from("manifest.rdf")),
+            ("manifest:media-type", String::from("application/rdf+xml")),
+        ]))?;
+        xml_out.write_event(xml_empty_a("manifest:file-entry", vec![
+            ("manifest:full-path", String::from("styles.xml")),
+            ("manifest:media-type", String::from("text/xml")),
+        ]))?;
+        xml_out.write_event(xml_empty_a("manifest:file-entry", vec![
+            ("manifest:full-path", String::from("meta.xml")),
+            ("manifest:media-type", String::from("text/xml")),
+        ]))?;
+        xml_out.write_event(xml_empty_a("manifest:file-entry", vec![
+            ("manifest:full-path", String::from("content.xml")),
+            ("manifest:media-type", String::from("text/xml")),
+        ]))?;
+//        xml_out.write_event(xml_empty_a("manifest:file-entry", vec![
+//            ("manifest:full-path", String::from("settings.xml")),
+//            ("manifest:media-type", String::from("text/xml")),
+//        ]))?;
+        xml_out.write_event(xml_end("manifest:manifest"))?;
+    }
+
+    Ok(())
+}
+
+fn write_manifest_rdf(zip_out: &mut ZipWriter<BufWriter<File>>, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+    if !file_set.contains("manifest.rdf") {
+        file_set.insert(String::from("manifest.rdf"));
+
+        zip_out.start_file("manifest.rdf", FileOptions::default())?;
+
+        let mut xml_out = quick_xml::Writer::new(zip_out);
+
+        xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
+        xml_out.write(b"\n")?;
+
+        xml_out.write_event(xml_start_a("rdf:RDF", vec![
+            ("xmlns:rdf", String::from("http://www.w3.org/1999/02/22-rdf-syntax-ns#")),
+        ]))?;
+
+        xml_out.write_event(xml_start_a("rdf:Description", vec![
+            ("rdf:about", String::from("content.xml")),
+        ]))?;
+        xml_out.write_event(xml_empty_a("rdf:type", vec![
+            ("rdf:resource", String::from("http://docs.oasis-open.org/ns/office/1.2/meta/odf#ContentFile")),
+        ]))?;
+        xml_out.write_event(xml_end("rdf:Description"))?;
+
+        xml_out.write_event(xml_start_a("rdf:Description", vec![
+            ("rdf:about", String::from("")),
+        ]))?;
+        xml_out.write_event(xml_empty_a("ns0:hasPart", vec![
+            ("xmlns:ns0", String::from("http://docs.oasis-open.org/ns/office/1.2/meta/pkg#")),
+            ("rdf:resource", String::from("content.xml")),
+        ]))?;
+        xml_out.write_event(xml_end("rdf:Description"))?;
+
+        xml_out.write_event(xml_start_a("rdf:Description", vec![
+            ("rdf:about", String::from("")),
+        ]))?;
+        xml_out.write_event(xml_empty_a("rdf:type", vec![
+            ("rdf:resource", String::from("http://docs.oasis-open.org/ns/office/1.2/meta/pkg#Document")),
+        ]))?;
+        xml_out.write_event(xml_end("rdf:Description"))?;
+
+        xml_out.write_event(xml_end("rdf:RDF"))?;
+    }
+
+    Ok(())
+}
+
+fn write_meta(zip_out: &mut ZipWriter<BufWriter<File>>, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+    if !file_set.contains("meta.xml") {
+        file_set.insert(String::from("meta.xml"));
+
+        zip_out.start_file("meta.xml", FileOptions::default())?;
+
+        let mut xml_out = quick_xml::Writer::new(zip_out);
+
+        xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
+        xml_out.write(b"\n")?;
+
+        xml_out.write_event(xml_start_a("office:document-meta", vec![
+            ("xmlns:meta", String::from("urn:oasis:names:tc:opendocument:xmlns:meta:1.0")),
+            ("xmlns:office", String::from("urn:oasis:names:tc:opendocument:xmlns:office:1.0")),
+            ("office:version", String::from("1.2")),
+        ]))?;
+
+        xml_out.write_event(xml_start("office:meta"))?;
+
+        xml_out.write_event(xml_start("meta:generator"))?;
+        xml_out.write_event(xml_text("spreadsheet-ods 0.1.0"))?;
+        xml_out.write_event(xml_end("meta:generator"))?;
+
+        xml_out.write_event(xml_start("meta:creation-date"))?;
+        let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
+        let d = NaiveDateTime::from_timestamp(s.as_secs() as i64, 0);
+        xml_out.write_event(xml_text(&d.format("%Y-%m-%dT%H:%M:%S%.f").to_string()))?;
+        xml_out.write_event(xml_end("meta:creation-date"))?;
+
+        xml_out.write_event(xml_start("meta:editing-duration"))?;
+        xml_out.write_event(xml_text("P0D"))?;
+        xml_out.write_event(xml_end("meta:editing-duration"))?;
+
+        xml_out.write_event(xml_start("meta:editing-cycles"))?;
+        xml_out.write_event(xml_text("1"))?;
+        xml_out.write_event(xml_end("meta:editing-cycles"))?;
+
+        xml_out.write_event(xml_start("meta:initial-creator"))?;
+        xml_out.write_event(xml_text(&username::get_user_name().unwrap()))?;
+        xml_out.write_event(xml_end("meta:initial-creator"))?;
+
+        xml_out.write_event(xml_end("office:meta"))?;
+
+        xml_out.write_event(xml_end("office:document-meta"))?;
+    }
+
+    Ok(())
+}
+
+//fn write_settings(zip_out: &mut ZipWriter<BufWriter<File>>, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+//    if !file_set.contains("settings.xml") {
+//        file_set.insert(String::from("settings.xml"));
+//
+//        zip_out.start_file("settings.xml", FileOptions::default())?;
+//
+//        let mut xml_out = quick_xml::Writer::new(zip_out);
+//
+//        xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
+//        xml_out.write(b"\n")?;
+//
+//        xml_out.write_event(xml_start_a("office:document-settings", vec![
+//            ("xmlns:office", String::from("urn:oasis:names:tc:opendocument:xmlns:office:1.0")),
+//            ("xmlns:ooo", String::from("http://openoffice.org/2004/office")),
+//            ("xmlns:config", String::from("urn:oasis:names:tc:opendocument:xmlns:config:1.0")),
+//            ("office:version", String::from("1.2")),
+//        ]))?;
+//
+//        xml_out.write_event(xml_start("office:settings"))?;
+//        xml_out.write_event(xml_end("office:settings"))?;
+//
+//        xml_out.write_event(xml_end("office:document-settings"))?;
+//    }
+//
+//    Ok(())
+//}
+
+//fn write_configurations(zip_out: &mut ZipWriter<BufWriter<File>>, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+//    if !file_set.contains("Configurations2") {
+//        file_set.insert(String::from("Configurations2"));
+//        file_set.insert(String::from("Configurations2/accelerator"));
+//        file_set.insert(String::from("Configurations2/floater"));
+//        file_set.insert(String::from("Configurations2/images"));
+//        file_set.insert(String::from("Configurations2/images/Bitmaps"));
+//        file_set.insert(String::from("Configurations2/menubar"));
+//        file_set.insert(String::from("Configurations2/popupmenu"));
+//        file_set.insert(String::from("Configurations2/progressbar"));
+//        file_set.insert(String::from("Configurations2/statusbar"));
+//        file_set.insert(String::from("Configurations2/toolbar"));
+//        file_set.insert(String::from("Configurations2/toolpanel"));
+//
+//        zip_out.add_directory("Configurations2", FileOptions::default())?;
+//        zip_out.add_directory("Configurations2/accelerator", FileOptions::default())?;
+//        zip_out.add_directory("Configurations2/floater", FileOptions::default())?;
+//        zip_out.add_directory("Configurations2/images", FileOptions::default())?;
+//        zip_out.add_directory("Configurations2/images/Bitmaps", FileOptions::default())?;
+//        zip_out.add_directory("Configurations2/menubar", FileOptions::default())?;
+//        zip_out.add_directory("Configurations2/popupmenu", FileOptions::default())?;
+//        zip_out.add_directory("Configurations2/progressbar", FileOptions::default())?;
+//        zip_out.add_directory("Configurations2/statusbar", FileOptions::default())?;
+//        zip_out.add_directory("Configurations2/toolbar", FileOptions::default())?;
+//        zip_out.add_directory("Configurations2/toolpanel", FileOptions::default())?;
+//    }
+//
+//    Ok(())
+//}
+
+fn write_ods_styles(zip_out: &mut ZipWriter<BufWriter<File>>, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+    if !file_set.contains("styles.xml") {
+        file_set.insert(String::from("styles.xml"));
+
+        zip_out.start_file("styles.xml", FileOptions::default())?;
+
+        let mut xml_out = quick_xml::Writer::new(zip_out);
+
+        xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
+        xml_out.write(b"\n")?;
+
+        xml_out.write_event(xml_start_a("office:document-styles", vec![
+            ("xmlns:meta", String::from("urn:oasis:names:tc:opendocument:xmlns:meta:1.0")),
+            ("xmlns:office", String::from("urn:oasis:names:tc:opendocument:xmlns:office:1.0")),
+            ("xmlns:fo", String::from("urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0")),
+            ("xmlns:style", String::from("urn:oasis:names:tc:opendocument:xmlns:style:1.0")),
+            ("xmlns:text", String::from("urn:oasis:names:tc:opendocument:xmlns:text:1.0")),
+            ("xmlns:dr3d", String::from("urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0")),
+            ("xmlns:svg", String::from("urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0")),
+            ("xmlns:chart", String::from("urn:oasis:names:tc:opendocument:xmlns:chart:1.0")),
+            ("xmlns:table", String::from("urn:oasis:names:tc:opendocument:xmlns:table:1.0")),
+            ("xmlns:number", String::from("urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0")),
+            ("xmlns:of", String::from("urn:oasis:names:tc:opendocument:xmlns:of:1.2")),
+            ("xmlns:calcext", String::from("urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0")),
+            ("xmlns:loext", String::from("urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0")),
+            ("xmlns:field", String::from("urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0")),
+            ("xmlns:form", String::from("urn:oasis:names:tc:opendocument:xmlns:form:1.0")),
+            ("xmlns:script", String::from("urn:oasis:names:tc:opendocument:xmlns:script:1.0")),
+            ("xmlns:presentation", String::from("urn:oasis:names:tc:opendocument:xmlns:presentation:1.0")),
+            ("office:version", String::from("1.2")),
+        ]))?;
+
+        // TODO
+
+        xml_out.write_event(xml_end("office:document-styles"))?;
+    }
+
+    Ok(())
+}
+
+fn write_ods_content(book: &WorkBook, zip_out: &mut ZipWriter<BufWriter<File>>, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+    file_set.insert(String::from("content.xml"));
+
+    zip_out.start_file("content.xml", FileOptions::default())?;
+
+    let mut xml_out = quick_xml::Writer::new(zip_out);
+
+    xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
+    xml_out.write(b"\n")?;
+    xml_out.write_event(xml_start_a("office:document-content", vec![
         ("xmlns:presentation", String::from("urn:oasis:names:tc:opendocument:xmlns:presentation:1.0")),
         ("xmlns:grddl", String::from("http://www.w3.org/2003/g/data-view#")),
         ("xmlns:xhtml", String::from("http://www.w3.org/1999/xhtml")),
@@ -813,34 +1127,35 @@ fn write_ods_content(path: &Path, book: &WorkBook) -> Result<(), OdsError> {
         ("xmlns:drawooo", String::from("http://openoffice.org/2010/draw")),
         ("office:version", String::from("1.2")),
     ]))?;
-    writer.write_event(xml_empty("office:scripts"))?;
+    xml_out.write_event(xml_empty("office:scripts"))?;
+    xml_out.write_event(xml_empty("office:font-face-decls"))?;
 
-    writer.write_event(xml_start("office:automatic-styles"))?;
-    write_styles(&mut writer, &book.styles, Origin::Content)?;
-    write_value_styles(&mut writer, &book.value_styles, Origin::Content)?;
-    writer.write_event(xml_end("office:automatic-styles"))?;
+    xml_out.write_event(xml_start("office:automatic-styles"))?;
+    write_styles(&book.styles, Origin::Content, &mut xml_out)?;
+    write_value_styles(&book.value_styles, Origin::Content, &mut xml_out)?;
+    xml_out.write_event(xml_end("office:automatic-styles"))?;
 
-    writer.write_event(xml_start("office:body"))?;
-    writer.write_event(xml_start("office:spreadsheet"))?;
+    xml_out.write_event(xml_start("office:body"))?;
+    xml_out.write_event(xml_start("office:spreadsheet"))?;
 
     for sheet in &book.sheets {
-        write_sheet(&mut writer, &sheet, &book)?;
+        write_sheet(&book, &sheet, &mut xml_out)?;
     }
 
-    writer.write_event(xml_end("office:spreadsheet"))?;
-    writer.write_event(xml_end("office:body"))?;
-    writer.write_event(xml_end("office:document-content"))?;
+    xml_out.write_event(xml_end("office:spreadsheet"))?;
+    xml_out.write_event(xml_end("office:body"))?;
+    xml_out.write_event(xml_end("office:document-content"))?;
 
     Ok(())
 }
 
-fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkBook) -> Result<(), OdsError> {
+fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut quick_xml::Writer<&mut ZipWriter<BufWriter<File>>>) -> Result<(), OdsError> {
     let mut attr: Vec<(&str, String)> = Vec::new();
     attr.push(("table-name", sheet.name.to_string()));
     if let Some(style) = &sheet.style {
-        attr.push(("table:style", style.to_string()));
+        attr.push(("table:style-name", style.to_string()));
     }
-    writer.write_event(xml_start_a("table:table", attr))?;
+    xml_out.write_event(xml_start_a("table:table", attr))?;
 
     let max_cell = sheet.used_grid_size();
 
@@ -868,7 +1183,7 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
         if let Some(style) = &column.def_cell_style {
             attr.push(("table:default-cell-style-name", style.to_string()));
         }
-        writer.write_event(xml_empty_a("table:table-column", attr))?;
+        xml_out.write_event(xml_empty_a("table:table-column", attr))?;
     }
 
     // table-row + table-cell
@@ -906,7 +1221,7 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
 
         // After the first cell there is always an open row tag.
         if backward_dr > 0 && !first_cell {
-            writer.write_event(xml_end("table:table-row"))?;
+            xml_out.write_event(xml_end("table:table-row"))?;
         }
 
         // Any empty rows before this one?
@@ -917,12 +1232,12 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
             if empty_count > 1 {
                 attr.push(("table:number-rows-repeated", empty_count.to_string()));
             }
-            writer.write_event(xml_start_a("table:table-row", attr))?;
+            xml_out.write_event(xml_start_a("table:table-row", attr))?;
             // We fill the empty spaces completely up to max columns.
-            writer.write_event(xml_empty_a("table:table-cell", vec![
+            xml_out.write_event(xml_empty_a("table:table-cell", vec![
                 ("table:number-columns-repeated", max_cell.1.to_string()),
             ]))?;
-            writer.write_event(xml_end("table:table-row"))?;
+            xml_out.write_event(xml_end("table:table-row"))?;
         }
 
         // Start a new row if there is a delta or we are at the start
@@ -933,11 +1248,11 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
                     attr.push(("table:style-name", style.to_string()));
                 }
             }
-            writer.write_event(xml_start_a("table:table-row", attr))?;
+            xml_out.write_event(xml_start_a("table:table-row", attr))?;
 
             // Might not be the first column in this row.
             if backward_dc > 0 {
-                writer.write_event(xml_empty_a("table:table-cell", vec![
+                xml_out.write_event(xml_empty_a("table:table-cell", vec![
                     ("table:number-columns-repeated", backward_dc.to_string()),
                 ]))?;
             }
@@ -1060,20 +1375,20 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
         }
 
         if !is_empty {
-            writer.write_event(xml_start_a("table:table-cell", attr))?;
-            writer.write_event(xml_start("text:p"))?;
-            writer.write_event(xml_text(&content))?;
-            writer.write_event(xml_end("text:p"))?;
-            writer.write_event(xml_end("table:table-cell"))?;
+            xml_out.write_event(xml_start_a("table:table-cell", attr))?;
+            xml_out.write_event(xml_start("text:p"))?;
+            xml_out.write_event(xml_text(&content))?;
+            xml_out.write_event(xml_end("text:p"))?;
+            xml_out.write_event(xml_end("table:table-cell"))?;
         } else {
-            writer.write_event(xml_empty_a("table:table-cell", attr))?;
+            xml_out.write_event(xml_empty_a("table:table-cell", attr))?;
         }
 
         // There may be some blank cells until the next one, but only one less the forward.
         if forward_dc > 1 {
             attr = Vec::new();
             attr.push(("table:number-columns-repeated", (forward_dc - 1).to_string()));
-            writer.write_event(xml_empty_a("table:table-cell", attr))?;
+            xml_out.write_event(xml_empty_a("table:table-cell", attr))?;
         }
 
         first_cell = false;
@@ -1082,15 +1397,15 @@ fn write_sheet(writer: &mut Writer<BufWriter<File>>, sheet: &Sheet, book: &WorkB
     }
 
     if !first_cell {
-        writer.write_event(xml_end("table:table-row"))?;
+        xml_out.write_event(xml_end("table:table-row"))?;
     }
 
-    writer.write_event(xml_end("table:table"))?;
+    xml_out.write_event(xml_end("table:table"))?;
 
     Ok(())
 }
 
-fn write_styles(writer: &mut Writer<BufWriter<File>>, styles: &BTreeMap<String, Style>, origin: Origin) -> Result<(), OdsError> {
+fn write_styles(styles: &BTreeMap<String, Style>, origin: Origin, xml_out: &mut quick_xml::Writer<&mut ZipWriter<BufWriter<File>>>) -> Result<(), OdsError> {
     for style in styles.values().filter(|s| s.origin == origin) {
         let mut attr: Vec<(&str, String)> = Vec::new();
 
@@ -1112,34 +1427,34 @@ fn write_styles(writer: &mut Writer<BufWriter<File>>, styles: &BTreeMap<String, 
         if let Some(value_style) = &style.value_style {
             attr.push(("style:data-style-name", value_style.to_string()));
         }
-        writer.write_event(xml_start_a("style:style", attr))?;
+        xml_out.write_event(xml_start_a("style:style", attr))?;
 
         if let Some(table_cell_prp) = &style.table_cell_prp {
-            writer.write_event(xml_empty_m("style:table-cell-properties", &table_cell_prp))?;
+            xml_out.write_event(xml_empty_m("style:table-cell-properties", &table_cell_prp))?;
         }
         if let Some(table_col_prp) = &style.table_col_prp {
-            writer.write_event(xml_empty_m("style:table-column-properties", &table_col_prp))?;
+            xml_out.write_event(xml_empty_m("style:table-column-properties", &table_col_prp))?;
         }
         if let Some(table_row_prp) = &style.table_row_prp {
-            writer.write_event(xml_empty_m("style:table-row-properties", &table_row_prp))?;
+            xml_out.write_event(xml_empty_m("style:table-row-properties", &table_row_prp))?;
         }
         if let Some(table_prp) = &style.table_prp {
-            writer.write_event(xml_empty_m("style:table-properties", &table_prp))?;
+            xml_out.write_event(xml_empty_m("style:table-properties", &table_prp))?;
         }
         if let Some(paragraph_prp) = &style.paragraph_prp {
-            writer.write_event(xml_empty_m("style:paragraph-properties", &paragraph_prp))?;
+            xml_out.write_event(xml_empty_m("style:paragraph-properties", &paragraph_prp))?;
         }
         if let Some(text_prp) = &style.text_prp {
-            writer.write_event(xml_empty_m("style:text-properties", &text_prp))?;
+            xml_out.write_event(xml_empty_m("style:text-properties", &text_prp))?;
         }
 
-        writer.write_event(xml_end("style:style"))?;
+        xml_out.write_event(xml_end("style:style"))?;
     }
 
     Ok(())
 }
 
-fn write_value_styles(writer: &mut Writer<BufWriter<File>>, styles: &BTreeMap<String, ValueStyle>, origin: Origin) -> Result<(), OdsError> {
+fn write_value_styles(styles: &BTreeMap<String, ValueStyle>, origin: Origin, xml_out: &mut quick_xml::Writer<&mut ZipWriter<BufWriter<File>>>) -> Result<(), OdsError> {
     for style in styles.values().filter(|s| s.origin == origin) {
         let tag = match style.v_type {
             ValueType::Boolean => "number:boolean-style",
@@ -1158,7 +1473,7 @@ fn write_value_styles(writer: &mut Writer<BufWriter<File>>, styles: &BTreeMap<St
                 attr.insert(k.to_string(), v.to_string());
             }
         }
-        writer.write_event(xml_start_m(tag, &attr))?;
+        xml_out.write_event(xml_start_m(tag, &attr))?;
 
         if let Some(parts) = style.parts() {
             for part in parts {
@@ -1187,115 +1502,18 @@ fn write_value_styles(writer: &mut Writer<BufWriter<File>>, styles: &BTreeMap<St
                 };
 
                 if part.p_type == PartType::Text || part.p_type == PartType::CurrencySymbol {
-                    writer.write_event(xml_start_o(part_tag, part.prp.as_ref()))?;
+                    xml_out.write_event(xml_start_o(part_tag, part.prp.as_ref()))?;
                     if let Some(content) = &part.content {
-                        writer.write_event(xml_text(content))?;
+                        xml_out.write_event(xml_text(content))?;
                     }
-                    writer.write_event(xml_end(part_tag))?;
+                    xml_out.write_event(xml_end(part_tag))?;
                 } else {
-                    writer.write_event(xml_empty_o(part_tag, part.prp.as_ref()))?;
+                    xml_out.write_event(xml_empty_o(part_tag, part.prp.as_ref()))?;
                 }
             }
         }
-        writer.write_event(xml_end(tag))?;
+        xml_out.write_event(xml_end(tag))?;
     }
-
-    Ok(())
-}
-
-fn xml_start(tag: &str) -> Event {
-    let b = BytesStart::owned_name(tag.as_bytes());
-    Event::Start(b)
-}
-
-fn xml_start_a<'a>(tag: &'a str, attr: Vec<(&'a str, String)>) -> Event::<'a> {
-    let mut b = BytesStart::owned_name(tag.as_bytes());
-
-    for (a, v) in attr {
-        b.push_attribute((a, v.as_ref()));
-    }
-
-    Event::Start(b)
-}
-
-fn xml_start_o<'a>(tag: &'a str, attr: Option<&'a HashMap<String, String>>) -> Event::<'a> {
-    if let Some(attr) = attr {
-        xml_start_m(tag, attr)
-    } else {
-        xml_start(tag)
-    }
-}
-
-fn xml_start_m<'a>(tag: &'a str, attr: &'a HashMap<String, String>) -> Event::<'a> {
-    let mut b = BytesStart::owned_name(tag.as_bytes());
-
-    for (a, v) in attr {
-        b.push_attribute((a.as_str(), v.as_str()));
-    }
-
-    Event::Start(b)
-}
-
-fn xml_text(text: &str) -> Event {
-    Event::Text(BytesText::from_plain_str(text))
-}
-
-fn xml_end(tag: &str) -> Event {
-    let b = BytesEnd::borrowed(tag.as_bytes());
-    Event::End(b)
-}
-
-fn xml_empty(tag: &str) -> Event {
-    let b = BytesStart::owned_name(tag.as_bytes());
-    Event::Empty(b)
-}
-
-fn xml_empty_a<'a>(tag: &'a str, attr: Vec<(&'a str, String)>) -> Event::<'a> {
-    let mut b = BytesStart::owned_name(tag.as_bytes());
-
-    for (a, v) in attr {
-        b.push_attribute((a, v.as_ref()));
-    }
-
-    Event::Empty(b)
-}
-
-fn xml_empty_o<'a>(tag: &'a str, attr: Option<&'a HashMap<String, String>>) -> Event::<'a> {
-    if let Some(attr) = attr {
-        xml_empty_m(tag, attr)
-    } else {
-        xml_empty(tag)
-    }
-}
-
-fn xml_empty_m<'a>(tag: &'a str, attr: &'a HashMap<String, String>) -> Event::<'a> {
-    let mut b = BytesStart::owned_name(tag.as_bytes());
-
-    for (a, v) in attr.iter() {
-        b.push_attribute((a.as_str(), v.as_str()));
-    }
-
-    Event::Empty(b)
-}
-
-const MANIFEST_XML_CONTENT: &'static str = r#"<?xml version="1.0" encoding="UTF-8"?>
-<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2">
- <manifest:file-entry manifest:full-path="/" manifest:version="1.2" manifest:media-type="application/vnd.oasis.opendocument.spreadsheet"/>
- <manifest:file-entry manifest:full-path="Thumbnails/thumbnail.png" manifest:media-type="image/png"/>
- <manifest:file-entry manifest:full-path="settings.xml" manifest:media-type="text/xml"/>
- <manifest:file-entry manifest:full-path="Configurations2/" manifest:media-type="application/vnd.sun.xml.ui.configuration"/>
- <manifest:file-entry manifest:full-path="manifest.rdf" manifest:media-type="application/rdf+xml"/>
- <manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>
- <manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/>
- <manifest:file-entry manifest:full-path="meta.xml" manifest:media-type="text/xml"/>
-</manifest:manifest>"#;
-
-fn write_data(out_file: &Path, data: &str) -> Result<(), io::Error> {
-    if let Some(parent) = out_file.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let mut f = File::create(out_file)?;
-    f.write_all(data.as_bytes())?;
 
     Ok(())
 }
