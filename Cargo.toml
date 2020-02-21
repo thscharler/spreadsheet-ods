@@ -7,9 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4.8"
-chrono = "0.4"
-time = "0.1.42"
-zip = "0.5.4"
-quick-xml = "0.17.2"
-username = "0.2.0"
+log = "^0.4.8"
+chrono = "^0.4"
+time = "^0.1.42"
+zip = "^0.5.4"
+quick-xml = "^0.17.2"
+username = "^0.2.0"

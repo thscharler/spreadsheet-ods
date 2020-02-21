@@ -127,12 +127,12 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
 
     loop {
         match xml.read_event(&mut buf)? {
-            Event::Start(ref e) => {
-                if DUMP_XML { log::debug!("{:?}", e); }
+            Event::Start(ref elem) => {
+                if DUMP_XML { log::debug!("{:?}", elem); }
 
-                match e.name() {
+                match elem.name() {
                     b"table:table" => {
-                        for a in e.attributes().with_checks(false) {
+                        for a in elem.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"table:name" => {
                                     let v = attr.unescape_and_decode_value(&xml)?;
@@ -147,7 +147,7 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         }
                     }
                     b"table:table-row" => {
-                        for a in e.attributes().with_checks(false) {
+                        for a in elem.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"table:number-rows-repeated" => {
                                     let v = attr.unescape_and_decode_value(&xml)?;
@@ -162,7 +162,7 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         }
                     }
                     b"table:table-cell" => {
-                        for a in e.attributes().with_checks(false) {
+                        for a in elem.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"office:value-type" => {
                                     let v = attr.unescape_and_decode_value(&xml)?;
@@ -210,9 +210,9 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                     _ => {}
                 }
             }
-            Event::End(ref e) => {
-                if DUMP_XML { log::debug!("{:?}", e); }
-                match e.name() {
+            Event::End(ref elem) => {
+                if DUMP_XML { log::debug!("{:?}", elem); }
+                match elem.name() {
                     b"table:table" => {
                         row = 0;
                         col = 0;
@@ -257,57 +257,57 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                             }
                             "date" => {
                                 if let Some(cs) = cell_value {
-                                    let td;
-                                    if cs.len() == 10 {
-                                        td = NaiveDate::parse_from_str(cs.as_str(), "%Y-%m-%d")?.and_hms(0, 0, 0);
-                                    } else {
-                                        td = NaiveDateTime::parse_from_str(cs.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?;
-                                    }
+                                    let td =
+                                        if cs.len() == 10 {
+                                            NaiveDate::parse_from_str(cs.as_str(), "%Y-%m-%d")?.and_hms(0, 0, 0)
+                                        } else {
+                                            NaiveDateTime::parse_from_str(cs.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?
+                                        };
                                     cell.value = Some(Value::from(td));
                                 }
                                 cell_value = None;
                             }
                             "time" => {
                                 if let Some(mut cs) = cell_value {
-                                    let mut h: u32 = 0;
-                                    let mut have_h = false;
-                                    let mut m: u32 = 0;
-                                    let mut have_m = false;
-                                    let mut s: u32 = 0;
-                                    let mut have_s = false;
-                                    let mut n: u32 = 0;
-                                    let mut cn: u8 = 0;
+                                    let mut hour: u32 = 0;
+                                    let mut have_hour = false;
+                                    let mut min: u32 = 0;
+                                    let mut have_min = false;
+                                    let mut sec: u32 = 0;
+                                    let mut have_sec = false;
+                                    let mut nanos: u32 = 0;
+                                    let mut nanos_digits: u8 = 0;
 
                                     for c in cs.drain(..) {
                                         match c {
                                             'P' | 'T' => {}
                                             '0'..='9' => {
-                                                if !have_h {
-                                                    h = h * 10 + (c as u32 - '0' as u32);
-                                                } else if !have_m {
-                                                    m = m * 10 + (c as u32 - '0' as u32);
-                                                } else if !have_s {
-                                                    s = s * 10 + (c as u32 - '0' as u32);
+                                                if !have_hour {
+                                                    hour = hour * 10 + (c as u32 - '0' as u32);
+                                                } else if !have_min {
+                                                    min = min * 10 + (c as u32 - '0' as u32);
+                                                } else if !have_sec {
+                                                    sec = sec * 10 + (c as u32 - '0' as u32);
                                                 } else {
-                                                    n = n * 10 + (c as u32 - '0' as u32);
-                                                    cn += 1;
+                                                    nanos = nanos * 10 + (c as u32 - '0' as u32);
+                                                    nanos_digits += 1;
                                                 }
                                             }
-                                            'H' => have_h = true,
-                                            'M' => have_m = true,
-                                            '.' => have_s = true,
+                                            'H' => have_hour = true,
+                                            'M' => have_min = true,
+                                            '.' => have_sec = true,
                                             'S' => {}
                                             _ => {}
                                         }
                                     }
                                     // unseen nano digits
-                                    while cn < 9 {
-                                        n = n * 10;
-                                        cn += 1;
+                                    while nanos_digits < 9 {
+                                        nanos *= 10;
+                                        nanos_digits += 1;
                                     }
 
-                                    let secs: u64 = h as u64 * 3600 + m as u64 * 60 + s as u64;
-                                    let dur = Duration::from_std(std::time::Duration::new(secs, n))?;
+                                    let secs: u64 = hour as u64 * 3600 + min as u64 * 60 + sec as u64;
+                                    let dur = Duration::from_std(std::time::Duration::new(secs, nanos))?;
 
                                     cell.value = Some(Value::from(dur));
                                 }
@@ -355,14 +355,14 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                     _ => {}
                 }
             }
-            Event::Empty(ref e) => {
-                if DUMP_XML { log::debug!("{:?}", e); }
-                match e.name() {
+            Event::Empty(ref elem) => {
+                if DUMP_XML { log::debug!("{:?}", elem); }
+                match elem.name() {
                     b"table:table-column" => {
                         let mut column = SColumn::new();
                         let mut repeat: usize = 1;
 
-                        for a in e.attributes().with_checks(false) {
+                        for a in elem.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"table:style-name" => {
                                     let v = attr.unescape_and_decode_value(&xml)?;
@@ -387,10 +387,10 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                         }
                     }
                     b"table:table-cell" => {
-                        if e.attributes().count() == 0 {
+                        if elem.attributes().count() == 0 {
                             col += 1;
                         }
-                        for a in e.attributes().with_checks(false) {
+                        for a in elem.attributes().with_checks(false) {
                             match a {
                                 Ok(ref attr) if attr.key == b"table:number-columns-repeated" => {
                                     let v = attr.unescape_and_decode_value(&xml)?;
@@ -403,9 +403,9 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                     _ => {}
                 }
             }
-            Event::Text(e) => {
-                if DUMP_XML { log::debug!("{:?}", e); }
-                let v = e.unescape_and_decode(&xml)?;
+            Event::Text(elem) => {
+                if DUMP_XML { log::debug!("{:?}", elem); }
+                let v = elem.unescape_and_decode(&xml)?;
                 cell_string = Some(v);
             }
             Event::Eof => {
@@ -804,18 +804,16 @@ fn copy_workbook(ods_orig_name: &PathBuf, file_set: &mut HashSet<String>, zip_wr
                 file_set.insert(zip_entry.name().to_string());
                 zip_writer.add_directory(zip_entry.name(), FileOptions::default())?;
             }
-        } else {
-            if !file_set.contains(zip_entry.name()) {
-                file_set.insert(zip_entry.name().to_string());
-                zip_writer.start_file(zip_entry.name(), FileOptions::default())?;
-                let mut buf: [u8; 1024] = [0; 1024];
-                loop {
-                    let n = zip_entry.read(&mut buf)?;
-                    if n == 0 {
-                        break;
-                    } else {
-                        zip_writer.write_all(&buf[0..n])?;
-                    }
+        } else if !file_set.contains(zip_entry.name()) {
+            file_set.insert(zip_entry.name().to_string());
+            zip_writer.start_file(zip_entry.name(), FileOptions::default())?;
+            let mut buf: [u8; 1024] = [0; 1024];
+            loop {
+                let n = zip_entry.read(&mut buf)?;
+                if n == 0 {
+                    break;
+                } else {
+                    zip_writer.write_all(&buf[0..n])?;
                 }
             }
         }
@@ -1269,13 +1267,12 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut quick_xml::Writer<&
 
         if let Some(style) = &cell.style {
             attr.push(("table:style-name", style.to_string()));
-        } else {
-            if let Some(value) = &cell.value {
-                if let Some(style) = book.def_style(value.value_type()) {
-                    attr.push(("table:style-name", style.to_string()));
-                }
+        } else if let Some(value) = &cell.value {
+            if let Some(style) = book.def_style(value.value_type()) {
+                attr.push(("table:style-name", style.to_string()));
             }
         }
+
 
         // Might not yield a useful result. Could not exist, or be in styles.xml
         // which I don't read. Defaulting to to_string() seems reasonable.

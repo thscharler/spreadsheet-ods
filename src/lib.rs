@@ -13,6 +13,7 @@ pub use crate::ods::write_ods;
 pub mod ods;
 
 /// Book is the main structure for the Spreadsheet.
+#[derive(Clone, Default)]
 pub struct WorkBook {
     /// The data.
     sheets: Vec<Sheet>,
@@ -234,6 +235,7 @@ pub fn create_default_styles(book: &mut WorkBook) {
 /// Contains the data and the style-references. The can also be
 /// styles on the whole sheet, columns and rows. The more complicated
 /// grouping tags are not covered.
+#[derive(Clone, Default)]
 pub struct Sheet {
     name: String,
     style: Option<String>,
@@ -258,6 +260,7 @@ impl fmt::Debug for Sheet {
         Ok(())
     }
 }
+
 
 impl Sheet {
     /// New, empty
@@ -289,7 +292,7 @@ impl Sheet {
         let mut col2 = col;
         while col2 > 0 {
             let digit = (col % 26) as u8;
-            let cc = ('A' as u8 + digit) as char;
+            let cc = (b'A' + digit) as char;
             col_str.insert(0, cc);
             col2 /= 26;
         }
@@ -321,7 +324,7 @@ impl Sheet {
 
     /// Column wide style.
     pub fn set_column_style<V: Into<String>>(&mut self, col: usize, style: V) {
-        let v = self.columns.entry(col).or_insert(SColumn::new());
+        let v = self.columns.entry(col).or_insert_with(SColumn::new);
         v.style = Some(style.into());
     }
 
@@ -335,8 +338,8 @@ impl Sheet {
 
     /// Default cell style for this column.
     pub fn set_column_cell_style<V: Into<String>>(&mut self, col: usize, style: V) {
-        let v = self.columns.entry(col).or_insert(SColumn::new());
-        v.def_cell_style = Some(String::from(style.into()));
+        let v = self.columns.entry(col).or_insert_with(SColumn::new);
+        v.def_cell_style = Some(style.into());
     }
 
     pub fn column_cell_style(&self, col: usize) -> Option<&String> {
@@ -349,12 +352,12 @@ impl Sheet {
 
     /// Row style.
     pub fn set_row_style<V: Into<String>>(&mut self, row: usize, style: V) {
-        let v = self.rows.entry(row).or_insert(SRow::new());
+        let v = self.rows.entry(row).or_insert_with(SRow::new);
         v.style = Some(Rc::new(style.into()));
     }
 
     pub fn set_row_style_rc(&mut self, row: usize, style: Rc<String>) {
-        let v = self.rows.entry(row).or_insert(SRow::new());
+        let v = self.rows.entry(row).or_insert_with(SRow::new);
         v.style = Some(style);
     }
 
@@ -399,7 +402,7 @@ impl Sheet {
     /// Creates an empty cell if the position is currently empty and returns
     /// a reference.
     pub fn create_cell(&mut self, row: usize, col: usize) -> &mut SCell {
-        self.data.entry((row, col)).or_insert(SCell::new())
+        self.data.entry((row, col)).or_insert_with(SCell::new)
     }
 
     /// Adds a cell. Replaces an existing one.
@@ -414,14 +417,14 @@ impl Sheet {
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
     pub fn set_value<V: Into<Value>>(&mut self, row: usize, col: usize, value: V) {
-        let mut cell = self.data.entry((row, col)).or_insert(SCell::new());
+        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
         cell.value = Some(value.into());
     }
 
     /// Returns a value
     pub fn value(&self, row: usize, col: usize) -> Option<Value> {
         if let Some(cell) = self.data.get(&(row, col)) {
-            cell.value.as_ref().map(|v| v.clone())
+            cell.value.as_ref().cloned()
         } else {
             None
         }
@@ -438,7 +441,7 @@ impl Sheet {
 
     /// Sets a formula for the specified cell. Creates a new cell if necessary.
     pub fn set_formula<V: Into<String>>(&mut self, row: usize, col: usize, formula: V) {
-        let mut cell = self.data.entry((row, col)).or_insert(SCell::new());
+        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
         cell.formula = Some(formula.into());
     }
 
@@ -453,7 +456,7 @@ impl Sheet {
 
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
     pub fn set_cell_style<V: Into<String>>(&mut self, row: usize, col: usize, style: V) {
-        let mut cell = self.data.entry((row, col)).or_insert(SCell::new());
+        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
         cell.style = Some(style.into());
     }
 
@@ -500,7 +503,7 @@ impl SColumn {
 }
 
 /// One Cell of the spreadsheet.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SCell {
     value: Option<Value>,
     /// Unparsed formula string.
@@ -657,7 +660,7 @@ impl From<Duration> for Value {
 ///
 /// The actual property names are just simple strings for now, maybe I map the common ones to
 /// consts.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Style {
     name: String,
     /// Nice String.
@@ -838,7 +841,7 @@ impl Style {
 }
 
 /// Origin of a style. Content.xml or Styles.xml.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Origin {
     Content,
     Styles,
@@ -846,7 +849,7 @@ pub enum Origin {
 }
 
 /// Applicability of this style.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Family {
     Table,
     TableRow,
@@ -856,7 +859,7 @@ pub enum Family {
 }
 
 /// Datatypes
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ValueType {
     Boolean,
     Number,
@@ -868,7 +871,7 @@ pub enum ValueType {
 }
 
 /// Actual textual formatting of values.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ValueStyle {
     name: String,
     v_type: ValueType,
@@ -1000,7 +1003,7 @@ impl ValueStyle {
     pub fn format_datetime(&self, d: &NaiveDateTime) -> String {
         let mut buf = String::new();
         if let Some(parts) = &self.parts {
-            let h12 = parts.iter().find(|v| v.p_type == PartType::AmPm).is_some();
+            let h12 = parts.iter().any(|v| v.p_type == PartType::AmPm);
 
             for p in parts {
                 p.format_datetime(&mut buf, d, h12);
@@ -1023,7 +1026,7 @@ impl ValueStyle {
 }
 
 /// The particles of a value->string format.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PartType {
     Boolean,
     Number,
@@ -1049,7 +1052,7 @@ pub enum PartType {
 }
 
 /// The particles of a value->string format.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Part {
     p_type: PartType,
     prp: Option<HashMap<String, String>>,
@@ -1191,6 +1194,7 @@ impl Part {
     /// Tries to format the given DateTime.
     /// Uses chrono::strftime for the implementation.
     /// If this part does'nt match does nothing
+    #[allow(clippy::collapsible_if)]
     pub fn format_datetime(&self, buf: &mut String, d: &NaiveDateTime, h12: bool) {
         match self.p_type {
             PartType::Day => {
@@ -1434,7 +1438,7 @@ impl Part {
     }
 }
 
-fn set_prp_vec<'a>(map: &mut Option<HashMap<String, String>>, vec: Vec<(&str, String)>) {
+fn set_prp_vec(map: &mut Option<HashMap<String, String>>, vec: Vec<(&str, String)>) {
     if map.is_none() {
         map.replace(HashMap::new());
     }
@@ -1445,7 +1449,7 @@ fn set_prp_vec<'a>(map: &mut Option<HashMap<String, String>>, vec: Vec<(&str, St
     }
 }
 
-fn set_prp<'a>(map: &mut Option<HashMap<String, String>>, name: &str, value: String) {
+fn set_prp(map: &mut Option<HashMap<String, String>>, name: &str, value: String) {
     if map.is_none() {
         map.replace(HashMap::new());
     }
