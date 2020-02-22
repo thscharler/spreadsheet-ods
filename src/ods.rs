@@ -3,7 +3,6 @@ use std::fs::{File, rename};
 use std::io;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime};
 use log;
@@ -132,21 +131,8 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                 if DUMP_XML { log::debug!("{:?}", elem); }
 
                 match elem.name() {
-                    b"table:table" => {
-                        for a in elem.attributes().with_checks(false) {
-                            match a {
-                                Ok(ref attr) if attr.key == b"table:name" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    sheet.set_name(v);
-                                }
-                                Ok(ref attr) if attr.key == b"table:style-name" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    sheet.set_style(v);
-                                }
-                                _ => {}
-                            }
-                        }
-                    }
+                    b"table:table" => read_ods_table_tag(&mut xml, elem, &mut sheet)?,
+
                     b"table:table-row" => {
                         for a in elem.attributes().with_checks(false) {
                             match a {
@@ -222,9 +208,8 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                     }
                     b"table:table-row" => {
                         if let Some(style) = row_style {
-                            let style_rc = Rc::new(style);
                             for r in row..row + row_advance {
-                                sheet.set_row_style_rc(r, Rc::clone(&style_rc));
+                                sheet.set_row_style(r, style.clone());
                             }
                             row_style = None;
                         }
@@ -420,6 +405,26 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
     }
 
     Ok(book)
+}
+
+fn read_ods_table_tag(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                      xml_tag: &BytesStart,
+                      sheet: &mut Sheet) -> Result<(), OdsError> {
+    for a in xml_tag.attributes().with_checks(false) {
+        match a {
+            Ok(ref attr) if attr.key == b"table:name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                sheet.set_name(v);
+            }
+            Ok(ref attr) if attr.key == b"table:style-name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                sheet.set_style(v);
+            }
+            _ => {}
+        }
+    }
+
+    Ok(())
 }
 
 fn read_ods_styles(book: &mut WorkBook,

@@ -2,7 +2,6 @@ use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Range;
 use std::fmt;
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use chrono::{Duration, NaiveDateTime};
 
@@ -353,12 +352,7 @@ impl Sheet {
     /// Row style.
     pub fn set_row_style<V: Into<String>>(&mut self, row: usize, style: V) {
         let v = self.rows.entry(row).or_insert_with(SRow::new);
-        v.style = Some(Rc::new(style.into()));
-    }
-
-    pub fn set_row_style_rc(&mut self, row: usize, style: Rc<String>) {
-        let v = self.rows.entry(row).or_insert_with(SRow::new);
-        v.style = Some(style);
+        v.style = Some(style.into());
     }
 
     pub fn row_style(&self, row: usize) -> Option<&String> {
@@ -473,7 +467,7 @@ impl Sheet {
 /// Row wide data.
 #[derive(Clone, Debug)]
 struct SRow {
-    style: Option<Rc<String>>,
+    style: Option<String>,
 }
 
 impl SRow {
