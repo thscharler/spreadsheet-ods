@@ -96,6 +96,7 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
     // xml parser
     let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
     xml.trim_text(true);
+    // xml.expand_empty_elements(true);
 
     let mut buf = Vec::new();
 
@@ -174,7 +175,7 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
                                 }
                                 Ok(ref attr) if attr.key == b"office:time-value" => {
                                     let v = attr.unescape_and_decode_value(&xml)?;
-                                    cell_value = Some(v.to_string());
+                                    cell_value = Some(v);
                                 }
                                 Ok(ref attr) if attr.key == b"office:value" => {
                                     let v = attr.unescape_and_decode_value(&xml)?;
@@ -428,10 +429,8 @@ fn read_ods_styles(book: &mut WorkBook,
 
     let mut style: Style = Style::new(Origin::Content);
     let mut value_style = ValueStyle::new(Origin::Content);
-
-    // String content is held separately. It contains a formatted value of floats, dates etc
-    let mut cell_string: Option<String> = None;
-    let mut number_attr: Option<HashMap<String, String>> = None;
+    // Styles with content information are stored before completion.
+    let mut value_style_part = None;
 
     loop {
         let evt = xml.read_event(&mut buf)?;
@@ -457,49 +456,53 @@ fn read_ods_styles(book: &mut WorkBook,
                     b"style:text-properties" => read_ods_style_properties(xml, xml_tag, &mut style, &Style::set_text_prp)?,
                     b"style:paragraph-properties" => read_ods_style_properties(xml, xml_tag, &mut style, &Style::set_paragraph_prp)?,
 
-                    b"number:boolean-style" |
-                    b"number:date-style" |
-                    b"number:time-style" |
-                    b"number:number-style" |
-                    b"number:currency-style" |
-                    b"number:percentage-style" |
-                    b"number:text-style" => read_ods_value_style_tag(xml, xml_tag, &mut value_style)?,
+                    b"number:boolean-style" => read_ods_value_style_tag(xml, xml_tag, ValueType::Boolean, &mut value_style)?,
+                    b"number:date-style" => read_ods_value_style_tag(xml, xml_tag, ValueType::DateTime, &mut value_style)?,
+                    b"number:time-style" => read_ods_value_style_tag(xml, xml_tag, ValueType::TimeDuration, &mut value_style)?,
+                    b"number:number-style" => read_ods_value_style_tag(xml, xml_tag, ValueType::Number, &mut value_style)?,
+                    b"number:currency-style" => read_ods_value_style_tag(xml, xml_tag, ValueType::Currency, &mut value_style)?,
+                    b"number:percentage-style" => read_ods_value_style_tag(xml, xml_tag, ValueType::Percentage, &mut value_style)?,
+                    b"number:text-style" => read_ods_value_style_tag(xml, xml_tag, ValueType::Text, &mut value_style)?,
 
-                    b"number:boolean" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Boolean)?,
-                    b"number:number" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Number)?,
-                    b"number:scientific-number" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Scientific)?,
-                    b"number:day" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Day)?,
-                    b"number:month" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Month)?,
-                    b"number:year" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Year)?,
-                    b"number:era" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Era)?,
-                    b"number:day-of-week" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::DayOfWeek)?,
-                    b"number:week-of-year" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::WeekOfYear)?,
-                    b"number:quarter" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Quarter)?,
-                    b"number:hours" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Hours)?,
-                    b"number:minutes" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Minutes)?,
-                    b"number:seconds" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Seconds)?,
-                    b"number:fraction" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Fraction)?,
-                    b"number:am-pm" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::AmPm)?,
-                    b"number:embedded-text" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::EmbeddedText)?,
-                    b"number:text-content" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::TextContent)?,
-                    b"style:text" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Day)?,
-                    b"style:map" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::StyleMap)?,
+                    b"number:boolean" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Boolean)?,
+                    b"number:number" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Number)?,
+                    b"number:scientific-number" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Scientific)?,
+                    b"number:day" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Day)?,
+                    b"number:month" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Month)?,
+                    b"number:year" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Year)?,
+                    b"number:era" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Era)?,
+                    b"number:day-of-week" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::DayOfWeek)?,
+                    b"number:week-of-year" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::WeekOfYear)?,
+                    b"number:quarter" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Quarter)?,
+                    b"number:hours" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Hours)?,
+                    b"number:minutes" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Minutes)?,
+                    b"number:seconds" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Seconds)?,
+                    b"number:fraction" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Fraction)?,
+                    b"number:am-pm" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::AmPm)?,
+                    b"number:embedded-text" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::EmbeddedText)?,
+                    b"number:text-content" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::TextContent)?,
+                    b"style:text" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::Day)?,
+                    b"style:map" => read_ods_value_style_part(xml, xml_tag, &mut value_style, PartType::StyleMap)?,
                     b"number:currency-symbol" => {
-                        number_attr = Some(attr_to_map(xml, xml_tag)?);
+                        value_style_part = Some(read_ods_value_style_part2(xml, xml_tag, PartType::CurrencySymbol)?);
 
+                        // Empty-Tag. Finish here.
                         if let Event::Empty(_) = evt {
-                            let part = Part::new_prp(PartType::CurrencySymbol, number_attr.unwrap());
-                            value_style.push_part(part);
-                            number_attr = None;
+                            if let Some(part) = value_style_part {
+                                value_style.push_part(part);
+                            }
+                            value_style_part = None;
                         }
                     }
                     b"number:text" => {
-                        number_attr = Some(attr_to_map(xml, xml_tag)?);
+                        value_style_part = Some(read_ods_value_style_part2(xml, xml_tag, PartType::Text)?);
 
+                        // Empty-Tag. Finish here.
                         if let Event::Empty(_) = evt {
-                            let part = Part::new_prp(PartType::Text, number_attr.unwrap());
-                            value_style.push_part(part);
-                            number_attr = None;
+                            if let Some(part) = value_style_part {
+                                value_style.push_part(part);
+                            }
+                            value_style_part = None;
                         }
                     }
 
@@ -509,9 +512,9 @@ fn read_ods_styles(book: &mut WorkBook,
 
             Event::Text(ref e) => {
                 if DUMP_XML { log::debug!(" style {:?}", e); }
-
-                let v = e.unescape_and_decode(&xml)?;
-                cell_string = Some(v);
+                if let Some(part) = &mut value_style_part {
+                    part.content = Some(e.unescape_and_decode(&xml)?);
+                }
             }
 
             Event::End(ref e) => {
@@ -536,23 +539,11 @@ fn read_ods_styles(book: &mut WorkBook,
                         book.add_value_style(value_style);
                         value_style = ValueStyle::new(Origin::Content);
                     }
-                    b"number:currency-symbol" => {
-                        let mut part = Part::new(PartType::CurrencySymbol);
-                        part.prp = number_attr;
-                        part.content = cell_string;
-                        value_style.push_part(part);
-
-                        number_attr = None;
-                        cell_string = None;
-                    }
-                    b"number:text" => {
-                        let mut part = Part::new(PartType::Text);
-                        part.prp = number_attr;
-                        part.content = cell_string;
-                        value_style.push_part(part);
-
-                        number_attr = None;
-                        cell_string = None;
+                    b"number:currency-symbol" | b"number:text" => {
+                        if let Some(part) = value_style_part {
+                            value_style.push_part(part);
+                        }
+                        value_style_part = None;
                     }
 
                     _ => {}
@@ -571,10 +562,18 @@ fn read_ods_styles(book: &mut WorkBook,
     Ok(())
 }
 
-fn read_ods_value_style_properties(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-                                   xml_tag: &BytesStart,
-                                   value_style: &mut ValueStyle,
-                                   part_type: PartType) -> Result<(), OdsError> {
+fn read_ods_value_style_part(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                             xml_tag: &BytesStart,
+                             value_style: &mut ValueStyle,
+                             part_type: PartType) -> Result<(), OdsError> {
+    value_style.push_part(read_ods_value_style_part2(xml, xml_tag, part_type)?);
+
+    Ok(())
+}
+
+fn read_ods_value_style_part2(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                              xml_tag: &BytesStart,
+                              part_type: PartType) -> Result<Part, OdsError> {
     let mut part = Part::new(part_type);
 
     for a in xml_tag.attributes().with_checks(false) {
@@ -586,24 +585,14 @@ fn read_ods_value_style_properties(xml: &mut quick_xml::Reader<BufReader<&mut Zi
         }
     }
 
-    value_style.push_part(part);
-
-    Ok(())
+    Ok(part)
 }
 
 fn read_ods_value_style_tag(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                             xml_tag: &BytesStart,
+                            value_type: ValueType,
                             value_style: &mut ValueStyle) -> Result<(), OdsError> {
-    match xml_tag.name() {
-        b"number:boolean-style" => value_style.v_type = ValueType::Boolean,
-        b"number:date-style" => value_style.v_type = ValueType::DateTime,
-        b"number:time-style" => value_style.v_type = ValueType::TimeDuration,
-        b"number:number-style" => value_style.v_type = ValueType::Number,
-        b"number:currency-style" => value_style.v_type = ValueType::Currency,
-        b"number:percentage-style" => value_style.v_type = ValueType::Percentage,
-        b"number:text-style" => value_style.v_type = ValueType::Text,
-        _ => {}
-    }
+    value_style.v_type = value_type;
 
     for a in xml_tag.attributes().with_checks(false) {
         match a {
@@ -670,20 +659,6 @@ fn read_ods_style_tag(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     }
 
     Ok(())
-}
-
-fn attr_to_map(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>, xml_tag: &BytesStart) -> Result<HashMap<String, String>, OdsError> {
-    let mut map = HashMap::<String, String>::new();
-
-    for attr in xml_tag.attributes().with_checks(false) {
-        if let Ok(ref attr) = attr {
-            let k = xml.decode(&attr.key)?;
-            let v = attr.unescape_and_decode_value(&xml)?;
-            map.insert(k.to_owned(), v);
-        }
-    }
-
-    Ok(map)
 }
 
 fn xml_start(tag: &str) -> Event {
