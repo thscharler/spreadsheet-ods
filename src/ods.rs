@@ -436,38 +436,12 @@ fn read_ods_styles(book: &mut WorkBook,
     loop {
         let evt = xml.read_event(&mut buf)?;
         match evt {
-            Event::Start(ref e) | Event::Empty(ref e) => {
-                if DUMP_XML { log::debug!(" style {:?}", e); }
+            Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
+                if DUMP_XML { log::debug!(" style {:?}", xml_tag); }
 
-                match e.name() {
+                match xml_tag.name() {
                     b"style:style" => {
-                        for a in e.attributes().with_checks(false) {
-                            match a {
-                                Ok(ref attr) if attr.key == b"style:name" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    style.set_name(v);
-                                }
-                                Ok(ref attr) if attr.key == b"style:family" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    match v.as_ref() {
-                                        "table" => style.family = Family::Table,
-                                        "table-column" => style.family = Family::TableColumn,
-                                        "table-row" => style.family = Family::TableRow,
-                                        "table-cell" => style.family = Family::TableCell,
-                                        _ => {}
-                                    }
-                                }
-                                Ok(ref attr) if attr.key == b"style:parent-style-name" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    style.parent = Some(v);
-                                }
-                                Ok(ref attr) if attr.key == b"style:data-style-name" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    style.value_style = Some(v);
-                                }
-                                _ => { /* noop */ }
-                            }
-                        }
+                        read_ods_style_tag(xml, xml_tag, &mut style)?;
 
                         // In case of an empty xml-tag we are done here.
                         if let Event::Empty(_) = evt {
@@ -475,60 +449,13 @@ fn read_ods_styles(book: &mut WorkBook,
                             style = Style::new(Origin::Content);
                         }
                     }
-                    b"style:table-properties" => {
-                        for a in e.attributes().with_checks(false) {
-                            if let Ok(attr) = a {
-                                let k = xml.decode(&attr.key)?;
-                                let v = attr.unescape_and_decode_value(&xml)?;
-                                style.set_table_prp(k, v);
-                            }
-                        }
-                    }
-                    b"style:table-column-properties" => {
-                        for a in e.attributes().with_checks(false) {
-                            if let Ok(attr) = a {
-                                let k = xml.decode(&attr.key)?;
-                                let v = attr.unescape_and_decode_value(&xml)?;
-                                style.set_table_col_prp(k, v);
-                            }
-                        }
-                    }
-                    b"style:table-row-properties" => {
-                        for a in e.attributes().with_checks(false) {
-                            if let Ok(attr) = a {
-                                let k = xml.decode(&attr.key)?;
-                                let v = attr.unescape_and_decode_value(&xml)?;
-                                style.set_table_row_prp(k, v);
-                            }
-                        }
-                    }
-                    b"style:table-cell-properties" => {
-                        for a in e.attributes().with_checks(false) {
-                            if let Ok(attr) = a {
-                                let k = xml.decode(&attr.key)?;
-                                let v = attr.unescape_and_decode_value(&xml)?;
-                                style.set_table_cell_prp(k, v);
-                            }
-                        }
-                    }
-                    b"style:text-properties" => {
-                        for a in e.attributes().with_checks(false) {
-                            if let Ok(attr) = a {
-                                let k = xml.decode(&attr.key)?;
-                                let v = attr.unescape_and_decode_value(&xml)?;
-                                style.set_text_prp(k, v);
-                            }
-                        }
-                    }
-                    b"style:paragraph-properties" => {
-                        for a in e.attributes().with_checks(false) {
-                            if let Ok(attr) = a {
-                                let k = xml.decode(&attr.key)?;
-                                let v = attr.unescape_and_decode_value(&xml)?;
-                                style.set_paragraph_prp(k, v);
-                            }
-                        }
-                    }
+
+                    b"style:table-properties" => read_ods_style_properties(xml, xml_tag, &mut style, &Style::set_table_prp)?,
+                    b"style:table-column-properties" => read_ods_style_properties(xml, xml_tag, &mut style, &Style::set_table_col_prp)?,
+                    b"style:table-row-properties" => read_ods_style_properties(xml, xml_tag, &mut style, &Style::set_table_row_prp)?,
+                    b"style:table-cell-properties" => read_ods_style_properties(xml, xml_tag, &mut style, &Style::set_table_cell_prp)?,
+                    b"style:text-properties" => read_ods_style_properties(xml, xml_tag, &mut style, &Style::set_text_prp)?,
+                    b"style:paragraph-properties" => read_ods_style_properties(xml, xml_tag, &mut style, &Style::set_paragraph_prp)?,
 
                     b"number:boolean-style" |
                     b"number:date-style" |
@@ -536,55 +463,29 @@ fn read_ods_styles(book: &mut WorkBook,
                     b"number:number-style" |
                     b"number:currency-style" |
                     b"number:percentage-style" |
-                    b"number:text-style" => {
-                        match e.name() {
-                            b"number:boolean-style" => value_style.v_type = ValueType::Boolean,
-                            b"number:date-style" => value_style.v_type = ValueType::DateTime,
-                            b"number:time-style" => value_style.v_type = ValueType::TimeDuration,
-                            b"number:number-style" => value_style.v_type = ValueType::Number,
-                            b"number:currency-style" => value_style.v_type = ValueType::Currency,
-                            b"number:percentage-style" => value_style.v_type = ValueType::Percentage,
-                            b"number:text-style" => value_style.v_type = ValueType::Text,
-                            _ => {}
-                        }
+                    b"number:text-style" => read_ods_value_style_tag(xml, xml_tag, &mut value_style)?,
 
-                        for a in e.attributes().with_checks(false) {
-                            match a {
-                                Ok(ref attr) if attr.key == b"style:name" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    value_style.set_name(v);
-                                }
-                                Ok(ref attr) => {
-                                    let k = xml.decode(&attr.key)?;
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    value_style.set_prp(k, v);
-                                }
-                                _ => {}
-                            }
-                        }
-                    }
-                    b"number:boolean" => value_style.push_part(Part::new_prp(PartType::Boolean, attr_to_map(xml, e)?)),
-                    b"number:number" => value_style.push_part(Part::new_prp(PartType::Number, attr_to_map(xml, e)?)),
-                    b"number:scientific-number" => value_style.push_part(Part::new_prp(PartType::Scientific, attr_to_map(xml, e)?)),
-                    b"number:day" => value_style.push_part(Part::new_prp(PartType::Day, attr_to_map(xml, e)?)),
-                    b"number:month" => value_style.push_part(Part::new_prp(PartType::Month, attr_to_map(xml, e)?)),
-                    b"number:year" => value_style.push_part(Part::new_prp(PartType::Year, attr_to_map(xml, e)?)),
-                    b"number:era" => value_style.push_part(Part::new_prp(PartType::Era, attr_to_map(xml, e)?)),
-                    b"number:day-of-week" => value_style.push_part(Part::new_prp(PartType::DayOfWeek, attr_to_map(xml, e)?)),
-                    b"number:week-of-year" => value_style.push_part(Part::new_prp(PartType::WeekOfYear, attr_to_map(xml, e)?)),
-                    b"number:quarter" => value_style.push_part(Part::new_prp(PartType::Quarter, attr_to_map(xml, e)?)),
-                    b"number:hours" => value_style.push_part(Part::new_prp(PartType::Hours, attr_to_map(xml, e)?)),
-                    b"number:minutes" => value_style.push_part(Part::new_prp(PartType::Minutes, attr_to_map(xml, e)?)),
-                    b"number:seconds" => value_style.push_part(Part::new_prp(PartType::Seconds, attr_to_map(xml, e)?)),
-                    b"number:fraction" => value_style.push_part(Part::new_prp(PartType::Fraction, attr_to_map(xml, e)?)),
-                    b"number:am-pm" => value_style.push_part(Part::new_prp(PartType::AmPm, attr_to_map(xml, e)?)),
-                    b"number:embedded-text" => value_style.push_part(Part::new_prp(PartType::EmbeddedText, attr_to_map(xml, e)?)),
-                    b"number:text-content" => value_style.push_part(Part::new_prp(PartType::TextContent, attr_to_map(xml, e)?)),
-                    b"style:text" => value_style.push_part(Part::new_prp(PartType::StyleText, attr_to_map(xml, e)?)),
-                    b"style:map" => value_style.push_part(Part::new_prp(PartType::StyleMap, attr_to_map(xml, e)?)),
-
+                    b"number:boolean" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Boolean)?,
+                    b"number:number" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Number)?,
+                    b"number:scientific-number" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Scientific)?,
+                    b"number:day" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Day)?,
+                    b"number:month" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Month)?,
+                    b"number:year" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Year)?,
+                    b"number:era" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Era)?,
+                    b"number:day-of-week" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::DayOfWeek)?,
+                    b"number:week-of-year" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::WeekOfYear)?,
+                    b"number:quarter" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Quarter)?,
+                    b"number:hours" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Hours)?,
+                    b"number:minutes" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Minutes)?,
+                    b"number:seconds" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Seconds)?,
+                    b"number:fraction" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Fraction)?,
+                    b"number:am-pm" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::AmPm)?,
+                    b"number:embedded-text" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::EmbeddedText)?,
+                    b"number:text-content" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::TextContent)?,
+                    b"style:text" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::Day)?,
+                    b"style:map" => read_ods_value_style_properties(xml, xml_tag, &mut value_style, PartType::StyleMap)?,
                     b"number:currency-symbol" => {
-                        number_attr = Some(attr_to_map(xml, e)?);
+                        number_attr = Some(attr_to_map(xml, xml_tag)?);
 
                         if let Event::Empty(_) = evt {
                             let part = Part::new_prp(PartType::CurrencySymbol, number_attr.unwrap());
@@ -593,7 +494,7 @@ fn read_ods_styles(book: &mut WorkBook,
                         }
                     }
                     b"number:text" => {
-                        number_attr = Some(attr_to_map(xml, e)?);
+                        number_attr = Some(attr_to_map(xml, xml_tag)?);
 
                         if let Event::Empty(_) = evt {
                             let part = Part::new_prp(PartType::Text, number_attr.unwrap());
@@ -670,18 +571,119 @@ fn read_ods_styles(book: &mut WorkBook,
     Ok(())
 }
 
-fn attr_to_map(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>, e: &BytesStart) -> Result<HashMap<String, String>, OdsError> {
-    let mut m = HashMap::<String, String>::new();
+fn read_ods_value_style_properties(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                                   xml_tag: &BytesStart,
+                                   value_style: &mut ValueStyle,
+                                   part_type: PartType) -> Result<(), OdsError> {
+    let mut part = Part::new(part_type);
 
-    for a in e.attributes().with_checks(false) {
-        if let Ok(ref attr) = a {
+    for a in xml_tag.attributes().with_checks(false) {
+        if let Ok(attr) = a {
             let k = xml.decode(&attr.key)?;
             let v = attr.unescape_and_decode_value(&xml)?;
-            m.insert(k.to_owned(), v);
+
+            part.set_prp(k, v);
         }
     }
 
-    Ok(m)
+    value_style.push_part(part);
+
+    Ok(())
+}
+
+fn read_ods_value_style_tag(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                            xml_tag: &BytesStart,
+                            value_style: &mut ValueStyle) -> Result<(), OdsError> {
+    match xml_tag.name() {
+        b"number:boolean-style" => value_style.v_type = ValueType::Boolean,
+        b"number:date-style" => value_style.v_type = ValueType::DateTime,
+        b"number:time-style" => value_style.v_type = ValueType::TimeDuration,
+        b"number:number-style" => value_style.v_type = ValueType::Number,
+        b"number:currency-style" => value_style.v_type = ValueType::Currency,
+        b"number:percentage-style" => value_style.v_type = ValueType::Percentage,
+        b"number:text-style" => value_style.v_type = ValueType::Text,
+        _ => {}
+    }
+
+    for a in xml_tag.attributes().with_checks(false) {
+        match a {
+            Ok(ref attr) if attr.key == b"style:name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                value_style.set_name(v);
+            }
+            Ok(ref attr) => {
+                let k = xml.decode(&attr.key)?;
+                let v = attr.unescape_and_decode_value(&xml)?;
+                value_style.set_prp(k, v);
+            }
+            _ => {}
+        }
+    }
+
+    Ok(())
+}
+
+fn read_ods_style_properties(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                             xml_tag: &BytesStart,
+                             style: &mut Style,
+                             add_fn: &dyn Fn(&mut Style, &str, String)) -> Result<(), OdsError> {
+    for a in xml_tag.attributes().with_checks(false) {
+        if let Ok(attr) = a {
+            let k = xml.decode(&attr.key)?;
+            let v = attr.unescape_and_decode_value(&xml)?;
+            add_fn(style, k, v);
+        }
+    }
+
+    Ok(())
+}
+
+fn read_ods_style_tag(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                      xml_tag: &BytesStart,
+                      style: &mut Style) -> Result<(), OdsError> {
+    for a in xml_tag.attributes().with_checks(false) {
+        match a {
+            Ok(ref attr) if attr.key == b"style:name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                style.set_name(v);
+            }
+            Ok(ref attr) if attr.key == b"style:family" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                match v.as_ref() {
+                    "table" => style.family = Family::Table,
+                    "table-column" => style.family = Family::TableColumn,
+                    "table-row" => style.family = Family::TableRow,
+                    "table-cell" => style.family = Family::TableCell,
+                    _ => {}
+                }
+            }
+            Ok(ref attr) if attr.key == b"style:parent-style-name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                style.parent = Some(v);
+            }
+            Ok(ref attr) if attr.key == b"style:data-style-name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                style.value_style = Some(v);
+            }
+            _ => { /* noop */ }
+        }
+    }
+
+    Ok(())
+}
+
+fn attr_to_map(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>, xml_tag: &BytesStart) -> Result<HashMap<String, String>, OdsError> {
+    let mut map = HashMap::<String, String>::new();
+
+    for attr in xml_tag.attributes().with_checks(false) {
+        if let Ok(ref attr) = attr {
+            let k = xml.decode(&attr.key)?;
+            let v = attr.unescape_and_decode_value(&xml)?;
+            map.insert(k.to_owned(), v);
+        }
+    }
+
+    Ok(map)
 }
 
 fn xml_start(tag: &str) -> Event {
@@ -1148,7 +1150,7 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut ZipWriter<BufWriter<File>>, 
 }
 
 fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut quick_xml::Writer<&mut ZipWriter<BufWriter<File>>>) -> Result<(), OdsError> {
-    let mut attr: Vec<(&str, String)> = Vec::new();
+    let mut attr = Vec::new();
     attr.push(("table-name", sheet.name.to_string()));
     if let Some(style) = &sheet.style {
         attr.push(("table:style-name", style.to_string()));
@@ -1157,6 +1159,145 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut quick_xml::Writer<&
 
     let max_cell = sheet.used_grid_size();
 
+    write_table_columns(&sheet, &max_cell, xml_out)?;
+
+    // table-row + table-cell
+    let mut first_cell = true;
+    let mut last_r: usize = 0;
+    let mut last_c: usize = 0;
+
+    for ((cur_row, cur_col), cell) in sheet.data.iter() {
+
+        // There may be a lot of gaps of any kind in our data.
+        // In the XML format there is no cell identification, every gap
+        // must be filled with empty rows/columns. For this we need some
+        // calculations.
+
+        // For the repeat-counter we need to look forward.
+        // Works nicely with the range operator :-)
+        let (next_r, next_c) =
+            if let Some(((next_r, next_c), _)) = sheet.data.range((*cur_row, cur_col + 1)..).next() {
+                (*next_r, *next_c)
+            } else {
+                (max_cell.0, max_cell.1)
+            };
+
+        // Looking forward row-wise.
+        let forward_dr = next_r as i32 - *cur_row as i32;
+
+        // Column deltas are only relevant in the same row. Except we need to
+        // fill up to max used columns.
+        let forward_dc = if forward_dr >= 1 {
+            max_cell.1 as i32 - *cur_col as i32
+        } else {
+            next_c as i32 - *cur_col as i32
+        };
+
+        // Looking backward row-wise.
+        let backward_dr = *cur_row as i32 - last_r as i32;
+        // When a row changes our delta is from zero to cur_col.
+        let backward_dc = if backward_dr >= 1 {
+            *cur_col as i32
+        } else {
+            *cur_col as i32 - last_c as i32
+        };
+
+        // After the first cell there is always an open row tag.
+        if backward_dr > 0 && !first_cell {
+            xml_out.write_event(xml_end("table:table-row"))?;
+        }
+
+        // Any empty rows before this one?
+        if backward_dr > 1 {
+            write_empty_rows_before(first_cell, backward_dr, &max_cell, xml_out)?;
+        }
+
+        // Start a new row if there is a delta or we are at the start
+        if backward_dr > 0 || first_cell {
+            write_start_current_row(sheet, *cur_row, backward_dc, xml_out)?;
+        }
+
+        // And now to something completely different ...
+        write_cell(book, cell, xml_out)?;
+
+        // There may be some blank cells until the next one, but only one less the forward.
+        if forward_dc > 1 {
+            write_empty_cells(forward_dc, xml_out)?;
+        }
+
+        first_cell = false;
+        last_r = *cur_row;
+        last_c = *cur_col;
+    }
+
+    if !first_cell {
+        xml_out.write_event(xml_end("table:table-row"))?;
+    }
+
+    xml_out.write_event(xml_end("table:table"))?;
+
+    Ok(())
+}
+
+fn write_empty_cells(forward_dc: i32,
+                     xml_out: &mut quick_xml::Writer<&mut ZipWriter<BufWriter<File>>>) -> Result<(), OdsError> {
+    let mut attr = Vec::new();
+    attr.push(("table:number-columns-repeated", (forward_dc - 1).to_string()));
+    xml_out.write_event(xml_empty_a("table:table-cell", attr))?;
+
+    Ok(())
+}
+
+fn write_start_current_row(sheet: &Sheet,
+                           cur_row: usize,
+                           backward_dc: i32,
+                           xml_out: &mut quick_xml::Writer<&mut ZipWriter<BufWriter<File>>>) -> Result<(), OdsError> {
+    let mut attr = Vec::new();
+    if let Some(row) = sheet.rows.get(&cur_row) {
+        if let Some(style) = &row.style {
+            attr.push(("table:style-name", style.to_string()));
+        }
+    }
+
+    xml_out.write_event(xml_start_a("table:table-row", attr))?;
+
+    // Might not be the first column in this row.
+    if backward_dc > 0 {
+        xml_out.write_event(xml_empty_a("table:table-cell", vec![
+            ("table:number-columns-repeated", backward_dc.to_string()),
+        ]))?;
+    }
+
+    Ok(())
+}
+
+fn write_empty_rows_before(first_cell: bool,
+                           backward_dr: i32,
+                           max_cell: &(usize, usize),
+                           xml_out: &mut quick_xml::Writer<&mut ZipWriter<BufWriter<File>>>) -> Result<(), OdsError> {
+    // Empty rows in between are 1 less than the delta, except at the very start.
+    let mut attr = Vec::new();
+
+    let empty_count = if first_cell { backward_dr } else { backward_dr - 1 };
+    if empty_count > 1 {
+        attr.push(("table:number-rows-repeated", empty_count.to_string()));
+    }
+
+    xml_out.write_event(xml_start_a("table:table-row", attr))?;
+
+    // We fill the empty spaces completely up to max columns.
+    xml_out.write_event(xml_empty_a("table:table-cell", vec![
+        ("table:number-columns-repeated", max_cell.1.to_string()),
+    ]))?;
+
+    xml_out.write_event(xml_end("table:table-row"))?;
+
+    Ok(())
+}
+
+fn write_table_columns(sheet: &Sheet,
+                       max_cell: &(usize, usize),
+                       xml_out: &mut quick_xml::Writer<&mut ZipWriter<BufWriter<File>>>) -> Result<(), OdsError> {
     // table:table-column
     for c in sheet.columns.keys() {
         // For the repeat-counter we need to look forward.
@@ -1171,7 +1312,7 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut quick_xml::Writer<&
 
         let column = &sheet.columns[c];
 
-        attr = Vec::new();
+        let mut attr = Vec::new();
         if dc > 1 {
             attr.push(("table:number-columns-repeated", dc.to_string()));
         }
@@ -1184,220 +1325,132 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut quick_xml::Writer<&
         xml_out.write_event(xml_empty_a("table:table-column", attr))?;
     }
 
-    // table-row + table-cell
-    let mut first_cell = true;
-    let mut last_r: usize = 0;
-    let mut last_c: usize = 0;
+    Ok(())
+}
 
-    for (r, c) in sheet.data.keys() {
-        // For the repeat-counter we need to look forward.
-        // Works nicely with the range operator :-)
-        let (next_r, next_c) = if let Some(((next_r, next_c), _)) = sheet.data.range((*r, c + 1)..).next() {
-            (*next_r, *next_c)
-        } else {
-            (max_cell.0, max_cell.1)
-        };
+fn write_cell(book: &WorkBook,
+              cell: &SCell,
+              xml_out: &mut quick_xml::Writer<&mut ZipWriter<BufWriter<File>>>) -> Result<(), OdsError> {
+    let mut attr = Vec::new();
+    let mut content: String = String::from("");
+    if let Some(formula) = &cell.formula {
+        attr.push(("table:formula", formula.to_string()));
+    }
 
-        // Looking forward. Column deltas are only relevant in the same row.
-        let forward_dr = next_r as i32 - *r as i32;
-        // column advance only relevant in the same row
-        let forward_dc = if forward_dr >= 1 {
-            max_cell.1 as i32 - *c as i32
-        } else {
-            next_c as i32 - *c as i32
-        };
-
-        // Looking backward. Column deltas are only relevant in the same row.
-        let backward_dr = *r as i32 - last_r as i32;
-        let backward_dc = if backward_dr >= 1 {
-            *c as i32
-        } else {
-            *c as i32 - last_c as i32
-        };
-
-        // log::info!("{} {} =={} {}==>  [[ {} {} ]] =={} {}==> {} {} ", last_r, last_c, backward_dr, backward_dc, *r, *c, forward_dr, forward_dc, next_r, next_c);
-
-        // After the first cell there is always an open row tag.
-        if backward_dr > 0 && !first_cell {
-            xml_out.write_event(xml_end("table:table-row"))?;
-        }
-
-        // Any empty rows before this one?
-        if backward_dr > 1 {
-            // Empty rows in between are 1 less than the delta, except at the very start.
-            attr = Vec::new();
-            let empty_count = if first_cell { backward_dr } else { backward_dr - 1 };
-            if empty_count > 1 {
-                attr.push(("table:number-rows-repeated", empty_count.to_string()));
-            }
-            xml_out.write_event(xml_start_a("table:table-row", attr))?;
-            // We fill the empty spaces completely up to max columns.
-            xml_out.write_event(xml_empty_a("table:table-cell", vec![
-                ("table:number-columns-repeated", max_cell.1.to_string()),
-            ]))?;
-            xml_out.write_event(xml_end("table:table-row"))?;
-        }
-
-        // Start a new row if there is a delta or we are at the start
-        if backward_dr > 0 || first_cell {
-            attr = Vec::new();
-            if let Some(row) = sheet.rows.get(r) {
-                if let Some(style) = &row.style {
-                    attr.push(("table:style-name", style.to_string()));
-                }
-            }
-            xml_out.write_event(xml_start_a("table:table-row", attr))?;
-
-            // Might not be the first column in this row.
-            if backward_dc > 0 {
-                xml_out.write_event(xml_empty_a("table:table-cell", vec![
-                    ("table:number-columns-repeated", backward_dc.to_string()),
-                ]))?;
-            }
-        }
-
-        // And now to something completely different ...
-        let cell = &sheet.data[&(*r, *c)];
-
-        attr = Vec::new();
-        let mut content: String = String::from("");
-        if let Some(formula) = &cell.formula {
-            attr.push(("table:formula", formula.to_string()));
-        }
-
-        if let Some(style) = &cell.style {
+    if let Some(style) = &cell.style {
+        attr.push(("table:style-name", style.to_string()));
+    } else if let Some(value) = &cell.value {
+        if let Some(style) = book.def_style(value.value_type()) {
             attr.push(("table:style-name", style.to_string()));
-        } else if let Some(value) = &cell.value {
-            if let Some(style) = book.def_style(value.value_type()) {
-                attr.push(("table:style-name", style.to_string()));
-            }
         }
-
-
-        // Might not yield a useful result. Could not exist, or be in styles.xml
-        // which I don't read. Defaulting to to_string() seems reasonable.
-        let value_style = if let Some(style_name) = &cell.style {
-            book.find_value_style(style_name)
-        } else {
-            None
-        };
-
-        let mut is_empty = false;
-        match &cell.value {
-            None => {
-                is_empty = true;
-            }
-            Some(Value::Text(s)) => {
-                attr.push(("office:value-type", String::from("string")));
-                if let Some(value_style) = value_style {
-                    content = value_style.format_str(s);
-                } else {
-                    content = s.to_string();
-                }
-            }
-            Some(Value::DateTime(d)) => {
-                attr.push(("office:value-type", String::from("date")));
-                attr.push(("office:date-value", d.format("%Y-%m-%dT%H:%M:%S%.f").to_string()));
-                if let Some(value_style) = value_style {
-                    content = value_style.format_datetime(d);
-                } else {
-                    content = d.format("%d.%m.%Y").to_string();
-                }
-            }
-            Some(Value::TimeDuration(d)) => {
-                attr.push(("office:value-type", String::from("time")));
-
-                let mut buf = String::from("PT");
-                buf.push_str(&d.num_hours().to_string());
-                buf.push_str("H");
-                buf.push_str(&(d.num_minutes() % 60).to_string());
-                buf.push_str("M");
-                buf.push_str(&(d.num_seconds() % 60).to_string());
-                buf.push_str(".");
-                buf.push_str(&(d.num_milliseconds() % 1000).to_string());
-                buf.push_str("S");
-
-                attr.push(("office:time-value", buf));
-                if let Some(value_style) = value_style {
-                    content = value_style.format_time_duration(d);
-                } else {
-                    content.push_str(&d.num_hours().to_string());
-                    content.push_str(":");
-                    content.push_str(&(d.num_minutes() % 60).to_string());
-                    content.push_str(":");
-                    content.push_str(&(d.num_seconds() % 60).to_string());
-                    content.push_str(".");
-                    content.push_str(&(d.num_milliseconds() % 1000).to_string());
-                }
-            }
-            Some(Value::Boolean(b)) => {
-                attr.push(("office:value-type", String::from("boolean")));
-                attr.push(("office:boolean-value", b.to_string()));
-                if let Some(value_style) = value_style {
-                    content = value_style.format_boolean(*b);
-                } else {
-                    content = b.to_string();
-                }
-            }
-            Some(Value::Currency(c, v)) => {
-                attr.push(("office:value-type", String::from("currency")));
-                attr.push(("office:currency", c.to_string()));
-                attr.push(("office:value", v.to_string()));
-                if let Some(value_style) = value_style {
-                    content = value_style.format_float(*v);
-                } else {
-                    content.push_str(c);
-                    content.push_str(" ");
-                    content.push_str(&v.to_string());
-                }
-            }
-            Some(Value::Number(v)) => {
-                attr.push(("office:value-type", String::from("float")));
-                attr.push(("office:value", v.to_string()));
-                if let Some(value_style) = value_style {
-                    content = value_style.format_float(*v);
-                } else {
-                    content = v.to_string();
-                }
-            }
-            Some(Value::Percentage(v)) => {
-                attr.push(("office:value-type", String::from("percentage")));
-                attr.push(("office:value", format!("{}%", v)));
-                if let Some(value_style) = value_style {
-                    content = value_style.format_float(*v * 100.0);
-                } else {
-                    content = (v * 100.0).to_string();
-                }
-            }
-        }
-
-        if !is_empty {
-            xml_out.write_event(xml_start_a("table:table-cell", attr))?;
-            xml_out.write_event(xml_start("text:p"))?;
-            xml_out.write_event(xml_text(&content))?;
-            xml_out.write_event(xml_end("text:p"))?;
-            xml_out.write_event(xml_end("table:table-cell"))?;
-        } else {
-            xml_out.write_event(xml_empty_a("table:table-cell", attr))?;
-        }
-
-        // There may be some blank cells until the next one, but only one less the forward.
-        if forward_dc > 1 {
-            attr = Vec::new();
-            attr.push(("table:number-columns-repeated", (forward_dc - 1).to_string()));
-            xml_out.write_event(xml_empty_a("table:table-cell", attr))?;
-        }
-
-        first_cell = false;
-        last_r = *r;
-        last_c = *c;
     }
 
-    if !first_cell {
-        xml_out.write_event(xml_end("table:table-row"))?;
+    // Might not yield a useful result. Could not exist, or be in styles.xml
+    // which I don't read. Defaulting to to_string() seems reasonable.
+    let value_style = if let Some(style_name) = &cell.style {
+        book.find_value_style(style_name)
+    } else {
+        None
+    };
+
+    let mut is_empty = false;
+    match &cell.value {
+        None => {
+            is_empty = true;
+        }
+        Some(Value::Text(s)) => {
+            attr.push(("office:value-type", String::from("string")));
+            if let Some(value_style) = value_style {
+                content = value_style.format_str(s);
+            } else {
+                content = s.to_string();
+            }
+        }
+        Some(Value::DateTime(d)) => {
+            attr.push(("office:value-type", String::from("date")));
+            attr.push(("office:date-value", d.format("%Y-%m-%dT%H:%M:%S%.f").to_string()));
+            if let Some(value_style) = value_style {
+                content = value_style.format_datetime(d);
+            } else {
+                content = d.format("%d.%m.%Y").to_string();
+            }
+        }
+        Some(Value::TimeDuration(d)) => {
+            attr.push(("office:value-type", String::from("time")));
+
+            let mut buf = String::from("PT");
+            buf.push_str(&d.num_hours().to_string());
+            buf.push_str("H");
+            buf.push_str(&(d.num_minutes() % 60).to_string());
+            buf.push_str("M");
+            buf.push_str(&(d.num_seconds() % 60).to_string());
+            buf.push_str(".");
+            buf.push_str(&(d.num_milliseconds() % 1000).to_string());
+            buf.push_str("S");
+
+            attr.push(("office:time-value", buf));
+            if let Some(value_style) = value_style {
+                content = value_style.format_time_duration(d);
+            } else {
+                content.push_str(&d.num_hours().to_string());
+                content.push_str(":");
+                content.push_str(&(d.num_minutes() % 60).to_string());
+                content.push_str(":");
+                content.push_str(&(d.num_seconds() % 60).to_string());
+                content.push_str(".");
+                content.push_str(&(d.num_milliseconds() % 1000).to_string());
+            }
+        }
+        Some(Value::Boolean(b)) => {
+            attr.push(("office:value-type", String::from("boolean")));
+            attr.push(("office:boolean-value", b.to_string()));
+            if let Some(value_style) = value_style {
+                content = value_style.format_boolean(*b);
+            } else {
+                content = b.to_string();
+            }
+        }
+        Some(Value::Currency(c, v)) => {
+            attr.push(("office:value-type", String::from("currency")));
+            attr.push(("office:currency", c.to_string()));
+            attr.push(("office:value", v.to_string()));
+            if let Some(value_style) = value_style {
+                content = value_style.format_float(*v);
+            } else {
+                content.push_str(c);
+                content.push_str(" ");
+                content.push_str(&v.to_string());
+            }
+        }
+        Some(Value::Number(v)) => {
+            attr.push(("office:value-type", String::from("float")));
+            attr.push(("office:value", v.to_string()));
+            if let Some(value_style) = value_style {
+                content = value_style.format_float(*v);
+            } else {
+                content = v.to_string();
+            }
+        }
+        Some(Value::Percentage(v)) => {
+            attr.push(("office:value-type", String::from("percentage")));
+            attr.push(("office:value", format!("{}%", v)));
+            if let Some(value_style) = value_style {
+                content = value_style.format_float(*v * 100.0);
+            } else {
+                content = (v * 100.0).to_string();
+            }
+        }
     }
 
-    xml_out.write_event(xml_end("table:table"))?;
+    if !is_empty {
+        xml_out.write_event(xml_start_a("table:table-cell", attr))?;
+        xml_out.write_event(xml_start("text:p"))?;
+        xml_out.write_event(xml_text(&content))?;
+        xml_out.write_event(xml_end("text:p"))?;
+        xml_out.write_event(xml_end("table:table-cell"))?;
+    } else {
+        xml_out.write_event(xml_empty_a("table:table-cell", attr))?;
+    }
 
     Ok(())
 }
