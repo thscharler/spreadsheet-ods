@@ -14,9 +14,11 @@ use zip::write::FileOptions;
 use zip::ZipWriter;
 
 use crate::{Family, Origin, Part, PartType, SCell, SColumn, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
+use quick_xml::events::attributes::Attribute;
 
 #[derive(Debug)]
 pub enum OdsError {
+    Ods(String),
     Io(io::Error),
     Zip(zip::result::ZipError),
     Xml(quick_xml::Error),
@@ -102,298 +104,169 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
     let mut book = WorkBook::new();
     let mut sheet = Sheet::new();
 
+    // Separate counter for table-columns
     let mut tcol: usize = 0;
+    // Cell position
     let mut row: usize = 0;
     let mut col: usize = 0;
-    // Empty rows are omitted and marked with a repeat-count.
-    // Empty columns the same, but it's in an empty tag, we can handle there.
-    let mut row_advance: usize = 1;
+
+
+    // Rows can be repeated. In reality only empty ones ever are.
+    let mut row_repeat: usize = 1;
     // Columns can be repeated, not only empty ones.
     let mut col_repeat: usize = 1;
 
+    // Row style.
     let mut row_style: Option<String> = None;
 
-    // Datatype in a cell
-    let mut cell_type: String = String::from("");
+    // The current cell.
+    let mut cell: SCell = SCell::new();
+    // Decoded type.
+    let mut value_type: Option<ValueType> = None;
     // Basic cell value here.
     let mut cell_value: Option<String> = None;
-    // String content is held separately. It contains a formatted value of floats, dates etc
-    let mut cell_string: Option<String> = None;
-    // Currency + float-Value
+    // Content of the table-cell tag.
+    let mut cell_content: Option<String> = None;
+    // Currency
     let mut cell_currency: Option<String> = None;
-    // Formula if any.
-    let mut cell_formula: Option<String> = None;
-    let mut cell_style: Option<String> = None;
 
     loop {
-        match xml.read_event(&mut buf)? {
-            Event::Start(ref elem) => {
-                if DUMP_XML { log::debug!("{:?}", elem); }
+        let event = xml.read_event(&mut buf)?;
+        if DUMP_XML { log::debug!("{:?}", event); }
 
-                match elem.name() {
-                    b"table:table" => read_ods_table_tag(&mut xml, elem, &mut sheet)?,
-
-                    b"table:table-row" => {
-                        for a in elem.attributes().with_checks(false) {
-                            match a {
-                                Ok(ref attr) if attr.key == b"table:number-rows-repeated" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    row_advance = v.parse::<usize>()?;
-                                }
-                                Ok(ref attr) if attr.key == b"table:style-name" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    row_style = Some(v.to_string());
-                                }
-                                _ => {}
-                            }
+        match event {
+            Event::Start(xml_tag) if xml_tag.name() == b"table:table" => {
+                for attr in xml_tag.attributes().with_checks(false) {
+                    match attr? {
+                        attr if attr.key == b"table:name" => {
+                            let v = attr.unescape_and_decode_value(&xml)?;
+                            sheet.set_name(v);
                         }
-                    }
-                    b"table:table-cell" => {
-                        for a in elem.attributes().with_checks(false) {
-                            match a {
-                                Ok(ref attr) if attr.key == b"office:value-type" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    cell_type = v.to_string();
-                                }
-                                Ok(ref attr) if attr.key == b"office:date-value" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    cell_value = Some(v.to_string());
-                                }
-                                Ok(ref attr) if attr.key == b"office:time-value" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    cell_value = Some(v);
-                                }
-                                Ok(ref attr) if attr.key == b"office:value" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    cell_value = Some(v.to_string());
-                                }
-                                Ok(ref attr) if attr.key == b"office:boolean-value" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    cell_value = Some(v.to_string());
-                                }
-                                Ok(ref attr) if attr.key == b"office:currency" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    cell_currency = Some(v.to_string());
-                                }
-                                Ok(ref attr) if attr.key == b"table:formula" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    cell_formula = Some(v.to_string());
-                                }
-                                Ok(ref attr) if attr.key == b"table:style-name" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    cell_style = Some(v.to_string());
-                                }
-                                Ok(ref attr) if attr.key == b"table:number-columns-repeated" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    col_repeat = v.parse::<usize>()?;
-                                }
-                                _ => {}
-                            }
+                        attr if attr.key == b"table:style-name" => {
+                            let v = attr.unescape_and_decode_value(&xml)?;
+                            sheet.set_style(v);
                         }
+                        _ => { /* ignore other attr */ }
                     }
-                    b"office:automatic-styles" => {
-                        read_ods_styles(&mut book, &mut xml, b"office:automatic-styles")?;
-                    }
-                    _ => {}
                 }
             }
-            Event::End(ref elem) => {
-                if DUMP_XML { log::debug!("{:?}", elem); }
-                match elem.name() {
-                    b"table:table" => {
-                        row = 0;
-                        col = 0;
-                        book.push_sheet(sheet);
-                        sheet = Sheet::new();
+            Event::End(xml_tag) if xml_tag.name() == b"table:table" => {
+                row = 0;
+                col = 0;
+                book.push_sheet(sheet);
+                sheet = Sheet::new();
+            }
+
+            Event::Empty(xml_tag) if xml_tag.name() == b"table:table-column" => {
+                tcol = read_ods_table_column(&mut xml, &xml_tag, tcol, &mut sheet)?;
+            }
+
+            Event::Start(xml_tag) if xml_tag.name() == b"table:table-row" => {
+                for attr in xml_tag.attributes().with_checks(false) {
+                    match attr? {
+                        attr if attr.key == b"table:number-rows-repeated" => {
+                            let v = attr.unescape_and_decode_value(&xml)?;
+                            row_repeat = v.parse::<usize>()?;
+                        }
+                        attr if attr.key == b"table:style-name" => {
+                            let v = attr.unescape_and_decode_value(&xml)?;
+                            row_style = Some(v);
+                        }
+                        _ => {}
                     }
-                    b"table:table-row" => {
-                        if let Some(style) = row_style {
-                            for r in row..row + row_advance {
-                                sheet.set_row_style(r, style.clone());
-                            }
-                            row_style = None;
-                        }
-
-                        row += row_advance;
-                        col = 0;
-                        row_advance = 1;
-                    }
-                    b"table:table-cell" => {
-                        let mut cell = SCell::new();
-
-                        match cell_type.as_str() {
-                            "string" => {
-                                if let Some(cs) = cell_string {
-                                    cell.value = Some(Value::from(cs));
-                                }
-                            }
-                            "float" => {
-                                if let Some(cs) = cell_value {
-                                    let f = cs.parse::<f64>()?;
-                                    cell.value = Some(Value::from(f));
-                                }
-                                cell_value = None;
-                            }
-                            "percentage" => {
-                                if let Some(cs) = cell_value {
-                                    let f = cs.parse::<f64>()?;
-                                    cell.value = Some(Value::percentage(f));
-                                }
-                                cell_value = None;
-                            }
-                            "date" => {
-                                if let Some(cs) = cell_value {
-                                    let td =
-                                        if cs.len() == 10 {
-                                            NaiveDate::parse_from_str(cs.as_str(), "%Y-%m-%d")?.and_hms(0, 0, 0)
-                                        } else {
-                                            NaiveDateTime::parse_from_str(cs.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?
-                                        };
-                                    cell.value = Some(Value::from(td));
-                                }
-                                cell_value = None;
-                            }
-                            "time" => {
-                                if let Some(mut cs) = cell_value {
-                                    let mut hour: u32 = 0;
-                                    let mut have_hour = false;
-                                    let mut min: u32 = 0;
-                                    let mut have_min = false;
-                                    let mut sec: u32 = 0;
-                                    let mut have_sec = false;
-                                    let mut nanos: u32 = 0;
-                                    let mut nanos_digits: u8 = 0;
-
-                                    for c in cs.drain(..) {
-                                        match c {
-                                            'P' | 'T' => {}
-                                            '0'..='9' => {
-                                                if !have_hour {
-                                                    hour = hour * 10 + (c as u32 - '0' as u32);
-                                                } else if !have_min {
-                                                    min = min * 10 + (c as u32 - '0' as u32);
-                                                } else if !have_sec {
-                                                    sec = sec * 10 + (c as u32 - '0' as u32);
-                                                } else {
-                                                    nanos = nanos * 10 + (c as u32 - '0' as u32);
-                                                    nanos_digits += 1;
-                                                }
-                                            }
-                                            'H' => have_hour = true,
-                                            'M' => have_min = true,
-                                            '.' => have_sec = true,
-                                            'S' => {}
-                                            _ => {}
-                                        }
-                                    }
-                                    // unseen nano digits
-                                    while nanos_digits < 9 {
-                                        nanos *= 10;
-                                        nanos_digits += 1;
-                                    }
-
-                                    let secs: u64 = hour as u64 * 3600 + min as u64 * 60 + sec as u64;
-                                    let dur = Duration::from_std(std::time::Duration::new(secs, nanos))?;
-
-                                    cell.value = Some(Value::from(dur));
-                                }
-                                cell_value = None;
-                            }
-                            "boolean" => {
-                                if let Some(cs) = cell_value {
-                                    cell.value = Some(Value::from(&cs == "true"));
-                                }
-                                cell_value = None;
-                            }
-                            "currency" => {
-                                if let Some(cs) = cell_value {
-                                    let f = cs.parse::<f64>()?;
-                                    cell.value = Some(Value::currency(&cell_currency.unwrap(), f));
-                                }
-                                cell_value = None;
-                                cell_currency = None;
-                            }
-                            _ => {
-                                log::warn!("Unknown cell-type {}", cell_type);
-                            }
-                        }
-
-                        if let Some(formula) = cell_formula {
-                            cell.formula = Some(formula);
-                        }
-                        cell_formula = None;
-                        if let Some(style) = cell_style {
-                            cell.style = Some(style);
-                        }
-                        cell_style = None;
-
-                        while col_repeat > 1 {
-                            sheet.add_cell(row, col, cell.clone());
-                            col += 1;
-                            col_repeat -= 1;
-                        }
-                        sheet.add_cell(row, col, cell);
-
-                        cell_type = String::from("");
-                        cell_string = None;
-                        col += 1;
-                    }
-                    _ => {}
                 }
             }
-            Event::Empty(ref elem) => {
-                if DUMP_XML { log::debug!("{:?}", elem); }
-                match elem.name() {
-                    b"table:table-column" => {
-                        let mut column = SColumn::new();
-                        let mut repeat: usize = 1;
-
-                        for a in elem.attributes().with_checks(false) {
-                            match a {
-                                Ok(ref attr) if attr.key == b"table:style-name" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    column.style = Some(v.to_string());
-                                }
-                                Ok(ref attr) if attr.key == b"table:number-columns-repeated" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    repeat = v.parse()?;
-                                }
-                                Ok(ref attr) if attr.key == b"table:default-cell-style-name" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    column.def_cell_style = Some(v.to_string());
-                                }
-                                _ => {}
-                            }
-                        }
-
-                        while repeat > 0 {
-                            sheet.columns.insert(tcol, column.clone());
-                            tcol += 1;
-                            repeat -= 1;
-                        }
+            Event::End(xml_tag) if xml_tag.name() == b"table:table-row" => {
+                if let Some(style) = row_style {
+                    for r in row..row + row_repeat {
+                        sheet.set_row_style(r, style.clone());
                     }
-                    b"table:table-cell" => {
-                        if elem.attributes().count() == 0 {
-                            col += 1;
+                    row_style = None;
+                }
+
+                row += row_repeat;
+                col = 0;
+                row_repeat = 1;
+            }
+
+            Event::Start(xml_tag) if xml_tag.name() == b"office:automatic-styles" => {
+                read_ods_styles(&mut book, &mut xml, b"office:automatic-styles")?;
+            }
+            // End of office:automatic-styles is parsed in read_ods_styles
+
+            Event::Empty(xml_tag) if xml_tag.name() == b"table:table-cell" => {
+                // Simple empty cell. Advance and don't store anything.
+                if xml_tag.attributes().count() == 0 {
+                    col += 1;
+                }
+                for attr in xml_tag.attributes().with_checks(false) {
+                    match attr? {
+                        attr if attr.key == b"table:number-columns-repeated" => {
+                            let v = attr.unescape_and_decode_value(&xml)?;
+                            col += v.parse::<usize>()?;
                         }
-                        for a in elem.attributes().with_checks(false) {
-                            match a {
-                                Ok(ref attr) if attr.key == b"table:number-columns-repeated" => {
-                                    let v = attr.unescape_and_decode_value(&xml)?;
-                                    col += v.parse::<usize>()?;
-                                }
-                                _ => {}
-                            }
-                        }
+                        _ => { /* should be nothing else of interest here */ }
                     }
-                    _ => {}
                 }
             }
-            Event::Text(elem) => {
-                if DUMP_XML { log::debug!("{:?}", elem); }
-                let v = elem.unescape_and_decode(&xml)?;
-                cell_string = Some(v);
+            Event::Start(xml_tag) if xml_tag.name() == b"table:table-cell" => {
+                for attr in xml_tag.attributes().with_checks(false) {
+                    match attr? {
+                        attr if attr.key == b"table:number-columns-repeated" => {
+                            let v = attr.unescape_and_decode_value(&xml)?;
+                            col_repeat = v.parse::<usize>()?;
+                        }
+
+                        attr if attr.key == b"office:value-type" =>
+                            value_type = Some(read_ods_value_type(&xml, attr)?),
+
+                        attr if attr.key == b"office:date-value" =>
+                            cell_value = Some(attr.unescape_and_decode_value(&xml)?),
+                        attr if attr.key == b"office:time-value" =>
+                            cell_value = Some(attr.unescape_and_decode_value(&xml)?),
+                        attr if attr.key == b"office:value" =>
+                            cell_value = Some(attr.unescape_and_decode_value(&xml)?),
+                        attr if attr.key == b"office:boolean-value" =>
+                            cell_value = Some(attr.unescape_and_decode_value(&xml)?),
+
+                        attr if attr.key == b"office:currency" =>
+                            cell_currency = Some(attr.unescape_and_decode_value(&xml)?),
+
+                        attr if attr.key == b"table:formula" =>
+                            cell.formula = Some(attr.unescape_and_decode_value(&xml)?),
+                        attr if attr.key == b"table:style-name" =>
+                            cell.style = Some(attr.unescape_and_decode_value(&xml)?),
+
+                        _ => {}
+                    }
+                }
             }
+            Event::Text(xml_tag) => {
+                // Not every cell type has a value attribute, some take their value from
+                // the string representation.
+                cell_content = Some(xml_tag.unescape_and_decode(&xml)?);
+            }
+            Event::End(xml_tag) if xml_tag.name() == b"table:table-cell" => {
+                cell.value = read_ods_parse_value(value_type,
+                                                  cell_value,
+                                                  cell_content,
+                                                  cell_currency)?;
+
+                while col_repeat > 1 {
+                    sheet.add_cell(row, col, cell.clone());
+                    col += 1;
+                    col_repeat -= 1;
+                }
+                sheet.add_cell(row, col, cell);
+                col += 1;
+
+                cell = SCell::new();
+                value_type = None;
+                cell_value = None;
+                cell_content = None;
+                cell_currency = None;
+            }
+
             Event::Eof => {
                 if DUMP_XML { log::debug!("eof"); }
                 break;
@@ -407,24 +280,163 @@ fn read_ods_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
     Ok(book)
 }
 
-fn read_ods_table_tag(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-                      xml_tag: &BytesStart,
-                      sheet: &mut Sheet) -> Result<(), OdsError> {
-    for a in xml_tag.attributes().with_checks(false) {
-        match a {
-            Ok(ref attr) if attr.key == b"table:name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
-                sheet.set_name(v);
+fn read_ods_parse_value(value_type: Option<ValueType>,
+                        cell_value: Option<String>,
+                        cell_content: Option<String>,
+                        cell_currency: Option<String>) -> Result<Option<Value>, OdsError> {
+    if let Some(value_type) = value_type {
+        match value_type {
+            ValueType::Text => {
+                Ok(cell_content.map(|v| Value::Text(v)))
             }
-            Ok(ref attr) if attr.key == b"table:style-name" => {
+            ValueType::Number => {
+                if let Some(cell_value) = cell_value {
+                    let f = cell_value.parse::<f64>()?;
+                    Ok(Some(Value::Number(f)))
+                } else {
+                    Err(OdsError::Ods(String::from("Cell of type number, but no value!")))
+                }
+            }
+            ValueType::DateTime => {
+                if let Some(cell_value) = cell_value {
+                    let dt =
+                        if cell_value.len() == 10 {
+                            NaiveDate::parse_from_str(cell_value.as_str(), "%Y-%m-%d")?.and_hms(0, 0, 0)
+                        } else {
+                            NaiveDateTime::parse_from_str(cell_value.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?
+                        };
+
+                    Ok(Some(Value::DateTime(dt)))
+                } else {
+                    Err(OdsError::Ods(String::from("Cell of type datetime, but no value!")))
+                }
+            }
+            ValueType::TimeDuration => {
+                if let Some(mut cell_value) = cell_value {
+                    let mut hour: u32 = 0;
+                    let mut have_hour = false;
+                    let mut min: u32 = 0;
+                    let mut have_min = false;
+                    let mut sec: u32 = 0;
+                    let mut have_sec = false;
+                    let mut nanos: u32 = 0;
+                    let mut nanos_digits: u8 = 0;
+
+                    for c in cell_value.drain(..) {
+                        match c {
+                            'P' | 'T' => {}
+                            '0'..='9' => {
+                                if !have_hour {
+                                    hour = hour * 10 + (c as u32 - '0' as u32);
+                                } else if !have_min {
+                                    min = min * 10 + (c as u32 - '0' as u32);
+                                } else if !have_sec {
+                                    sec = sec * 10 + (c as u32 - '0' as u32);
+                                } else {
+                                    nanos = nanos * 10 + (c as u32 - '0' as u32);
+                                    nanos_digits += 1;
+                                }
+                            }
+                            'H' => have_hour = true,
+                            'M' => have_min = true,
+                            '.' => have_sec = true,
+                            'S' => {}
+                            _ => {}
+                        }
+                    }
+                    // unseen nano digits
+                    while nanos_digits < 9 {
+                        nanos *= 10;
+                        nanos_digits += 1;
+                    }
+
+                    let secs: u64 = hour as u64 * 3600 + min as u64 * 60 + sec as u64;
+                    let dur = Duration::from_std(std::time::Duration::new(secs, nanos))?;
+
+                    Ok(Some(Value::TimeDuration(dur)))
+                } else {
+                    Err(OdsError::Ods(String::from("Cell of type time-duration, but no value!")))
+                }
+            }
+            ValueType::Boolean => {
+                if let Some(cell_value) = cell_value {
+                    Ok(Some(Value::Boolean(&cell_value == "true")))
+                } else {
+                    Err(OdsError::Ods(String::from("Cell of type boolean, but no value!")))
+                }
+            }
+            ValueType::Currency => {
+                if let Some(cell_value) = cell_value {
+                    let f = cell_value.parse::<f64>()?;
+                    if let Some(cell_currency) = cell_currency {
+                        Ok(Some(Value::Currency(cell_currency, f)))
+                    } else {
+                        Err(OdsError::Ods(String::from("Cell of type currency, but no currency name!")))
+                    }
+                } else {
+                    Err(OdsError::Ods(String::from("Cell of type currency, but no value!")))
+                }
+            }
+            ValueType::Percentage => {
+                if let Some(cell_value) = cell_value {
+                    let f = cell_value.parse::<f64>()?;
+                    Ok(Some(Value::Percentage(f)))
+                } else {
+                    Err(OdsError::Ods(String::from("Cell of type percentage, but no value!")))
+                }
+            }
+        }
+    } else {
+        Err(OdsError::Ods(String::from("Cell with no value-type!")))
+    }
+}
+
+fn read_ods_value_type(xml: &quick_xml::Reader<BufReader<&mut ZipFile>>,
+                       attr: Attribute) -> Result<ValueType, OdsError> {
+    match attr.unescape_and_decode_value(&xml)?.as_ref() {
+        "string" => Ok(ValueType::Text),
+        "float" => Ok(ValueType::Number),
+        "percentage" => Ok(ValueType::Percentage),
+        "date" => Ok(ValueType::DateTime),
+        "time" => Ok(ValueType::TimeDuration),
+        "boolean" => Ok(ValueType::Boolean),
+        "currency" => Ok(ValueType::Currency),
+        other => Err(OdsError::Ods(format!("Unknown cell-type {}", other)))
+    }
+}
+
+fn read_ods_table_column(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                         xml_tag: &BytesStart,
+                         mut tcol: usize,
+                         sheet: &mut Sheet) -> Result<usize, OdsError> {
+    let mut column = SColumn::new();
+    let mut repeat: usize = 1;
+
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key == b"table:style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                sheet.set_style(v);
+                column.style = Some(v.to_string());
+            }
+            attr if attr.key == b"table:number-columns-repeated" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                repeat = v.parse()?;
+            }
+            attr if attr.key == b"table:default-cell-style-name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                column.def_cell_style = Some(v.to_string());
             }
             _ => {}
         }
     }
 
-    Ok(())
+    while repeat > 0 {
+        sheet.columns.insert(tcol, column.clone());
+        tcol += 1;
+        repeat -= 1;
+    }
+
+    Ok(tcol)
 }
 
 fn read_ods_styles(book: &mut WorkBook,

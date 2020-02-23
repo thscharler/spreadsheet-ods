@@ -29,7 +29,7 @@ pub struct WorkBook {
     /// This is only used when writing the ods file.
     def_styles: Option<HashMap<ValueType, String>>,
 
-    /// Original file if this book was read from one
+    /// Original file if this book was read from one.
     /// This is used for writing to copy all additional
     /// files except content.xml
     file: Option<PathBuf>,
@@ -548,6 +548,18 @@ impl SCell {
     }
 }
 
+/// Datatypes
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ValueType {
+    Boolean,
+    Number,
+    Percentage,
+    Currency,
+    Text,
+    DateTime,
+    TimeDuration,
+}
+
 /// Content-Values
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -850,18 +862,6 @@ pub enum Family {
     TableColumn,
     TableCell,
     None,
-}
-
-/// Datatypes
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ValueType {
-    Boolean,
-    Number,
-    Percentage,
-    Currency,
-    Text,
-    DateTime,
-    TimeDuration,
 }
 
 /// Actual textual formatting of values.
