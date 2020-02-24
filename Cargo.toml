@@ -7,6 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rust_decimal = "^1.2.1"
+rust_decimal_macros = "^1.2.1"
+num = "^0.2.1"
 log = "^0.4.8"
 chrono = "^0.4"
 time = "^0.1.42"

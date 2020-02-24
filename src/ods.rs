@@ -71,14 +71,14 @@ impl From<std::time::SystemTimeError> for OdsError {
 
 // Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
-    let file = File::open(path)?;
+    let file = File::open(path.as_ref())?;
     // ods is a zip-archive, we read content.xml
     let mut zip = zip::ZipArchive::new(file)?;
     let mut zip_file = zip.by_name("content.xml")?;
 
     let mut book = read_ods::read_content(&mut zip_file)?;
 
-    book.file = Some(path.to_path_buf());
+    book.file = Some(path.as_ref().to_path_buf());
 
     Ok(book)
 }
@@ -680,7 +680,6 @@ mod read_ods {
                     let v = attr.unescape_and_decode_value(&xml)?;
                     value_style.set_prp(k, v);
                 }
-                _ => {}
             }
         }
 

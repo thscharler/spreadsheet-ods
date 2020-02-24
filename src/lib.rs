@@ -2,12 +2,12 @@ use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Range;
 use std::fmt;
 use std::path::PathBuf;
-
-use chrono::{Duration, NaiveDateTime};
-
+use chrono::{Duration, NaiveDateTime, NaiveDate};
 pub use crate::ods::OdsError;
 pub use crate::ods::read_ods;
 pub use crate::ods::write_ods;
+use rust_decimal::Decimal;
+use rust_decimal::prelude::*;
 
 pub mod ods;
 
@@ -80,6 +80,12 @@ impl WorkBook {
     /// panics if n does not exist.
     pub fn sheet_mut(&mut self, n: usize) -> &mut Sheet {
         &mut self.sheets[n]
+    }
+
+    /// Creates a new sheet at the end and returns it.
+    pub fn new_sheet(&mut self) -> &mut Sheet {
+        self.sheets.push(Sheet::new());
+        self.sheets.last_mut().unwrap()
     }
 
     /// Replaces the existing sheet.
@@ -612,6 +618,12 @@ impl From<&String> for Value {
     }
 }
 
+impl From<Decimal> for Value {
+    fn from(f: Decimal) -> Self {
+        Value::Number(f.to_f64().unwrap())
+    }
+}
+
 impl From<f64> for Value {
     fn from(f: f64) -> Self {
         Value::Number(f)
@@ -652,6 +664,10 @@ impl From<NaiveDateTime> for Value {
     fn from(dt: NaiveDateTime) -> Self {
         Value::DateTime(dt)
     }
+}
+
+impl From<NaiveDate> for Value {
+    fn from(dt: NaiveDate) -> Self { Value::DateTime(dt.and_hms(0, 0, 0)) }
 }
 
 impl From<Duration> for Value {
