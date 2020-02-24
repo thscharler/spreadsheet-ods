@@ -1,9 +1,10 @@
+use quick_xml;
 use std::collections::HashSet;
 use std::fs::{File, rename};
 use std::io;
 use std::path::Path;
-use quick_xml;
 use zip;
+
 use crate::WorkBook;
 
 #[derive(Debug)]
@@ -69,7 +70,7 @@ impl From<std::time::SystemTimeError> for OdsError {
 
 
 // Reads an ODS-file.
-pub fn read_ods(path: &Path) -> Result<WorkBook, OdsError> {
+pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
     let file = File::open(path)?;
     // ods is a zip-archive, we read content.xml
     let mut zip = zip::ZipArchive::new(file)?;
@@ -83,13 +84,14 @@ pub fn read_ods(path: &Path) -> Result<WorkBook, OdsError> {
 }
 
 mod read_ods {
-    use zip::read::ZipFile;
-    use crate::{WorkBook, OdsError, Sheet, SCell, ValueType, Value,
-                SColumn, Style, Origin, ValueStyle, PartType, Part, Family};
-    use std::io::BufReader;
-    use quick_xml::events::{Event, BytesStart};
-    use chrono::{NaiveDate, NaiveDateTime, Duration};
+    use chrono::{Duration, NaiveDate, NaiveDateTime};
+    use quick_xml::events::{BytesStart, Event};
     use quick_xml::events::attributes::Attribute;
+    use std::io::BufReader;
+    use zip::read::ZipFile;
+
+    use crate::{Family, OdsError, Origin, Part, PartType, SCell,
+                SColumn, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
 
     const DUMP_XML: bool = false;
 
@@ -762,7 +764,7 @@ mod read_ods {
 }
 
 pub mod xml {
-    use quick_xml::events::{BytesStart, Event, BytesText, BytesEnd};
+    use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
     use std::collections::HashMap;
 
     pub fn start(tag: &str) -> Event {
@@ -885,18 +887,19 @@ pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), Ods
 }
 
 mod write_ods {
-    use std::path::PathBuf;
-    use std::collections::{HashSet, BTreeMap, HashMap};
+    use chrono::NaiveDateTime;
+    use quick_xml::events::{BytesDecl, Event};
+    use std::collections::{BTreeMap, HashMap, HashSet};
     use std::fs::File;
     use std::io;
     use std::io::{Read, Write};
+    use std::io::BufWriter;
+    use std::path::PathBuf;
     use zip::write::FileOptions;
     use zip::ZipWriter;
-    use std::io::BufWriter;
-    use quick_xml::events::{Event, BytesDecl};
-    use crate::{ValueStyle, Origin, ValueType, PartType, Value, Family, Style, OdsError, WorkBook, Sheet, SCell};
+
+    use crate::{Family, OdsError, Origin, PartType, SCell, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
     use crate::ods::xml;
-    use chrono::NaiveDateTime;
 
     pub fn copy_workbook(ods_orig_name: &PathBuf, file_set: &mut HashSet<String>, zip_writer: &mut ZipWriter<BufWriter<File>>) -> Result<(), OdsError> {
         let ods_orig = File::open(ods_orig_name)?;
