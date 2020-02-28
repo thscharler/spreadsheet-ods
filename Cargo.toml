@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 rust_decimal = "^1.2.1"
 rust_decimal_macros = "^1.2.1"
+walkdir = "^2.3.1"
 num = "^0.2.1"
 log = "^0.4.8"
 chrono = "^0.4"
