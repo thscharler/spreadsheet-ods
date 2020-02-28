@@ -1191,7 +1191,7 @@ mod write_ods {
 
         zip_out.start_file("content.xml", FileOptions::default())?;
 
-        let mut xml_out = quick_xml::Writer::new(zip_out);
+        let mut xml_out = quick_xml::Writer::new_with_indent(zip_out, b' ', 1);
 
         xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
         xml_out.write(b"\n")?;
