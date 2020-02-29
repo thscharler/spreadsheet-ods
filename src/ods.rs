@@ -1,74 +1,112 @@
 use quick_xml;
 use std::collections::HashSet;
 use std::fs::{File, rename};
-use std::io;
 use std::path::Path;
 use zip;
 
 use crate::WorkBook;
 use crate::ods::tempzip::TempZip;
 
-#[derive(Debug)]
-pub enum OdsError {
-    Ods(String),
-    Io(io::Error),
-    Zip(zip::result::ZipError),
-    Xml(quick_xml::Error),
-    ParseInt(std::num::ParseIntError),
-    ParseFloat(std::num::ParseFloatError),
-    Chrono(chrono::format::ParseError),
-    Duration(time::OutOfRangeError),
-    SystemTime(std::time::SystemTimeError),
-}
+pub use crate::ods::error::OdsError;
 
-impl From<time::OutOfRangeError> for OdsError {
-    fn from(err: time::OutOfRangeError) -> OdsError {
-        OdsError::Duration(err)
+mod error {
+    use std::fmt::{Display, Formatter};
+
+    #[derive(Debug)]
+    pub enum OdsError {
+        Ods(String),
+        Io(std::io::Error),
+        Zip(zip::result::ZipError),
+        Xml(quick_xml::Error),
+        ParseInt(std::num::ParseIntError),
+        ParseFloat(std::num::ParseFloatError),
+        Chrono(chrono::format::ParseError),
+        Duration(time::OutOfRangeError),
+        SystemTime(std::time::SystemTimeError),
+    }
+
+    impl Display for OdsError {
+        fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+            match self {
+                OdsError::Ods(e) => write!(f, "Ods {}", e)?,
+                OdsError::Io(e) => write!(f, "IO {}", e)?,
+                OdsError::Zip(e) => write!(f, "Zip {}", e)?,
+                OdsError::Xml(e) => write!(f, "Xml {}", e)?,
+                OdsError::ParseInt(e) => write!(f, "ParseInt {}", e)?,
+                OdsError::ParseFloat(e) => write!(f, "ParseFloat {}", e)?,
+                OdsError::Chrono(e) => write!(f, "Chrono {}", e)?,
+                OdsError::Duration(e) => write!(f, "Duration {}", e)?,
+                OdsError::SystemTime(e) => write!(f, "SystemTime {}", e)?,
+            }
+
+            Ok(())
+        }
+    }
+
+    impl std::error::Error for OdsError {
+        fn cause(&self) -> Option<&dyn std::error::Error> {
+            match self {
+                OdsError::Ods(_) => None,
+                OdsError::Io(e) => Some(e),
+                OdsError::Zip(e) => Some(e),
+                OdsError::Xml(e) => Some(e),
+                OdsError::ParseInt(e) => Some(e),
+                OdsError::ParseFloat(e) => Some(e),
+                OdsError::Chrono(e) => Some(e),
+                OdsError::Duration(e) => Some(e),
+                OdsError::SystemTime(e) => Some(e),
+            }
+        }
+    }
+
+    impl From<time::OutOfRangeError> for OdsError {
+        fn from(err: time::OutOfRangeError) -> OdsError {
+            OdsError::Duration(err)
+        }
+    }
+
+    impl From<std::io::Error> for OdsError {
+        fn from(err: std::io::Error) -> OdsError {
+            OdsError::Io(err)
+        }
+    }
+
+    impl From<zip::result::ZipError> for OdsError {
+        fn from(err: zip::result::ZipError) -> OdsError {
+            OdsError::Zip(err)
+        }
+    }
+
+    impl From<quick_xml::Error> for OdsError {
+        fn from(err: quick_xml::Error) -> OdsError {
+            OdsError::Xml(err)
+        }
+    }
+
+    impl From<std::num::ParseIntError> for OdsError {
+        fn from(err: std::num::ParseIntError) -> OdsError {
+            OdsError::ParseInt(err)
+        }
+    }
+
+    impl From<std::num::ParseFloatError> for OdsError {
+        fn from(err: std::num::ParseFloatError) -> OdsError {
+            OdsError::ParseFloat(err)
+        }
+    }
+
+    impl From<chrono::format::ParseError> for OdsError {
+        fn from(err: chrono::format::ParseError) -> OdsError {
+            OdsError::Chrono(err)
+        }
+    }
+
+    impl From<std::time::SystemTimeError> for OdsError {
+        fn from(err: std::time::SystemTimeError) -> OdsError {
+            OdsError::SystemTime(err)
+        }
     }
 }
-
-impl From<io::Error> for OdsError {
-    fn from(err: io::Error) -> OdsError {
-        OdsError::Io(err)
-    }
-}
-
-impl From<zip::result::ZipError> for OdsError {
-    fn from(err: zip::result::ZipError) -> OdsError {
-        OdsError::Zip(err)
-    }
-}
-
-impl From<quick_xml::Error> for OdsError {
-    fn from(err: quick_xml::Error) -> OdsError {
-        OdsError::Xml(err)
-    }
-}
-
-impl From<std::num::ParseIntError> for OdsError {
-    fn from(err: std::num::ParseIntError) -> OdsError {
-        OdsError::ParseInt(err)
-    }
-}
-
-impl From<std::num::ParseFloatError> for OdsError {
-    fn from(err: std::num::ParseFloatError) -> OdsError {
-        OdsError::ParseFloat(err)
-    }
-}
-
-impl From<chrono::format::ParseError> for OdsError {
-    fn from(err: chrono::format::ParseError) -> OdsError {
-        OdsError::Chrono(err)
-    }
-}
-
-impl From<std::time::SystemTimeError> for OdsError {
-    fn from(err: std::time::SystemTimeError) -> OdsError {
-        OdsError::SystemTime(err)
-    }
-}
-
 
 // Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
@@ -91,8 +129,9 @@ mod read_ods {
     use std::io::BufReader;
     use zip::read::ZipFile;
 
-    use crate::{Family, OdsError, Origin, Part, PartType, SCell,
+    use crate::{Family, Origin, Part, PartType, SCell,
                 SColumn, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
+    use crate::ods::error::OdsError;
 
     const DUMP_XML: bool = false;
 
@@ -1028,8 +1067,9 @@ mod write_ods {
     use std::path::PathBuf;
     use zip::write::FileOptions;
 
-    use crate::{Family, OdsError, Origin, PartType, SCell, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
+    use crate::{Family, Origin, PartType, SCell, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
     use crate::ods::{xml, OdsWriter, XmlOdsWriter};
+    use crate::ods::error::OdsError;
 
     pub fn copy_workbook(ods_orig_name: &PathBuf, file_set: &mut HashSet<String>, zip_writer: &mut OdsWriter) -> Result<(), OdsError> {
         let ods_orig = File::open(ods_orig_name)?;
