@@ -1,13 +1,10 @@
-use quick_xml;
-use std::collections::HashSet;
-use std::fs::{File, rename};
-use std::path::Path;
-use zip;
-
-use crate::WorkBook;
-use crate::ods::tempzip::TempZip;
-
 pub use crate::ods::error::OdsError;
+pub use crate::ods::read_ods::read_ods;
+pub use crate::ods::write_ods::write_ods;
+pub use crate::ods::write_ods::write_ods_clean;
+
+mod xml;
+mod temp_zip;
 
 mod error {
     use std::fmt::{Display, Formatter};
@@ -108,34 +105,38 @@ mod error {
     }
 }
 
-// Reads an ODS-file.
-pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
-    let file = File::open(path.as_ref())?;
-    // ods is a zip-archive, we read content.xml
-    let mut zip = zip::ZipArchive::new(file)?;
-    let mut zip_file = zip.by_name("content.xml")?;
-
-    let mut book = read_ods::read_content(&mut zip_file)?;
-
-    book.file = Some(path.as_ref().to_path_buf());
-
-    Ok(book)
-}
 
 mod read_ods {
+    use std::fs::File;
+    use std::io::BufReader;
+    use std::path::Path;
+
     use chrono::{Duration, NaiveDate, NaiveDateTime};
     use quick_xml::events::{BytesStart, Event};
     use quick_xml::events::attributes::Attribute;
-    use std::io::BufReader;
     use zip::read::ZipFile;
 
     use crate::{Family, Origin, Part, PartType, SCell,
                 SColumn, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
     use crate::ods::error::OdsError;
 
-    const DUMP_XML: bool = false;
+//const DUMP_XML: bool = false;
 
-    pub fn read_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
+    // Reads an ODS-file.
+    pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
+        let file = File::open(path.as_ref())?;
+        // ods is a zip-archive, we read content.xml
+        let mut zip = zip::ZipArchive::new(file)?;
+        let mut zip_file = zip.by_name("content.xml")?;
+
+        let mut book = read_content(&mut zip_file)?;
+
+        book.file = Some(path.as_ref().to_path_buf());
+
+        Ok(book)
+    }
+
+    fn read_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
         // xml parser
         let mut xml
             = quick_xml::Reader::from_reader(BufReader::new(zip_file));
@@ -160,7 +161,7 @@ mod read_ods {
 
         loop {
             let event = xml.read_event(&mut buf)?;
-            if DUMP_XML { log::debug!("{:?}", event); }
+            //if DUMP_XML { log::debug!("{:?}", event); }
             match event {
                 Event::Start(xml_tag)
                 if xml_tag.name() == b"table:table" => {
@@ -351,7 +352,7 @@ mod read_ods {
         let mut buf = Vec::new();
         loop {
             let evt = xml.read_event(&mut buf)?;
-            if DUMP_XML { log::debug!(" style {:?}", evt); }
+            //if DUMP_XML { log::debug!(" style {:?}", evt); }
             match evt {
                 Event::Text(xml_tag) => {
                     // Not every cell type has a value attribute, some take
@@ -547,7 +548,7 @@ mod read_ods {
 
         loop {
             let evt = xml.read_event(&mut buf)?;
-            if DUMP_XML { log::debug!(" style {:?}", evt); }
+            //if DUMP_XML { log::debug!(" style {:?}", evt); }
             match evt {
                 Event::Start(ref xml_tag)
                 | Event::Empty(ref xml_tag) => {
@@ -802,276 +803,77 @@ mod read_ods {
     }
 }
 
-mod xml {
-    use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
-    use std::collections::HashMap;
-
-    pub fn start(tag: &str) -> Event {
-        let b = BytesStart::owned_name(tag.as_bytes());
-        Event::Start(b)
-    }
-
-    pub fn start_a<'a>(tag: &'a str, attr: Vec<(&'a str, String)>) -> Event::<'a> {
-        let mut b = BytesStart::owned_name(tag.as_bytes());
-
-        for (a, v) in attr {
-            b.push_attribute((a, v.as_ref()));
-        }
-
-        Event::Start(b)
-    }
-
-    pub fn start_o<'a, S: ::std::hash::BuildHasher>(tag: &'a str,
-                                                    attr: Option<&'a HashMap<String, String, S>>)
-                                                    -> Event::<'a> {
-        if let Some(attr) = attr {
-            start_m(tag, attr)
-        } else {
-            start(tag)
-        }
-    }
-
-    pub fn start_m<'a, S: ::std::hash::BuildHasher>(tag: &'a str,
-                                                    attr: &'a HashMap<String, String, S>)
-                                                    -> Event::<'a> {
-        let mut b = BytesStart::owned_name(tag.as_bytes());
-
-        for (a, v) in attr {
-            b.push_attribute((a.as_str(), v.as_str()));
-        }
-
-        Event::Start(b)
-    }
-
-    pub fn text(text: &str) -> Event {
-        Event::Text(BytesText::from_plain_str(text))
-    }
-
-    pub fn end(tag: &str) -> Event {
-        let b = BytesEnd::borrowed(tag.as_bytes());
-        Event::End(b)
-    }
-
-    pub fn empty(tag: &str) -> Event {
-        let b = BytesStart::owned_name(tag.as_bytes());
-        Event::Empty(b)
-    }
-
-    pub fn empty_a<'a>(tag: &'a str,
-                       attr: Vec<(&'a str, String)>)
-                       -> Event::<'a> {
-        let mut b = BytesStart::owned_name(tag.as_bytes());
-
-        for (a, v) in attr {
-            b.push_attribute((a, v.as_ref()));
-        }
-
-        Event::Empty(b)
-    }
-
-    pub fn empty_o<'a, S: ::std::hash::BuildHasher>(tag: &'a str,
-                                                    attr: Option<&'a HashMap<String, String, S>>)
-                                                    -> Event::<'a> {
-        if let Some(attr) = attr {
-            empty_m(tag, attr)
-        } else {
-            empty(tag)
-        }
-    }
-
-    pub fn empty_m<'a, S: ::std::hash::BuildHasher>(tag: &'a str,
-                                                    attr: &'a HashMap<String, String, S>)
-                                                    -> Event::<'a> {
-        let mut b = BytesStart::owned_name(tag.as_bytes());
-
-        for (a, v) in attr.iter() {
-            b.push_attribute((a.as_str(), v.as_str()));
-        }
-
-        Event::Empty(b)
-    }
-}
-
-/// Writing to the zip directly strangely broke my content.xml
-/// Could'nt really find the source of this, so for now I use
-/// this replacer. Simulates the same API but writes to a
-/// temp-directory.
-///
-/// I zip all the stuff afterwards, and it's not to uncomfortable
-/// to have the unzipped files around für debugging. z
-///
-/// zip_clean() cleans up afterwards.
-///
-mod tempzip {
-    use std::path::{Path, PathBuf};
-    use std::fs::{create_dir_all, File};
-    use std::io::{Write, BufWriter, Read};
-
-    pub struct TempZip {
-        zipped: PathBuf,
-        temp_path: PathBuf,
-        temp_file: Option<File>,
-        entries: Vec<TempZipEntry>,
-    }
-
-    struct TempZipEntry {
-        is_dir: bool,
-        name: String,
-        fopt: zip::write::FileOptions,
-    }
-
-    impl TempZip {
-        /// Final ZIP is this file. The temporaries are written at the
-        /// same location, in a new directory with the same basename.
-        pub fn new(zip_file: &Path) -> Self {
-            let mut path: PathBuf = zip_file.parent().unwrap().to_path_buf();
-            path.push(zip_file.file_stem().unwrap());
-
-            TempZip {
-                zipped: zip_file.to_path_buf(),
-                temp_path: path,
-                temp_file: None,
-                entries: Vec::new(),
-            }
-        }
-
-        /// Adds this directory.
-        pub fn add_directory(&mut self, name: &str, fopt: zip::write::FileOptions) -> Result<(), std::io::Error> {
-            let add = self.temp_path.join(name);
-            create_dir_all(&add)?;
-
-            self.entries.push(TempZipEntry {
-                is_dir: true,
-                name: name.to_string(),
-                fopt,
-            });
-
-            Ok(())
-        }
-
-        /// Starts a new file inside the zip. After calling this function
-        /// the Write trait for TempZip starts working.
-        pub fn start_file(&mut self, name: &str, fopt: zip::write::FileOptions) -> Result<(), std::io::Error> {
-            let file = self.temp_path.join(name);
-            let path = file.parent().unwrap();
-            create_dir_all(path)?;
-
-            self.temp_file = Some(File::create(file)?);
-
-            self.entries.push(TempZipEntry {
-                is_dir: false,
-                name: name.to_string(),
-                fopt,
-            });
-
-            Ok(())
-        }
-
-        /// Packs all created files into a zip.
-        pub fn zip(&mut self) -> Result<(), std::io::Error> {
-            // should close the last file?
-            self.temp_file = None;
-
-            let zip_file = File::create(&self.zipped)?;
-            let mut zip_writer = zip::ZipWriter::new(BufWriter::new(zip_file));
-
-            for entry in &self.entries {
-                if !entry.is_dir {
-                    zip_writer.start_file(&entry.name, entry.fopt)?;
-
-                    let file = self.temp_path.join(&entry.name);
-                    let mut rd = File::open(file)?;
-                    let mut buf = vec![];
-                    rd.read_to_end(&mut buf)?;
-
-                    zip_writer.write_all(buf.as_slice())?;
-                } else {
-                    zip_writer.add_directory(&entry.name, entry.fopt)?;
-                }
-            }
-
-            Ok(())
-        }
-    }
-
-    impl Write for TempZip {
-        fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-            if let Some(file) = &mut self.temp_file {
-                file.write(buf)
-            } else {
-                panic!("No file to write");
-            }
-        }
-
-        fn flush(&mut self) -> Result<(), std::io::Error> {
-            if let Some(file) = &mut self.temp_file {
-                file.flush()
-            } else {
-                panic!("No file to write");
-            }
-        }
-    }
-}
-
-// this did not work out as expected ...
-// TODO: find out why this breaks content.xml
-// type OdsWriter = zip::ZipWriter<BufWriter<File>>;
-// type XmlOdsWriter<'a> = quick_xml::Writer<&'a mut zip::ZipWriter<BufWriter<File>>>;
-
-type OdsWriter = tempzip::TempZip;
-type XmlOdsWriter<'a> = quick_xml::Writer<&'a mut OdsWriter>;
-
-/// Writes the ODS file.
-pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
-    let orig_bak = if let Some(ods_orig) = &book.file {
-        let mut orig_bak = ods_orig.clone();
-        orig_bak.set_extension("bak");
-        rename(&ods_orig, &orig_bak)?;
-        Some(orig_bak)
-    } else {
-        None
-    };
-
-    // let zip_file = File::create(ods_path)?;
-    // let mut zip_writer = zip::ZipWriter::new(io::BufWriter::new(zip_file));
-    let mut zip_writer = TempZip::new(ods_path.as_ref());
-
-    let mut file_set = HashSet::<String>::new();
-    //
-    if let Some(orig_bak) = orig_bak {
-        write_ods::copy_workbook(&orig_bak, &mut file_set, &mut zip_writer)?;
-    }
-
-    write_ods::write_mimetype(&mut zip_writer, &mut file_set)?;
-    write_ods::write_manifest(&mut zip_writer, &mut file_set)?;
-    write_ods::write_manifest_rdf(&mut zip_writer, &mut file_set)?;
-    write_ods::write_meta(&mut zip_writer, &mut file_set)?;
-    //write_ods::write_settings(&mut zip_writer, &mut file_set)?;
-    //write_ods::write_configurations(&mut zip_writer, &mut file_set)?;
-
-    write_ods::write_ods_styles(&mut zip_writer, &mut file_set)?;
-    write_ods::write_ods_content(&book, &mut zip_writer, &mut file_set)?;
-
-    zip_writer.zip()?;
-
-    Ok(())
-}
-
 mod write_ods {
-    use chrono::NaiveDateTime;
-    use quick_xml::events::{BytesDecl, Event};
     use std::collections::{BTreeMap, HashMap, HashSet};
-    use std::fs::File;
+    use std::fs::{File, rename};
     use std::io;
     use std::io::{Read, Write};
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
+
+    use chrono::NaiveDateTime;
+    use quick_xml::events::{BytesDecl, Event};
     use zip::write::FileOptions;
 
     use crate::{Family, Origin, PartType, SCell, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
-    use crate::ods::{xml, OdsWriter, XmlOdsWriter};
     use crate::ods::error::OdsError;
+    use crate::ods::temp_zip::TempZip;
+    use crate::ods::xml;
 
-    pub fn copy_workbook(ods_orig_name: &PathBuf, file_set: &mut HashSet<String>, zip_writer: &mut OdsWriter) -> Result<(), OdsError> {
+// this did not work out as expected ...
+    // TODO: find out why this breaks content.xml
+    // type OdsWriter = zip::ZipWriter<BufWriter<File>>;
+    // type XmlOdsWriter<'a> = quick_xml::Writer<&'a mut zip::ZipWriter<BufWriter<File>>>;
+
+    type OdsWriter = TempZip;
+    type XmlOdsWriter<'a> = quick_xml::Writer<&'a mut OdsWriter>;
+
+    /// Writes the ODS file.
+    pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
+        write_ods_clean(book, ods_path, true)?;
+        Ok(())
+    }
+
+    /// Writes the ODS file. The parameter clean indicates the cleanup of the
+    /// temp files at the end.
+    pub fn write_ods_clean<P: AsRef<Path>>(book: &WorkBook, ods_path: P, clean: bool) -> Result<(), OdsError> {
+        let orig_bak = if let Some(ods_orig) = &book.file {
+            let mut orig_bak = ods_orig.clone();
+            orig_bak.set_extension("bak");
+            rename(&ods_orig, &orig_bak)?;
+            Some(orig_bak)
+        } else {
+            None
+        };
+
+        // let zip_file = File::create(ods_path)?;
+        // let mut zip_writer = zip::ZipWriter::new(io::BufWriter::new(zip_file));
+        let mut zip_writer = TempZip::new(ods_path.as_ref());
+
+        let mut file_set = HashSet::<String>::new();
+        //
+        if let Some(orig_bak) = orig_bak {
+            copy_workbook(&orig_bak, &mut file_set, &mut zip_writer)?;
+        }
+
+        write_mimetype(&mut zip_writer, &mut file_set)?;
+        write_manifest(&mut zip_writer, &mut file_set)?;
+        write_manifest_rdf(&mut zip_writer, &mut file_set)?;
+        write_meta(&mut zip_writer, &mut file_set)?;
+        //write_settings(&mut zip_writer, &mut file_set)?;
+        //write_configurations(&mut zip_writer, &mut file_set)?;
+
+        write_ods_styles(&mut zip_writer, &mut file_set)?;
+        write_ods_content(&book, &mut zip_writer, &mut file_set)?;
+
+        zip_writer.zip()?;
+        if clean {
+            zip_writer.clean()?;
+        }
+
+        Ok(())
+    }
+
+    fn copy_workbook(ods_orig_name: &PathBuf, file_set: &mut HashSet<String>, zip_writer: &mut OdsWriter) -> Result<(), OdsError> {
         let ods_orig = File::open(ods_orig_name)?;
         let mut zip_orig = zip::ZipArchive::new(ods_orig)?;
 
@@ -1101,7 +903,7 @@ mod write_ods {
         Ok(())
     }
 
-    pub fn write_mimetype(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), io::Error> {
+    fn write_mimetype(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), io::Error> {
         if !file_set.contains("mimetype") {
             file_set.insert(String::from("mimetype"));
 
@@ -1114,7 +916,7 @@ mod write_ods {
         Ok(())
     }
 
-    pub fn write_manifest(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+    fn write_manifest(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
         if !file_set.contains("META-INF/manifest.xml") {
             file_set.insert(String::from("META-INF/manifest.xml"));
 
@@ -1165,7 +967,7 @@ mod write_ods {
         Ok(())
     }
 
-    pub fn write_manifest_rdf(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+    fn write_manifest_rdf(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
         if !file_set.contains("manifest.rdf") {
             file_set.insert(String::from("manifest.rdf"));
 
@@ -1211,7 +1013,7 @@ mod write_ods {
         Ok(())
     }
 
-    pub fn write_meta(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+    fn write_meta(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
         if !file_set.contains("meta.xml") {
             file_set.insert(String::from("meta.xml"));
 
@@ -1317,7 +1119,7 @@ mod write_ods {
 //    Ok(())
 //}
 
-    pub fn write_ods_styles(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+    fn write_ods_styles(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
         if !file_set.contains("styles.xml") {
             file_set.insert(String::from("styles.xml"));
 
@@ -1357,7 +1159,7 @@ mod write_ods {
         Ok(())
     }
 
-    pub fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+    fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
         file_set.insert(String::from("content.xml"));
 
         zip_out.start_file("content.xml", FileOptions::default())?;
