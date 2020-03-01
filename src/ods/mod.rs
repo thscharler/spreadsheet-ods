@@ -3,7 +3,7 @@ pub use crate::ods::read_ods::read_ods;
 pub use crate::ods::write_ods::write_ods;
 pub use crate::ods::write_ods::write_ods_clean;
 
-mod xml;
+mod xml_util;
 mod temp_zip;
 
 mod error {
@@ -116,7 +116,7 @@ mod read_ods {
     use quick_xml::events::attributes::Attribute;
     use zip::read::ZipFile;
 
-    use crate::{Family, Origin, Part, PartType, SCell, SColumn, Sheet, Style, Value, ValueStyle, ValueType, WorkBook, FontDecl};
+    use crate::{Family, Origin, FormatPart, FormatType, SCell, SColumn, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
     use crate::ods::error::OdsError;
 
     //const DUMP_XML: bool = false;
@@ -599,7 +599,7 @@ mod read_ods {
         let mut buf = Vec::new();
 
         let mut style: Style = Style::new_origin(Origin::Content);
-        let mut value_style = ValueStyle::new_origin(Origin::Content);
+        let mut value_style = ValueFormat::new_origin(Origin::Content);
         // Styles with content information are stored before completion.
         let mut value_style_part = None;
 
@@ -649,45 +649,45 @@ mod read_ods {
                             read_value_style(ValueType::Text, &mut value_style, xml, xml_tag)?,
 
                         b"number:boolean" =>
-                            push_value_style_part(&mut value_style, PartType::Boolean, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Boolean, xml, xml_tag)?,
                         b"number:number" =>
-                            push_value_style_part(&mut value_style, PartType::Number, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Number, xml, xml_tag)?,
                         b"number:scientific-number" =>
-                            push_value_style_part(&mut value_style, PartType::Scientific, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Scientific, xml, xml_tag)?,
                         b"number:day" =>
-                            push_value_style_part(&mut value_style, PartType::Day, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Day, xml, xml_tag)?,
                         b"number:month" =>
-                            push_value_style_part(&mut value_style, PartType::Month, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Month, xml, xml_tag)?,
                         b"number:year" =>
-                            push_value_style_part(&mut value_style, PartType::Year, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Year, xml, xml_tag)?,
                         b"number:era" =>
-                            push_value_style_part(&mut value_style, PartType::Era, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Era, xml, xml_tag)?,
                         b"number:day-of-week" =>
-                            push_value_style_part(&mut value_style, PartType::DayOfWeek, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::DayOfWeek, xml, xml_tag)?,
                         b"number:week-of-year" =>
-                            push_value_style_part(&mut value_style, PartType::WeekOfYear, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::WeekOfYear, xml, xml_tag)?,
                         b"number:quarter" =>
-                            push_value_style_part(&mut value_style, PartType::Quarter, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Quarter, xml, xml_tag)?,
                         b"number:hours" =>
-                            push_value_style_part(&mut value_style, PartType::Hours, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Hours, xml, xml_tag)?,
                         b"number:minutes" =>
-                            push_value_style_part(&mut value_style, PartType::Minutes, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Minutes, xml, xml_tag)?,
                         b"number:seconds" =>
-                            push_value_style_part(&mut value_style, PartType::Seconds, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Seconds, xml, xml_tag)?,
                         b"number:fraction" =>
-                            push_value_style_part(&mut value_style, PartType::Fraction, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Fraction, xml, xml_tag)?,
                         b"number:am-pm" =>
-                            push_value_style_part(&mut value_style, PartType::AmPm, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::AmPm, xml, xml_tag)?,
                         b"number:embedded-text" =>
-                            push_value_style_part(&mut value_style, PartType::EmbeddedText, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::EmbeddedText, xml, xml_tag)?,
                         b"number:text-content" =>
-                            push_value_style_part(&mut value_style, PartType::TextContent, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::TextContent, xml, xml_tag)?,
                         b"style:text" =>
-                            push_value_style_part(&mut value_style, PartType::Day, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::Day, xml, xml_tag)?,
                         b"style:map" =>
-                            push_value_style_part(&mut value_style, PartType::StyleMap, xml, xml_tag)?,
+                            push_value_style_part(&mut value_style, FormatType::StyleMap, xml, xml_tag)?,
                         b"number:currency-symbol" => {
-                            value_style_part = Some(read_part(xml, xml_tag, PartType::CurrencySymbol)?);
+                            value_style_part = Some(read_part(xml, xml_tag, FormatType::CurrencySymbol)?);
 
                             // Empty-Tag. Finish here.
                             if let Event::Empty(_) = evt {
@@ -698,7 +698,7 @@ mod read_ods {
                             }
                         }
                         b"number:text" => {
-                            value_style_part = Some(read_part(xml, xml_tag, PartType::Text)?);
+                            value_style_part = Some(read_part(xml, xml_tag, FormatType::Text)?);
 
                             // Empty-Tag. Finish here.
                             if let Event::Empty(_) = evt {
@@ -736,8 +736,8 @@ mod read_ods {
                         b"number:currency-style" |
                         b"number:percentage-style" |
                         b"number:text-style" => {
-                            book.add_value_style(value_style);
-                            value_style = ValueStyle::new_origin(Origin::Content);
+                            book.add_format(value_style);
+                            value_style = ValueFormat::new_origin(Origin::Content);
                         }
                         b"number:currency-symbol" | b"number:text" => {
                             if let Some(part) = value_style_part {
@@ -762,7 +762,7 @@ mod read_ods {
     }
 
     fn read_value_style(value_type: ValueType,
-                        value_style: &mut ValueStyle,
+                        value_style: &mut ValueFormat,
                         xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                         xml_tag: &BytesStart) -> Result<(), OdsError> {
         value_style.v_type = value_type;
@@ -784,8 +784,8 @@ mod read_ods {
         Ok(())
     }
 
-    fn push_value_style_part(value_style: &mut ValueStyle,
-                             part_type: PartType,
+    fn push_value_style_part(value_style: &mut ValueFormat,
+                             part_type: FormatType,
                              xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                              xml_tag: &BytesStart) -> Result<(), OdsError> {
         value_style.push_part(read_part(xml, xml_tag, part_type)?);
@@ -795,8 +795,8 @@ mod read_ods {
 
     fn read_part(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                  xml_tag: &BytesStart,
-                 part_type: PartType) -> Result<Part, OdsError> {
-        let mut part = Part::new(part_type);
+                 part_type: FormatType) -> Result<FormatPart, OdsError> {
+        let mut part = FormatPart::new(part_type);
 
         for a in xml_tag.attributes().with_checks(false) {
             if let Ok(attr) = a {
@@ -871,10 +871,10 @@ mod write_ods {
     use quick_xml::events::{BytesDecl, Event};
     use zip::write::FileOptions;
 
-    use crate::{Family, Origin, PartType, SCell, Sheet, Style, Value, ValueStyle, ValueType, WorkBook, FontDecl};
+    use crate::{Family, Origin, FormatType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
     use crate::ods::error::OdsError;
     use crate::ods::temp_zip::TempZip;
-    use crate::ods::xml;
+    use crate::ods::xml_util;
 
 // this did not work out as expected ...
     // TODO: find out why this breaks content.xml
@@ -984,12 +984,12 @@ mod write_ods {
 
             xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
 
-            xml_out.write_event(xml::start_a("manifest:manifest", vec![
+            xml_out.write_event(xml_util::start_a("manifest:manifest", vec![
                 ("xmlns:manifest", String::from("urn:oasis:names:tc:opendocument:xmlns:manifest:1.0")),
                 ("manifest:version", String::from("1.2")),
             ]))?;
 
-            xml_out.write_event(xml::empty_a("manifest:file-entry", vec![
+            xml_out.write_event(xml_util::empty_a("manifest:file-entry", vec![
                 ("manifest:full-path", String::from("/")),
                 ("manifest:version", String::from("1.2")),
                 ("manifest:media-type", String::from("application/vnd.oasis.opendocument.spreadsheet")),
@@ -998,19 +998,19 @@ mod write_ods {
 //            ("manifest:full-path", String::from("Configurations2/")),
 //            ("manifest:media-type", String::from("application/vnd.sun.xml.ui.configuration")),
 //        ]))?;
-            xml_out.write_event(xml::empty_a("manifest:file-entry", vec![
+            xml_out.write_event(xml_util::empty_a("manifest:file-entry", vec![
                 ("manifest:full-path", String::from("manifest.rdf")),
                 ("manifest:media-type", String::from("application/rdf+xml")),
             ]))?;
-            xml_out.write_event(xml::empty_a("manifest:file-entry", vec![
+            xml_out.write_event(xml_util::empty_a("manifest:file-entry", vec![
                 ("manifest:full-path", String::from("styles.xml")),
                 ("manifest:media-type", String::from("text/xml")),
             ]))?;
-            xml_out.write_event(xml::empty_a("manifest:file-entry", vec![
+            xml_out.write_event(xml_util::empty_a("manifest:file-entry", vec![
                 ("manifest:full-path", String::from("meta.xml")),
                 ("manifest:media-type", String::from("text/xml")),
             ]))?;
-            xml_out.write_event(xml::empty_a("manifest:file-entry", vec![
+            xml_out.write_event(xml_util::empty_a("manifest:file-entry", vec![
                 ("manifest:full-path", String::from("content.xml")),
                 ("manifest:media-type", String::from("text/xml")),
             ]))?;
@@ -1018,7 +1018,7 @@ mod write_ods {
 //            ("manifest:full-path", String::from("settings.xml")),
 //            ("manifest:media-type", String::from("text/xml")),
 //        ]))?;
-            xml_out.write_event(xml::end("manifest:manifest"))?;
+            xml_out.write_event(xml_util::end("manifest:manifest"))?;
         }
 
         Ok(())
@@ -1035,36 +1035,36 @@ mod write_ods {
             xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
             xml_out.write(b"\n")?;
 
-            xml_out.write_event(xml::start_a("rdf:RDF", vec![
+            xml_out.write_event(xml_util::start_a("rdf:RDF", vec![
                 ("xmlns:rdf", String::from("http://www.w3.org/1999/02/22-rdf-syntax-ns#")),
             ]))?;
 
-            xml_out.write_event(xml::start_a("rdf:Description", vec![
+            xml_out.write_event(xml_util::start_a("rdf:Description", vec![
                 ("rdf:about", String::from("content.xml")),
             ]))?;
-            xml_out.write_event(xml::empty_a("rdf:type", vec![
+            xml_out.write_event(xml_util::empty_a("rdf:type", vec![
                 ("rdf:resource", String::from("http://docs.oasis-open.org/ns/office/1.2/meta/odf#ContentFile")),
             ]))?;
-            xml_out.write_event(xml::end("rdf:Description"))?;
+            xml_out.write_event(xml_util::end("rdf:Description"))?;
 
-            xml_out.write_event(xml::start_a("rdf:Description", vec![
+            xml_out.write_event(xml_util::start_a("rdf:Description", vec![
                 ("rdf:about", String::from("")),
             ]))?;
-            xml_out.write_event(xml::empty_a("ns0:hasPart", vec![
+            xml_out.write_event(xml_util::empty_a("ns0:hasPart", vec![
                 ("xmlns:ns0", String::from("http://docs.oasis-open.org/ns/office/1.2/meta/pkg#")),
                 ("rdf:resource", String::from("content.xml")),
             ]))?;
-            xml_out.write_event(xml::end("rdf:Description"))?;
+            xml_out.write_event(xml_util::end("rdf:Description"))?;
 
-            xml_out.write_event(xml::start_a("rdf:Description", vec![
+            xml_out.write_event(xml_util::start_a("rdf:Description", vec![
                 ("rdf:about", String::from("")),
             ]))?;
-            xml_out.write_event(xml::empty_a("rdf:type", vec![
+            xml_out.write_event(xml_util::empty_a("rdf:type", vec![
                 ("rdf:resource", String::from("http://docs.oasis-open.org/ns/office/1.2/meta/pkg#Document")),
             ]))?;
-            xml_out.write_event(xml::end("rdf:Description"))?;
+            xml_out.write_event(xml_util::end("rdf:Description"))?;
 
-            xml_out.write_event(xml::end("rdf:RDF"))?;
+            xml_out.write_event(xml_util::end("rdf:RDF"))?;
         }
 
         Ok(())
@@ -1081,39 +1081,39 @@ mod write_ods {
             xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
             xml_out.write(b"\n")?;
 
-            xml_out.write_event(xml::start_a("office:document-meta", vec![
+            xml_out.write_event(xml_util::start_a("office:document-meta", vec![
                 ("xmlns:meta", String::from("urn:oasis:names:tc:opendocument:xmlns:meta:1.0")),
                 ("xmlns:office", String::from("urn:oasis:names:tc:opendocument:xmlns:office:1.0")),
                 ("office:version", String::from("1.2")),
             ]))?;
 
-            xml_out.write_event(xml::start("office:meta"))?;
+            xml_out.write_event(xml_util::start("office:meta"))?;
 
-            xml_out.write_event(xml::start("meta:generator"))?;
-            xml_out.write_event(xml::text("spreadsheet-ods 0.1.0"))?;
-            xml_out.write_event(xml::end("meta:generator"))?;
+            xml_out.write_event(xml_util::start("meta:generator"))?;
+            xml_out.write_event(xml_util::text("spreadsheet-ods 0.1.0"))?;
+            xml_out.write_event(xml_util::end("meta:generator"))?;
 
-            xml_out.write_event(xml::start("meta:creation-date"))?;
+            xml_out.write_event(xml_util::start("meta:creation-date"))?;
             let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
             let d = NaiveDateTime::from_timestamp(s.as_secs() as i64, 0);
-            xml_out.write_event(xml::text(&d.format("%Y-%m-%dT%H:%M:%S%.f").to_string()))?;
-            xml_out.write_event(xml::end("meta:creation-date"))?;
+            xml_out.write_event(xml_util::text(&d.format("%Y-%m-%dT%H:%M:%S%.f").to_string()))?;
+            xml_out.write_event(xml_util::end("meta:creation-date"))?;
 
-            xml_out.write_event(xml::start("meta:editing-duration"))?;
-            xml_out.write_event(xml::text("P0D"))?;
-            xml_out.write_event(xml::end("meta:editing-duration"))?;
+            xml_out.write_event(xml_util::start("meta:editing-duration"))?;
+            xml_out.write_event(xml_util::text("P0D"))?;
+            xml_out.write_event(xml_util::end("meta:editing-duration"))?;
 
-            xml_out.write_event(xml::start("meta:editing-cycles"))?;
-            xml_out.write_event(xml::text("1"))?;
-            xml_out.write_event(xml::end("meta:editing-cycles"))?;
+            xml_out.write_event(xml_util::start("meta:editing-cycles"))?;
+            xml_out.write_event(xml_util::text("1"))?;
+            xml_out.write_event(xml_util::end("meta:editing-cycles"))?;
 
-            xml_out.write_event(xml::start("meta:initial-creator"))?;
-            xml_out.write_event(xml::text(&username::get_user_name().unwrap()))?;
-            xml_out.write_event(xml::end("meta:initial-creator"))?;
+            xml_out.write_event(xml_util::start("meta:initial-creator"))?;
+            xml_out.write_event(xml_util::text(&username::get_user_name().unwrap()))?;
+            xml_out.write_event(xml_util::end("meta:initial-creator"))?;
 
-            xml_out.write_event(xml::end("office:meta"))?;
+            xml_out.write_event(xml_util::end("office:meta"))?;
 
-            xml_out.write_event(xml::end("office:document-meta"))?;
+            xml_out.write_event(xml_util::end("office:document-meta"))?;
         }
 
         Ok(())
@@ -1187,7 +1187,7 @@ mod write_ods {
             xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
             xml_out.write(b"\n")?;
 
-            xml_out.write_event(xml::start_a("office:document-styles", vec![
+            xml_out.write_event(xml_util::start_a("office:document-styles", vec![
                 ("xmlns:meta", String::from("urn:oasis:names:tc:opendocument:xmlns:meta:1.0")),
                 ("xmlns:office", String::from("urn:oasis:names:tc:opendocument:xmlns:office:1.0")),
                 ("xmlns:fo", String::from("urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0")),
@@ -1210,7 +1210,7 @@ mod write_ods {
 
             // TODO: read and write global styles
 
-            xml_out.write_event(xml::end("office:document-styles"))?;
+            xml_out.write_event(xml_util::end("office:document-styles"))?;
         }
 
         Ok(())
@@ -1225,7 +1225,7 @@ mod write_ods {
 
         xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
         xml_out.write(b"\n")?;
-        xml_out.write_event(xml::start_a("office:document-content", vec![
+        xml_out.write_event(xml_util::start_a("office:document-content", vec![
             ("xmlns:presentation", String::from("urn:oasis:names:tc:opendocument:xmlns:presentation:1.0")),
             ("xmlns:grddl", String::from("http://www.w3.org/2003/g/data-view#")),
             ("xmlns:xhtml", String::from("http://www.w3.org/1999/xhtml")),
@@ -1263,27 +1263,27 @@ mod write_ods {
             ("xmlns:drawooo", String::from("http://openoffice.org/2010/draw")),
             ("office:version", String::from("1.2")),
         ]))?;
-        xml_out.write_event(xml::empty("office:scripts"))?;
+        xml_out.write_event(xml_util::empty("office:scripts"))?;
 
-        xml_out.write_event(xml::start("office:font-face-decls"))?;
+        xml_out.write_event(xml_util::start("office:font-face-decls"))?;
         write_font_decl(&book.fonts, Origin::Content, &mut xml_out)?;
-        xml_out.write_event(xml::end("office:font-face-decls")) ? ;
+        xml_out.write_event(xml_util::end("office:font-face-decls")) ? ;
 
-        xml_out.write_event(xml::start("office:automatic-styles"))?;
+        xml_out.write_event(xml_util::start("office:automatic-styles"))?;
         write_styles(&book.styles, Origin::Content, &mut xml_out)?;
-        write_value_styles(&book.value_styles, Origin::Content, &mut xml_out)?;
-        xml_out.write_event(xml::end("office:automatic-styles"))?;
+        write_value_styles(&book.formats, Origin::Content, &mut xml_out)?;
+        xml_out.write_event(xml_util::end("office:automatic-styles"))?;
 
-        xml_out.write_event(xml::start("office:body"))?;
-        xml_out.write_event(xml::start("office:spreadsheet"))?;
+        xml_out.write_event(xml_util::start("office:body"))?;
+        xml_out.write_event(xml_util::start("office:spreadsheet"))?;
 
         for sheet in &book.sheets {
             write_sheet(&book, &sheet, &mut xml_out)?;
         }
 
-        xml_out.write_event(xml::end("office:spreadsheet"))?;
-        xml_out.write_event(xml::end("office:body"))?;
-        xml_out.write_event(xml::end("office:document-content"))?;
+        xml_out.write_event(xml_util::end("office:spreadsheet"))?;
+        xml_out.write_event(xml_util::end("office:body"))?;
+        xml_out.write_event(xml_util::end("office:document-content"))?;
 
         Ok(())
     }
@@ -1294,7 +1294,7 @@ mod write_ods {
         if let Some(style) = &sheet.style {
             attr.push(("table:style-name", style.to_string()));
         }
-        xml_out.write_event(xml::start_a("table:table", attr))?;
+        xml_out.write_event(xml_util::start_a("table:table", attr))?;
 
         let max_cell = sheet.used_grid_size();
 
@@ -1343,7 +1343,7 @@ mod write_ods {
 
             // After the first cell there is always an open row tag.
             if backward_dr > 0 && !first_cell {
-                xml_out.write_event(xml::end("table:table-row"))?;
+                xml_out.write_event(xml_util::end("table:table-row"))?;
             }
 
             // Any empty rows before this one?
@@ -1370,10 +1370,10 @@ mod write_ods {
         }
 
         if !first_cell {
-            xml_out.write_event(xml::end("table:table-row"))?;
+            xml_out.write_event(xml_util::end("table:table-row"))?;
         }
 
-        xml_out.write_event(xml::end("table:table"))?;
+        xml_out.write_event(xml_util::end("table:table"))?;
 
         Ok(())
     }
@@ -1381,7 +1381,7 @@ mod write_ods {
     fn write_empty_cells(forward_dc: i32, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
         let mut attr = Vec::new();
         attr.push(("table:number-columns-repeated", (forward_dc - 1).to_string()));
-        xml_out.write_event(xml::empty_a("table:table-cell", attr))?;
+        xml_out.write_event(xml_util::empty_a("table:table-cell", attr))?;
 
         Ok(())
     }
@@ -1397,11 +1397,11 @@ mod write_ods {
             }
         }
 
-        xml_out.write_event(xml::start_a("table:table-row", attr))?;
+        xml_out.write_event(xml_util::start_a("table:table-row", attr))?;
 
         // Might not be the first column in this row.
         if backward_dc > 0 {
-            xml_out.write_event(xml::empty_a("table:table-cell", vec![
+            xml_out.write_event(xml_util::empty_a("table:table-cell", vec![
                 ("table:number-columns-repeated", backward_dc.to_string()),
             ]))?;
         }
@@ -1421,14 +1421,14 @@ mod write_ods {
             attr.push(("table:number-rows-repeated", empty_count.to_string()));
         }
 
-        xml_out.write_event(xml::start_a("table:table-row", attr))?;
+        xml_out.write_event(xml_util::start_a("table:table-row", attr))?;
 
         // We fill the empty spaces completely up to max columns.
-        xml_out.write_event(xml::empty_a("table:table-cell", vec![
+        xml_out.write_event(xml_util::empty_a("table:table-cell", vec![
             ("table:number-columns-repeated", max_cell.1.to_string()),
         ]))?;
 
-        xml_out.write_event(xml::end("table:table-row"))?;
+        xml_out.write_event(xml_util::end("table:table-row"))?;
 
         Ok(())
     }
@@ -1460,7 +1460,7 @@ mod write_ods {
             if let Some(style) = &column.def_cell_style {
                 attr.push(("table:default-cell-style-name", style.to_string()));
             }
-            xml_out.write_event(xml::empty_a("table:table-column", attr))?;
+            xml_out.write_event(xml_util::empty_a("table:table-column", attr))?;
         }
 
         Ok(())
@@ -1581,13 +1581,13 @@ mod write_ods {
         }
 
         if !is_empty {
-            xml_out.write_event(xml::start_a("table:table-cell", attr))?;
-            xml_out.write_event(xml::start("text:p"))?;
-            xml_out.write_event(xml::text(&content))?;
-            xml_out.write_event(xml::end("text:p"))?;
-            xml_out.write_event(xml::end("table:table-cell"))?;
+            xml_out.write_event(xml_util::start_a("table:table-cell", attr))?;
+            xml_out.write_event(xml_util::start("text:p"))?;
+            xml_out.write_event(xml_util::text(&content))?;
+            xml_out.write_event(xml_util::end("text:p"))?;
+            xml_out.write_event(xml_util::end("table:table-cell"))?;
         } else {
-            xml_out.write_event(xml::empty_a("table:table-cell", attr))?;
+            xml_out.write_event(xml_util::empty_a("table:table-cell", attr))?;
         }
 
         Ok(())
@@ -1605,7 +1605,7 @@ mod write_ods {
                 }
             }
 
-            xml_out.write_event(xml::start_m("style:style", &attr))?;
+            xml_out.write_event(xml_util::start_m("style:style", &attr))?;
         }
         Ok(())
     }
@@ -1632,34 +1632,34 @@ mod write_ods {
             if let Some(value_style) = &style.value_style {
                 attr.push(("style:data-style-name", value_style.to_string()));
             }
-            xml_out.write_event(xml::start_a("style:style", attr))?;
+            xml_out.write_event(xml_util::start_a("style:style", attr))?;
 
             if let Some(table_cell_prp) = &style.table_cell_prp {
-                xml_out.write_event(xml::empty_m("style:table-cell-properties", &table_cell_prp))?;
+                xml_out.write_event(xml_util::empty_m("style:table-cell-properties", &table_cell_prp))?;
             }
             if let Some(table_col_prp) = &style.table_col_prp {
-                xml_out.write_event(xml::empty_m("style:table-column-properties", &table_col_prp))?;
+                xml_out.write_event(xml_util::empty_m("style:table-column-properties", &table_col_prp))?;
             }
             if let Some(table_row_prp) = &style.table_row_prp {
-                xml_out.write_event(xml::empty_m("style:table-row-properties", &table_row_prp))?;
+                xml_out.write_event(xml_util::empty_m("style:table-row-properties", &table_row_prp))?;
             }
             if let Some(table_prp) = &style.table_prp {
-                xml_out.write_event(xml::empty_m("style:table-properties", &table_prp))?;
+                xml_out.write_event(xml_util::empty_m("style:table-properties", &table_prp))?;
             }
             if let Some(paragraph_prp) = &style.paragraph_prp {
-                xml_out.write_event(xml::empty_m("style:paragraph-properties", &paragraph_prp))?;
+                xml_out.write_event(xml_util::empty_m("style:paragraph-properties", &paragraph_prp))?;
             }
             if let Some(text_prp) = &style.text_prp {
-                xml_out.write_event(xml::empty_m("style:text-properties", &text_prp))?;
+                xml_out.write_event(xml_util::empty_m("style:text-properties", &text_prp))?;
             }
 
-            xml_out.write_event(xml::end("style:style"))?;
+            xml_out.write_event(xml_util::end("style:style"))?;
         }
 
         Ok(())
     }
 
-    fn write_value_styles(styles: &BTreeMap<String, ValueStyle>, origin: Origin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    fn write_value_styles(styles: &BTreeMap<String, ValueFormat>, origin: Origin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
         for style in styles.values().filter(|s| s.origin == origin) {
             let tag = match style.v_type {
                 ValueType::Boolean => "number:boolean-style",
@@ -1678,46 +1678,46 @@ mod write_ods {
                     attr.insert(k.to_string(), v.to_string());
                 }
             }
-            xml_out.write_event(xml::start_m(tag, &attr))?;
+            xml_out.write_event(xml_util::start_m(tag, &attr))?;
 
             if let Some(parts) = style.parts() {
                 for part in parts {
-                    let part_tag = match part.p_type {
-                        PartType::Boolean => "number:boolean",
-                        PartType::Number => "number:number",
-                        PartType::Scientific => "number:scientific-number",
-                        PartType::CurrencySymbol => "number:currency-symbol",
-                        PartType::Day => "number:day",
-                        PartType::Month => "number:month",
-                        PartType::Year => "number:year",
-                        PartType::Era => "number:era",
-                        PartType::DayOfWeek => "number:day-of-week",
-                        PartType::WeekOfYear => "number:week-of-year",
-                        PartType::Quarter => "number:quarter",
-                        PartType::Hours => "number:hours",
-                        PartType::Minutes => "number:minutes",
-                        PartType::Seconds => "number:seconds",
-                        PartType::Fraction => "number:fraction",
-                        PartType::AmPm => "number:am-pm",
-                        PartType::EmbeddedText => "number:embedded-text",
-                        PartType::Text => "number:text",
-                        PartType::TextContent => "number:text-content",
-                        PartType::StyleText => "style:text",
-                        PartType::StyleMap => "style:map",
+                    let part_tag = match part.ftype {
+                        FormatType::Boolean => "number:boolean",
+                        FormatType::Number => "number:number",
+                        FormatType::Scientific => "number:scientific-number",
+                        FormatType::CurrencySymbol => "number:currency-symbol",
+                        FormatType::Day => "number:day",
+                        FormatType::Month => "number:month",
+                        FormatType::Year => "number:year",
+                        FormatType::Era => "number:era",
+                        FormatType::DayOfWeek => "number:day-of-week",
+                        FormatType::WeekOfYear => "number:week-of-year",
+                        FormatType::Quarter => "number:quarter",
+                        FormatType::Hours => "number:hours",
+                        FormatType::Minutes => "number:minutes",
+                        FormatType::Seconds => "number:seconds",
+                        FormatType::Fraction => "number:fraction",
+                        FormatType::AmPm => "number:am-pm",
+                        FormatType::EmbeddedText => "number:embedded-text",
+                        FormatType::Text => "number:text",
+                        FormatType::TextContent => "number:text-content",
+                        FormatType::StyleText => "style:text",
+                        FormatType::StyleMap => "style:map",
                     };
 
-                    if part.p_type == PartType::Text || part.p_type == PartType::CurrencySymbol {
-                        xml_out.write_event(xml::start_o(part_tag, part.prp.as_ref()))?;
+                    if part.ftype == FormatType::Text || part.ftype == FormatType::CurrencySymbol {
+                        xml_out.write_event(xml_util::start_o(part_tag, part.prp.as_ref()))?;
                         if let Some(content) = &part.content {
-                            xml_out.write_event(xml::text(content))?;
+                            xml_out.write_event(xml_util::text(content))?;
                         }
-                        xml_out.write_event(xml::end(part_tag))?;
+                        xml_out.write_event(xml_util::end(part_tag))?;
                     } else {
-                        xml_out.write_event(xml::empty_o(part_tag, part.prp.as_ref()))?;
+                        xml_out.write_event(xml_util::empty_o(part_tag, part.prp.as_ref()))?;
                     }
                 }
             }
-            xml_out.write_event(xml::end(tag))?;
+            xml_out.write_event(xml_util::end(tag))?;
         }
 
         Ok(())

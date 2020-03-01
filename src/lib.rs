@@ -1,3 +1,46 @@
+//! Implements reading and writing of ODS Files.
+//!
+//! Warning ahead: This does'nt cover the full specification, just a
+//! useable subset to read + modify + write back an ODS file.
+//!
+//! ```
+//! use spreadsheet_ods::{WorkBook, Sheet, Style, Family, ValueFormat, ValueType, FormatPart};
+//! use chrono::NaiveDate;
+//! use spreadsheet_ods::format;
+//!
+//! let mut wb = spreadsheet_ods::ods::read_ods("example.ods").unwrap();
+//!
+//! let mut sheet = wb.sheet_mut(0);
+//! sheet.set_value(0, 0, 21.4f32);
+//! sheet.set_value(0, 1, "foo");
+//! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), "nice_date_style");
+//! sheet.set_formula(0, 3, format!("of:={}+1", Sheet::fcellref(0,0)));
+//!
+//! let nice_date_format = format::create_date_mdy_format();
+//! wb.add_format(nice_date_format);
+//!
+//! let nice_date_style = Style::with_name(Family::TableCell, "nice_date_style", "nice_date_format");
+//! wb.add_style(nice_date_style);
+//!
+//! spreadsheet_ods::ods::write_ods(&wb, "tryout.ods");
+//!
+//! ```
+//!
+//! When saving all the extra content is copied from the original file,
+//! except for content.xml which is rewritten.
+//!
+//! For context.xml the following information is read and written:
+//! * fonts
+//! * styles
+//! * table-data and structure
+//!
+//! The following things are ignored for now
+//! * conditional formats
+//! * charts
+//! * ...
+//!
+//!
+
 use std::collections::{BTreeMap, HashMap};
 use std::collections::btree_map::Range;
 use std::fmt;
@@ -8,6 +51,11 @@ use rust_decimal::prelude::*;
 
 pub mod ods;
 pub mod style;
+pub mod defaultstyles;
+pub mod format;
+
+pub use ods::{read_ods, write_ods, write_ods_clean};
+
 
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
@@ -17,13 +65,14 @@ pub struct WorkBook {
 
     //// FontDecl hold the style:font-face elements
     fonts: BTreeMap<String, FontDecl>,
+
     /// Styles hold the style:style elements.
     styles: BTreeMap<String, Style>,
 
     /// Value-styles are actual formatting instructions
     /// for various datatypes.
     /// Represents the various number:xxx-style elements.
-    value_styles: BTreeMap<String, ValueStyle>,
+    formats: BTreeMap<String, ValueFormat>,
 
     /// Default-styles per Type.
     /// This is only used when writing the ods file.
@@ -46,7 +95,7 @@ impl fmt::Debug for WorkBook {
         for s in self.styles.iter() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.value_styles.iter() {
+        for s in self.formats.iter() {
             writeln!(f, "{:?}", s)?;
         }
         for s in self.def_styles.iter() {
@@ -63,7 +112,7 @@ impl WorkBook {
             sheets: Vec::new(),
             fonts: BTreeMap::new(),
             styles: BTreeMap::new(),
-            value_styles: BTreeMap::new(),
+            formats: BTreeMap::new(),
             def_styles: None,
             file: None,
         }
@@ -129,10 +178,10 @@ impl WorkBook {
     }
 
     // Finds a ValueStyle starting with the stylename attached to a cell.
-    pub fn find_value_style(&self, style_name: &str) -> Option<&ValueStyle> {
+    pub fn find_value_style(&self, style_name: &str) -> Option<&ValueFormat> {
         if let Some(style) = self.styles.get(style_name) {
             if let Some(value_style_name) = style.value_style() {
-                if let Some(value_style) = self.value_styles.get(value_style_name) {
+                if let Some(value_style) = self.formats.get(value_style_name) {
                     return Some(&value_style);
                 }
             }
@@ -170,84 +219,21 @@ impl WorkBook {
     }
 
     /// Adds a value format.
-    pub fn add_value_style(&mut self, vstyle: ValueStyle) {
-        self.value_styles.insert(vstyle.name.to_string(), vstyle);
+    pub fn add_format(&mut self, vstyle: ValueFormat) {
+        self.formats.insert(vstyle.name.to_string(), vstyle);
     }
 
-    pub fn remove_value_style(&mut self, name: &str) {
-        self.value_styles.remove(name);
+    pub fn remove_format(&mut self, name: &str) {
+        self.formats.remove(name);
     }
 
-    pub fn value_style(&self, name: &str) -> Option<&ValueStyle> {
-        self.value_styles.get(name)
+    pub fn format(&self, name: &str) -> Option<&ValueFormat> {
+        self.formats.get(name)
     }
 
-    pub fn value_style_mut(&mut self, name: &str) -> Option<&mut ValueStyle> {
-        self.value_styles.get_mut(name)
+    pub fn format_mut(&mut self, name: &str) -> Option<&mut ValueFormat> {
+        self.formats.get_mut(name)
     }
-}
-
-/// Adds default-styles for all basic ValueTypes. These are also set as default
-/// styles for the respective types. By calling this function for a new workbook,
-/// the basic formatting is done.
-///
-/// Beware
-/// There is no i18n yet, so currency is set to euro for now.
-/// And dates are european DMY style.
-///
-pub fn create_default_styles(book: &mut WorkBook) {
-    let mut s = ValueStyle::with_name("BOOL1", ValueType::Boolean);
-    s.push_part(Part::new(PartType::Boolean));
-    book.add_value_style(s);
-
-    let mut s = ValueStyle::with_name("NUM1", ValueType::Number);
-    s.push_part(Part::def_number(2, false));
-    book.add_value_style(s);
-
-    let mut s = ValueStyle::with_name("PERCENT1", ValueType::Percentage);
-    s.push_parts(Part::def_percentage(2));
-    book.add_value_style(s);
-
-    let mut s = ValueStyle::with_name("CURRENCY1", ValueType::Currency);
-    s.push_parts(Part::def_euro());
-    book.add_value_style(s);
-
-    let mut s = ValueStyle::with_name("DATE1", ValueType::DateTime);
-    s.push_parts(Part::def_date());
-    book.add_value_style(s);
-
-    let mut s = ValueStyle::with_name("DATETIME1", ValueType::DateTime);
-    s.push_parts(Part::def_datetime());
-    book.add_value_style(s);
-
-    let mut s = ValueStyle::with_name("TIME1", ValueType::TimeDuration);
-    s.push_parts(Part::def_time());
-    book.add_value_style(s);
-
-    let s = Style::with_name(Family::TableCell, "DEFAULT-BOOL", "BOOLEAN1");
-    book.add_style(s);
-
-    let s = Style::with_name(Family::TableCell, "DEFAULT-NUM", "NUM1");
-    book.add_style(s);
-
-    let s = Style::with_name(Family::TableCell, "DEFAULT-PERCENT", "PERCENT1");
-    book.add_style(s);
-
-    let s = Style::with_name(Family::TableCell, "DEFAULT-CURRENCY", "CURRENCY1");
-    book.add_style(s);
-
-    let s = Style::with_name(Family::TableCell, "DEFAULT-DATE", "DATE1");
-    book.add_style(s);
-
-    let s = Style::with_name(Family::TableCell, "DEFAULT-TIME", "TIME1");
-    book.add_style(s);
-
-    book.add_def_style(ValueType::Boolean, "DEFAULT-BOOL");
-    book.add_def_style(ValueType::Number, "DEFAULT-NUM");
-    book.add_def_style(ValueType::Percentage, "DEFAULT-PERCENT");
-    book.add_def_style(ValueType::Currency, "DEFAULT-CURRENCY");
-    book.add_def_style(ValueType::DateTime, "DEFAULT-DATE");
-    book.add_def_style(ValueType::TimeDuration, "DEFAULT-TIME");
 }
 
 /// One sheet of the spreadsheet.
@@ -295,7 +281,7 @@ impl Sheet {
     }
 
     // New, empty, but with a name.
-    pub fn with_name<V: Into<String>>(name: V) -> Self {
+    pub fn with_name<S: Into<String>>(name: S) -> Self {
         Sheet {
             name: name.into(),
             data: BTreeMap::new(),
@@ -721,9 +707,9 @@ impl FontDecl {
         }
     }
 
-    pub fn with_name(name: &str) -> Self {
+    pub fn with_name<S: Into<String>>(name: S) -> Self {
         Self {
-            name: name.to_string(),
+            name: name.into(),
             origin: Origin::Content,
             prp: None,
         }
@@ -799,14 +785,14 @@ impl Style {
         }
     }
 
-    pub fn with_name(family: Family, name: &str, value_style: &str) -> Self {
+    pub fn with_name<S: Into<String>>(family: Family, name: S, value_style: S) -> Self {
         Style {
-            name: name.to_string(),
+            name: name.into(),
             display_name: None,
             origin: Origin::Content,
             family,
             parent: Some(String::from("Default")),
-            value_style: Some(value_style.to_string()),
+            value_style: Some(value_style.into()),
             table_prp: None,
             table_col_prp: None,
             table_row_prp: None,
@@ -960,21 +946,21 @@ pub enum Family {
 
 /// Actual textual formatting of values.
 #[derive(Debug, Clone)]
-pub struct ValueStyle {
+pub struct ValueFormat {
     name: String,
     v_type: ValueType,
     origin: Origin,
     prp: Option<HashMap<String, String>>,
-    parts: Option<Vec<Part>>,
+    parts: Option<Vec<FormatPart>>,
 }
 
-impl ValueStyle {
+impl ValueFormat {
     pub fn new() -> Self {
-        ValueStyle::new_origin(Origin::Content)
+        ValueFormat::new_origin(Origin::Content)
     }
 
     pub fn new_origin(origin: Origin) -> Self {
-        ValueStyle {
+        ValueFormat {
             name: String::from(""),
             v_type: ValueType::Text,
             origin,
@@ -983,9 +969,9 @@ impl ValueStyle {
         }
     }
 
-    pub fn with_name(name: &str, value_type: ValueType) -> Self {
-        ValueStyle {
-            name: name.to_string(),
+    pub fn with_name<S: Into<String>>(name: S, value_type: ValueType) -> Self {
+        ValueFormat {
+            name: name.into(),
             v_type: value_type,
             origin: Origin::Content,
             prp: None,
@@ -993,7 +979,7 @@ impl ValueStyle {
         }
     }
 
-    pub fn set_name<V: Into<String>>(&mut self, name: V) {
+    pub fn set_name<S: Into<String>>(&mut self, name: S) {
         self.name = name.into();
     }
 
@@ -1029,7 +1015,7 @@ impl ValueStyle {
         get_prp_def(&self.prp, name, default)
     }
 
-    pub fn push_part(&mut self, part: Part) {
+    pub fn push_part(&mut self, part: FormatPart) {
         if let Some(parts) = &mut self.parts {
             parts.push(part);
         } else {
@@ -1037,17 +1023,17 @@ impl ValueStyle {
         }
     }
 
-    pub fn push_parts(&mut self, parts: Vec<Part>) {
+    pub fn push_parts(&mut self, parts: Vec<FormatPart>) {
         for p in parts.into_iter() {
             self.push_part(p);
         }
     }
 
-    pub fn parts(&self) -> Option<&Vec<Part>> {
+    pub fn parts(&self) -> Option<&Vec<FormatPart>> {
         self.parts.as_ref()
     }
 
-    pub fn parts_mut(&mut self) -> &mut Vec<Part> {
+    pub fn parts_mut(&mut self) -> &mut Vec<FormatPart> {
         self.parts.get_or_insert(Vec::new())
     }
 
@@ -1093,7 +1079,7 @@ impl ValueStyle {
     pub fn format_datetime(&self, d: &NaiveDateTime) -> String {
         let mut buf = String::new();
         if let Some(parts) = &self.parts {
-            let h12 = parts.iter().any(|v| v.p_type == PartType::AmPm);
+            let h12 = parts.iter().any(|v| v.ftype == FormatType::AmPm);
 
             for p in parts {
                 p.format_datetime(&mut buf, d, h12);
@@ -1115,9 +1101,9 @@ impl ValueStyle {
     }
 }
 
-/// The particles of a value->string format.
+/// Identifies the structural parts of a value format.
 #[derive(Debug, Clone, PartialEq)]
-pub enum PartType {
+pub enum FormatType {
     Boolean,
     Number,
     Fraction,
@@ -1141,42 +1127,42 @@ pub enum PartType {
     StyleMap,
 }
 
-/// The particles of a value->string format.
+/// One structural part of a value format.
 #[derive(Debug, Clone)]
-pub struct Part {
-    p_type: PartType,
+pub struct FormatPart {
+    ftype: FormatType,
     prp: Option<HashMap<String, String>>,
     content: Option<String>,
 }
 
-impl Part {
-    pub fn new(p_type: PartType) -> Self {
-        Part {
-            p_type,
+impl FormatPart {
+    pub fn new(ftype: FormatType) -> Self {
+        FormatPart {
+            ftype,
             prp: None,
             content: None,
         }
     }
 
-    pub fn new_content(p_type: PartType, content: &str) -> Self {
-        Part {
-            p_type,
+    pub fn new_content(ftype: FormatType, content: &str) -> Self {
+        FormatPart {
+            ftype,
             prp: None,
             content: Some(content.to_string()),
         }
     }
 
-    pub fn new_prp(p_type: PartType, prp: HashMap<String, String>) -> Self {
-        Part {
-            p_type,
+    pub fn new_prp(ftype: FormatType, prp: HashMap<String, String>) -> Self {
+        FormatPart {
+            ftype,
             prp: Some(prp),
             content: None,
         }
     }
 
-    pub fn new_vec(p_type: PartType, vec: Vec<(&str, String)>) -> Self {
-        let mut part = Part {
-            p_type,
+    pub fn new_vec(ftype: FormatType, vec: Vec<(&str, String)>) -> Self {
+        let mut part = FormatPart {
+            ftype,
             prp: None,
             content: None,
         };
@@ -1184,12 +1170,12 @@ impl Part {
         part
     }
 
-    pub fn set_parttype(&mut self, p_type: PartType) {
-        self.p_type = p_type;
+    pub fn set_ftype(&mut self, p_type: FormatType) {
+        self.ftype = p_type;
     }
 
-    pub fn parttype(&self) -> &PartType {
-        &self.p_type
+    pub fn ftype(&self) -> &FormatType {
+        &self.ftype
     }
 
     pub fn set_prp_map(&mut self, map: HashMap<String, String>) {
@@ -1225,11 +1211,11 @@ impl Part {
     /// Tries to format the given boolean.
     /// If this part does'nt match does nothing
     pub fn format_boolean(&self, buf: &mut String, b: bool) {
-        match self.p_type {
-            PartType::Boolean => {
+        match self.ftype {
+            FormatType::Boolean => {
                 buf.push_str(if b { "true" } else { "false" });
             }
-            PartType::Text => {
+            FormatType::Text => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }
@@ -1241,22 +1227,22 @@ impl Part {
     /// Tries to format the given float.
     /// If this part does'nt match does nothing
     pub fn format_float(&self, buf: &mut String, f: f64) {
-        match self.p_type {
-            PartType::Number => {
+        match self.ftype {
+            FormatType::Number => {
                 let dec = self.prp_def("number:decimal-places", "0").parse::<usize>();
                 if let Ok(dec) = dec {
                     buf.push_str(&format!("{:.*}", dec, f));
                 }
             }
-            PartType::Scientific => {
+            FormatType::Scientific => {
                 buf.push_str(&format!("{:e}", f));
             }
-            PartType::CurrencySymbol => {
+            FormatType::CurrencySymbol => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }
             }
-            PartType::Text => {
+            FormatType::Text => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }
@@ -1268,11 +1254,11 @@ impl Part {
     /// Tries to format the given float.
     /// If this part does'nt match does nothing
     pub fn format_str(&self, buf: &mut String, s: &str) {
-        match self.p_type {
-            PartType::TextContent => {
+        match self.ftype {
+            FormatType::TextContent => {
                 buf.push_str(s);
             }
-            PartType::Text => {
+            FormatType::Text => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }
@@ -1286,8 +1272,8 @@ impl Part {
     /// If this part does'nt match does nothing
     #[allow(clippy::collapsible_if)]
     pub fn format_datetime(&self, buf: &mut String, d: &NaiveDateTime, h12: bool) {
-        match self.p_type {
-            PartType::Day => {
+        match self.ftype {
+            FormatType::Day => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%d").to_string());
@@ -1295,7 +1281,7 @@ impl Part {
                     buf.push_str(&d.format("%-d").to_string());
                 }
             }
-            PartType::Month => {
+            FormatType::Month => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 let is_text = self.prp_def("number:textual", "") == "true";
                 if is_text {
@@ -1312,7 +1298,7 @@ impl Part {
                     }
                 }
             }
-            PartType::Year => {
+            FormatType::Year => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%Y").to_string());
@@ -1320,7 +1306,7 @@ impl Part {
                     buf.push_str(&d.format("%y").to_string());
                 }
             }
-            PartType::DayOfWeek => {
+            FormatType::DayOfWeek => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%A").to_string());
@@ -1328,7 +1314,7 @@ impl Part {
                     buf.push_str(&d.format("%a").to_string());
                 }
             }
-            PartType::WeekOfYear => {
+            FormatType::WeekOfYear => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%W").to_string());
@@ -1336,7 +1322,7 @@ impl Part {
                     buf.push_str(&d.format("%-W").to_string());
                 }
             }
-            PartType::Hours => {
+            FormatType::Hours => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if !h12 {
                     if is_long {
@@ -1352,7 +1338,7 @@ impl Part {
                     }
                 }
             }
-            PartType::Minutes => {
+            FormatType::Minutes => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%M").to_string());
@@ -1360,7 +1346,7 @@ impl Part {
                     buf.push_str(&d.format("%-M").to_string());
                 }
             }
-            PartType::Seconds => {
+            FormatType::Seconds => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%S").to_string());
@@ -1368,10 +1354,10 @@ impl Part {
                     buf.push_str(&d.format("%-S").to_string());
                 }
             }
-            PartType::AmPm => {
+            FormatType::AmPm => {
                 buf.push_str(&d.format("%p").to_string());
             }
-            PartType::Text => {
+            FormatType::Text => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }
@@ -1383,148 +1369,23 @@ impl Part {
     /// Tries to format the given Duration.
     /// If this part does'nt match does nothing
     pub fn format_time_duration(&self, buf: &mut String, d: &Duration) {
-        match self.p_type {
-            PartType::Hours => {
+        match self.ftype {
+            FormatType::Hours => {
                 buf.push_str(&d.num_hours().to_string());
             }
-            PartType::Minutes => {
+            FormatType::Minutes => {
                 buf.push_str(&(d.num_minutes() % 60).to_string());
             }
-            PartType::Seconds => {
+            FormatType::Seconds => {
                 buf.push_str(&(d.num_seconds() % 60).to_string());
             }
-            PartType::Text => {
+            FormatType::Text => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }
             }
             _ => {}
         }
-    }
-
-    /// Creates a new number format.
-    pub fn def_number(decimal: u8, grouping: bool) -> Self {
-        let mut p = Part::new(PartType::Number);
-        p.set_prp("number:min-integer-digits", 1.to_string());
-        p.set_prp("number:decimal-places", decimal.to_string());
-        p.set_prp("loext:min-decimal-places", 0.to_string());
-        if grouping {
-            p.set_prp("number:grouping", String::from("true"));
-        }
-        p
-    }
-
-    /// Creates a new number format with a fixed number of decimal places.
-    pub fn def_number_fixed(decimal: u8, grouping: bool) -> Self {
-        let mut p = Part::new(PartType::Number);
-        p.set_prp("number:min-integer-digits", 1.to_string());
-        p.set_prp("number:decimal-places", decimal.to_string());
-        p.set_prp("loext:min-decimal-places", decimal.to_string());
-        if grouping {
-            p.set_prp("number:grouping", String::from("true"));
-        }
-        p
-    }
-
-    /// Creates a new percantage format.
-    pub fn def_percentage(decimal: u8) -> Vec<Self> {
-        let mut p = Part::new(PartType::Number);
-        p.set_prp("number:min-integer-digits", 1.to_string());
-        p.set_prp("number:decimal-places", decimal.to_string());
-        p.set_prp("loext:min-decimal-places", decimal.to_string());
-
-        let mut p2 = Part::new(PartType::Text);
-        p2.set_content("&#160;%");
-
-        vec![p, p2]
-    }
-
-    /// Creates a new currency format for EURO.
-    pub fn def_euro() -> Vec<Self> {
-        let mut p0 = Part::new(PartType::CurrencySymbol);
-        p0.set_prp("number:language", String::from("de"));
-        p0.set_prp("number:country", String::from("AT"));
-        p0.set_content("€");
-
-        let mut p1 = Part::new(PartType::Text);
-        p1.set_content(" ");
-
-        let mut p2 = Part::new(PartType::Number);
-        p2.set_prp("number:min-integer-digits", 1.to_string());
-        p2.set_prp("number:decimal-places", 2.to_string());
-        p2.set_prp("loext:min-decimal-places", 2.to_string());
-        p2.set_prp("number:grouping", String::from("true"));
-
-        vec![p0, p1, p2]
-    }
-
-    /// Creates a new currency format for EURO with negative values in red.
-    /// Needs the name of the positive format.
-    pub fn def_euro_red(gte0_style: &str) -> Vec<Self> {
-        let mut p0 = Part::new(PartType::StyleText);
-        p0.set_prp("fo:color", String::from("#ff0000"));
-
-        let mut p1 = Part::new(PartType::Text);
-        p1.set_content("-");
-
-        let mut p2 = Part::new(PartType::CurrencySymbol);
-        p2.set_prp("number:language", String::from("de"));
-        p2.set_prp("number:country", String::from("AT"));
-        p2.set_content("€");
-
-        let mut p3 = Part::new(PartType::Text);
-        p3.set_content(" ");
-
-        let mut p4 = Part::new(PartType::Number);
-        p4.set_prp("number:min-integer-digits", 1.to_string());
-        p4.set_prp("number:decimal-places", 2.to_string());
-        p4.set_prp("loext:min-decimal-places", 2.to_string());
-        p4.set_prp("number:grouping", String::from("true"));
-
-        let mut p5 = Part::new(PartType::StyleMap);
-        p5.set_prp("style:condition", String::from("value()&gt;=0"));
-        p5.set_prp("style:apply-style-name", gte0_style.to_string());
-
-        vec![p0, p1, p2, p3, p4, p5]
-    }
-
-    /// Creates a new date format D.M.Y
-    pub fn def_date() -> Vec<Self> {
-        vec![
-            Part::new_vec(PartType::Day, vec![("number:style", String::from("long"))]),
-            Part::new_content(PartType::Text, "."),
-            Part::new_vec(PartType::Month, vec![("number:style", String::from("long"))]),
-            Part::new_content(PartType::Text, "."),
-            Part::new_vec(PartType::Year, vec![("number:style", String::from("long"))]),
-        ]
-    }
-
-    /// Creates a datetime froamt D.M.Y H:M:S
-    pub fn def_datetime() -> Vec<Self> {
-        vec![
-            Part::new_vec(PartType::Year, vec![("number:style", String::from("long"))]),
-            Part::new_content(PartType::Text, " "),
-            Part::new_vec(PartType::Month, vec![("number:style", String::from("long"))]),
-            Part::new_content(PartType::Text, "."),
-            Part::new_vec(PartType::Day, vec![("number:style", String::from("long"))]),
-            Part::new_content(PartType::Text, " "),
-            Part::new(PartType::Hours),
-            Part::new_content(PartType::Text, ":"),
-            Part::new(PartType::Minutes),
-            Part::new_content(PartType::Text, ":"),
-            Part::new(PartType::Seconds),
-        ]
-    }
-
-    /// Creates a new time-Duration format H:M:S
-    pub fn def_time() -> Vec<Self> {
-        vec![
-            Part::new(PartType::Hours),
-            Part::new_content(PartType::Text, " "),
-            Part::new(PartType::Minutes),
-            Part::new_content(PartType::Text, " "),
-            Part::new(PartType::Seconds),
-        ]
     }
 }
 
