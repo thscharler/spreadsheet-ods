@@ -3,13 +3,15 @@ use std::collections::btree_map::Range;
 use std::fmt;
 use std::path::PathBuf;
 use chrono::{Duration, NaiveDateTime, NaiveDate};
-pub use crate::ods::OdsError;
-pub use crate::ods::read_ods;
-pub use crate::ods::write_ods;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
 
+pub use crate::ods::OdsError;
+pub use crate::ods::read_ods;
+pub use crate::ods::write_ods;
+
 pub mod ods;
+pub mod style;
 
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
@@ -181,50 +183,50 @@ impl WorkBook {
 /// And dates are european DMY style.
 ///
 pub fn create_default_styles(book: &mut WorkBook) {
-    let mut s = ValueStyle::with_name(Origin::Content, "BOOL1", ValueType::Boolean);
+    let mut s = ValueStyle::with_name("BOOL1", ValueType::Boolean);
     s.push_part(Part::new(PartType::Boolean));
     book.add_value_style(s);
 
-    let mut s = ValueStyle::with_name(Origin::Content, "NUM1", ValueType::Number);
+    let mut s = ValueStyle::with_name("NUM1", ValueType::Number);
     s.push_part(Part::def_number(2, false));
     book.add_value_style(s);
 
-    let mut s = ValueStyle::with_name(Origin::Content, "PERCENT1", ValueType::Percentage);
+    let mut s = ValueStyle::with_name("PERCENT1", ValueType::Percentage);
     s.push_parts(Part::def_percentage(2));
     book.add_value_style(s);
 
-    let mut s = ValueStyle::with_name(Origin::Content, "CURRENCY1", ValueType::Currency);
+    let mut s = ValueStyle::with_name("CURRENCY1", ValueType::Currency);
     s.push_parts(Part::def_euro());
     book.add_value_style(s);
 
-    let mut s = ValueStyle::with_name(Origin::Content, "DATE1", ValueType::DateTime);
+    let mut s = ValueStyle::with_name("DATE1", ValueType::DateTime);
     s.push_parts(Part::def_date());
     book.add_value_style(s);
 
-    let mut s = ValueStyle::with_name(Origin::Content, "DATETIME1", ValueType::DateTime);
+    let mut s = ValueStyle::with_name("DATETIME1", ValueType::DateTime);
     s.push_parts(Part::def_datetime());
     book.add_value_style(s);
 
-    let mut s = ValueStyle::with_name(Origin::Content, "TIME1", ValueType::TimeDuration);
+    let mut s = ValueStyle::with_name("TIME1", ValueType::TimeDuration);
     s.push_parts(Part::def_time());
     book.add_value_style(s);
 
-    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-BOOL", "BOOLEAN1");
+    let s = Style::with_name(Family::TableCell, "DEFAULT-BOOL", "BOOLEAN1");
     book.add_style(s);
 
-    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-NUM", "NUM1");
+    let s = Style::with_name(Family::TableCell, "DEFAULT-NUM", "NUM1");
     book.add_style(s);
 
-    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-PERCENT", "PERCENT1");
+    let s = Style::with_name(Family::TableCell, "DEFAULT-PERCENT", "PERCENT1");
     book.add_style(s);
 
-    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-CURRENCY", "CURRENCY1");
+    let s = Style::with_name(Family::TableCell, "DEFAULT-CURRENCY", "CURRENCY1");
     book.add_style(s);
 
-    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-DATE", "DATE1");
+    let s = Style::with_name(Family::TableCell, "DEFAULT-DATE", "DATE1");
     book.add_style(s);
 
-    let s = Style::with_name(Origin::Content, Family::TableCell, "DEFAULT-TIME", "TIME1");
+    let s = Style::with_name(Family::TableCell, "DEFAULT-TIME", "TIME1");
     book.add_style(s);
 
     book.add_def_style(ValueType::Boolean, "DEFAULT-BOOL");
@@ -291,7 +293,7 @@ impl Sheet {
     }
 
     /// Creates a cell-reference for use in formulas.
-    pub fn colrow(row: usize, col: usize) -> String {
+    pub fn fcellref(row: usize, col: usize) -> String {
         let mut col_str = String::new();
 
         let mut col2 = col;
@@ -413,6 +415,13 @@ impl Sheet {
     // Removes a value.
     pub fn remove_cell(&mut self, row: usize, col: usize) -> Option<SCell> {
         self.data.remove(&(row, col))
+    }
+
+    /// Sets a value for the specified cell. Creates a new cell if necessary.
+    pub fn set_styled_value<V: Into<Value>, W: Into<String>>(&mut self, row: usize, col: usize, value: V, style: W) {
+        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        cell.value = Some(value.into());
+        cell.style = Some(style.into());
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
@@ -705,7 +714,11 @@ pub struct Style {
 }
 
 impl Style {
-    pub fn new(origin: Origin) -> Self {
+    pub fn new() -> Self {
+        Style::new_origin(Origin::Content)
+    }
+
+    pub fn new_origin(origin: Origin) -> Self {
         Style {
             name: String::from(""),
             display_name: None,
@@ -723,11 +736,11 @@ impl Style {
         }
     }
 
-    pub fn with_name(origin: Origin, family: Family, name: &str, value_style: &str) -> Self {
+    pub fn with_name(family: Family, name: &str, value_style: &str) -> Self {
         Style {
             name: name.to_string(),
             display_name: None,
-            origin,
+            origin: Origin::Content,
             family,
             parent: Some(String::from("Default")),
             value_style: Some(value_style.to_string()),
@@ -841,6 +854,10 @@ impl Style {
         set_prp(&mut self.text_prp, name, value);
     }
 
+    pub fn clear_text_prp(&mut self, name: &str) -> Option<String> {
+        clear_prp(&mut self.text_prp, name)
+    }
+
     pub fn text_prp(&self, name: &str) -> Option<&String> {
         get_prp(&self.text_prp, name)
     }
@@ -867,7 +884,6 @@ impl Style {
 pub enum Origin {
     Content,
     Styles,
-    None,
 }
 
 /// Applicability of this style.
@@ -893,7 +909,11 @@ pub struct ValueStyle {
 }
 
 impl ValueStyle {
-    pub fn new(origin: Origin) -> Self {
+    pub fn new() -> Self {
+        ValueStyle::new_origin(Origin::Content)
+    }
+
+    pub fn new_origin(origin: Origin) -> Self {
         ValueStyle {
             name: String::from(""),
             v_type: ValueType::Text,
@@ -903,11 +923,11 @@ impl ValueStyle {
         }
     }
 
-    pub fn with_name(origin: Origin, name: &str, value_type: ValueType) -> Self {
+    pub fn with_name(name: &str, value_type: ValueType) -> Self {
         ValueStyle {
             name: name.to_string(),
             v_type: value_type,
-            origin,
+            origin: Origin::Content,
             prp: None,
             parts: None,
         }
@@ -1465,6 +1485,18 @@ fn set_prp(map: &mut Option<HashMap<String, String>>, name: &str, value: String)
     }
     if let Some(map) = map {
         map.insert(name.to_string(), value);
+    }
+}
+
+fn clear_prp(map: &mut Option<HashMap<String, String>>, name: &str) -> Option<String> {
+    if !map.is_none() {
+        if let Some(map) = map {
+            map.remove(name)
+        } else {
+            None
+        }
+    } else {
+        None
     }
 }
 

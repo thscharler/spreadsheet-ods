@@ -540,8 +540,8 @@ mod read_ods {
                    end_tag: &[u8]) -> Result<(), OdsError> {
         let mut buf = Vec::new();
 
-        let mut style: Style = Style::new(Origin::Content);
-        let mut value_style = ValueStyle::new(Origin::Content);
+        let mut style: Style = Style::new_origin(Origin::Content);
+        let mut value_style = ValueStyle::new_origin(Origin::Content);
         // Styles with content information are stored before completion.
         let mut value_style_part = None;
 
@@ -558,7 +558,7 @@ mod read_ods {
                             // In case of an empty xml-tag we are done here.
                             if let Event::Empty(_) = evt {
                                 book.add_style(style);
-                                style = Style::new(Origin::Content);
+                                style = Style::new_origin(Origin::Content);
                             }
                         }
 
@@ -669,7 +669,7 @@ mod read_ods {
                     match e.name() {
                         b"style:style" => {
                             book.add_style(style);
-                            style = Style::new(Origin::Content);
+                            style = Style::new_origin(Origin::Content);
                         }
                         b"number:boolean-style" |
                         b"number:date-style" |
@@ -679,7 +679,7 @@ mod read_ods {
                         b"number:percentage-style" |
                         b"number:text-style" => {
                             book.add_value_style(value_style);
-                            value_style = ValueStyle::new(Origin::Content);
+                            value_style = ValueStyle::new_origin(Origin::Content);
                         }
                         b"number:currency-symbol" | b"number:text" => {
                             if let Some(part) = value_style_part {
@@ -802,7 +802,7 @@ mod read_ods {
     }
 }
 
-pub mod xml {
+mod xml {
     use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
     use std::collections::HashMap;
 
