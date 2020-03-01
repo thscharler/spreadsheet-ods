@@ -15,6 +15,8 @@ pub struct WorkBook {
     /// The data.
     sheets: Vec<Sheet>,
 
+    //// FontDecl hold the style:font-face elements
+    fonts: BTreeMap<String, FontDecl>,
     /// Styles hold the style:style elements.
     styles: BTreeMap<String, Style>,
 
@@ -38,6 +40,9 @@ impl fmt::Debug for WorkBook {
         for s in self.sheets.iter() {
             writeln!(f, "{:?}", s)?;
         }
+        for s in self.fonts.iter() {
+            writeln!(f, "{:?}", s)?;
+        }
         for s in self.styles.iter() {
             writeln!(f, "{:?}", s)?;
         }
@@ -56,6 +61,7 @@ impl WorkBook {
     pub fn new() -> Self {
         WorkBook {
             sheets: Vec::new(),
+            fonts: BTreeMap::new(),
             styles: BTreeMap::new(),
             value_styles: BTreeMap::new(),
             def_styles: None,
@@ -136,17 +142,28 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_style(&mut self, style: Style) {
-        self.styles.insert(style.name.to_string(), style);
+    pub fn add_font(&mut self, font: FontDecl) {
+        self.fonts.insert(font.name.to_string(), font);
     }
 
-    pub fn remove_style(&mut self, name: &str) {
-        self.styles.remove(name);
+    pub fn remove_font(&mut self, name: &str) {
+        self.fonts.remove(name);
     }
 
-    pub fn style(&self, name: &str) -> Option<&Style> {
-        self.styles.get(name)
+    pub fn font(&self, name: &str) -> Option<&FontDecl> {
+        self.fonts.get(name)
     }
+
+    pub fn font_mut(&mut self, name: &str) -> Option<&mut FontDecl> {
+        self.fonts.get_mut(name)
+    }
+
+    /// Adds a style.
+    pub fn add_style(&mut self, style: Style) { self.styles.insert(style.name.to_string(), style); }
+
+    pub fn remove_style(&mut self, name: &str) { self.styles.remove(name); }
+
+    pub fn style(&self, name: &str) -> Option<&Style> { self.styles.get(name) }
 
     pub fn style_mut(&mut self, name: &str) -> Option<&mut Style> {
         self.styles.get_mut(name)
@@ -681,6 +698,58 @@ impl From<Duration> for Value {
     }
 }
 
+/// Font declarations.
+#[derive(Clone, Debug)]
+pub struct FontDecl {
+    name: String,
+    /// From where did we get this style.
+    origin: Origin,
+    /// All other attributes.
+    prp: Option<HashMap<String, String>>,
+}
+
+impl FontDecl {
+    pub fn new() -> Self {
+        FontDecl::new_origin(Origin::Content)
+    }
+
+    pub fn new_origin(origin: Origin) -> Self {
+        Self {
+            name: "".to_string(),
+            origin,
+            prp: None,
+        }
+    }
+
+    pub fn with_name(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            origin: Origin::Content,
+            prp: None,
+        }
+    }
+
+    pub fn set_name<V: Into<String>>(&mut self, name: V) {
+        self.name = name.into();
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn set_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.prp, name, value);
+    }
+
+    pub fn prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.prp, name)
+    }
+
+    pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
+        get_prp_def(&self.prp, name, default)
+    }
+}
+
 /// Style data fashioned after the ODS spec. Might not be too different to XLSX, but I didn't
 /// check. There's a lot more, but for now I will simply ignore it. Seems most of
 /// the blanks are filled in with defaults when reading.
@@ -700,7 +769,6 @@ pub struct Style {
     parent: Option<String>,
     /// References the actual formatting instructions in the value-styles.
     value_style: Option<String>,
-
     table_prp: Option<HashMap<String, String>>,
     table_col_prp: Option<HashMap<String, String>>,
     table_row_prp: Option<HashMap<String, String>>,
@@ -722,7 +790,6 @@ impl Style {
             family: Family::None,
             parent: None,
             value_style: None,
-
             table_prp: None,
             table_col_prp: None,
             table_row_prp: None,
@@ -740,7 +807,6 @@ impl Style {
             family,
             parent: Some(String::from("Default")),
             value_style: Some(value_style.to_string()),
-
             table_prp: None,
             table_col_prp: None,
             table_row_prp: None,
@@ -898,9 +964,7 @@ pub struct ValueStyle {
     name: String,
     v_type: ValueType,
     origin: Origin,
-
     prp: Option<HashMap<String, String>>,
-
     parts: Option<Vec<Part>>,
 }
 

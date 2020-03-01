@@ -116,11 +116,10 @@ mod read_ods {
     use quick_xml::events::attributes::Attribute;
     use zip::read::ZipFile;
 
-    use crate::{Family, Origin, Part, PartType, SCell,
-                SColumn, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
+    use crate::{Family, Origin, Part, PartType, SCell, SColumn, Sheet, Style, Value, ValueStyle, ValueType, WorkBook, FontDecl};
     use crate::ods::error::OdsError;
 
-//const DUMP_XML: bool = false;
+    //const DUMP_XML: bool = false;
 
     // Reads an ODS-file.
     pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
@@ -197,6 +196,10 @@ mod read_ods {
                     col = 0;
                     row_repeat = 1;
                 }
+
+                Event::Start(xml_tag)
+                if xml_tag.name() == b"office:font-face-decls" =>
+                    read_fonts(&mut book, &mut xml, b"office:font-face-decls")?,
 
                 Event::Start(xml_tag)
                 if xml_tag.name() == b"office:automatic-styles" =>
@@ -536,6 +539,60 @@ mod read_ods {
         }
     }
 
+    fn read_fonts(book: &mut WorkBook,
+                  xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                  end_tag: &[u8]) -> Result<(), OdsError> {
+        let mut buf = Vec::new();
+
+        let mut font: FontDecl = FontDecl::new_origin(Origin::Content);
+
+        loop {
+            let evt = xml.read_event(&mut buf)?;
+            //if DUMP_XML { log::debug!(" style {:?}", evt); }
+            match evt {
+                Event::Start(ref xml_tag)
+                | Event::Empty(ref xml_tag) => {
+                    match xml_tag.name() {
+                        b"style:font-face" => {
+                            for attr in xml_tag.attributes().with_checks(false) {
+                                match attr? {
+                                    attr if attr.key == b"style:name" => {
+                                        let v = attr.unescape_and_decode_value(&xml)?;
+                                        font.set_name(v);
+                                    }
+                                    attr => {
+                                        let k = xml.decode(&attr.key)?;
+                                        let v = attr.unescape_and_decode_value(&xml)?;
+                                        font.set_prp(k, v);
+                                    }
+                                }
+                            }
+
+                            book.add_font(font);
+                            font = FontDecl::new_origin(Origin::Content);
+                        }
+                        _ => {}
+                    }
+                }
+
+                Event::End(ref e) => {
+                    if e.name() == end_tag {
+                        break;
+                    }
+                }
+
+                Event::Eof => {
+                    break;
+                }
+                _ => {}
+            }
+
+            buf.clear();
+        }
+
+        Ok(())
+    }
+
     fn read_styles(book: &mut WorkBook,
                    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                    end_tag: &[u8]) -> Result<(), OdsError> {
@@ -814,7 +871,7 @@ mod write_ods {
     use quick_xml::events::{BytesDecl, Event};
     use zip::write::FileOptions;
 
-    use crate::{Family, Origin, PartType, SCell, Sheet, Style, Value, ValueStyle, ValueType, WorkBook};
+    use crate::{Family, Origin, PartType, SCell, Sheet, Style, Value, ValueStyle, ValueType, WorkBook, FontDecl};
     use crate::ods::error::OdsError;
     use crate::ods::temp_zip::TempZip;
     use crate::ods::xml;
@@ -1207,7 +1264,10 @@ mod write_ods {
             ("office:version", String::from("1.2")),
         ]))?;
         xml_out.write_event(xml::empty("office:scripts"))?;
-        xml_out.write_event(xml::empty("office:font-face-decls"))?;
+
+        xml_out.write_event(xml::start("office:font-face-decls"))?;
+        write_font_decl(&book.fonts, Origin::Content, &mut xml_out)?;
+        xml_out.write_event(xml::end("office:font-face-decls")) ? ;
 
         xml_out.write_event(xml::start("office:automatic-styles"))?;
         write_styles(&book.styles, Origin::Content, &mut xml_out)?;
@@ -1530,6 +1590,23 @@ mod write_ods {
             xml_out.write_event(xml::empty_a("table:table-cell", attr))?;
         }
 
+        Ok(())
+    }
+
+    fn write_font_decl(fonts: &BTreeMap<String, FontDecl>, origin: Origin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+        for font in fonts.values().filter(|s| s.origin == origin) {
+            let mut attr: HashMap<String, String> = HashMap::new();
+
+            attr.insert("style:name".to_string(), font.name.to_string());
+
+            if let Some(prp) = &font.prp {
+                for (k, v) in prp {
+                    attr.insert(k.to_string(), v.to_string());
+                }
+            }
+
+            xml_out.write_event(xml::start_m("style:style", &attr))?;
+        }
         Ok(())
     }
 
