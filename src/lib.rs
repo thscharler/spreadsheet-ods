@@ -578,12 +578,12 @@ pub enum ValueType {
 #[derive(Debug, Clone)]
 pub enum Value {
     Boolean(bool),
+    Number(f64),
+    Percentage(f64),
+    Currency(String, f64),
+    Text(String),
     DateTime(NaiveDateTime),
     TimeDuration(Duration),
-    Number(f64),
-    Currency(String, f64),
-    Percentage(f64),
-    Text(String),
 }
 
 impl Value {
