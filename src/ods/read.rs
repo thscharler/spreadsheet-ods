@@ -10,8 +10,6 @@ use zip::read::ZipFile;
 use crate::{Family, Origin, FormatPart, FormatType, SCell, SColumn, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
 use crate::ods::error::OdsError;
 
-//const DUMP_XML: bool = false;
-
 // Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
     let file = File::open(path.as_ref())?;
@@ -145,7 +143,8 @@ fn read_table_row(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:number-rows-repeated" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescaped_value()?;
+                let v = xml.decode(v.as_ref())?;
                 row_repeat = v.parse::<usize>()?;
             }
             attr if attr.key == b"table:style-name" => {

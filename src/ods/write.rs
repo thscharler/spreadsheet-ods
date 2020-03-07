@@ -529,9 +529,9 @@ fn write_start_current_row(sheet: &Sheet,
                            backward_dc: i32,
                            xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     let mut attr = Vec::new();
-    if let Some(row) = sheet.rows.get(&cur_row) {
-        if let Some(style) = &row.style {
-            attr.push(("table:style-name", style.to_string()));
+    if let Some(row_style) = sheet.row_style.get(&cur_row) {
+        if let Some(row_style) = row_style {
+            attr.push(("table:style-name", row_style.to_string()));
         }
     }
 

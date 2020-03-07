@@ -55,9 +55,6 @@ pub mod style;
 pub mod defaultstyles;
 pub mod format;
 
-pub use ods::{read_ods, write_ods, write_ods_clean};
-
-
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
 pub struct WorkBook {
@@ -249,7 +246,7 @@ pub struct Sheet {
 
     data: BTreeMap<(usize, usize), SCell>,
     columns: BTreeMap<usize, SColumn>,
-    rows: BTreeMap<usize, SRow>,
+    row_style: BTreeMap<usize, Option<String>>,
 }
 
 impl fmt::Debug for Sheet {
@@ -261,7 +258,7 @@ impl fmt::Debug for Sheet {
         for (k, v) in self.columns.iter() {
             writeln!(f, "{:?} {:?}", k, v)?;
         }
-        for (k, v) in self.rows.iter() {
+        for (k, v) in self.row_style.iter() {
             writeln!(f, "{:?} {:?}", k, v)?;
         }
         Ok(())
@@ -277,7 +274,7 @@ impl Sheet {
             data: BTreeMap::new(),
             style: None,
             columns: BTreeMap::new(),
-            rows: BTreeMap::new(),
+            row_style: BTreeMap::new(),
         }
     }
 
@@ -288,7 +285,7 @@ impl Sheet {
             data: BTreeMap::new(),
             style: None,
             columns: BTreeMap::new(),
-            rows: BTreeMap::new(),
+            row_style: BTreeMap::new(),
         }
     }
 
@@ -359,17 +356,13 @@ impl Sheet {
 
     /// Row style.
     pub fn set_row_style<V: Into<String>>(&mut self, row: usize, style: V) {
-        let v = self.rows.entry(row).or_insert_with(SRow::new);
-        v.style = Some(style.into());
+        let v = self.row_style.entry(row).or_insert(None);
+        *v = Some(style.into());
     }
 
     pub fn row_style(&self, row: usize) -> Option<&String> {
-        if let Some(row) = self.rows.get(&row) {
-            if let Some(style) = &row.style {
-                Some(&*style)
-            } else {
-                None
-            }
+        if let Some(row) = self.row_style.get(&row) {
+            row.as_ref()
         } else {
             None
         }
@@ -479,19 +472,19 @@ impl Sheet {
     }
 }
 
-/// Row wide data.
-#[derive(Clone, Debug)]
-struct SRow {
-    style: Option<String>,
-}
-
-impl SRow {
-    pub fn new() -> Self {
-        SRow {
-            style: None,
-        }
-    }
-}
+// /// Row wide data.
+// #[derive(Clone, Debug)]
+// struct SRow {
+//     style: Option<String>,
+// }
+//
+// impl SRow {
+//     pub fn new() -> Self {
+//         SRow {
+//             style: None,
+//         }
+//     }
+// }
 
 /// Column wide data.
 #[derive(Clone, Debug)]
@@ -725,15 +718,15 @@ impl FontDecl {
     }
 
     pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp_a(&mut self.prp, name, value);
+        set_prp(&mut self.prp, name, value);
     }
 
     pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp_a(&self.prp, name)
+        get_prp(&self.prp, name)
     }
 
     pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def_a(&self.prp, name, default)
+        get_prp_def(&self.prp, name, default)
     }
 }
 
@@ -852,79 +845,79 @@ impl Style {
     }
 
     pub fn set_table_prp(&mut self, name: &str, value: String) {
-        set_prp_a(&mut self.table_prp, name, value);
+        set_prp(&mut self.table_prp, name, value);
     }
 
     pub fn table_prp(&self, name: &str) -> Option<&String> {
-        get_prp_a(&self.table_prp, name)
+        get_prp(&self.table_prp, name)
     }
 
     pub fn table_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def_a(&self.table_prp, name, default)
+        get_prp_def(&self.table_prp, name, default)
     }
 
     pub fn set_table_col_prp(&mut self, name: &str, value: String) {
-        set_prp_a(&mut self.table_col_prp, name, value);
+        set_prp(&mut self.table_col_prp, name, value);
     }
 
     pub fn table_col_prp(&self, name: &str) -> Option<&String> {
-        get_prp_a(&self.table_col_prp, name)
+        get_prp(&self.table_col_prp, name)
     }
 
     pub fn table_col_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def_a(&self.table_col_prp, name, default)
+        get_prp_def(&self.table_col_prp, name, default)
     }
 
     pub fn set_table_row_prp(&mut self, name: &str, value: String) {
-        set_prp_a(&mut self.table_row_prp, name, value);
+        set_prp(&mut self.table_row_prp, name, value);
     }
 
     pub fn table_row_prp(&self, name: &str) -> Option<&String> {
-        get_prp_a(&self.table_row_prp, name)
+        get_prp(&self.table_row_prp, name)
     }
 
     pub fn table_row_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def_a(&self.table_row_prp, name, default)
+        get_prp_def(&self.table_row_prp, name, default)
     }
 
     pub fn set_table_cell_prp(&mut self, name: &str, value: String) {
-        set_prp_a(&mut self.table_cell_prp, name, value);
+        set_prp(&mut self.table_cell_prp, name, value);
     }
 
     pub fn table_cell_prp(&self, name: &str) -> Option<&String> {
-        get_prp_a(&self.table_cell_prp, name)
+        get_prp(&self.table_cell_prp, name)
     }
 
     pub fn table_cell_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def_a(&self.table_cell_prp, name, default)
+        get_prp_def(&self.table_cell_prp, name, default)
     }
 
     pub fn set_text_prp(&mut self, name: &str, value: String) {
-        set_prp_a(&mut self.text_prp, name, value);
+        set_prp(&mut self.text_prp, name, value);
     }
 
     pub fn clear_text_prp(&mut self, name: &str) -> Option<String> {
-        clear_prp_a(&mut self.text_prp, name)
+        clear_prp(&mut self.text_prp, name)
     }
 
     pub fn text_prp(&self, name: &str) -> Option<&String> {
-        get_prp_a(&self.text_prp, name)
+        get_prp(&self.text_prp, name)
     }
 
     pub fn text_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def_a(&self.text_prp, name, default)
+        get_prp_def(&self.text_prp, name, default)
     }
 
     pub fn set_paragraph_prp(&mut self, name: &str, value: String) {
-        set_prp_a(&mut self.paragraph_prp, name, value);
+        set_prp(&mut self.paragraph_prp, name, value);
     }
 
     pub fn paragraph_prp(&self, name: &str) -> Option<&String> {
-        get_prp_a(&self.paragraph_prp, name)
+        get_prp(&self.paragraph_prp, name)
     }
 
     pub fn paragraph_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def_a(&self.paragraph_prp, name, default)
+        get_prp_def(&self.paragraph_prp, name, default)
     }
 }
 
@@ -1005,15 +998,15 @@ impl ValueFormat {
     }
 
     pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp_a(&mut self.prp, name, value);
+        set_prp(&mut self.prp, name, value);
     }
 
     pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp_a(&self.prp, name)
+        get_prp(&self.prp, name)
     }
 
     pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def_a(&self.prp, name, default)
+        get_prp_def(&self.prp, name, default)
     }
 
     pub fn push_part(&mut self, part: FormatPart) {
@@ -1184,19 +1177,19 @@ impl FormatPart {
     }
 
     pub fn set_prp_vec(&mut self, vec: Vec<(&str, String)>) {
-        set_prp_vec_a(&mut self.prp, vec);
+        set_prp_vec(&mut self.prp, vec);
     }
 
     pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp_a(&mut self.prp, name, value);
+        set_prp(&mut self.prp, name, value);
     }
 
     pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp_a(&self.prp, name)
+        get_prp(&self.prp, name)
     }
 
     pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def_a(&self.prp, name, default)
+        get_prp_def(&self.prp, name, default)
     }
 
     /// Sets a textual content for this part. This is only used
@@ -1390,7 +1383,7 @@ impl FormatPart {
     }
 }
 
-fn set_prp_vec_a(map: &mut Option<HashMap<DefaultAtom, String>>, vec: Vec<(&str, String)>) {
+fn set_prp_vec(map: &mut Option<HashMap<DefaultAtom, String>>, vec: Vec<(&str, String)>) {
     if map.is_none() {
         map.replace(HashMap::new());
     }
@@ -1402,7 +1395,7 @@ fn set_prp_vec_a(map: &mut Option<HashMap<DefaultAtom, String>>, vec: Vec<(&str,
     }
 }
 
-fn set_prp_a(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str, value: String) {
+fn set_prp(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str, value: String) {
     if map.is_none() {
         map.replace(HashMap::new());
     }
@@ -1412,7 +1405,7 @@ fn set_prp_a(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str, value: 
     }
 }
 
-fn clear_prp_a(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str) -> Option<String> {
+fn clear_prp(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str) -> Option<String> {
     if !map.is_none() {
         if let Some(map) = map {
             map.remove(&DefaultAtom::from(name))
@@ -1424,7 +1417,7 @@ fn clear_prp_a(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str) -> Op
     }
 }
 
-fn get_prp_a<'a, 'b>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &'b str) -> Option<&'a String> {
+fn get_prp<'a, 'b>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &'b str) -> Option<&'a String> {
     if let Some(map) = map {
         map.get(&DefaultAtom::from(name))
     } else {
@@ -1432,7 +1425,7 @@ fn get_prp_a<'a, 'b>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &'b st
     }
 }
 
-fn get_prp_def_a<'a>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &str, default: &'a str) -> &'a str {
+fn get_prp_def<'a>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &str, default: &'a str) -> &'a str {
     if let Some(map) = map {
         if let Some(value) = map.get(&DefaultAtom::from(name)) {
             value.as_ref()
