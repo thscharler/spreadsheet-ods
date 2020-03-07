@@ -1,14 +1,15 @@
 use std::collections::HashMap;
+use string_cache::DefaultAtom;
 
 use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
 
 pub fn start(tag: &str) -> Event {
-    let b = BytesStart::owned_name(tag.as_bytes());
+    let b = BytesStart::borrowed_name(tag.as_bytes());
     Event::Start(b)
 }
 
 pub fn start_a<'a>(tag: &'a str, attr: Vec<(&'a str, String)>) -> Event::<'a> {
-    let mut b = BytesStart::owned_name(tag.as_bytes());
+    let mut b = BytesStart::borrowed_name(tag.as_bytes());
 
     for (a, v) in attr {
         b.push_attribute((a, v.as_ref()));
@@ -18,7 +19,7 @@ pub fn start_a<'a>(tag: &'a str, attr: Vec<(&'a str, String)>) -> Event::<'a> {
 }
 
 pub fn start_o<'a, S: ::std::hash::BuildHasher>(tag: &'a str,
-                                                attr: Option<&'a HashMap<String, String, S>>)
+                                                attr: Option<&'a HashMap<DefaultAtom, String, S>>)
                                                 -> Event::<'a> {
     if let Some(attr) = attr {
         start_m(tag, attr)
@@ -28,12 +29,12 @@ pub fn start_o<'a, S: ::std::hash::BuildHasher>(tag: &'a str,
 }
 
 pub fn start_m<'a, S: ::std::hash::BuildHasher>(tag: &'a str,
-                                                attr: &'a HashMap<String, String, S>)
+                                                attr: &'a HashMap<DefaultAtom, String, S>)
                                                 -> Event::<'a> {
-    let mut b = BytesStart::owned_name(tag.as_bytes());
+    let mut b = BytesStart::borrowed_name(tag.as_bytes());
 
     for (a, v) in attr {
-        b.push_attribute((a.as_str(), v.as_str()));
+        b.push_attribute((a.as_ref(), v.as_str()));
     }
 
     Event::Start(b)
@@ -49,14 +50,14 @@ pub fn end(tag: &str) -> Event {
 }
 
 pub fn empty(tag: &str) -> Event {
-    let b = BytesStart::owned_name(tag.as_bytes());
+    let b = BytesStart::borrowed_name(tag.as_bytes());
     Event::Empty(b)
 }
 
 pub fn empty_a<'a>(tag: &'a str,
                    attr: Vec<(&'a str, String)>)
                    -> Event::<'a> {
-    let mut b = BytesStart::owned_name(tag.as_bytes());
+    let mut b = BytesStart::borrowed_name(tag.as_bytes());
 
     for (a, v) in attr {
         b.push_attribute((a, v.as_ref()));
@@ -66,7 +67,7 @@ pub fn empty_a<'a>(tag: &'a str,
 }
 
 pub fn empty_o<'a, S: ::std::hash::BuildHasher>(tag: &'a str,
-                                                attr: Option<&'a HashMap<String, String, S>>)
+                                                attr: Option<&'a HashMap<DefaultAtom, String, S>>)
                                                 -> Event::<'a> {
     if let Some(attr) = attr {
         empty_m(tag, attr)
@@ -76,12 +77,12 @@ pub fn empty_o<'a, S: ::std::hash::BuildHasher>(tag: &'a str,
 }
 
 pub fn empty_m<'a, S: ::std::hash::BuildHasher>(tag: &'a str,
-                                                attr: &'a HashMap<String, String, S>)
+                                                attr: &'a HashMap<DefaultAtom, String, S>)
                                                 -> Event::<'a> {
-    let mut b = BytesStart::owned_name(tag.as_bytes());
+    let mut b = BytesStart::borrowed_name(tag.as_bytes());
 
     for (a, v) in attr.iter() {
-        b.push_attribute((a.as_str(), v.as_str()));
+        b.push_attribute((a.as_ref(), v.as_str()));
     }
 
     Event::Empty(b)

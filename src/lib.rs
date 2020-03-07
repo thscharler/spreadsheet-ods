@@ -16,7 +16,7 @@
 //! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), "nice_date_style");
 //! sheet.set_formula(0, 3, format!("of:={}+1", Sheet::fcellref(0,0)));
 //!
-//! let nice_date_format = format::create_date_mdy_format();
+//! let nice_date_format = format::create_date_mdy_format("nice_date_format");
 //! wb.add_format(nice_date_format);
 //!
 //! let nice_date_style = Style::with_name(Family::TableCell, "nice_date_style", "nice_date_format");
@@ -48,6 +48,7 @@ use std::path::PathBuf;
 use chrono::{Duration, NaiveDateTime, NaiveDate};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
+use string_cache::DefaultAtom;
 
 pub mod ods;
 pub mod style;
@@ -691,7 +692,7 @@ pub struct FontDecl {
     /// From where did we get this style.
     origin: Origin,
     /// All other attributes.
-    prp: Option<HashMap<String, String>>,
+    prp: Option<HashMap<DefaultAtom, String>>,
 }
 
 impl FontDecl {
@@ -724,15 +725,15 @@ impl FontDecl {
     }
 
     pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.prp, name, value);
+        set_prp_a(&mut self.prp, name, value);
     }
 
     pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.prp, name)
+        get_prp_a(&self.prp, name)
     }
 
     pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.prp, name, default)
+        get_prp_def_a(&self.prp, name, default)
     }
 }
 
@@ -755,12 +756,12 @@ pub struct Style {
     parent: Option<String>,
     /// References the actual formatting instructions in the value-styles.
     value_style: Option<String>,
-    table_prp: Option<HashMap<String, String>>,
-    table_col_prp: Option<HashMap<String, String>>,
-    table_row_prp: Option<HashMap<String, String>>,
-    table_cell_prp: Option<HashMap<String, String>>,
-    paragraph_prp: Option<HashMap<String, String>>,
-    text_prp: Option<HashMap<String, String>>,
+    table_prp: Option<HashMap<DefaultAtom, String>>,
+    table_col_prp: Option<HashMap<DefaultAtom, String>>,
+    table_row_prp: Option<HashMap<DefaultAtom, String>>,
+    table_cell_prp: Option<HashMap<DefaultAtom, String>>,
+    paragraph_prp: Option<HashMap<DefaultAtom, String>>,
+    text_prp: Option<HashMap<DefaultAtom, String>>,
 }
 
 impl Style {
@@ -851,79 +852,79 @@ impl Style {
     }
 
     pub fn set_table_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_prp, name, value);
+        set_prp_a(&mut self.table_prp, name, value);
     }
 
     pub fn table_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_prp, name)
+        get_prp_a(&self.table_prp, name)
     }
 
     pub fn table_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.table_prp, name, default)
+        get_prp_def_a(&self.table_prp, name, default)
     }
 
     pub fn set_table_col_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_col_prp, name, value);
+        set_prp_a(&mut self.table_col_prp, name, value);
     }
 
     pub fn table_col_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_col_prp, name)
+        get_prp_a(&self.table_col_prp, name)
     }
 
     pub fn table_col_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.table_col_prp, name, default)
+        get_prp_def_a(&self.table_col_prp, name, default)
     }
 
     pub fn set_table_row_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_row_prp, name, value);
+        set_prp_a(&mut self.table_row_prp, name, value);
     }
 
     pub fn table_row_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_row_prp, name)
+        get_prp_a(&self.table_row_prp, name)
     }
 
     pub fn table_row_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.table_row_prp, name, default)
+        get_prp_def_a(&self.table_row_prp, name, default)
     }
 
     pub fn set_table_cell_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_cell_prp, name, value);
+        set_prp_a(&mut self.table_cell_prp, name, value);
     }
 
     pub fn table_cell_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_cell_prp, name)
+        get_prp_a(&self.table_cell_prp, name)
     }
 
     pub fn table_cell_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.table_cell_prp, name, default)
+        get_prp_def_a(&self.table_cell_prp, name, default)
     }
 
     pub fn set_text_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.text_prp, name, value);
+        set_prp_a(&mut self.text_prp, name, value);
     }
 
     pub fn clear_text_prp(&mut self, name: &str) -> Option<String> {
-        clear_prp(&mut self.text_prp, name)
+        clear_prp_a(&mut self.text_prp, name)
     }
 
     pub fn text_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.text_prp, name)
+        get_prp_a(&self.text_prp, name)
     }
 
     pub fn text_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.text_prp, name, default)
+        get_prp_def_a(&self.text_prp, name, default)
     }
 
     pub fn set_paragraph_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.paragraph_prp, name, value);
+        set_prp_a(&mut self.paragraph_prp, name, value);
     }
 
     pub fn paragraph_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.paragraph_prp, name)
+        get_prp_a(&self.paragraph_prp, name)
     }
 
     pub fn paragraph_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.paragraph_prp, name, default)
+        get_prp_def_a(&self.paragraph_prp, name, default)
     }
 }
 
@@ -950,7 +951,7 @@ pub struct ValueFormat {
     name: String,
     v_type: ValueType,
     origin: Origin,
-    prp: Option<HashMap<String, String>>,
+    prp: Option<HashMap<DefaultAtom, String>>,
     parts: Option<Vec<FormatPart>>,
 }
 
@@ -1004,15 +1005,15 @@ impl ValueFormat {
     }
 
     pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.prp, name, value);
+        set_prp_a(&mut self.prp, name, value);
     }
 
     pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.prp, name)
+        get_prp_a(&self.prp, name)
     }
 
     pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.prp, name, default)
+        get_prp_def_a(&self.prp, name, default)
     }
 
     pub fn push_part(&mut self, part: FormatPart) {
@@ -1131,7 +1132,7 @@ pub enum FormatType {
 #[derive(Debug, Clone)]
 pub struct FormatPart {
     ftype: FormatType,
-    prp: Option<HashMap<String, String>>,
+    prp: Option<HashMap<DefaultAtom, String>>,
     content: Option<String>,
 }
 
@@ -1152,7 +1153,7 @@ impl FormatPart {
         }
     }
 
-    pub fn new_prp(ftype: FormatType, prp: HashMap<String, String>) -> Self {
+    pub fn new_prp(ftype: FormatType, prp: HashMap<DefaultAtom, String>) -> Self {
         FormatPart {
             ftype,
             prp: Some(prp),
@@ -1178,24 +1179,24 @@ impl FormatPart {
         &self.ftype
     }
 
-    pub fn set_prp_map(&mut self, map: HashMap<String, String>) {
+    pub fn set_prp_map(&mut self, map: HashMap<DefaultAtom, String>) {
         self.prp = Some(map);
     }
 
     pub fn set_prp_vec(&mut self, vec: Vec<(&str, String)>) {
-        set_prp_vec(&mut self.prp, vec);
+        set_prp_vec_a(&mut self.prp, vec);
     }
 
     pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.prp, name, value);
+        set_prp_a(&mut self.prp, name, value);
     }
 
     pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.prp, name)
+        get_prp_a(&self.prp, name)
     }
 
     pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.prp, name, default)
+        get_prp_def_a(&self.prp, name, default)
     }
 
     /// Sets a textual content for this part. This is only used
@@ -1389,30 +1390,32 @@ impl FormatPart {
     }
 }
 
-fn set_prp_vec(map: &mut Option<HashMap<String, String>>, vec: Vec<(&str, String)>) {
+fn set_prp_vec_a(map: &mut Option<HashMap<DefaultAtom, String>>, vec: Vec<(&str, String)>) {
     if map.is_none() {
         map.replace(HashMap::new());
     }
     if let Some(map) = map {
         for (name, value) in vec {
-            map.insert(name.to_string(), value);
+            let a = DefaultAtom::from(name);
+            map.insert(a, value);
         }
     }
 }
 
-fn set_prp(map: &mut Option<HashMap<String, String>>, name: &str, value: String) {
+fn set_prp_a(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str, value: String) {
     if map.is_none() {
         map.replace(HashMap::new());
     }
     if let Some(map) = map {
-        map.insert(name.to_string(), value);
+        let a = DefaultAtom::from(name);
+        map.insert(a, value);
     }
 }
 
-fn clear_prp(map: &mut Option<HashMap<String, String>>, name: &str) -> Option<String> {
+fn clear_prp_a(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str) -> Option<String> {
     if !map.is_none() {
         if let Some(map) = map {
-            map.remove(name)
+            map.remove(&DefaultAtom::from(name))
         } else {
             None
         }
@@ -1421,17 +1424,17 @@ fn clear_prp(map: &mut Option<HashMap<String, String>>, name: &str) -> Option<St
     }
 }
 
-fn get_prp<'a, 'b>(map: &'a Option<HashMap<String, String>>, name: &'b str) -> Option<&'a String> {
+fn get_prp_a<'a, 'b>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &'b str) -> Option<&'a String> {
     if let Some(map) = map {
-        map.get(name)
+        map.get(&DefaultAtom::from(name))
     } else {
         None
     }
 }
 
-fn get_prp_def<'a>(map: &'a Option<HashMap<String, String>>, name: &str, default: &'a str) -> &'a str {
+fn get_prp_def_a<'a>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &str, default: &'a str) -> &'a str {
     if let Some(map) = map {
-        if let Some(value) = map.get(name) {
+        if let Some(value) = map.get(&DefaultAtom::from(name)) {
             value.as_ref()
         } else {
             default
