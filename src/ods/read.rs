@@ -7,8 +7,9 @@ use quick_xml::events::{BytesStart, Event};
 use quick_xml::events::attributes::Attribute;
 use zip::read::ZipFile;
 
-use crate::{Family, Origin, FormatPart, FormatType, SCell, SColumn, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
+use crate::{Family, Origin, FormatPart, FormatType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
 use crate::ods::error::OdsError;
+use std::collections::BTreeMap;
 
 // Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
@@ -162,14 +163,15 @@ fn read_table_column(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                      xml_tag: &BytesStart,
                      mut tcol: usize,
                      sheet: &mut Sheet) -> Result<usize, OdsError> {
-    let mut column = SColumn::new();
+    let mut style = None;
+    let mut cell_style = None;
     let mut repeat: usize = 1;
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                column.style = Some(v);
+                style = Some(v);
             }
             attr if attr.key == b"table:number-columns-repeated" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
@@ -177,14 +179,29 @@ fn read_table_column(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
             }
             attr if attr.key == b"table:default-cell-style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                column.def_cell_style = Some(v);
+                cell_style = Some(v);
             }
             _ => {}
         }
     }
 
     while repeat > 0 {
-        sheet.columns.insert(tcol, column.clone());
+        if let Some(style) = &style {
+            if sheet.col_style.is_none() {
+                sheet.col_style = Some(BTreeMap::new());
+            }
+            if let Some(col_style) = &mut sheet.col_style {
+                col_style.insert(tcol, style.clone());
+            }
+        }
+        if let Some(cell_style) = &cell_style {
+            if sheet.col_cell_style.is_none() {
+                sheet.col_cell_style = Some(BTreeMap::new());
+            }
+            if let Some(col_cell_style) = &mut sheet.col_cell_style {
+                col_cell_style.insert(tcol, cell_style.clone());
+            }
+        }
         tcol += 1;
         repeat -= 1;
     }
@@ -429,6 +446,7 @@ fn decode_value_type(attr: Attribute) -> Result<ValueType, OdsError> {
     }
 }
 
+#[allow(clippy::single_match)]
 fn read_fonts(book: &mut WorkBook,
               xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
               end_tag: &[u8]) -> Result<(), OdsError> {

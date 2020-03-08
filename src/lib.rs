@@ -245,8 +245,10 @@ pub struct Sheet {
     style: Option<String>,
 
     data: BTreeMap<(usize, usize), SCell>,
-    columns: BTreeMap<usize, SColumn>,
-    row_style: BTreeMap<usize, Option<String>>,
+
+    col_style: Option<BTreeMap<usize, String>>,
+    col_cell_style: Option<BTreeMap<usize, String>>,
+    row_style: Option<BTreeMap<usize, String>>,
 }
 
 impl fmt::Debug for Sheet {
@@ -255,11 +257,20 @@ impl fmt::Debug for Sheet {
         for (k, v) in self.data.iter() {
             writeln!(f, "{:?} {:?}", k, v)?;
         }
-        for (k, v) in self.columns.iter() {
-            writeln!(f, "{:?} {:?}", k, v)?;
+        if let Some(col_style) = &self.col_style {
+            for (k, v) in col_style {
+                writeln!(f, "{:?} {:?}", k, v)?;
+            }
         }
-        for (k, v) in self.row_style.iter() {
-            writeln!(f, "{:?} {:?}", k, v)?;
+        if let Some(col_cell_style) = &self.col_cell_style {
+            for (k, v) in col_cell_style {
+                writeln!(f, "{:?} {:?}", k, v)?;
+            }
+        }
+        if let Some(row_style) = &self.row_style {
+            for (k, v) in row_style {
+                writeln!(f, "{:?} {:?}", k, v)?;
+            }
         }
         Ok(())
     }
@@ -273,8 +284,9 @@ impl Sheet {
             name: String::from(""),
             data: BTreeMap::new(),
             style: None,
-            columns: BTreeMap::new(),
-            row_style: BTreeMap::new(),
+            col_style: None,
+            col_cell_style: None,
+            row_style: None,
         }
     }
 
@@ -284,8 +296,9 @@ impl Sheet {
             name: name.into(),
             data: BTreeMap::new(),
             style: None,
-            columns: BTreeMap::new(),
-            row_style: BTreeMap::new(),
+            col_style: None,
+            col_cell_style: None,
+            row_style: None,
         }
     }
 
@@ -328,13 +341,17 @@ impl Sheet {
 
     /// Column wide style.
     pub fn set_column_style<V: Into<String>>(&mut self, col: usize, style: V) {
-        let v = self.columns.entry(col).or_insert_with(SColumn::new);
-        v.style = Some(style.into());
+        if self.col_style.is_none() {
+            self.col_style = Some(BTreeMap::new());
+        }
+        if let Some(col_style) = &mut self.col_style {
+            col_style.entry(col).or_insert_with(|| style.into());
+        }
     }
 
     pub fn column_style(&self, col: usize) -> Option<&String> {
-        if let Some(column) = self.columns.get(&col) {
-            column.style.as_ref()
+        if let Some(col_style) = &self.col_style {
+            col_style.get(&col)
         } else {
             None
         }
@@ -342,13 +359,17 @@ impl Sheet {
 
     /// Default cell style for this column.
     pub fn set_column_cell_style<V: Into<String>>(&mut self, col: usize, style: V) {
-        let v = self.columns.entry(col).or_insert_with(SColumn::new);
-        v.def_cell_style = Some(style.into());
+        if self.col_cell_style.is_none() {
+            self.col_cell_style = Some(BTreeMap::new());
+        }
+        if let Some(col_cell_style) = &mut self.col_cell_style {
+            col_cell_style.entry(col).or_insert_with(|| style.into());
+        }
     }
 
     pub fn column_cell_style(&self, col: usize) -> Option<&String> {
-        if let Some(column) = self.columns.get(&col) {
-            column.style.as_ref()
+        if let Some(col_cell_style) = &self.col_cell_style {
+            col_cell_style.get(&col)
         } else {
             None
         }
@@ -356,13 +377,17 @@ impl Sheet {
 
     /// Row style.
     pub fn set_row_style<V: Into<String>>(&mut self, row: usize, style: V) {
-        let v = self.row_style.entry(row).or_insert(None);
-        *v = Some(style.into());
+        if self.row_style.is_none() {
+            self.row_style = Some(BTreeMap::new());
+        }
+        if let Some(row_style) = &mut self.row_style {
+            row_style.entry(row).or_insert_with(|| style.into());
+        }
     }
 
     pub fn row_style(&self, row: usize) -> Option<&String> {
-        if let Some(row) = self.row_style.get(&row) {
-            row.as_ref()
+        if let Some(row_style) = &self.row_style {
+            row_style.get(&row)
         } else {
             None
         }
@@ -472,38 +497,6 @@ impl Sheet {
     }
 }
 
-// /// Row wide data.
-// #[derive(Clone, Debug)]
-// struct SRow {
-//     style: Option<String>,
-// }
-//
-// impl SRow {
-//     pub fn new() -> Self {
-//         SRow {
-//             style: None,
-//         }
-//     }
-// }
-
-/// Column wide data.
-#[derive(Clone, Debug)]
-struct SColumn {
-    /// The table-column style itself.
-    style: Option<String>,
-    /// Default cell-style for this column.
-    def_cell_style: Option<String>,
-}
-
-impl SColumn {
-    pub fn new() -> Self {
-        SColumn {
-            style: None,
-            def_cell_style: None,
-        }
-    }
-}
-
 /// One Cell of the spreadsheet.
 #[derive(Debug, Clone, Default)]
 pub struct SCell {
@@ -566,6 +559,12 @@ pub enum ValueType {
     Text,
     DateTime,
     TimeDuration,
+}
+
+impl Default for ValueType {
+    fn default() -> Self {
+        ValueType::Text
+    }
 }
 
 /// Content-Values
@@ -679,7 +678,7 @@ impl From<Duration> for Value {
 }
 
 /// Font declarations.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FontDecl {
     name: String,
     /// From where did we get this style.
@@ -736,7 +735,7 @@ impl FontDecl {
 ///
 /// The actual property names are just simple strings for now, maybe I map the common ones to
 /// consts.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Style {
     name: String,
     /// Nice String.
@@ -749,11 +748,17 @@ pub struct Style {
     parent: Option<String>,
     /// References the actual formatting instructions in the value-styles.
     value_style: Option<String>,
+    /// Table styling
     table_prp: Option<HashMap<DefaultAtom, String>>,
+    /// Column styling
     table_col_prp: Option<HashMap<DefaultAtom, String>>,
+    /// Row styling
     table_row_prp: Option<HashMap<DefaultAtom, String>>,
+    /// Cell styles
     table_cell_prp: Option<HashMap<DefaultAtom, String>>,
+    /// Cell paragraph styles
     paragraph_prp: Option<HashMap<DefaultAtom, String>>,
+    /// Cell text styles
     text_prp: Option<HashMap<DefaultAtom, String>>,
 }
 
@@ -928,6 +933,12 @@ pub enum Origin {
     Styles,
 }
 
+impl Default for Origin {
+    fn default() -> Self {
+        Origin::Content
+    }
+}
+
 /// Applicability of this style.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Family {
@@ -938,8 +949,14 @@ pub enum Family {
     None,
 }
 
+impl Default for Family {
+    fn default() -> Self {
+        Family::None
+    }
+}
+
 /// Actual textual formatting of values.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ValueFormat {
     name: String,
     v_type: ValueType,
@@ -1146,14 +1163,6 @@ impl FormatPart {
         }
     }
 
-    pub fn new_prp(ftype: FormatType, prp: HashMap<DefaultAtom, String>) -> Self {
-        FormatPart {
-            ftype,
-            prp: Some(prp),
-            content: None,
-        }
-    }
-
     pub fn new_vec(ftype: FormatType, vec: Vec<(&str, String)>) -> Self {
         let mut part = FormatPart {
             ftype,
@@ -1170,10 +1179,6 @@ impl FormatPart {
 
     pub fn ftype(&self) -> &FormatType {
         &self.ftype
-    }
-
-    pub fn set_prp_map(&mut self, map: HashMap<DefaultAtom, String>) {
-        self.prp = Some(map);
     }
 
     pub fn set_prp_vec(&mut self, vec: Vec<(&str, String)>) {
