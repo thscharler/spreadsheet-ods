@@ -304,6 +304,8 @@ impl<'a, W: Write> XmlWriter<'a, W> {
 
     /// Fails if there are any open elements.
     pub fn close(&mut self) -> Result {
+        self.write_buf()?;
+
         if cfg!(feature = "check_xml") && !self.stack.is_empty() {
             panic!("Attempted to close the xml, but there are open elements on the stack {:?}", self.stack)
         }

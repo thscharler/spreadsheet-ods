@@ -10,7 +10,6 @@ use zip::write::FileOptions;
 use crate::{Family, Origin, FormatType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
 use crate::ods::error::OdsError;
 use crate::ods::tmp2zip::TempZip;
-use crate::timing::timing;
 use crate::ods::xmlwriter::XmlWriter;
 
 // this did not work out as expected ...
@@ -30,9 +29,9 @@ pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), Ods
 /// Writes the ODS file. The parameter clean indicates the cleanup of the
 /// temp files at the end.
 pub fn write_ods_clean<P: AsRef<Path>>(book: &WorkBook,
-                                        ods_path: P,
-                                        zip: bool,
-                                        clean: bool) -> Result<(), OdsError> {
+                                       ods_path: P,
+                                       zip: bool,
+                                       clean: bool) -> Result<(), OdsError> {
     let orig_bak = if let Some(ods_orig) = &book.file {
         let mut orig_bak = ods_orig.clone();
         orig_bak.set_extension("bak");
@@ -48,35 +47,19 @@ pub fn write_ods_clean<P: AsRef<Path>>(book: &WorkBook,
 
     let mut file_set = HashSet::<String>::new();
     //
-    timing("p1", || {
-        if let Some(orig_bak) = &orig_bak {
-            copy_workbook(&orig_bak, &mut file_set, &mut zip_writer)
-        } else {
-            Ok(())
-        }
-    })?;
+    if let Some(orig_bak) = &orig_bak {
+        copy_workbook(&orig_bak, &mut file_set, &mut zip_writer)?;
+    }
 
-    timing("p2.1", || {
-        write_mimetype(&mut zip_writer, &mut file_set)
-    })?;
-    timing("p2.2", || {
-        write_manifest(&mut zip_writer, &mut file_set)
-    })?;
-    timing("p2.3", || {
-        write_manifest_rdf(&mut zip_writer, &mut file_set)
-    })?;
-    timing("p2.4", || {
-        write_meta(&mut zip_writer, &mut file_set)
-    })?;
+    write_mimetype(&mut zip_writer, &mut file_set)?;
+    write_manifest(&mut zip_writer, &mut file_set)?;
+    write_manifest_rdf(&mut zip_writer, &mut file_set)?;
+    write_meta(&mut zip_writer, &mut file_set)?;
     //write_settings(&mut zip_writer, &mut file_set)?;
     //write_configurations(&mut zip_writer, &mut file_set)?;
 
-    timing("p3", || {
-        write_ods_styles(&mut zip_writer, &mut file_set)
-    })?;
-    timing("p4", || {
-        write_ods_content(&book, &mut zip_writer, &mut file_set)
-    })?;
+    write_ods_styles(&mut zip_writer, &mut file_set)?;
+    write_ods_content(&book, &mut zip_writer, &mut file_set)?;
 
     if zip {
         zip_writer.zip()?;
@@ -413,27 +396,19 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
     xml_out.empty("office:scripts")?;
 
     xml_out.elem("office:font-face-decls")?;
-    timing("fd", || {
-        write_font_decl(&book.fonts, Origin::Content, &mut xml_out)
-    })?;
+    write_font_decl(&book.fonts, Origin::Content, &mut xml_out)?;
     xml_out.end_elem("office:font-face-decls")?;
 
     xml_out.elem("office:automatic-styles")?;
-    timing("styles", || {
-        write_styles(&book.styles, Origin::Content, &mut xml_out)
-    })?;
-    timing("vstyles", || {
-        write_value_styles(&book.formats, Origin::Content, &mut xml_out)
-    })?;
+    write_styles(&book.styles, Origin::Content, &mut xml_out)?;
+    write_value_styles(&book.formats, Origin::Content, &mut xml_out)?;
     xml_out.end_elem("office:automatic-styles")?;
 
     xml_out.elem("office:body")?;
     xml_out.elem("office:spreadsheet")?;
 
     for sheet in &book.sheets {
-        timing("sheet", || {
-            write_sheet(&book, &sheet, &mut xml_out)
-        })?;
+        write_sheet(&book, &sheet, &mut xml_out)?;
     }
 
     xml_out.end_elem("office:spreadsheet")?;
