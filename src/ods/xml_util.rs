@@ -88,6 +88,7 @@ impl<'a> Stack<'a> {
 /// The XmlWriter himself
 pub struct XmlWriter<'a, W: Write> {
     writer: Box<W>,
+    buf: String,
     stack: Stack<'a>,
     open: Open,
     /// if `true` it will indent all opening elements
@@ -105,6 +106,7 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     pub fn new(writer: W) -> XmlWriter<'a, W> {
         XmlWriter {
             stack: Stack::new(),
+            buf: String::new(),
             writer: Box::new(writer),
             open: Open::None,
             indent: true,
@@ -114,72 +116,86 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     /// Write the DTD. You have to take care of the encoding
     /// on the underlying Write yourself.
     pub fn dtd(&mut self, encoding: &str) -> Result {
-        self.writer.write("<?xml version=\"1.0\" encoding=\"".as_bytes())?;
-        self.writer.write(encoding.as_bytes())?;
-        self.writer.write("\" ?>\n".as_bytes())?;
+        self.buf.push_str("<?xml version=\"1.0\" encoding=\"");
+        self.buf.push_str(encoding);
+        self.buf.push_str("\" ?>\n");
+
         Ok(())
     }
 
-    fn indent(&mut self) -> Result {
+    fn indent(&mut self) {
         if cfg!(feature = "indent_xml") && self.indent && !self.stack.is_empty() {
-            self.write("\n")?;
+            self.buf.push('\n');
             let indent = self.stack.len() * 2;
             for _ in 0..indent {
-                self.write(" ")?;
+                self.buf.push(' ');
             };
         }
-        Ok(())
     }
 
     /// Write an element with inlined text (not escaped)
     pub fn elem_text(&mut self, name: &str, text: &str) -> Result {
         self.close_elem()?;
-        self.indent()?;
 
-        self.write("<")?;
-        self.write(name)?;
-        self.write(">")?;
+        self.indent();
 
-        self.write(text)?;
+        self.buf.push('<');
+        self.buf.push_str(name);
+        self.buf.push('>');
 
-        self.write("</")?;
-        self.write(name)?;
-        self.write(">")
+        self.buf.push_str(text);
+
+        self.buf.push('<');
+        self.buf.push('/');
+        self.buf.push_str(name);
+        self.buf.push('>');
+
+        Ok(())
     }
 
     /// Write an element with inlined text (escaped)
     pub fn elem_text_esc(&mut self, name: &str, text: &str) -> Result {
         self.close_elem()?;
-        self.indent()?;
 
-        self.write("<")?;
-        self.write(name)?;
-        self.write(">")?;
+        self.indent();
 
-        self.escape(text, false)?;
+        self.buf.push('<');
+        self.buf.push_str(name);
+        self.buf.push('>');
 
-        self.write("</")?;
-        self.write(name)?;
-        self.write(">")
+        self.escape(text, false);
+
+        self.buf.push('<');
+        self.buf.push('/');
+        self.buf.push_str(name);
+        self.buf.push('>');
+
+        Ok(())
     }
 
     /// Begin an elem, make sure name contains only allowed chars
     pub fn elem(&mut self, name: &'a str) -> Result {
         self.close_elem()?;
-        self.indent()?;
+
+        self.indent();
+
         self.stack.push(name);
-        self.write("<")?;
+
+        self.buf.push('<');
         self.open = Open::Elem;
-        self.write(name)
+        self.buf.push_str(name);
+        Ok(())
     }
 
     /// Begin an empty elem
     pub fn empty(&mut self, name: &'a str) -> Result {
         self.close_elem()?;
-        self.indent()?;
-        self.write("<")?;
+
+        self.indent();
+
+        self.buf.push('<');
         self.open = Open::Empty;
-        self.write(name)?;
+        self.buf.push_str(name);
         Ok(())
     }
 
@@ -187,10 +203,16 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     fn close_elem(&mut self) -> Result {
         match self.open {
             Open::None => {}
-            Open::Elem => self.write(">")?,
-            Open::Empty => self.write("/>")?,
+            Open::Elem => {
+                self.buf.push('>');
+            },
+            Open::Empty => {
+                self.buf.push('/');
+                self.buf.push('>');
+            }
         }
         self.open = Open::None;
+        self.write_buf()?;
         Ok(())
     }
 
@@ -200,11 +222,13 @@ impl<'a, W: Write> XmlWriter<'a, W> {
         if cfg!(feature = "check_xml") && self.open == Open::None {
             panic!("Attempted to write attr to elem, when no elem was opened, stack {:?}", self.stack);
         }
-        self.write(" ")?;
-        self.write(name)?;
-        self.write("=\"")?;
-        self.write(value)?;
-        self.write("\"")
+        self.buf.push(' ');
+        self.buf.push_str(name);
+        self.buf.push('=');
+        self.buf.push('"');
+        self.buf.push_str(value);
+        self.buf.push('"');
+        Ok(())
     }
 
     /// Write an attr, make sure name contains only allowed chars
@@ -212,40 +236,46 @@ impl<'a, W: Write> XmlWriter<'a, W> {
         if cfg!(feature = "check_xml") && self.open == Open::None {
             panic!("Attempted to write attr to elem, when no elem was opened, stack {:?}", self.stack);
         }
-        self.write(" ")?;
-        self.escape(name, true)?;
-        self.write("=\"")?;
-        self.escape(value, false)?;
-        self.write("\"")
+        self.buf.push(' ');
+        self.escape(name, true);
+        self.buf.push('=');
+        self.buf.push('"');
+        self.escape(value, false);
+        self.buf.push('"');
+        Ok(())
     }
 
     /// Escape identifiers or text
-    fn escape(&mut self, text: &str, ident: bool) -> Result {
+    fn escape(&mut self, text: &str, ident: bool) {
         for c in text.chars() {
             match c {
-                '"' => self.write("&quot;")?,
-                '\'' => self.write("&apos;")?,
-                '&' => self.write("&amp;")?,
-                '<' => self.write("&lt;")?,
-                '>' => self.write("&gt;")?,
-                '\\' if ident => self.write("\\\\")?,
-                _ => self.write_slice(c.encode_utf8(&mut [0; 4]).as_bytes())?
+                '"' => self.buf.push_str("&quot;"),
+                '\'' => self.buf.push_str("&apos;"),
+                '&' => self.buf.push_str("&amp;"),
+                '<' => self.buf.push_str("&lt;"),
+                '>' => self.buf.push_str("&gt;"),
+                '\\' if ident => {
+                    self.buf.push('\\');
+                    self.buf.push('\\');
+                },
+                _ => {
+                    self.buf.push(c);
+                }
             };
         }
-        Ok(())
     }
 
     /// Write a text, doesn't escape the text.
     pub fn text(&mut self, text: &str) -> Result {
         self.close_elem()?;
-        self.write(text)?;
+        self.buf.push_str(text);
         Ok(())
     }
 
     /// Write a text, escapes the text automatically
     pub fn text_esc(&mut self, text: &str) -> Result {
         self.close_elem()?;
-        self.escape(text, false)?;
+        self.escape(text, false);
         Ok(())
     }
 
@@ -264,9 +294,17 @@ impl<'a, W: Write> XmlWriter<'a, W> {
             }
         }
 
-        self.write("</")?;
-        self.write(name)?;
-        self.write(">")?;
+        self.buf.push('<');
+        self.buf.push('/');
+        self.buf.push_str(name);
+        self.buf.push('>');
+
+        Ok(())
+    }
+
+    fn write_buf(&mut self) -> Result {
+        self.writer.write(self.buf.as_bytes())?;
+        self.buf.clear();
         Ok(())
     }
 

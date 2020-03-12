@@ -12,6 +12,7 @@ use crate::{Family, Origin, FormatType, SCell, Sheet, Style, Value, ValueFormat,
 use crate::ods::error::OdsError;
 use crate::ods::temp_zip::TempZip;
 use crate::ods::xml_util;
+use crate::timing::{timing};
 
 // this did not work out as expected ...
 // TODO: find out why this breaks content.xml
@@ -23,13 +24,16 @@ type XmlOdsWriter<'a> = quick_xml::Writer<&'a mut OdsWriter>;
 
 /// Writes the ODS file.
 pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
-    write_ods_clean(book, ods_path, true)?;
+    write_ods_clean(book, ods_path, true, true)?;
     Ok(())
 }
 
 /// Writes the ODS file. The parameter clean indicates the cleanup of the
 /// temp files at the end.
-pub fn write_ods_clean<P: AsRef<Path>>(book: &WorkBook, ods_path: P, clean: bool) -> Result<(), OdsError> {
+pub fn write_ods_clean<P: AsRef<Path>>(book: &WorkBook,
+                                       ods_path: P,
+                                       zip: bool,
+                                       clean: bool) -> Result<(), OdsError> {
     let orig_bak = if let Some(ods_orig) = &book.file {
         let mut orig_bak = ods_orig.clone();
         orig_bak.set_extension("bak");
@@ -45,21 +49,39 @@ pub fn write_ods_clean<P: AsRef<Path>>(book: &WorkBook, ods_path: P, clean: bool
 
     let mut file_set = HashSet::<String>::new();
     //
-    if let Some(orig_bak) = orig_bak {
-        copy_workbook(&orig_bak, &mut file_set, &mut zip_writer)?;
-    }
+    timing("p1", || {
+        if let Some(orig_bak) = &orig_bak {
+            copy_workbook(&orig_bak, &mut file_set, &mut zip_writer)
+        } else {
+            Ok(())
+        }
+    })?;
 
-    write_mimetype(&mut zip_writer, &mut file_set)?;
-    write_manifest(&mut zip_writer, &mut file_set)?;
-    write_manifest_rdf(&mut zip_writer, &mut file_set)?;
-    write_meta(&mut zip_writer, &mut file_set)?;
+    timing("p2.1", || {
+        write_mimetype(&mut zip_writer, &mut file_set)
+    })?;
+    timing("p2.2", || {
+        write_manifest(&mut zip_writer, &mut file_set)
+    })?;
+    timing("p2.3", || {
+        write_manifest_rdf(&mut zip_writer, &mut file_set)
+    })?;
+    timing("p2.4", || {
+        write_meta(&mut zip_writer, &mut file_set)
+    })?;
     //write_settings(&mut zip_writer, &mut file_set)?;
     //write_configurations(&mut zip_writer, &mut file_set)?;
 
-    write_ods_styles(&mut zip_writer, &mut file_set)?;
-    write_ods_content(&book, &mut zip_writer, &mut file_set)?;
+    timing("p3", || {
+        write_ods_styles(&mut zip_writer, &mut file_set)
+    })?;
+    timing("p4", || {
+        write_ods_content(&book, &mut zip_writer, &mut file_set)
+    })?;
 
-    zip_writer.zip()?;
+    if zip {
+        zip_writer.zip()?;
+    }
     if clean {
         zip_writer.clean()?;
     }
@@ -117,7 +139,7 @@ fn write_manifest(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Re
         zip_out.add_directory("META-INF", FileOptions::default())?;
         zip_out.start_file("META-INF/manifest.xml", FileOptions::default())?;
 
-        let mut xml_out = quick_xml::Writer::new_with_indent(zip_out, 32, 1);
+        let mut xml_out = quick_xml::Writer::new(zip_out);
 
         xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
 
@@ -358,7 +380,7 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
 
     zip_out.start_file("content.xml", FileOptions::default())?;
 
-    let mut xml_out = quick_xml::Writer::new_with_indent(zip_out, b' ', 1);
+    let mut xml_out = quick_xml::Writer::new(zip_out);
 
     xml_out.write_event(Event::Decl(BytesDecl::new(b"1.0", Some(b"UTF-8"), None)))?;
     xml_out.write(b"\n")?;
@@ -403,19 +425,27 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
     xml_out.write_event(xml_util::empty("office:scripts"))?;
 
     xml_out.write_event(xml_util::start("office:font-face-decls"))?;
-    write_font_decl(&book.fonts, Origin::Content, &mut xml_out)?;
+    timing("fd", || {
+        write_font_decl(&book.fonts, Origin::Content, &mut xml_out)
+    })?;
     xml_out.write_event(xml_util::end("office:font-face-decls"))?;
 
     xml_out.write_event(xml_util::start("office:automatic-styles"))?;
-    write_styles(&book.styles, Origin::Content, &mut xml_out)?;
-    write_value_styles(&book.formats, Origin::Content, &mut xml_out)?;
+    timing("styles", || {
+        write_styles(&book.styles, Origin::Content, &mut xml_out)
+    })?;
+    timing("vstyles", || {
+        write_value_styles(&book.formats, Origin::Content, &mut xml_out)
+    })?;
     xml_out.write_event(xml_util::end("office:automatic-styles"))?;
 
     xml_out.write_event(xml_util::start("office:body"))?;
     xml_out.write_event(xml_util::start("office:spreadsheet"))?;
 
     for sheet in &book.sheets {
-        write_sheet(&book, &sheet, &mut xml_out)?;
+        timing("sheet", || {
+            write_sheet(&book, &sheet, &mut xml_out)
+        })?;
     }
 
     xml_out.write_event(xml_util::end("office:spreadsheet"))?;
@@ -692,7 +722,7 @@ fn write_cell(book: &WorkBook,
             } else {
                 content.push_str(c);
                 content.push_str(" ");
-                content.push_str(&v.to_string());
+                content.push_str(&value);
             }
         }
         Some(Value::Number(v)) => {

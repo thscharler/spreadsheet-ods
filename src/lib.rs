@@ -54,6 +54,7 @@ pub mod ods;
 pub mod style;
 pub mod defaultstyles;
 pub mod format;
+pub mod timing;
 
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]

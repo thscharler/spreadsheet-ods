@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 pub struct TempZip {
     zipped: PathBuf,
     temp_path: PathBuf,
-    temp_file: Option<File>,
+    temp_file: Option<BufWriter<File>>,
     entries: Vec<TempZipEntry>,
 }
 
@@ -62,7 +62,7 @@ impl TempZip {
         let path = file.parent().unwrap();
         create_dir_all(path)?;
 
-        self.temp_file = Some(File::create(file)?);
+        self.temp_file = Some(BufWriter::new(File::create(file)?));
 
         self.entries.push(TempZipEntry {
             is_dir: false,

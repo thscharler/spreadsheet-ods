@@ -137,13 +137,13 @@ pub fn create_date_mdy_format<S: Into<String>>(name: S) -> ValueFormat {
     v
 }
 
-/// Creates a datetime froamt D.M.Y H:M:S
+/// Creates a datetime froamt Y.M.D H:M:S
 pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
 
     v.push_parts(vec![
         FormatPart::new_vec(FormatType::Year, vec![("number:style", String::from("long"))]),
-        FormatPart::new_content(FormatType::Text, " "),
+        FormatPart::new_content(FormatType::Text, "."),
         FormatPart::new_vec(FormatType::Month, vec![("number:style", String::from("long"))]),
         FormatPart::new_content(FormatType::Text, "."),
         FormatPart::new_vec(FormatType::Day, vec![("number:style", String::from("long"))]),
