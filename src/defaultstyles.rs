@@ -1,5 +1,5 @@
 
-use crate::{format, WorkBook, Style, Family, ValueType};
+use crate::{format, WorkBook, Style, StyleFor, ValueType};
 
 /// Adds default-styles for all basic ValueTypes. These are also set as default
 /// styles for the respective types. By calling this function for a new workbook,
@@ -14,16 +14,16 @@ pub fn create_default_styles(book: &mut WorkBook) {
     book.add_format(format::create_number_format("num1", 2, false));
     book.add_format(format::create_percentage_format("percent1", 2));
     book.add_format(format::create_euro_format("currency1"));
-    book.add_format(format::create_date_mdy_format("date1"));
+    book.add_format(format::create_date_dmy_format("date1"));
     book.add_format(format::create_datetime_format("datetime1"));
     book.add_format(format::create_time_format("time1"));
 
-    book.add_style(Style::with_name(Family::TableCell, "default-bool", "bool1"));
-    book.add_style(Style::with_name(Family::TableCell, "default-num", "num1"));
-    book.add_style(Style::with_name(Family::TableCell, "default-percent", "percent1"));
-    book.add_style(Style::with_name(Family::TableCell, "default-currency", "currency1"));
-    book.add_style(Style::with_name(Family::TableCell, "default-date", "date1"));
-    book.add_style(Style::with_name(Family::TableCell, "default-time", "time1"));
+    book.add_style(Style::with_name(StyleFor::TableCell, "default-bool", "bool1"));
+    book.add_style(Style::with_name(StyleFor::TableCell, "default-num", "num1"));
+    book.add_style(Style::with_name(StyleFor::TableCell, "default-percent", "percent1"));
+    book.add_style(Style::with_name(StyleFor::TableCell, "default-currency", "currency1"));
+    book.add_style(Style::with_name(StyleFor::TableCell, "default-date", "date1"));
+    book.add_style(Style::with_name(StyleFor::TableCell, "default-time", "time1"));
 
     book.add_def_style(ValueType::Boolean, "default-bool");
     book.add_def_style(ValueType::Number, "default-num");

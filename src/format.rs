@@ -123,7 +123,7 @@ pub fn create_euro_red_format<S: Into<String>>(name: S, positive_style: S) -> Va
 }
 
 /// Creates a new date format D.M.Y
-pub fn create_date_mdy_format<S: Into<String>>(name: S) -> ValueFormat {
+pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
 
     v.push_parts(vec![
@@ -137,15 +137,15 @@ pub fn create_date_mdy_format<S: Into<String>>(name: S) -> ValueFormat {
     v
 }
 
-/// Creates a datetime froamt Y.M.D H:M:S
+/// Creates a datetime format Y-M-D H:M:S
 pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
 
     v.push_parts(vec![
         FormatPart::new_vec(FormatPartType::Year, vec![("number:style", String::from("long"))]),
-        FormatPart::new_content(FormatPartType::Text, "."),
+        FormatPart::new_content(FormatPartType::Text, "-"),
         FormatPart::new_vec(FormatPartType::Month, vec![("number:style", String::from("long"))]),
-        FormatPart::new_content(FormatPartType::Text, "."),
+        FormatPart::new_content(FormatPartType::Text, "-"),
         FormatPart::new_vec(FormatPartType::Day, vec![("number:style", String::from("long"))]),
         FormatPart::new_content(FormatPartType::Text, " "),
         FormatPart::new(FormatPartType::Hours),

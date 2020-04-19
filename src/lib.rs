@@ -4,7 +4,7 @@
 //! useable subset to read + modify + write back an ODS file.
 //!
 //! ```
-//! use spreadsheet_ods::{WorkBook, Sheet, Style, Family, ValueFormat, ValueType, FormatPart};
+//! use spreadsheet_ods::{WorkBook, Sheet, Style, StyleFor, ValueFormat, ValueType, FormatPart};
 //! use chrono::NaiveDate;
 //! use spreadsheet_ods::format;
 //!
@@ -16,10 +16,10 @@
 //! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), "nice_date_style");
 //! sheet.set_formula(0, 3, format!("of:={}+1", Sheet::fcellref(0,0)));
 //!
-//! let nice_date_format = format::create_date_mdy_format("nice_date_format");
+//! let nice_date_format = format::create_date_dmy_format("nice_date_format");
 //! wb.add_format(nice_date_format);
 //!
-//! let nice_date_style = Style::with_name(Family::TableCell, "nice_date_style", "nice_date_format");
+//! let nice_date_style = Style::with_name(StyleFor::TableCell, "nice_date_style", "nice_date_format");
 //! wb.add_style(nice_date_style);
 //!
 //! spreadsheet_ods::ods::write_ods(&wb, "tryout.ods");
@@ -711,7 +711,7 @@ impl From<Duration> for Value {
 pub struct FontDecl {
     name: String,
     /// From where did we get this style.
-    origin: Origin,
+    origin: XMLOrigin,
     /// All other attributes.
     prp: Option<HashMap<DefaultAtom, String>>,
 }
@@ -719,11 +719,11 @@ pub struct FontDecl {
 impl FontDecl {
     /// New, empty.
     pub fn new() -> Self {
-        FontDecl::new_origin(Origin::Content)
+        FontDecl::new_origin(XMLOrigin::Content)
     }
 
     /// New, with origination.
-    pub fn new_origin(origin: Origin) -> Self {
+    pub fn new_origin(origin: XMLOrigin) -> Self {
         Self {
             name: "".to_string(),
             origin,
@@ -735,7 +735,7 @@ impl FontDecl {
     pub fn with_name<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            origin: Origin::Content,
+            origin: XMLOrigin::Content,
             prp: None,
         }
     }
@@ -768,9 +768,9 @@ pub struct Style {
     /// Nice String.
     display_name: Option<String>,
     /// From where did we get this style.
-    origin: Origin,
+    origin: XMLOrigin,
     /// Applicability of this style.
-    family: Family,
+    family: StyleFor,
     /// Styles can cascade.
     parent: Option<String>,
     /// References the actual formatting instructions in the value-styles.
@@ -792,16 +792,16 @@ pub struct Style {
 impl Style {
     /// New, empty.
     pub fn new() -> Self {
-        Style::new_origin(Origin::Content)
+        Style::new_origin(XMLOrigin::Content)
     }
 
     /// New, with origination.
-    pub fn new_origin(origin: Origin) -> Self {
+    pub fn new_origin(origin: XMLOrigin) -> Self {
         Style {
             name: String::from(""),
             display_name: None,
             origin,
-            family: Family::None,
+            family: StyleFor::None,
             parent: None,
             value_format: None,
             table_prp: None,
@@ -814,11 +814,11 @@ impl Style {
     }
 
     /// New, with name.
-    pub fn with_name<S: Into<String>>(family: Family, name: S, value_style: S) -> Self {
+    pub fn with_name<S: Into<String>>(family: StyleFor, name: S, value_style: S) -> Self {
         Style {
             name: name.into(),
             display_name: None,
-            origin: Origin::Content,
+            origin: XMLOrigin::Content,
             family,
             parent: Some(String::from("Default")),
             value_format: Some(value_style.into()),
@@ -852,22 +852,22 @@ impl Style {
     }
 
     /// Sets the origin.
-    pub fn set_origin(&mut self, origin: Origin) {
+    pub fn set_origin(&mut self, origin: XMLOrigin) {
         self.origin = origin;
     }
 
     /// Returns the origin.
-    pub fn origin(&self) -> &Origin {
+    pub fn origin(&self) -> &XMLOrigin {
         &self.origin
     }
 
     /// Sets the style-family.
-    pub fn set_family(&mut self, family: Family) {
+    pub fn set_family(&mut self, family: StyleFor) {
         self.family = family;
     }
 
     /// Returns the style-family.
-    pub fn family(&self) -> &Family {
+    pub fn family(&self) -> &StyleFor {
         &self.family
     }
 
@@ -959,20 +959,20 @@ impl Style {
 
 /// Origin of a style. Content.xml or Styles.xml.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Origin {
+pub enum XMLOrigin {
     Content,
     Styles,
 }
 
-impl Default for Origin {
+impl Default for XMLOrigin {
     fn default() -> Self {
-        Origin::Content
+        XMLOrigin::Content
     }
 }
 
 /// Applicability of this style.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Family {
+pub enum StyleFor {
     Table,
     TableRow,
     TableColumn,
@@ -980,9 +980,9 @@ pub enum Family {
     None,
 }
 
-impl Default for Family {
+impl Default for StyleFor {
     fn default() -> Self {
-        Family::None
+        StyleFor::None
     }
 }
 
@@ -1012,7 +1012,7 @@ pub struct ValueFormat {
     // Value type
     v_type: ValueType,
     // Origin information.
-    origin: Origin,
+    origin: XMLOrigin,
     // Properties of the format.
     prp: Option<HashMap<DefaultAtom, String>>,
     // Parts of the format.
@@ -1022,11 +1022,11 @@ pub struct ValueFormat {
 impl ValueFormat {
     /// New, empty.
     pub fn new() -> Self {
-        ValueFormat::new_origin(Origin::Content)
+        ValueFormat::new_origin(XMLOrigin::Content)
     }
 
     /// New, with origin.
-    pub fn new_origin(origin: Origin) -> Self {
+    pub fn new_origin(origin: XMLOrigin) -> Self {
         ValueFormat {
             name: String::from(""),
             v_type: ValueType::Text,
@@ -1041,7 +1041,7 @@ impl ValueFormat {
         ValueFormat {
             name: name.into(),
             v_type: value_type,
-            origin: Origin::Content,
+            origin: XMLOrigin::Content,
             prp: None,
             parts: None,
         }
@@ -1068,12 +1068,12 @@ impl ValueFormat {
     }
 
     /// Sets the origin.
-    pub fn set_origin(&mut self, origin: Origin) {
+    pub fn set_origin(&mut self, origin: XMLOrigin) {
         self.origin = origin;
     }
 
     /// Returns the origin.
-    pub fn origin(&self) -> &Origin {
+    pub fn origin(&self) -> &XMLOrigin {
         &self.origin
     }
 

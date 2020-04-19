@@ -7,7 +7,7 @@ use quick_xml::events::{BytesStart, Event};
 use quick_xml::events::attributes::Attribute;
 use zip::read::ZipFile;
 
-use crate::{Family, Origin, FormatPart, FormatPartType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
+use crate::{StyleFor, XMLOrigin, FormatPart, FormatPartType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
 use crate::ods::error::OdsError;
 use std::collections::BTreeMap;
 
@@ -452,7 +452,7 @@ fn read_fonts(book: &mut WorkBook,
               end_tag: &[u8]) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut font: FontDecl = FontDecl::new_origin(Origin::Content);
+    let mut font: FontDecl = FontDecl::new_origin(XMLOrigin::Content);
 
     loop {
         let evt = xml.read_event(&mut buf)?;
@@ -477,7 +477,7 @@ fn read_fonts(book: &mut WorkBook,
                         }
 
                         book.add_font(font);
-                        font = FontDecl::new_origin(Origin::Content);
+                        font = FontDecl::new_origin(XMLOrigin::Content);
                     }
                     _ => {}
                 }
@@ -506,8 +506,8 @@ fn read_styles(book: &mut WorkBook,
                end_tag: &[u8]) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut style: Style = Style::new_origin(Origin::Content);
-    let mut value_style = ValueFormat::new_origin(Origin::Content);
+    let mut style: Style = Style::new_origin(XMLOrigin::Content);
+    let mut value_style = ValueFormat::new_origin(XMLOrigin::Content);
     // Styles with content information are stored before completion.
     let mut value_style_part = None;
 
@@ -524,7 +524,7 @@ fn read_styles(book: &mut WorkBook,
                         // In case of an empty xml-tag we are done here.
                         if let Event::Empty(_) = evt {
                             book.add_style(style);
-                            style = Style::new_origin(Origin::Content);
+                            style = Style::new_origin(XMLOrigin::Content);
                         }
                     }
 
@@ -635,7 +635,7 @@ fn read_styles(book: &mut WorkBook,
                 match e.name() {
                     b"style:style" => {
                         book.add_style(style);
-                        style = Style::new_origin(Origin::Content);
+                        style = Style::new_origin(XMLOrigin::Content);
                     }
                     b"number:boolean-style" |
                     b"number:date-style" |
@@ -645,7 +645,7 @@ fn read_styles(book: &mut WorkBook,
                     b"number:percentage-style" |
                     b"number:text-style" => {
                         book.add_format(value_style);
-                        value_style = ValueFormat::new_origin(Origin::Content);
+                        value_style = ValueFormat::new_origin(XMLOrigin::Content);
                     }
                     b"number:currency-symbol" | b"number:text" => {
                         if let Some(part) = value_style_part {
@@ -730,10 +730,10 @@ fn read_style(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
             attr if attr.key == b"style:family" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
                 match v.as_ref() {
-                    "table" => style.family = Family::Table,
-                    "table-column" => style.family = Family::TableColumn,
-                    "table-row" => style.family = Family::TableRow,
-                    "table-cell" => style.family = Family::TableCell,
+                    "table" => style.family = StyleFor::Table,
+                    "table-column" => style.family = StyleFor::TableColumn,
+                    "table-row" => style.family = StyleFor::TableRow,
+                    "table-cell" => style.family = StyleFor::TableCell,
                     _ => {}
                 }
             }
