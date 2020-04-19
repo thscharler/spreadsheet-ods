@@ -10,25 +10,25 @@ use crate::{format, WorkBook, Style, Family, ValueType};
 /// And dates are european DMY style.
 ///
 pub fn create_default_styles(book: &mut WorkBook) {
-    book.add_format(format::create_boolean_format("BOOL1"));
-    book.add_format(format::create_number_format("NUM1", 2, false));
-    book.add_format(format::create_percentage_format("PERCENT1", 2));
-    book.add_format(format::create_euro_format("CURRENCY1"));
-    book.add_format(format::create_date_mdy_format("DATE1"));
-    book.add_format(format::create_datetime_format("DATETIME1"));
-    book.add_format(format::create_time_format("TIME1"));
+    book.add_format(format::create_boolean_format("bool1"));
+    book.add_format(format::create_number_format("num1", 2, false));
+    book.add_format(format::create_percentage_format("percent1", 2));
+    book.add_format(format::create_euro_format("currency1"));
+    book.add_format(format::create_date_mdy_format("date1"));
+    book.add_format(format::create_datetime_format("datetime1"));
+    book.add_format(format::create_time_format("time1"));
 
-    book.add_style(Style::with_name(Family::TableCell, "DEFAULT-BOOL", "BOOLEAN1"));
-    book.add_style(Style::with_name(Family::TableCell, "DEFAULT-NUM", "NUM1"));
-    book.add_style(Style::with_name(Family::TableCell, "DEFAULT-PERCENT", "PERCENT1"));
-    book.add_style(Style::with_name(Family::TableCell, "DEFAULT-CURRENCY", "CURRENCY1"));
-    book.add_style(Style::with_name(Family::TableCell, "DEFAULT-DATE", "DATE1"));
-    book.add_style(Style::with_name(Family::TableCell, "DEFAULT-TIME", "TIME1"));
+    book.add_style(Style::with_name(Family::TableCell, "default-bool", "bool1"));
+    book.add_style(Style::with_name(Family::TableCell, "default-num", "num1"));
+    book.add_style(Style::with_name(Family::TableCell, "default-percent", "percent1"));
+    book.add_style(Style::with_name(Family::TableCell, "default-currency", "currency1"));
+    book.add_style(Style::with_name(Family::TableCell, "default-date", "date1"));
+    book.add_style(Style::with_name(Family::TableCell, "default-time", "time1"));
 
-    book.add_def_style(ValueType::Boolean, "DEFAULT-BOOL");
-    book.add_def_style(ValueType::Number, "DEFAULT-NUM");
-    book.add_def_style(ValueType::Percentage, "DEFAULT-PERCENT");
-    book.add_def_style(ValueType::Currency, "DEFAULT-CURRENCY");
-    book.add_def_style(ValueType::DateTime, "DEFAULT-DATE");
-    book.add_def_style(ValueType::TimeDuration, "DEFAULT-TIME");
+    book.add_def_style(ValueType::Boolean, "default-bool");
+    book.add_def_style(ValueType::Number, "default-num");
+    book.add_def_style(ValueType::Percentage, "default-percent");
+    book.add_def_style(ValueType::Currency, "default-currency");
+    book.add_def_style(ValueType::DateTime, "default-date");
+    book.add_def_style(ValueType::TimeDuration, "default-time");
 }

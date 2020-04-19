@@ -7,7 +7,7 @@ use quick_xml::events::{BytesStart, Event};
 use quick_xml::events::attributes::Attribute;
 use zip::read::ZipFile;
 
-use crate::{Family, Origin, FormatPart, FormatType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
+use crate::{Family, Origin, FormatPart, FormatPartType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
 use crate::ods::error::OdsError;
 use std::collections::BTreeMap;
 
@@ -557,45 +557,45 @@ fn read_styles(book: &mut WorkBook,
                         read_value_style(ValueType::Text, &mut value_style, xml, xml_tag)?,
 
                     b"number:boolean" =>
-                        push_value_style_part(&mut value_style, FormatType::Boolean, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Boolean, xml, xml_tag)?,
                     b"number:number" =>
-                        push_value_style_part(&mut value_style, FormatType::Number, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Number, xml, xml_tag)?,
                     b"number:scientific-number" =>
-                        push_value_style_part(&mut value_style, FormatType::Scientific, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Scientific, xml, xml_tag)?,
                     b"number:day" =>
-                        push_value_style_part(&mut value_style, FormatType::Day, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Day, xml, xml_tag)?,
                     b"number:month" =>
-                        push_value_style_part(&mut value_style, FormatType::Month, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Month, xml, xml_tag)?,
                     b"number:year" =>
-                        push_value_style_part(&mut value_style, FormatType::Year, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Year, xml, xml_tag)?,
                     b"number:era" =>
-                        push_value_style_part(&mut value_style, FormatType::Era, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Era, xml, xml_tag)?,
                     b"number:day-of-week" =>
-                        push_value_style_part(&mut value_style, FormatType::DayOfWeek, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::DayOfWeek, xml, xml_tag)?,
                     b"number:week-of-year" =>
-                        push_value_style_part(&mut value_style, FormatType::WeekOfYear, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::WeekOfYear, xml, xml_tag)?,
                     b"number:quarter" =>
-                        push_value_style_part(&mut value_style, FormatType::Quarter, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Quarter, xml, xml_tag)?,
                     b"number:hours" =>
-                        push_value_style_part(&mut value_style, FormatType::Hours, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Hours, xml, xml_tag)?,
                     b"number:minutes" =>
-                        push_value_style_part(&mut value_style, FormatType::Minutes, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Minutes, xml, xml_tag)?,
                     b"number:seconds" =>
-                        push_value_style_part(&mut value_style, FormatType::Seconds, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Seconds, xml, xml_tag)?,
                     b"number:fraction" =>
-                        push_value_style_part(&mut value_style, FormatType::Fraction, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Fraction, xml, xml_tag)?,
                     b"number:am-pm" =>
-                        push_value_style_part(&mut value_style, FormatType::AmPm, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::AmPm, xml, xml_tag)?,
                     b"number:embedded-text" =>
-                        push_value_style_part(&mut value_style, FormatType::EmbeddedText, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::EmbeddedText, xml, xml_tag)?,
                     b"number:text-content" =>
-                        push_value_style_part(&mut value_style, FormatType::TextContent, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::TextContent, xml, xml_tag)?,
                     b"style:text" =>
-                        push_value_style_part(&mut value_style, FormatType::Day, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::Day, xml, xml_tag)?,
                     b"style:map" =>
-                        push_value_style_part(&mut value_style, FormatType::StyleMap, xml, xml_tag)?,
+                        push_value_style_part(&mut value_style, FormatPartType::StyleMap, xml, xml_tag)?,
                     b"number:currency-symbol" => {
-                        value_style_part = Some(read_part(xml, xml_tag, FormatType::CurrencySymbol)?);
+                        value_style_part = Some(read_part(xml, xml_tag, FormatPartType::CurrencySymbol)?);
 
                         // Empty-Tag. Finish here.
                         if let Event::Empty(_) = evt {
@@ -606,7 +606,7 @@ fn read_styles(book: &mut WorkBook,
                         }
                     }
                     b"number:text" => {
-                        value_style_part = Some(read_part(xml, xml_tag, FormatType::Text)?);
+                        value_style_part = Some(read_part(xml, xml_tag, FormatPartType::Text)?);
 
                         // Empty-Tag. Finish here.
                         if let Event::Empty(_) = evt {
@@ -693,7 +693,7 @@ fn read_value_style(value_type: ValueType,
 }
 
 fn push_value_style_part(value_style: &mut ValueFormat,
-                         part_type: FormatType,
+                         part_type: FormatPartType,
                          xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                          xml_tag: &BytesStart) -> Result<(), OdsError> {
     value_style.push_part(read_part(xml, xml_tag, part_type)?);
@@ -703,7 +703,7 @@ fn push_value_style_part(value_style: &mut ValueFormat,
 
 fn read_part(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
              xml_tag: &BytesStart,
-             part_type: FormatType) -> Result<FormatPart, OdsError> {
+             part_type: FormatPartType) -> Result<FormatPart, OdsError> {
     let mut part = FormatPart::new(part_type);
 
     for a in xml_tag.attributes().with_checks(false) {
@@ -743,7 +743,7 @@ fn read_style(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
             }
             attr if attr.key == b"style:data-style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                style.value_style = Some(v);
+                style.value_format = Some(v);
             }
             _ => { /* noop */ }
         }

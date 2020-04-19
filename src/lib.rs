@@ -49,6 +49,7 @@ use chrono::{Duration, NaiveDateTime, NaiveDate};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
 use string_cache::DefaultAtom;
+use std::fmt::{Display, Formatter};
 
 pub mod ods;
 pub mod style;
@@ -176,12 +177,12 @@ impl WorkBook {
         }
     }
 
-    // Finds a ValueStyle starting with the stylename attached to a cell.
-    pub fn find_value_style(&self, style_name: &str) -> Option<&ValueFormat> {
+    /// Finds a ValueFormat starting with the stylename attached to a cell.
+    pub fn find_value_format(&self, style_name: &str) -> Option<&ValueFormat> {
         if let Some(style) = self.styles.get(style_name) {
-            if let Some(value_style_name) = style.value_style() {
-                if let Some(value_style) = self.formats.get(value_style_name) {
-                    return Some(&value_style);
+            if let Some(value_format_name) = style.value_format() {
+                if let Some(value_format) = self.formats.get(value_format_name) {
+                    return Some(&value_format);
                 }
             }
         }
@@ -189,19 +190,22 @@ impl WorkBook {
         None
     }
 
-    /// Adds a style.
+    /// Adds a font.
     pub fn add_font(&mut self, font: FontDecl) {
         self.fonts.insert(font.name.to_string(), font);
     }
 
+    /// Removes a font.
     pub fn remove_font(&mut self, name: &str) {
         self.fonts.remove(name);
     }
 
+    /// Returns the FontDecl.
     pub fn font(&self, name: &str) -> Option<&FontDecl> {
         self.fonts.get(name)
     }
 
+    /// Returns a mutable FontDecl.
     pub fn font_mut(&mut self, name: &str) -> Option<&mut FontDecl> {
         self.fonts.get_mut(name)
     }
@@ -209,10 +213,13 @@ impl WorkBook {
     /// Adds a style.
     pub fn add_style(&mut self, style: Style) { self.styles.insert(style.name.to_string(), style); }
 
+    /// Removes a style.
     pub fn remove_style(&mut self, name: &str) { self.styles.remove(name); }
 
+    /// Returns the style.
     pub fn style(&self, name: &str) -> Option<&Style> { self.styles.get(name) }
 
+    /// Returns the mutable style.
     pub fn style_mut(&mut self, name: &str) -> Option<&mut Style> {
         self.styles.get_mut(name)
     }
@@ -222,14 +229,17 @@ impl WorkBook {
         self.formats.insert(vstyle.name.to_string(), vstyle);
     }
 
+    /// Removes the format.
     pub fn remove_format(&mut self, name: &str) {
         self.formats.remove(name);
     }
 
+    /// Returns the format.
     pub fn format(&self, name: &str) -> Option<&ValueFormat> {
         self.formats.get(name)
     }
 
+    /// Returns the mutable format.
     pub fn format_mut(&mut self, name: &str) -> Option<&mut ValueFormat> {
         self.formats.get_mut(name)
     }
@@ -323,10 +333,12 @@ impl Sheet {
         cell
     }
 
+    /// Sheet name.
     pub fn set_name<V: Into<String>>(&mut self, name: V) {
         self.name = name.into();
     }
 
+    /// Sheet name.
     pub fn name(&self) -> &String {
         &self.name
     }
@@ -336,6 +348,7 @@ impl Sheet {
         self.style = Some(style.into());
     }
 
+    /// Returns the table-style.
     pub fn style(&self) -> Option<&String> {
         self.style.as_ref()
     }
@@ -350,6 +363,7 @@ impl Sheet {
         }
     }
 
+    /// Returns the column wide style.
     pub fn column_style(&self, col: usize) -> Option<&String> {
         if let Some(col_style) = &self.col_style {
             col_style.get(&col)
@@ -368,6 +382,7 @@ impl Sheet {
         }
     }
 
+    /// Returns the default cell style for this column.
     pub fn column_cell_style(&self, col: usize) -> Option<&String> {
         if let Some(col_cell_style) = &self.col_cell_style {
             col_cell_style.get(&col)
@@ -386,6 +401,7 @@ impl Sheet {
         }
     }
 
+    /// Returns the row style.
     pub fn row_style(&self, row: usize) -> Option<&String> {
         if let Some(row_style) = &self.row_style {
             row_style.get(&row)
@@ -509,6 +525,7 @@ pub struct SCell {
 }
 
 impl SCell {
+    /// New, empty.
     pub fn new() -> Self {
         SCell {
             value: None,
@@ -517,6 +534,7 @@ impl SCell {
         }
     }
 
+    /// New, with a value.
     pub fn with_value<V: Into<Value>>(value: V) -> Self {
         SCell {
             value: Some(value.into()),
@@ -525,26 +543,32 @@ impl SCell {
         }
     }
 
+    /// Returns the value.
     pub fn value(&self) -> Option<&Value> {
         self.value.as_ref()
     }
 
+    /// Sets the value.
     pub fn set_value<V: Into<Value>>(&mut self, value: V) {
         self.value = Some(value.into());
     }
 
+    /// Returns the formula.
     pub fn formula(&self) -> Option<&String> {
         self.formula.as_ref()
     }
 
+    /// Sets the formula.
     pub fn set_formula<V: Into<String>>(&mut self, formula: V) {
         self.formula = Some(formula.into());
     }
 
+    /// Returns the cell style.
     pub fn style(&self) -> Option<&String> {
         self.style.as_ref()
     }
 
+    /// Sets the cell style.
     pub fn set_style<V: Into<String>>(&mut self, style: V) {
         self.style = Some(style.into());
     }
@@ -632,6 +656,10 @@ impl From<f64> for Value {
     }
 }
 
+impl From<f32> for Value {
+    fn from(f: f32) -> Self { Value::Number(f as f64) }
+}
+
 impl From<i64> for Value {
     fn from(i: i64) -> Self {
         Value::Number(i as f64)
@@ -689,10 +717,12 @@ pub struct FontDecl {
 }
 
 impl FontDecl {
+    /// New, empty.
     pub fn new() -> Self {
         FontDecl::new_origin(Origin::Content)
     }
 
+    /// New, with origination.
     pub fn new_origin(origin: Origin) -> Self {
         Self {
             name: "".to_string(),
@@ -701,6 +731,7 @@ impl FontDecl {
         }
     }
 
+    /// New, with a name.
     pub fn with_name<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
@@ -709,33 +740,28 @@ impl FontDecl {
         }
     }
 
+    /// Set the name.
     pub fn set_name<V: Into<String>>(&mut self, name: V) {
         self.name = name.into();
     }
 
+    /// Returns the name.
     pub fn name(&self) -> &String {
         &self.name
     }
 
+    /// Sets a property of the font.
     pub fn set_prp(&mut self, name: &str, value: String) {
         set_prp(&mut self.prp, name, value);
     }
 
+    /// Returns a property of the font.
     pub fn prp(&self, name: &str) -> Option<&String> {
         get_prp(&self.prp, name)
     }
-
-    pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.prp, name, default)
-    }
 }
 
-/// Style data fashioned after the ODS spec. Might not be too different to XLSX, but I didn't
-/// check. There's a lot more, but for now I will simply ignore it. Seems most of
-/// the blanks are filled in with defaults when reading.
-///
-/// The actual property names are just simple strings for now, maybe I map the common ones to
-/// consts.
+/// Style data fashioned after the ODS spec.
 #[derive(Debug, Clone, Default)]
 pub struct Style {
     name: String,
@@ -748,7 +774,7 @@ pub struct Style {
     /// Styles can cascade.
     parent: Option<String>,
     /// References the actual formatting instructions in the value-styles.
-    value_style: Option<String>,
+    value_format: Option<String>,
     /// Table styling
     table_prp: Option<HashMap<DefaultAtom, String>>,
     /// Column styling
@@ -764,10 +790,12 @@ pub struct Style {
 }
 
 impl Style {
+    /// New, empty.
     pub fn new() -> Self {
         Style::new_origin(Origin::Content)
     }
 
+    /// New, with origination.
     pub fn new_origin(origin: Origin) -> Self {
         Style {
             name: String::from(""),
@@ -775,7 +803,7 @@ impl Style {
             origin,
             family: Family::None,
             parent: None,
-            value_style: None,
+            value_format: None,
             table_prp: None,
             table_col_prp: None,
             table_row_prp: None,
@@ -785,6 +813,7 @@ impl Style {
         }
     }
 
+    /// New, with name.
     pub fn with_name<S: Into<String>>(family: Family, name: S, value_style: S) -> Self {
         Style {
             name: name.into(),
@@ -792,7 +821,7 @@ impl Style {
             origin: Origin::Content,
             family,
             parent: Some(String::from("Default")),
-            value_style: Some(value_style.into()),
+            value_format: Some(value_style.into()),
             table_prp: None,
             table_col_prp: None,
             table_row_prp: None,
@@ -802,128 +831,129 @@ impl Style {
         }
     }
 
+    /// Sets the name.
     pub fn set_name<V: Into<String>>(&mut self, name: V) {
         self.name = name.into();
     }
 
+    /// Returns the name.
     pub fn name(&self) -> &String {
         &self.name
     }
 
+    /// Sets the display name.
     pub fn set_display_name(&mut self, name: &str) {
         self.display_name = Some(name.to_string());
     }
 
+    /// Returns the display name.
     pub fn display_name(&self) -> Option<&String> {
         self.display_name.as_ref()
     }
 
+    /// Sets the origin.
     pub fn set_origin(&mut self, origin: Origin) {
         self.origin = origin;
     }
 
+    /// Returns the origin.
     pub fn origin(&self) -> &Origin {
         &self.origin
     }
 
+    /// Sets the style-family.
     pub fn set_family(&mut self, family: Family) {
         self.family = family;
     }
 
+    /// Returns the style-family.
     pub fn family(&self) -> &Family {
         &self.family
     }
 
+    /// Sets the parent style.
     pub fn set_parent(&mut self, parent: &str) {
         self.parent = Some(parent.to_string());
     }
 
+    /// Returns the parent style.
     pub fn parent(&self) -> Option<&String> {
         self.parent.as_ref()
     }
 
-    pub fn set_value_style(&mut self, value_style: &str) {
-        self.value_style = Some(value_style.to_string());
+    /// Sets the value format.
+    pub fn set_value_format(&mut self, value_format: &str) {
+        self.value_format = Some(value_format.to_string());
     }
 
-    pub fn value_style(&self) -> Option<&String> {
-        self.value_style.as_ref()
+    /// Returns the value format.
+    pub fn value_format(&self) -> Option<&String> {
+        self.value_format.as_ref()
     }
 
+    /// Sets a property for a table style.
     pub fn set_table_prp(&mut self, name: &str, value: String) {
         set_prp(&mut self.table_prp, name, value);
     }
 
+    /// Returns a property for a table style.
     pub fn table_prp(&self, name: &str) -> Option<&String> {
         get_prp(&self.table_prp, name)
     }
 
-    pub fn table_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.table_prp, name, default)
-    }
-
+    /// Sets a property for a table column.
     pub fn set_table_col_prp(&mut self, name: &str, value: String) {
         set_prp(&mut self.table_col_prp, name, value);
     }
 
+    /// Returns a property for a table column.
     pub fn table_col_prp(&self, name: &str) -> Option<&String> {
         get_prp(&self.table_col_prp, name)
     }
 
-    pub fn table_col_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.table_col_prp, name, default)
-    }
-
+    /// Set a table row property.
     pub fn set_table_row_prp(&mut self, name: &str, value: String) {
         set_prp(&mut self.table_row_prp, name, value);
     }
 
+    /// Returns a table row property.
     pub fn table_row_prp(&self, name: &str) -> Option<&String> {
         get_prp(&self.table_row_prp, name)
     }
 
-    pub fn table_row_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.table_row_prp, name, default)
-    }
-
+    /// Sets a table cell property.
     pub fn set_table_cell_prp(&mut self, name: &str, value: String) {
         set_prp(&mut self.table_cell_prp, name, value);
     }
 
+    /// Returns a table cell property.
     pub fn table_cell_prp(&self, name: &str) -> Option<&String> {
         get_prp(&self.table_cell_prp, name)
     }
 
-    pub fn table_cell_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.table_cell_prp, name, default)
-    }
-
+    /// Sets a text property.
     pub fn set_text_prp(&mut self, name: &str, value: String) {
         set_prp(&mut self.text_prp, name, value);
     }
 
+    /// Removes a text property.
     pub fn clear_text_prp(&mut self, name: &str) -> Option<String> {
         clear_prp(&mut self.text_prp, name)
     }
 
+    /// Returns a text property.
     pub fn text_prp(&self, name: &str) -> Option<&String> {
         get_prp(&self.text_prp, name)
     }
 
-    pub fn text_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.text_prp, name, default)
-    }
-
+    /// Sets a paragraph property.
     pub fn set_paragraph_prp(&mut self, name: &str, value: String) {
         set_prp(&mut self.paragraph_prp, name, value);
     }
 
+    /// Returns a paragraph property.
     pub fn paragraph_prp(&self, name: &str) -> Option<&String> {
         get_prp(&self.paragraph_prp, name)
-    }
-
-    pub fn paragraph_prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.paragraph_prp, name, default)
     }
 }
 
@@ -956,21 +986,46 @@ impl Default for Family {
     }
 }
 
+#[derive(Debug)]
+pub enum ValueFormatError {
+    Format(String),
+    NaN,
+}
+
+impl Display for ValueFormatError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            ValueFormatError::Format(s) => write!(f, "{}", s)?,
+            ValueFormatError::NaN => write!(f, "Digit expected")?,
+        }
+        Ok(())
+    }
+}
+
+impl std::error::Error for ValueFormatError {}
+
 /// Actual textual formatting of values.
 #[derive(Debug, Clone, Default)]
 pub struct ValueFormat {
+    // Name
     name: String,
+    // Value type
     v_type: ValueType,
+    // Origin information.
     origin: Origin,
+    // Properties of the format.
     prp: Option<HashMap<DefaultAtom, String>>,
+    // Parts of the format.
     parts: Option<Vec<FormatPart>>,
 }
 
 impl ValueFormat {
+    /// New, empty.
     pub fn new() -> Self {
         ValueFormat::new_origin(Origin::Content)
     }
 
+    /// New, with origin.
     pub fn new_origin(origin: Origin) -> Self {
         ValueFormat {
             name: String::from(""),
@@ -981,6 +1036,7 @@ impl ValueFormat {
         }
     }
 
+    /// New, with name.
     pub fn with_name<S: Into<String>>(name: S, value_type: ValueType) -> Self {
         ValueFormat {
             name: name.into(),
@@ -991,42 +1047,47 @@ impl ValueFormat {
         }
     }
 
+    /// Sets the name.
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
         self.name = name.into();
     }
 
+    /// Returns the name.
     pub fn name(&self) -> &String {
         &self.name
     }
 
+    /// Sets the value type.
     pub fn set_value_type(&mut self, value_type: ValueType) {
         self.v_type = value_type;
     }
 
+    /// Returns the value type.
     pub fn value_type(&self) -> &ValueType {
         &self.v_type
     }
 
+    /// Sets the origin.
     pub fn set_origin(&mut self, origin: Origin) {
         self.origin = origin;
     }
 
+    /// Returns the origin.
     pub fn origin(&self) -> &Origin {
         &self.origin
     }
 
+    /// Sets a property of the format.
     pub fn set_prp(&mut self, name: &str, value: String) {
         set_prp(&mut self.prp, name, value);
     }
 
+    /// Returns a property of the format.
     pub fn prp(&self, name: &str) -> Option<&String> {
         get_prp(&self.prp, name)
     }
 
-    pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.prp, name, default)
-    }
-
+    /// Adds a format part.
     pub fn push_part(&mut self, part: FormatPart) {
         if let Some(parts) = &mut self.parts {
             parts.push(part);
@@ -1035,16 +1096,19 @@ impl ValueFormat {
         }
     }
 
+    /// Adds all format parts.
     pub fn push_parts(&mut self, parts: Vec<FormatPart>) {
         for p in parts.into_iter() {
             self.push_part(p);
         }
     }
 
+    /// Returns the parts.
     pub fn parts(&self) -> Option<&Vec<FormatPart>> {
         self.parts.as_ref()
     }
 
+    /// Returns the mutable parts.
     pub fn parts_mut(&mut self) -> &mut Vec<FormatPart> {
         self.parts.get_or_insert(Vec::new())
     }
@@ -1091,7 +1155,7 @@ impl ValueFormat {
     pub fn format_datetime(&self, d: &NaiveDateTime) -> String {
         let mut buf = String::new();
         if let Some(parts) = &self.parts {
-            let h12 = parts.iter().any(|v| v.ftype == FormatType::AmPm);
+            let h12 = parts.iter().any(|v| v.part_type == FormatPartType::AmPm);
 
             for p in parts {
                 p.format_datetime(&mut buf, d, h12);
@@ -1115,7 +1179,7 @@ impl ValueFormat {
 
 /// Identifies the structural parts of a value format.
 #[derive(Debug, Clone, PartialEq)]
-pub enum FormatType {
+pub enum FormatPartType {
     Boolean,
     Number,
     Fraction,
@@ -1142,58 +1206,70 @@ pub enum FormatType {
 /// One structural part of a value format.
 #[derive(Debug, Clone)]
 pub struct FormatPart {
-    ftype: FormatType,
+    // What kind of format part is this?
+    part_type: FormatPartType,
+    // Properties of this part.
     prp: Option<HashMap<DefaultAtom, String>>,
+    // Some content.
     content: Option<String>,
 }
 
 impl FormatPart {
-    pub fn new(ftype: FormatType) -> Self {
+    /// New, empty
+    pub fn new(ftype: FormatPartType) -> Self {
         FormatPart {
-            ftype,
+            part_type: ftype,
             prp: None,
             content: None,
         }
     }
 
-    pub fn new_content(ftype: FormatType, content: &str) -> Self {
+    /// New, with string content.
+    pub fn new_content(ftype: FormatPartType, content: &str) -> Self {
         FormatPart {
-            ftype,
+            part_type: ftype,
             prp: None,
             content: Some(content.to_string()),
         }
     }
 
-    pub fn new_vec(ftype: FormatType, vec: Vec<(&str, String)>) -> Self {
+    /// New with properties.
+    pub fn new_vec(ftype: FormatPartType, prp_vec: Vec<(&str, String)>) -> Self {
         let mut part = FormatPart {
-            ftype,
+            part_type: ftype,
             prp: None,
             content: None,
         };
-        part.set_prp_vec(vec);
+        part.set_prp_vec(prp_vec);
         part
     }
 
-    pub fn set_ftype(&mut self, p_type: FormatType) {
-        self.ftype = p_type;
+    /// Sets the kind of the part.
+    pub fn set_part_type(&mut self, p_type: FormatPartType) {
+        self.part_type = p_type;
     }
 
-    pub fn ftype(&self) -> &FormatType {
-        &self.ftype
+    /// What kind of part?
+    pub fn part_type(&self) -> &FormatPartType {
+        &self.part_type
     }
 
+    /// Sets a vec of properties.
     pub fn set_prp_vec(&mut self, vec: Vec<(&str, String)>) {
         set_prp_vec(&mut self.prp, vec);
     }
 
+    /// Sets a property.
     pub fn set_prp(&mut self, name: &str, value: String) {
         set_prp(&mut self.prp, name, value);
     }
 
+    /// Returns a property.
     pub fn prp(&self, name: &str) -> Option<&String> {
         get_prp(&self.prp, name)
     }
 
+    /// Returns a property or a default.
     pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
         get_prp_def(&self.prp, name, default)
     }
@@ -1204,18 +1280,19 @@ impl FormatPart {
         self.content = Some(content.to_string());
     }
 
+    /// Returns the text content.
     pub fn content(&self) -> Option<&String> {
         self.content.as_ref()
     }
 
-    /// Tries to format the given boolean.
+    /// Tries to format the given boolean, and appends the result to buf.
     /// If this part does'nt match does nothing
-    pub fn format_boolean(&self, buf: &mut String, b: bool) {
-        match self.ftype {
-            FormatType::Boolean => {
+    fn format_boolean(&self, buf: &mut String, b: bool) {
+        match self.part_type {
+            FormatPartType::Boolean => {
                 buf.push_str(if b { "true" } else { "false" });
             }
-            FormatType::Text => {
+            FormatPartType::Text => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }
@@ -1224,25 +1301,25 @@ impl FormatPart {
         }
     }
 
-    /// Tries to format the given float.
+    /// Tries to format the given float, and appends the result to buf.
     /// If this part does'nt match does nothing
-    pub fn format_float(&self, buf: &mut String, f: f64) {
-        match self.ftype {
-            FormatType::Number => {
+    fn format_float(&self, buf: &mut String, f: f64) {
+        match self.part_type {
+            FormatPartType::Number => {
                 let dec = self.prp_def("number:decimal-places", "0").parse::<usize>();
                 if let Ok(dec) = dec {
                     buf.push_str(&format!("{:.*}", dec, f));
                 }
             }
-            FormatType::Scientific => {
+            FormatPartType::Scientific => {
                 buf.push_str(&format!("{:e}", f));
             }
-            FormatType::CurrencySymbol => {
+            FormatPartType::CurrencySymbol => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }
             }
-            FormatType::Text => {
+            FormatPartType::Text => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }
@@ -1251,14 +1328,14 @@ impl FormatPart {
         }
     }
 
-    /// Tries to format the given float.
+    /// Tries to format the given string, and appends the result to buf.
     /// If this part does'nt match does nothing
-    pub fn format_str(&self, buf: &mut String, s: &str) {
-        match self.ftype {
-            FormatType::TextContent => {
+    fn format_str(&self, buf: &mut String, s: &str) {
+        match self.part_type {
+            FormatPartType::TextContent => {
                 buf.push_str(s);
             }
-            FormatType::Text => {
+            FormatPartType::Text => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }
@@ -1267,13 +1344,13 @@ impl FormatPart {
         }
     }
 
-    /// Tries to format the given DateTime.
+    /// Tries to format the given DateTime, and appends the result to buf.
     /// Uses chrono::strftime for the implementation.
     /// If this part does'nt match does nothing
     #[allow(clippy::collapsible_if)]
-    pub fn format_datetime(&self, buf: &mut String, d: &NaiveDateTime, h12: bool) {
-        match self.ftype {
-            FormatType::Day => {
+    fn format_datetime(&self, buf: &mut String, d: &NaiveDateTime, h12: bool) {
+        match self.part_type {
+            FormatPartType::Day => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%d").to_string());
@@ -1281,7 +1358,7 @@ impl FormatPart {
                     buf.push_str(&d.format("%-d").to_string());
                 }
             }
-            FormatType::Month => {
+            FormatPartType::Month => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 let is_text = self.prp_def("number:textual", "") == "true";
                 if is_text {
@@ -1298,7 +1375,7 @@ impl FormatPart {
                     }
                 }
             }
-            FormatType::Year => {
+            FormatPartType::Year => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%Y").to_string());
@@ -1306,7 +1383,7 @@ impl FormatPart {
                     buf.push_str(&d.format("%y").to_string());
                 }
             }
-            FormatType::DayOfWeek => {
+            FormatPartType::DayOfWeek => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%A").to_string());
@@ -1314,7 +1391,7 @@ impl FormatPart {
                     buf.push_str(&d.format("%a").to_string());
                 }
             }
-            FormatType::WeekOfYear => {
+            FormatPartType::WeekOfYear => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%W").to_string());
@@ -1322,7 +1399,7 @@ impl FormatPart {
                     buf.push_str(&d.format("%-W").to_string());
                 }
             }
-            FormatType::Hours => {
+            FormatPartType::Hours => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if !h12 {
                     if is_long {
@@ -1338,7 +1415,7 @@ impl FormatPart {
                     }
                 }
             }
-            FormatType::Minutes => {
+            FormatPartType::Minutes => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%M").to_string());
@@ -1346,7 +1423,7 @@ impl FormatPart {
                     buf.push_str(&d.format("%-M").to_string());
                 }
             }
-            FormatType::Seconds => {
+            FormatPartType::Seconds => {
                 let is_long = self.prp_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%S").to_string());
@@ -1354,10 +1431,10 @@ impl FormatPart {
                     buf.push_str(&d.format("%-S").to_string());
                 }
             }
-            FormatType::AmPm => {
+            FormatPartType::AmPm => {
                 buf.push_str(&d.format("%p").to_string());
             }
-            FormatType::Text => {
+            FormatPartType::Text => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }
@@ -1366,20 +1443,20 @@ impl FormatPart {
         }
     }
 
-    /// Tries to format the given Duration.
+    /// Tries to format the given Duration, and appends the result to buf.
     /// If this part does'nt match does nothing
-    pub fn format_time_duration(&self, buf: &mut String, d: &Duration) {
-        match self.ftype {
-            FormatType::Hours => {
+    fn format_time_duration(&self, buf: &mut String, d: &Duration) {
+        match self.part_type {
+            FormatPartType::Hours => {
                 buf.push_str(&d.num_hours().to_string());
             }
-            FormatType::Minutes => {
+            FormatPartType::Minutes => {
                 buf.push_str(&(d.num_minutes() % 60).to_string());
             }
-            FormatType::Seconds => {
+            FormatPartType::Seconds => {
                 buf.push_str(&(d.num_seconds() % 60).to_string());
             }
-            FormatType::Text => {
+            FormatPartType::Text => {
                 if let Some(content) = &self.content {
                     buf.push_str(content)
                 }

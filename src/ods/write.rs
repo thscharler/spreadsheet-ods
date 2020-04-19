@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
-use crate::{Family, Origin, FormatType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
+use crate::{Family, Origin, FormatPartType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
 use crate::ods::error::OdsError;
 use crate::ods::tmp2zip::TempZip;
 use crate::ods::xmlwriter::XmlWriter;
@@ -607,7 +607,7 @@ fn write_cell(book: &WorkBook,
     // Might not yield a useful result. Could not exist, or be in styles.xml
     // which I don't read. Defaulting to to_string() seems reasonable.
     let value_style = if let Some(style_name) = &cell.style {
-        book.find_value_style(style_name)
+        book.find_value_format(style_name)
     } else {
         None
     };
@@ -754,8 +754,8 @@ fn write_styles(styles: &BTreeMap<String, Style>, origin: Origin, xml_out: &mut 
         if let Some(parent) = &style.parent {
             xml_out.attr_esc("style:parent-style-name", parent.as_str())?;
         }
-        if let Some(value_style) = &style.value_style {
-            xml_out.attr_esc("style:data-style-name", value_style.as_str())?;
+        if let Some(value_format) = &style.value_format {
+            xml_out.attr_esc("style:data-style-name", value_format.as_str())?;
         }
 
         if let Some(prp) = &style.table_cell_prp {
@@ -823,31 +823,31 @@ fn write_value_styles(styles: &BTreeMap<String, ValueFormat>, origin: Origin, xm
 
         if let Some(parts) = style.parts() {
             for part in parts {
-                let part_tag = match part.ftype {
-                    FormatType::Boolean => "number:boolean",
-                    FormatType::Number => "number:number",
-                    FormatType::Scientific => "number:scientific-number",
-                    FormatType::CurrencySymbol => "number:currency-symbol",
-                    FormatType::Day => "number:day",
-                    FormatType::Month => "number:month",
-                    FormatType::Year => "number:year",
-                    FormatType::Era => "number:era",
-                    FormatType::DayOfWeek => "number:day-of-week",
-                    FormatType::WeekOfYear => "number:week-of-year",
-                    FormatType::Quarter => "number:quarter",
-                    FormatType::Hours => "number:hours",
-                    FormatType::Minutes => "number:minutes",
-                    FormatType::Seconds => "number:seconds",
-                    FormatType::Fraction => "number:fraction",
-                    FormatType::AmPm => "number:am-pm",
-                    FormatType::EmbeddedText => "number:embedded-text",
-                    FormatType::Text => "number:text",
-                    FormatType::TextContent => "number:text-content",
-                    FormatType::StyleText => "style:text",
-                    FormatType::StyleMap => "style:map",
+                let part_tag = match part.part_type {
+                    FormatPartType::Boolean => "number:boolean",
+                    FormatPartType::Number => "number:number",
+                    FormatPartType::Scientific => "number:scientific-number",
+                    FormatPartType::CurrencySymbol => "number:currency-symbol",
+                    FormatPartType::Day => "number:day",
+                    FormatPartType::Month => "number:month",
+                    FormatPartType::Year => "number:year",
+                    FormatPartType::Era => "number:era",
+                    FormatPartType::DayOfWeek => "number:day-of-week",
+                    FormatPartType::WeekOfYear => "number:week-of-year",
+                    FormatPartType::Quarter => "number:quarter",
+                    FormatPartType::Hours => "number:hours",
+                    FormatPartType::Minutes => "number:minutes",
+                    FormatPartType::Seconds => "number:seconds",
+                    FormatPartType::Fraction => "number:fraction",
+                    FormatPartType::AmPm => "number:am-pm",
+                    FormatPartType::EmbeddedText => "number:embedded-text",
+                    FormatPartType::Text => "number:text",
+                    FormatPartType::TextContent => "number:text-content",
+                    FormatPartType::StyleText => "style:text",
+                    FormatPartType::StyleMap => "style:map",
                 };
 
-                if part.ftype == FormatType::Text || part.ftype == FormatType::CurrencySymbol {
+                if part.part_type == FormatPartType::Text || part.part_type == FormatPartType::CurrencySymbol {
                     xml_out.elem(part_tag)?;
                     if let Some(prp) = &part.prp {
                         for (a, v) in prp {
