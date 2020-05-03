@@ -313,21 +313,39 @@ impl Sheet {
         }
     }
 
-    /// Creates a cell-reference for use in formulas.
-    pub fn fcellref(row: usize, col: usize) -> String {
+    /// Returns the spreadsheet column name.
+    pub fn fcolref(col: usize) -> String {
         let mut col_str = String::new();
 
         let mut col2 = col;
         while col2 > 0 {
-            let digit = (col % 26) as u8;
+            let digit = (col2 % 26) as u8;
             let cc = (b'A' + digit) as char;
             col_str.insert(0, cc);
             col2 /= 26;
         }
 
+        col_str
+    }
+
+    /// Creates a cell-reference for use in formulas.
+    pub fn fcellref(row: usize, col: usize) -> String {
         let mut cell = String::from("[.");
-        cell.push_str(&col_str);
+        cell.push_str(&Sheet::fcolref(col));
         cell.push_str(&(row + 1).to_string());
+        cell.push_str("]");
+
+        cell
+    }
+
+    /// Creates a cell-reference for use in formulas.
+    pub fn frangeref(row: usize, col: usize, row_to: usize, col_to: usize) -> String {
+        let mut cell = String::from("[.");
+        cell.push_str(&Sheet::fcolref(col));
+        cell.push_str(&(row + 1).to_string());
+        cell.push_str(":");
+        cell.push_str(&Sheet::fcolref(col_to));
+        cell.push_str(&(row_to + 1).to_string());
         cell.push_str("]");
 
         cell

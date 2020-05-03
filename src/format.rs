@@ -2,7 +2,7 @@ use crate::{FormatPart, FormatPartType, ValueFormat, ValueType};
 
 /// Creates a new number format.
 pub fn create_boolean_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
+    let mut v = ValueFormat::with_name(name.into(), ValueType::Boolean);
 
     v.push_part(FormatPart::new(FormatPartType::Boolean));
 
@@ -45,7 +45,7 @@ pub fn create_number_format_fixed<S: Into<String>>(name: S, decimal: u8, groupin
 
 /// Creates a new percantage format.<
 pub fn create_percentage_format<S: Into<String>>(name: S, decimal: u8) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
+    let mut v = ValueFormat::with_name(name.into(), ValueType::Percentage);
 
     let mut p = FormatPart::new(FormatPartType::Number);
     p.set_prp("number:min-integer-digits", 1.to_string());
@@ -62,7 +62,7 @@ pub fn create_percentage_format<S: Into<String>>(name: S, decimal: u8) -> ValueF
 
 /// Creates a new currency format for EURO.
 pub fn create_euro_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
+    let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
 
     let mut p0 = FormatPart::new(FormatPartType::CurrencySymbol);
     p0.set_prp("number:language", String::from("de"));
@@ -87,7 +87,7 @@ pub fn create_euro_format<S: Into<String>>(name: S) -> ValueFormat {
 /// Creates a new currency format for EURO with negative values in red.
 /// Needs the name of the positive format.
 pub fn create_euro_red_format<S: Into<String>>(name: S, positive_style: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
+    let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
 
     let mut p0 = FormatPart::new(FormatPartType::StyleText);
     p0.set_prp("fo:color", String::from("#ff0000"));
@@ -124,7 +124,7 @@ pub fn create_euro_red_format<S: Into<String>>(name: S, positive_style: S) -> Va
 
 /// Creates a new date format D.M.Y
 pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
+    let mut v = ValueFormat::with_name(name.into(), ValueType::DateTime);
 
     v.push_parts(vec![
         FormatPart::new_vec(FormatPartType::Day, vec![("number:style", String::from("long"))]),
@@ -139,7 +139,7 @@ pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormat {
 
 /// Creates a datetime format Y-M-D H:M:S
 pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
+    let mut v = ValueFormat::with_name(name.into(), ValueType::DateTime);
 
     v.push_parts(vec![
         FormatPart::new_vec(FormatPartType::Year, vec![("number:style", String::from("long"))]),
@@ -160,7 +160,7 @@ pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
 
 /// Creates a new time-Duration format H:M:S
 pub fn create_time_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
+    let mut v = ValueFormat::with_name(name.into(), ValueType::TimeDuration);
 
     v.push_parts(vec![
         FormatPart::new(FormatPartType::Hours),
