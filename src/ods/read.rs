@@ -325,16 +325,23 @@ fn read_empty_table_cell(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
 fn parse_value(value_type: Option<ValueType>,
                cell_value: Option<String>,
                cell_content: Option<String>,
-               cell_currency: Option<String>) -> Result<Option<Value>, OdsError> {
+               cell_currency: Option<String>) -> Result<Value, OdsError> {
     if let Some(value_type) = value_type {
         match value_type {
+            ValueType::Empty => {
+                Ok(Value::Empty)
+            }
             ValueType::Text => {
-                Ok(cell_content.map(Value::Text))
+                if let Some(cell_content) = cell_content {
+                    Ok(Value::Text(cell_content))
+                } else {
+                    Ok(Value::Text("".to_string()))
+                }
             }
             ValueType::Number => {
                 if let Some(cell_value) = cell_value {
                     let f = cell_value.parse::<f64>()?;
-                    Ok(Some(Value::Number(f)))
+                    Ok(Value::Number(f))
                 } else {
                     Err(OdsError::Ods(String::from("Cell of type number, but no value!")))
                 }
@@ -348,7 +355,7 @@ fn parse_value(value_type: Option<ValueType>,
                             NaiveDateTime::parse_from_str(cell_value.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?
                         };
 
-                    Ok(Some(Value::DateTime(dt)))
+                    Ok(Value::DateTime(dt))
                 } else {
                     Err(OdsError::Ods(String::from("Cell of type datetime, but no value!")))
                 }
@@ -395,14 +402,14 @@ fn parse_value(value_type: Option<ValueType>,
                     let secs: u64 = hour as u64 * 3600 + min as u64 * 60 + sec as u64;
                     let dur = Duration::from_std(std::time::Duration::new(secs, nanos))?;
 
-                    Ok(Some(Value::TimeDuration(dur)))
+                    Ok(Value::TimeDuration(dur))
                 } else {
                     Err(OdsError::Ods(String::from("Cell of type time-duration, but no value!")))
                 }
             }
             ValueType::Boolean => {
                 if let Some(cell_value) = cell_value {
-                    Ok(Some(Value::Boolean(&cell_value == "true")))
+                    Ok(Value::Boolean(&cell_value == "true"))
                 } else {
                     Err(OdsError::Ods(String::from("Cell of type boolean, but no value!")))
                 }
@@ -411,7 +418,7 @@ fn parse_value(value_type: Option<ValueType>,
                 if let Some(cell_value) = cell_value {
                     let f = cell_value.parse::<f64>()?;
                     if let Some(cell_currency) = cell_currency {
-                        Ok(Some(Value::Currency(cell_currency, f)))
+                        Ok(Value::Currency(cell_currency, f))
                     } else {
                         Err(OdsError::Ods(String::from("Cell of type currency, but no currency name!")))
                     }
@@ -422,7 +429,7 @@ fn parse_value(value_type: Option<ValueType>,
             ValueType::Percentage => {
                 if let Some(cell_value) = cell_value {
                     let f = cell_value.parse::<f64>()?;
-                    Ok(Some(Value::Percentage(f)))
+                    Ok(Value::Percentage(f))
                 } else {
                     Err(OdsError::Ods(String::from("Cell of type percentage, but no value!")))
                 }

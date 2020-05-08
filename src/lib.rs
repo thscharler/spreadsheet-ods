@@ -473,33 +473,33 @@ impl Sheet {
     /// Sets a value for the specified cell. Creates a new cell if necessary.
     pub fn set_styled_value<V: Into<Value>, W: Into<String>>(&mut self, row: usize, col: usize, value: V, style: W) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
-        cell.value = Some(value.into());
+        cell.value = value.into();
         cell.style = Some(style.into());
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
     pub fn set_value<V: Into<Value>>(&mut self, row: usize, col: usize, value: V) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
-        cell.value = Some(value.into());
+        cell.value = value.into();
     }
 
     /// Returns a value
-    pub fn value(&self, row: usize, col: usize) -> Option<Value> {
+    pub fn value(&self, row: usize, col: usize) -> &Value {
         if let Some(cell) = self.data.get(&(row, col)) {
-            cell.value.as_ref().cloned()
+            &cell.value
         } else {
-            None
+            &Value::Empty
         }
     }
 
-    /// Returns a value
-    pub fn value_ref(&self, row: usize, col: usize) -> Option<&Value> {
-        if let Some(cell) = self.data.get(&(row, col)) {
-            cell.value.as_ref()
-        } else {
-            None
-        }
-    }
+    // /// Returns a value
+    // pub fn value_ref(&self, row: usize, col: usize) -> Option<&Value> {
+    //     if let Some(cell) = self.data.get(&(row, col)) {
+    //         cell.value.as_ref()
+    //     } else {
+    //         None
+    //     }
+    // }
 
     /// Sets a formula for the specified cell. Creates a new cell if necessary.
     pub fn set_formula<V: Into<String>>(&mut self, row: usize, col: usize, formula: V) {
@@ -535,7 +535,7 @@ impl Sheet {
 /// One Cell of the spreadsheet.
 #[derive(Debug, Clone, Default)]
 pub struct SCell {
-    value: Option<Value>,
+    value: Value,
     /// Unparsed formula string.
     formula: Option<String>,
     /// Cell style name.
@@ -546,7 +546,7 @@ impl SCell {
     /// New, empty.
     pub fn new() -> Self {
         SCell {
-            value: None,
+            value: Value::Empty,
             formula: None,
             style: None,
         }
@@ -555,20 +555,20 @@ impl SCell {
     /// New, with a value.
     pub fn with_value<V: Into<Value>>(value: V) -> Self {
         SCell {
-            value: Some(value.into()),
+            value: value.into(),
             formula: None,
             style: None,
         }
     }
 
     /// Returns the value.
-    pub fn value(&self) -> Option<&Value> {
-        self.value.as_ref()
+    pub fn value(&self) -> &Value {
+        &self.value
     }
 
     /// Sets the value.
     pub fn set_value<V: Into<Value>>(&mut self, value: V) {
-        self.value = Some(value.into());
+        self.value = value.into();
     }
 
     /// Returns the formula.
@@ -595,6 +595,7 @@ impl SCell {
 /// Datatypes
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ValueType {
+    Empty,
     Boolean,
     Number,
     Percentage,
@@ -613,6 +614,7 @@ impl Default for ValueType {
 /// Content-Values
 #[derive(Debug, Clone)]
 pub enum Value {
+    Empty,
     Boolean(bool),
     Number(f64),
     Percentage(f64),
@@ -625,6 +627,7 @@ pub enum Value {
 impl Value {
     pub fn value_type(&self) -> ValueType {
         match self {
+            Value::Empty => ValueType::Empty,
             Value::Boolean(_) => ValueType::Boolean,
             Value::Number(_) => ValueType::Number,
             Value::Percentage(_) => ValueType::Percentage,
@@ -635,12 +638,49 @@ impl Value {
         }
     }
 
+    pub fn as_bool(&self) -> bool {
+        if let Value::Boolean(b) = self {
+            *b
+        } else {
+            panic!("Value is not a bool");
+        }
+    }
+
+    pub fn as_f64(&self) -> f64 {
+        match self {
+            Value::Number(n) => *n ,
+            Value::Currency(_, v) => *v ,
+            Value::Percentage(p) => *p ,
+            _ => panic!("Value is not numeric"),
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Value::Text(s) => s.as_ref(),
+            _ => panic!("Value is not text"),
+        }
+    }
+
+    pub fn as_datetime(&self) -> NaiveDateTime {
+        match self {
+            Value::DateTime(dt) => *dt,
+            _ => panic!("Value is not a datetime"),
+        }
+    }
+
     pub fn currency(currency: &str, value: f64) -> Self {
         Value::Currency(currency.to_string(), value)
     }
 
     pub fn percentage(percent: f64) -> Self {
         Value::Percentage(percent)
+    }
+}
+
+impl Default for Value {
+    fn default() -> Self {
+        Value::Empty
     }
 }
 
@@ -831,8 +871,24 @@ impl Style {
         }
     }
 
+    pub fn cell_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::with_name(StyleFor::TableCell, name, value_style)
+    }
+
+    pub fn col_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::with_name(StyleFor::TableColumn, name, value_style)
+    }
+
+    pub fn row_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::with_name(StyleFor::TableRow, name, value_style)
+    }
+
+    pub fn table_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::with_name(StyleFor::Table, name, value_style)
+    }
+
     /// New, with name.
-    pub fn with_name<S: Into<String>>(family: StyleFor, name: S, value_style: S) -> Self {
+    pub fn with_name<S: Into<String>, T: Into<String>>(family: StyleFor, name: S, value_style: T) -> Self {
         Style {
             name: name.into(),
             display_name: None,

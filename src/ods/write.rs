@@ -586,10 +586,10 @@ fn write_table_columns(sheet: &Sheet,
 fn write_cell(book: &WorkBook,
               cell: &SCell,
               xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    if cell.value.is_some() {
-        xml_out.elem("table:table-cell")?;
-    } else {
-        xml_out.empty("table:table-cell")?;
+
+    match cell.value {
+        Value::Empty => xml_out.empty("table:table-cell")?,
+        _ => xml_out.elem("table:table-cell")?,
     }
 
     if let Some(formula) = &cell.formula {
@@ -598,10 +598,8 @@ fn write_cell(book: &WorkBook,
 
     if let Some(style) = &cell.style {
         xml_out.attr_esc("table:style-name", style.as_str())?;
-    } else if let Some(value) = &cell.value {
-        if let Some(style) = book.def_style(value.value_type()) {
-            xml_out.attr_esc("table:style-name", style.as_str())?;
-        }
+    } else if let Some(style) = book.def_style(cell.value.value_type()) {
+        xml_out.attr_esc("table:style-name", style.as_str())?;
     }
 
     // Might not yield a useful result. Could not exist, or be in styles.xml
@@ -613,8 +611,9 @@ fn write_cell(book: &WorkBook,
     };
 
     match &cell.value {
-        None => {}
-        Some(Value::Text(s)) => {
+        Value::Empty => {
+        }
+        Value::Text(s) => {
             xml_out.attr("office:value-type", "string")?;
             xml_out.elem("text:p")?;
             if let Some(value_style) = value_style {
@@ -624,7 +623,7 @@ fn write_cell(book: &WorkBook,
             }
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::DateTime(d)) => {
+        Value::DateTime(d) => {
             xml_out.attr("office:value-type", "date")?;
             let value = d.format("%Y-%m-%dT%H:%M:%S%.f").to_string();
             xml_out.attr("office:date-value", value.as_str())?;
@@ -636,7 +635,7 @@ fn write_cell(book: &WorkBook,
             }
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::TimeDuration(d)) => {
+        Value::TimeDuration(d) => {
             xml_out.attr("office:value-type", "time")?;
 
             let mut value = String::from("PT");
@@ -665,7 +664,7 @@ fn write_cell(book: &WorkBook,
             }
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Boolean(b)) => {
+        Value::Boolean(b) => {
             xml_out.attr("office:value-type", "boolean")?;
             xml_out.attr("office:boolean-value", if *b { "true" } else { "false" })?;
             xml_out.elem("text:p")?;
@@ -676,7 +675,7 @@ fn write_cell(book: &WorkBook,
             }
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Currency(c, v)) => {
+        Value::Currency(c, v) => {
             xml_out.attr("office:value-type", "currency")?;
             xml_out.attr_esc("office:currency", c.as_str())?;
             let value = v.to_string();
@@ -691,7 +690,7 @@ fn write_cell(book: &WorkBook,
             }
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Number(v)) => {
+        Value::Number(v) => {
             xml_out.attr("office:value-type", "float")?;
             let value = v.to_string();
             xml_out.attr("office:value", value.as_str())?;
@@ -703,7 +702,7 @@ fn write_cell(book: &WorkBook,
             }
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Percentage(v)) => {
+        Value::Percentage(v) => {
             xml_out.attr("office:value-type", "percentage")?;
             xml_out.attr("office:value", format!("{}%", v).as_str())?;
             xml_out.elem("text:p")?;
@@ -716,8 +715,9 @@ fn write_cell(book: &WorkBook,
         }
     }
 
-    if cell.value.is_some() {
-        xml_out.end_elem("table:table-cell")?;
+    match cell.value  {
+        Value::Empty => {}
+        _ => xml_out.end_elem("table:table-cell")?
     }
 
     Ok(())
@@ -804,6 +804,7 @@ fn write_styles(styles: &BTreeMap<String, Style>, origin: XMLOrigin, xml_out: &m
 fn write_value_styles(styles: &BTreeMap<String, ValueFormat>, origin: XMLOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     for style in styles.values().filter(|s| s.origin == origin) {
         let tag = match style.v_type {
+            ValueType::Empty => "number:empty_style", // ???
             ValueType::Boolean => "number:boolean-style",
             ValueType::Number => "number:number-style",
             ValueType::Text => "number:text-style",
