@@ -55,7 +55,6 @@ pub mod ods;
 pub mod style;
 pub mod defaultstyles;
 pub mod format;
-pub mod timing;
 
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
@@ -264,9 +263,9 @@ pub struct Sheet {
 
 impl fmt::Debug for Sheet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{:?} {:?}", self.name, self.style)?;
+        writeln!(f, "name {:?} style {:?}", self.name, self.style)?;
         for (k, v) in self.data.iter() {
-            writeln!(f, "{:?} {:?}", k, v)?;
+            writeln!(f, "  data {:?} {:?}", k, v)?;
         }
         if let Some(col_style) = &self.col_style {
             for (k, v) in col_style {
@@ -314,15 +313,17 @@ impl Sheet {
     }
 
     /// Returns the spreadsheet column name.
-    pub fn fcolref(col: usize) -> String {
+    pub fn fcolref(mut col: usize) -> String {
         let mut col_str = String::new();
 
-        let mut col2 = col;
-        while col2 > 0 {
-            let digit = (col2 % 26) as u8;
+        if col == 0 {
+            col_str.insert(0, 'A');
+        }
+        while col > 0 {
+            let digit = (col % 26) as u8;
             let cc = (b'A' + digit) as char;
             col_str.insert(0, cc);
-            col2 /= 26;
+            col /= 26;
         }
 
         col_str
@@ -492,15 +493,6 @@ impl Sheet {
         }
     }
 
-    // /// Returns a value
-    // pub fn value_ref(&self, row: usize, col: usize) -> Option<&Value> {
-    //     if let Some(cell) = self.data.get(&(row, col)) {
-    //         cell.value.as_ref()
-    //     } else {
-    //         None
-    //     }
-    // }
-
     /// Sets a formula for the specified cell. Creates a new cell if necessary.
     pub fn set_formula<V: Into<String>>(&mut self, row: usize, col: usize, formula: V) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
@@ -638,34 +630,75 @@ impl Value {
         }
     }
 
-    pub fn as_bool(&self) -> bool {
-        if let Value::Boolean(b) = self {
-            *b
-        } else {
-            panic!("Value is not a bool");
-        }
-    }
-
-    pub fn as_f64(&self) -> f64 {
+    /// Return content.
+    pub fn as_bool_or(&self, d: bool) -> bool {
         match self {
-            Value::Number(n) => *n ,
-            Value::Currency(_, v) => *v ,
-            Value::Percentage(p) => *p ,
-            _ => panic!("Value is not numeric"),
+            Value::Boolean(b) => *b,
+            _ => d,
         }
     }
 
-    pub fn as_str(&self) -> &str {
+    pub fn as_i32_or(&self, d: i32) -> i32 {
+        match self {
+            Value::Number(n) => *n as i32,
+            Value::Percentage(p) => *p as i32,
+            Value::Currency(_, v) => *v as i32,
+            _ => d,
+        }
+    }
+
+    pub fn as_u32_or(&self, d: u32) -> u32 {
+        match self {
+            Value::Number(n) => *n as u32,
+            Value::Percentage(p) => *p as u32,
+            Value::Currency(_, v) => *v as u32,
+            _ => d,
+        }
+    }
+
+    pub fn as_decimal_or(&self, d: Decimal) -> Decimal {
+        match self {
+            Value::Number(n) => Decimal::from_f64(*n).unwrap(),
+            Value::Currency(_, v) => Decimal::from_f64(*v).unwrap(),
+            Value::Percentage(p) => Decimal::from_f64(*p).unwrap(),
+            _ => d,
+        }
+    }
+
+    pub fn as_f64_or(&self, d: f64) -> f64 {
+        match self {
+            Value::Number(n) => *n,
+            Value::Currency(_, v) => *v,
+            Value::Percentage(p) => *p,
+            _ => d,
+        }
+    }
+
+    pub fn as_str_or<'a>(&'a self, d: &'a str) -> &'a str {
         match self {
             Value::Text(s) => s.as_ref(),
-            _ => panic!("Value is not text"),
+            _ => d,
         }
     }
 
-    pub fn as_datetime(&self) -> NaiveDateTime {
+    pub fn as_timeduration_or(&self, d: Duration) -> Duration {
+        match self {
+            Value::TimeDuration(td) => *td,
+            _ => d,
+        }
+    }
+
+    pub fn as_datetime_or(&self, d: NaiveDateTime) -> NaiveDateTime {
         match self {
             Value::DateTime(dt) => *dt,
-            _ => panic!("Value is not a datetime"),
+            _ => d,
+        }
+    }
+
+    pub fn as_datetime_opt(&self) -> Option<NaiveDateTime> {
+        match self {
+            Value::DateTime(dt) => Some(*dt),
+            _ => None,
         }
     }
 

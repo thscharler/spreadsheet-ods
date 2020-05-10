@@ -22,7 +22,13 @@ type XmlOdsWriter<'a> = XmlWriter<'a, &'a mut OdsWriter>;
 
 /// Writes the ODS file.
 pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
-    write_ods_clean(book, ods_path, true, true)?;
+    write_ods_clean(book, ods_path, false, true, true)?;
+    Ok(())
+}
+
+/// Writes the ODS file.
+pub fn write_ods_bak<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
+    write_ods_clean(book, ods_path, true, true, true)?;
     Ok(())
 }
 
@@ -30,13 +36,25 @@ pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), Ods
 /// temp files at the end.
 pub fn write_ods_clean<P: AsRef<Path>>(book: &WorkBook,
                                        ods_path: P,
+                                       bak: bool,
                                        zip: bool,
                                        clean: bool) -> Result<(), OdsError> {
-    let orig_bak = if let Some(ods_orig) = &book.file {
-        let mut orig_bak = ods_orig.clone();
-        orig_bak.set_extension("bak");
-        rename(&ods_orig, &orig_bak)?;
-        Some(orig_bak)
+
+    if bak && ods_path.as_ref().exists() {
+        let mut ods_bak = ods_path.as_ref().to_path_buf().clone();
+        ods_bak.set_extension("bak");
+        rename(&ods_path, &ods_bak)?;
+    }
+
+    // Origin File if any
+    let orig = if let Some(file) = &book.file {
+        if !file.exists() {
+            let mut ods_bak = ods_path.as_ref().to_path_buf().clone();
+            ods_bak.set_extension("bak");
+            Some(ods_bak)
+        } else {
+            Some(file.clone())
+        }
     } else {
         None
     };
@@ -47,8 +65,8 @@ pub fn write_ods_clean<P: AsRef<Path>>(book: &WorkBook,
 
     let mut file_set = HashSet::<String>::new();
     //
-    if let Some(orig_bak) = &orig_bak {
-        copy_workbook(&orig_bak, &mut file_set, &mut zip_writer)?;
+    if let Some(orig) = orig {
+        copy_workbook(&orig.to_path_buf(), &mut file_set, &mut zip_writer)?;
     }
 
     write_mimetype(&mut zip_writer, &mut file_set)?;
