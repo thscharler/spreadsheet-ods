@@ -22,19 +22,13 @@ type XmlOdsWriter<'a> = XmlWriter<'a, &'a mut OdsWriter>;
 
 /// Writes the ODS file.
 pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
-    write_ods_clean(book, ods_path, false, true, true)?;
-    Ok(())
-}
-
-/// Writes the ODS file.
-pub fn write_ods_bak<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
-    write_ods_clean(book, ods_path, true, true, true)?;
+    write_ods_flags(book, ods_path, false, true, true)?;
     Ok(())
 }
 
 /// Writes the ODS file. The parameter clean indicates the cleanup of the
 /// temp files at the end.
-pub fn write_ods_clean<P: AsRef<Path>>(book: &WorkBook,
+pub fn write_ods_flags<P: AsRef<Path>>(book: &WorkBook,
                                        ods_path: P,
                                        bak: bool,
                                        zip: bool,
@@ -633,13 +627,11 @@ fn write_cell(book: &WorkBook,
         }
         Value::Text(s) => {
             xml_out.attr("office:value-type", "string")?;
-            xml_out.elem("text:p")?;
-            if let Some(value_style) = value_style {
-                xml_out.text_esc(value_style.format_str(s).as_str())?;
-            } else {
-                xml_out.text_esc(s)?;
+            for l in s.split("\n") {
+                xml_out.elem("text:p")?;
+                xml_out.text_esc(l)?;
+                xml_out.end_elem("text:p")?;
             }
-            xml_out.end_elem("text:p")?;
         }
         Value::DateTime(d) => {
             xml_out.attr("office:value-type", "date")?;

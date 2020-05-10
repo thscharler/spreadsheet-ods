@@ -13,22 +13,26 @@ use std::collections::BTreeMap;
 
 // Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
+    read_ods_flags(path, false)
+}
+
+// Reads an ODS-file.
+pub fn read_ods_flags<P: AsRef<Path>>(path: P, dump_xml: bool) -> Result<WorkBook, OdsError> {
     let file = File::open(path.as_ref())?;
     // ods is a zip-archive, we read content.xml
     let mut zip = zip::ZipArchive::new(file)?;
     let mut zip_file = zip.by_name("content.xml")?;
 
-    let mut book = read_content(&mut zip_file)?;
+    let mut book = read_content(&mut zip_file, dump_xml)?;
 
     book.file = Some(path.as_ref().to_path_buf());
 
     Ok(book)
 }
 
-fn read_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
+fn read_content(zip_file: &mut ZipFile, dump_xml: bool) -> Result<WorkBook, OdsError> {
     // xml parser
-    let mut xml
-        = quick_xml::Reader::from_reader(BufReader::new(zip_file));
+    let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
     xml.trim_text(true);
 
     let mut buf = Vec::new();
@@ -50,7 +54,7 @@ fn read_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
 
     loop {
         let event = xml.read_event(&mut buf)?;
-        //if DUMP_XML { log::debug!("{:?}", event); }
+        if dump_xml { log::debug!("{:?}", event); }
         match event {
             Event::Start(xml_tag)
             if xml_tag.name() == b"table:table" => {
@@ -75,11 +79,13 @@ fn read_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
             }
             Event::End(xml_tag)
             if xml_tag.name() == b"table:table-row" => {
-                if let Some(style) = row_style {
-                    for r in row..row + row_repeat {
-                        sheet.set_row_style(r, style.clone());
-                    }
-                }
+                // Dieser Row-Style ist oft 1.000.000 mal wiederholt.
+                // Das bremst gewaltig, deshalb für's erste ignorieren.
+                // if let Some(style) = row_style {
+                //     for r in row..row + row_repeat {
+                //         sheet.set_row_style(r, style.clone());
+                //     }
+                // }
                 row_style = None;
 
                 row += row_repeat;
@@ -89,19 +95,21 @@ fn read_content(zip_file: &mut ZipFile) -> Result<WorkBook, OdsError> {
 
             Event::Start(xml_tag)
             if xml_tag.name() == b"office:font-face-decls" =>
-                read_fonts(&mut book, &mut xml, b"office:font-face-decls")?,
+                read_fonts(&mut book, &mut xml, b"office:font-face-decls", dump_xml)?,
 
             Event::Start(xml_tag)
             if xml_tag.name() == b"office:automatic-styles" =>
-                read_styles(&mut book, &mut xml, b"office:automatic-styles")?,
+                read_styles(&mut book, &mut xml, b"office:automatic-styles", dump_xml)?,
 
             Event::Empty(xml_tag)
-            if xml_tag.name() == b"table:table-cell" =>
-                col = read_empty_table_cell(&mut xml, xml_tag, col)?,
+            if xml_tag.name() == b"table:table-cell" => {
+                col = read_empty_table_cell(&mut xml, xml_tag, row, col, &mut sheet)?;
+            }
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"table:table-cell" =>
-                col = read_table_cell(&mut xml, xml_tag, row, col, &mut sheet)?,
+            if xml_tag.name() == b"table:table-cell" => {
+                col = read_table_cell(&mut xml, xml_tag, row, col, &mut sheet, dump_xml)?;
+            }
 
             Event::Eof => {
                 break;
@@ -213,7 +221,8 @@ fn read_table_cell(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                    xml_tag: BytesStart,
                    row: usize,
                    mut col: usize,
-                   sheet: &mut Sheet) -> Result<usize, OdsError> {
+                   sheet: &mut Sheet,
+                   dump_xml: bool) -> Result<usize, OdsError> {
 
     // The current cell.
     let mut cell: SCell = SCell::new();
@@ -262,12 +271,31 @@ fn read_table_cell(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     let mut buf = Vec::new();
     loop {
         let evt = xml.read_event(&mut buf)?;
-        //if DUMP_XML { log::debug!(" style {:?}", evt); }
+        if dump_xml { log::debug!(" style {:?}", evt); }
         match evt {
             Event::Text(xml_tag) => {
                 // Not every cell type has a value attribute, some take
                 // their value from the string representation.
-                cell_content = Some(xml_tag.unescape_and_decode(&xml)?);
+                cell_content = text_append(cell_content, &xml_tag.unescape_and_decode(&xml)?);
+            }
+
+            Event::Start(xml_tag)
+            if xml_tag.name() == b"text:p" => {
+                cell_content = text_append_or(cell_content, "\n", "");
+            }
+            Event::Empty(xml_tag)
+            if xml_tag.name() == b"text:p" => {}
+            Event::End(xml_tag)
+            if xml_tag.name() == b"text:p" => {}
+
+            Event::Start(xml_tag)
+            if xml_tag.name() == b"text:a" => {}
+            Event::End(xml_tag)
+            if xml_tag.name() == b"text:a" => {}
+
+            Event::Empty(xml_tag)
+            if xml_tag.name() == b"text:s" => {
+                cell_content = text_append(cell_content, " ");
             }
 
             Event::End(xml_tag)
@@ -301,22 +329,67 @@ fn read_table_cell(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     Ok(col)
 }
 
+fn text_append_or(text: Option<String>, append: &str, default: &str) -> Option<String> {
+    match text {
+        Some(s) => Some(s + append),
+        None => Some(default.to_string())
+    }
+}
+
+fn text_append(text: Option<String>, append: &str) -> Option<String> {
+    match text {
+        Some(s) => Some(s + append),
+        None => Some(append.to_owned())
+    }
+}
+
 fn read_empty_table_cell(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                          xml_tag: BytesStart,
-                         mut col: usize) -> Result<usize, OdsError> {
-    // Simple empty cell. Advance and don't store anything.
-    if xml_tag.attributes().count() == 0 {
-        col += 1;
-    }
+                         row: usize,
+                         mut col: usize,
+                         sheet: &mut Sheet) -> Result<usize, OdsError> {
+    let mut cell = None;
+    // Default advance is one column.
+    let mut cell_repeat = 1;
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:number-columns-repeated" => {
                 let v = attr.unescaped_value()?;
                 let v = xml.decode(v.as_ref())?;
-                col += v.parse::<usize>()?;
+                cell_repeat = v.parse::<usize>()?;
             }
+
+            attr if attr.key == b"table:formula" => {
+                if cell.is_none() {
+                    cell = Some(SCell::new());
+                }
+                if let Some(c) = &mut cell {
+                    c.formula = Some(attr.unescape_and_decode_value(&xml)?);
+                }
+            }
+            attr if attr.key == b"table:style-name" => {
+                if cell.is_none() {
+                    cell = Some(SCell::new());
+                }
+                if let Some(c) = &mut cell {
+                    c.style = Some(attr.unescape_and_decode_value(&xml)?);
+                }
+            }
+
             _ => { /* should be nothing else of interest here */ }
         }
+    }
+
+    if let Some(cell) = cell {
+        while cell_repeat > 1 {
+            sheet.add_cell(row, col, cell.clone());
+            col += 1;
+            cell_repeat -= 1;
+        }
+        sheet.add_cell(row, col, cell);
+        col += 1;
+    } else {
+        col += cell_repeat;
     }
 
     Ok(col)
@@ -456,14 +529,15 @@ fn decode_value_type(attr: Attribute) -> Result<ValueType, OdsError> {
 #[allow(clippy::single_match)]
 fn read_fonts(book: &mut WorkBook,
               xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-              end_tag: &[u8]) -> Result<(), OdsError> {
+              end_tag: &[u8],
+              dump_xml: bool) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
     let mut font: FontDecl = FontDecl::new_origin(XMLOrigin::Content);
 
     loop {
         let evt = xml.read_event(&mut buf)?;
-        //if DUMP_XML { log::debug!(" style {:?}", evt); }
+        if dump_xml { log::debug!(" style {:?}", evt); }
         match evt {
             Event::Start(ref xml_tag)
             | Event::Empty(ref xml_tag) => {
@@ -510,7 +584,8 @@ fn read_fonts(book: &mut WorkBook,
 
 fn read_styles(book: &mut WorkBook,
                xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-               end_tag: &[u8]) -> Result<(), OdsError> {
+               end_tag: &[u8],
+               dump_xml: bool) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
     let mut style: Style = Style::new_origin(XMLOrigin::Content);
@@ -520,7 +595,7 @@ fn read_styles(book: &mut WorkBook,
 
     loop {
         let evt = xml.read_event(&mut buf)?;
-        //if DUMP_XML { log::debug!(" style {:?}", evt); }
+        if dump_xml { log::debug!(" style {:?}", evt); }
         match evt {
             Event::Start(ref xml_tag)
             | Event::Empty(ref xml_tag) => {
