@@ -9,7 +9,7 @@ use zip::write::FileOptions;
 
 use crate::{StyleFor, XMLOrigin, FormatPartType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
 use crate::ods::error::OdsError;
-use crate::ods::tmp2zip::TempZip;
+use crate::ods::tmp2zip::{TempZip, TempWrite};
 use crate::ods::xmlwriter::XmlWriter;
 
 // this did not work out as expected ...
@@ -18,7 +18,7 @@ use crate::ods::xmlwriter::XmlWriter;
 // type XmlOdsWriter<'a> = quick_xml::Writer<&'a mut zip::ZipWriter<BufWriter<File>>>;
 
 type OdsWriter = TempZip;
-type XmlOdsWriter<'a> = XmlWriter<'a, &'a mut OdsWriter>;
+type XmlOdsWriter<'a> = XmlWriter<'a, TempWrite<'a>>;
 
 /// Writes the ODS file.
 pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
@@ -33,7 +33,6 @@ pub fn write_ods_flags<P: AsRef<Path>>(book: &WorkBook,
                                        bak: bool,
                                        zip: bool,
                                        clean: bool) -> Result<(), OdsError> {
-
     if bak && ods_path.as_ref().exists() {
         let mut ods_bak = ods_path.as_ref().to_path_buf();
         ods_bak.set_extension("bak");
@@ -69,7 +68,6 @@ pub fn write_ods_flags<P: AsRef<Path>>(book: &WorkBook,
     write_meta(&mut zip_writer, &mut file_set)?;
     //write_settings(&mut zip_writer, &mut file_set)?;
     //write_configurations(&mut zip_writer, &mut file_set)?;
-
     write_ods_styles(&mut zip_writer, &mut file_set)?;
     write_ods_content(&book, &mut zip_writer, &mut file_set)?;
 
@@ -97,14 +95,15 @@ fn copy_workbook(ods_orig_name: &PathBuf, file_set: &mut HashSet<String>, zip_wr
             }
         } else if !file_set.contains(zip_entry.name()) {
             file_set.insert(zip_entry.name().to_string());
-            zip_writer.start_file(zip_entry.name(), FileOptions::default())?;
+            println!("copy to {:?}", zip_entry.name());
+            let mut wr = zip_writer.start_file(zip_entry.name(), FileOptions::default())?;
             let mut buf: [u8; 1024] = [0; 1024];
             loop {
                 let n = zip_entry.read(&mut buf)?;
                 if n == 0 {
                     break;
                 } else {
-                    zip_writer.write_all(&buf[0..n])?;
+                    wr.write_all(&buf[0..n])?;
                 }
             }
         }
@@ -117,10 +116,10 @@ fn write_mimetype(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Re
     if !file_set.contains("mimetype") {
         file_set.insert(String::from("mimetype"));
 
-        zip_out.start_file("mimetype", FileOptions::default().compression_method(zip::CompressionMethod::Stored))?;
+        let mut w = zip_out.start_file("mimetype", FileOptions::default().compression_method(zip::CompressionMethod::Stored))?;
 
         let mime = "application/vnd.oasis.opendocument.spreadsheet";
-        zip_out.write_all(mime.as_bytes())?;
+        w.write_all(mime.as_bytes())?;
     }
 
     Ok(())
@@ -131,9 +130,9 @@ fn write_manifest(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Re
         file_set.insert(String::from("META-INF/manifest.xml"));
 
         zip_out.add_directory("META-INF", FileOptions::default())?;
-        zip_out.start_file("META-INF/manifest.xml", FileOptions::default())?;
+        let w = zip_out.start_file("META-INF/manifest.xml", FileOptions::default())?;
 
-        let mut xml_out = XmlWriter::new(zip_out);
+        let mut xml_out = XmlWriter::new(w);
 
         xml_out.dtd("UTF-8")?;
 
@@ -184,9 +183,9 @@ fn write_manifest_rdf(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -
     if !file_set.contains("manifest.rdf") {
         file_set.insert(String::from("manifest.rdf"));
 
-        zip_out.start_file("manifest.rdf", FileOptions::default())?;
+        let w = zip_out.start_file("manifest.rdf", FileOptions::default())?;
 
-        let mut xml_out = XmlWriter::new(zip_out);
+        let mut xml_out = XmlWriter::new(w);
 
         xml_out.dtd("UTF-8")?;
 
@@ -230,9 +229,9 @@ fn write_meta(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result
     if !file_set.contains("meta.xml") {
         file_set.insert(String::from("meta.xml"));
 
-        zip_out.start_file("meta.xml", FileOptions::default())?;
+        let w = zip_out.start_file("meta.xml", FileOptions::default())?;
 
-        let mut xml_out = XmlWriter::new(zip_out);
+        let mut xml_out = XmlWriter::new(w);
 
         xml_out.dtd("UTF-8")?;
 
@@ -322,9 +321,9 @@ fn write_ods_styles(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> 
     if !file_set.contains("styles.xml") {
         file_set.insert(String::from("styles.xml"));
 
-        zip_out.start_file("styles.xml", FileOptions::default())?;
+        let w = zip_out.start_file("styles.xml", FileOptions::default())?;
 
-        let mut xml_out = XmlWriter::new(zip_out);
+        let mut xml_out = XmlWriter::new(w);
 
         xml_out.dtd("UTF-8")?;
 
@@ -361,9 +360,8 @@ fn write_ods_styles(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> 
 fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
     file_set.insert(String::from("content.xml"));
 
-    zip_out.start_file("content.xml", FileOptions::default())?;
-
-    let mut xml_out = XmlWriter::new(zip_out);
+    let w = zip_out.start_file("content.xml", FileOptions::default())?;
+    let mut xml_out = XmlWriter::new(w);
 
     xml_out.dtd("UTF-8")?;
 
@@ -598,7 +596,6 @@ fn write_table_columns(sheet: &Sheet,
 fn write_cell(book: &WorkBook,
               cell: &SCell,
               xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-
     match cell.value {
         Value::Empty => xml_out.empty("table:table-cell")?,
         _ => xml_out.elem("table:table-cell")?,
@@ -623,8 +620,7 @@ fn write_cell(book: &WorkBook,
     };
 
     match &cell.value {
-        Value::Empty => {
-        }
+        Value::Empty => {}
         Value::Text(s) => {
             xml_out.attr("office:value-type", "string")?;
             for l in s.split('\n') {
@@ -725,7 +721,7 @@ fn write_cell(book: &WorkBook,
         }
     }
 
-    match cell.value  {
+    match cell.value {
         Value::Empty => {}
         _ => xml_out.end_elem("table:table-cell")?
     }

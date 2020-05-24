@@ -1,7 +1,9 @@
 use std::io::{self, Write};
 use std::fmt;
-use std::marker::PhantomData;
 use std::fmt::{Display, Formatter};
+
+#[cfg(not(feature = "check_xml"))]
+use std::marker::PhantomData;
 
 pub type Result = io::Result<()>;
 
