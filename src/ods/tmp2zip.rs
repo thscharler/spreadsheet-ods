@@ -33,6 +33,10 @@ impl TempZip {
         let mut path: PathBuf = zip_file.parent().unwrap().to_path_buf();
         path.push(zip_file.file_stem().unwrap());
 
+        if path.exists() {
+            panic!("ZIP temp directory {:?} already exists!", path);
+        }
+
         TempZip {
             zipped: zip_file.to_path_buf(),
             temp_path: path,
