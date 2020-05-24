@@ -134,12 +134,6 @@ impl WorkBook {
         &mut self.sheets[n]
     }
 
-    /// Creates a new sheet at the end and returns it.
-    pub fn new_sheet(&mut self) -> &mut Sheet {
-        self.sheets.push(Sheet::new());
-        self.sheets.last_mut().unwrap()
-    }
-
     /// Replaces the existing sheet.
     pub fn insert_sheet(&mut self, i: usize, sheet: Sheet) {
         self.sheets.insert(i, sheet);

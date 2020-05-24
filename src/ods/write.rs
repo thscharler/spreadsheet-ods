@@ -35,7 +35,7 @@ pub fn write_ods_flags<P: AsRef<Path>>(book: &WorkBook,
                                        clean: bool) -> Result<(), OdsError> {
 
     if bak && ods_path.as_ref().exists() {
-        let mut ods_bak = ods_path.as_ref().to_path_buf().clone();
+        let mut ods_bak = ods_path.as_ref().to_path_buf();
         ods_bak.set_extension("bak");
         rename(&ods_path, &ods_bak)?;
     }
@@ -43,7 +43,7 @@ pub fn write_ods_flags<P: AsRef<Path>>(book: &WorkBook,
     // Origin File if any
     let orig = if let Some(file) = &book.file {
         if !file.exists() {
-            let mut ods_bak = ods_path.as_ref().to_path_buf().clone();
+            let mut ods_bak = ods_path.as_ref().to_path_buf();
             ods_bak.set_extension("bak");
             Some(ods_bak)
         } else {
@@ -60,7 +60,7 @@ pub fn write_ods_flags<P: AsRef<Path>>(book: &WorkBook,
     let mut file_set = HashSet::<String>::new();
     //
     if let Some(orig) = orig {
-        copy_workbook(&orig.to_path_buf(), &mut file_set, &mut zip_writer)?;
+        copy_workbook(&orig, &mut file_set, &mut zip_writer)?;
     }
 
     write_mimetype(&mut zip_writer, &mut file_set)?;
@@ -627,7 +627,7 @@ fn write_cell(book: &WorkBook,
         }
         Value::Text(s) => {
             xml_out.attr("office:value-type", "string")?;
-            for l in s.split("\n") {
+            for l in s.split('\n') {
                 xml_out.elem("text:p")?;
                 xml_out.text_esc(l)?;
                 xml_out.end_elem("text:p")?;

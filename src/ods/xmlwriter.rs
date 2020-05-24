@@ -297,7 +297,7 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     }
 
     fn write_buf(&mut self) -> Result {
-        self.writer.write(self.buf.as_bytes())?;
+        self.writer.write_all(self.buf.as_bytes())?;
         self.buf.clear();
         Ok(())
     }
