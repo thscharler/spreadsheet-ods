@@ -66,7 +66,7 @@ impl TempZip {
 
     /// Starts a new file inside the zip. After calling this function
     /// the Write trait for TempZip starts working.
-    pub fn start_file<'a>(&'a mut self, name: &str, fopt: zip::write::FileOptions) -> Result<TempWrite<'a>, std::io::Error> {
+    pub fn start_file<'a>(&'a mut self, name: &'_ str, fopt: zip::write::FileOptions) -> Result<TempWrite<'a>, std::io::Error> {
         let file = self.temp_path.join(name);
         let path = file.parent().unwrap();
 
