@@ -90,6 +90,7 @@ impl TempZip {
 
         let mut zip_writer = zip::ZipWriter::new(BufWriter::new(zip_file));
 
+        // deduplizieren.
         let mut names = HashSet::new();
 
         for entry in &self.entries {

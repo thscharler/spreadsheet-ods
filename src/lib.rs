@@ -729,6 +729,16 @@ impl From<&String> for Value {
     }
 }
 
+impl From<Option<String>> for Value {
+    fn from(s: Option<String>) -> Self {
+        if let Some(s) = s {
+            Value::Text(s)
+        } else {
+            Value::Empty
+        }
+    }
+}
+
 impl From<Decimal> for Value {
     fn from(f: Decimal) -> Self {
         Value::Number(f.to_f64().unwrap())
@@ -781,8 +791,28 @@ impl From<NaiveDateTime> for Value {
     }
 }
 
+impl From<Option<NaiveDateTime>> for Value {
+    fn from(dt: Option<NaiveDateTime>) -> Self {
+        if let Some(dt) = dt {
+            Value::DateTime(dt)
+        } else {
+            Value::Empty
+        }
+    }
+}
+
 impl From<NaiveDate> for Value {
     fn from(dt: NaiveDate) -> Self { Value::DateTime(dt.and_hms(0, 0, 0)) }
+}
+
+impl From<Option<NaiveDate>> for Value {
+    fn from(dt: Option<NaiveDate>) -> Self {
+        if let Some(dt) = dt {
+            Value::DateTime(dt.and_hms(0, 0, 0))
+        } else {
+            Value::Empty
+        }
+    }
 }
 
 impl From<Duration> for Value {

@@ -95,7 +95,6 @@ fn copy_workbook(ods_orig_name: &PathBuf, file_set: &mut HashSet<String>, zip_wr
             }
         } else if !file_set.contains(zip_entry.name()) {
             file_set.insert(zip_entry.name().to_string());
-            println!("copy to {:?}", zip_entry.name());
             let mut wr = zip_writer.start_file(zip_entry.name(), FileOptions::default())?;
             let mut buf: [u8; 1024] = [0; 1024];
             loop {
@@ -482,13 +481,16 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
             *cur_col as i32 - last_c as i32
         };
 
+        // println!("cell first={} {},{} < *{},{}* < {},{} ", first_cell, last_r, last_c, cur_row, cur_col, next_r, next_c);
+        // println!("     backward {},{} forward {},{}", backward_dr, backward_dc, forward_dr, forward_dc);
+
         // After the first cell there is always an open row tag.
         if backward_dr > 0 && !first_cell {
             xml_out.end_elem("table:table-row")?;
         }
 
         // Any empty rows before this one?
-        if backward_dr > 1 {
+        if backward_dr > 0 {
             write_empty_rows_before(first_cell, backward_dr, &max_cell, xml_out)?;
         }
 
@@ -546,25 +548,28 @@ fn write_start_current_row(sheet: &Sheet,
 }
 
 fn write_empty_rows_before(first_cell: bool,
-                           backward_dr: i32,
+                           mut backward_dr: i32,
                            max_cell: &(usize, usize),
                            xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     // Empty rows in between are 1 less than the delta, except at the very start.
-    xml_out.elem("table:table-row")?;
-    let empty_count = if first_cell {
-        backward_dr.to_string()
-    } else {
-        (backward_dr - 1).to_string()
-    };
-    xml_out.attr("table:number-rows-repeated", empty_count.as_str())?;
+    if first_cell {
+        backward_dr += 1;
+    }
 
+    // Only deltas greater 1 are relevant.
+    if backward_dr > 1 {
+        xml_out.elem("table:table-row")?;
 
-    // We fill the empty spaces completely up to max columns.
-    let max_cell_col = max_cell.1.to_string();
-    xml_out.empty("table:table-cell")?;
-    xml_out.attr("table:number-columns-repeated", max_cell_col.as_str())?;
+        let empty_count = backward_dr - 1;
+        xml_out.attr("table:number-rows-repeated", &empty_count.to_string())?;
 
-    xml_out.end_elem("table:table-row")?;
+        // We fill the empty spaces completely up to max columns.
+        let max_cell_col = max_cell.1.to_string();
+        xml_out.empty("table:table-cell")?;
+        xml_out.attr("table:number-columns-repeated", max_cell_col.as_str())?;
+
+        xml_out.end_elem("table:table-row")?;
+    }
 
     Ok(())
 }
