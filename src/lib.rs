@@ -7,14 +7,15 @@
 //! use spreadsheet_ods::{WorkBook, Sheet, Style, StyleFor, ValueFormat, ValueType, FormatPart};
 //! use chrono::NaiveDate;
 //! use spreadsheet_ods::format;
+//! use spreadsheet_ods::formula;
 //!
-//! let mut wb = spreadsheet_ods::ods::read_ods("example.ods").unwrap();
+//! let mut wb = spreadsheet_ods::ods::read_ods("tests/example.ods").unwrap();
 //!
 //! let mut sheet = wb.sheet_mut(0);
 //! sheet.set_value(0, 0, 21.4f32);
 //! sheet.set_value(0, 1, "foo");
 //! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), "nice_date_style");
-//! sheet.set_formula(0, 3, format!("of:={}+1", Sheet::fcellref(0,0)));
+//! sheet.set_formula(0, 3, format!("of:={}+1", formula::cellref(0,0)));
 //!
 //! let nice_date_format = format::create_date_dmy_format("nice_date_format");
 //! wb.add_format(nice_date_format);
@@ -29,10 +30,13 @@
 //! When saving all the extra content is copied from the original file,
 //! except for content.xml which is rewritten.
 //!
-//! For context.xml the following information is read and written:
+//! For content.xml the following information is read and written:
 //! * fonts
 //! * styles
-//! * table-data and structure
+//! * data-formats
+//! * table-data
+//! ** all datatypes
+//! ** no complex text
 //!
 //! The following things are ignored for now
 //! * conditional formats
@@ -42,19 +46,24 @@
 //!
 
 use std::collections::{BTreeMap, HashMap};
-use std::collections::btree_map::Range;
 use std::fmt;
+use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
-use chrono::{Duration, NaiveDateTime, NaiveDate};
+
+use chrono::{Duration, NaiveDate, NaiveDateTime};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
 use string_cache::DefaultAtom;
-use std::fmt::{Display, Formatter};
 
 pub mod ods;
 pub mod style;
 pub mod defaultstyles;
 pub mod format;
+pub mod formula;
+
+/// Cell index type for row/column indexes.
+#[allow(non_camel_case_types)]
+pub type ucell = u32;
 
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
@@ -63,22 +72,28 @@ pub struct WorkBook {
     sheets: Vec<Sheet>,
 
     //// FontDecl hold the style:font-face elements
-    fonts: BTreeMap<String, FontDecl>,
+    fonts: HashMap<String, FontDecl>,
 
     /// Styles hold the style:style elements.
-    styles: BTreeMap<String, Style>,
+    styles: HashMap<String, Style>,
 
     /// Value-styles are actual formatting instructions
     /// for various datatypes.
     /// Represents the various number:xxx-style elements.
-    formats: BTreeMap<String, ValueFormat>,
+    formats: HashMap<String, ValueFormat>,
 
     /// Default-styles per Type.
     /// This is only used when writing the ods file.
     def_styles: Option<HashMap<ValueType, String>>,
 
+    /// Page layouts.
+    // page_layouts: HashMap<String, PageLayout>,
+
+    /// Page styles.
+    // page_styles: HashMap<String, PageStyle>,
+
     /// Original file if this book was read from one.
-    /// This is used for writing to copy all additional
+    /// This is used when writing to copy all additional
     /// files except content.xml
     file: Option<PathBuf>,
 }
@@ -109,9 +124,9 @@ impl WorkBook {
     pub fn new() -> Self {
         WorkBook {
             sheets: Vec::new(),
-            fonts: BTreeMap::new(),
-            styles: BTreeMap::new(),
-            formats: BTreeMap::new(),
+            fonts: HashMap::new(),
+            styles: HashMap::new(),
+            formats: HashMap::new(),
             def_styles: None,
             file: None,
         }
@@ -134,17 +149,17 @@ impl WorkBook {
         &mut self.sheets[n]
     }
 
-    /// Replaces the existing sheet.
+    /// Inserts the sheet at the given position.
     pub fn insert_sheet(&mut self, i: usize, sheet: Sheet) {
         self.sheets.insert(i, sheet);
     }
 
-    /// Adds a sheet.
+    /// Appends a sheet.
     pub fn push_sheet(&mut self, sheet: Sheet) {
         self.sheets.push(sheet);
     }
 
-    /// Removes a sheet.
+    /// Removes a sheet from the table.
     pub fn remove_sheet(&mut self, n: usize) -> Sheet {
         self.sheets.remove(n)
     }
@@ -248,11 +263,11 @@ pub struct Sheet {
     name: String,
     style: Option<String>,
 
-    data: BTreeMap<(usize, usize), SCell>,
+    data: BTreeMap<(ucell, ucell), SCell>,
 
-    col_style: Option<BTreeMap<usize, String>>,
-    col_cell_style: Option<BTreeMap<usize, String>>,
-    row_style: Option<BTreeMap<usize, String>>,
+    col_style: Option<BTreeMap<ucell, String>>,
+    col_cell_style: Option<BTreeMap<ucell, String>>,
+    row_style: Option<BTreeMap<ucell, String>>,
 }
 
 impl fmt::Debug for Sheet {
@@ -306,46 +321,6 @@ impl Sheet {
         }
     }
 
-    /// Returns the spreadsheet column name.
-    pub fn fcolref(mut col: usize) -> String {
-        let mut col_str = String::new();
-
-        if col == 0 {
-            col_str.insert(0, 'A');
-        }
-        while col > 0 {
-            let digit = (col % 26) as u8;
-            let cc = (b'A' + digit) as char;
-            col_str.insert(0, cc);
-            col /= 26;
-        }
-
-        col_str
-    }
-
-    /// Creates a cell-reference for use in formulas.
-    pub fn fcellref(row: usize, col: usize) -> String {
-        let mut cell = String::from("[.");
-        cell.push_str(&Sheet::fcolref(col));
-        cell.push_str(&(row + 1).to_string());
-        cell.push_str("]");
-
-        cell
-    }
-
-    /// Creates a cell-reference for use in formulas.
-    pub fn frangeref(row: usize, col: usize, row_to: usize, col_to: usize) -> String {
-        let mut cell = String::from("[.");
-        cell.push_str(&Sheet::fcolref(col));
-        cell.push_str(&(row + 1).to_string());
-        cell.push_str(":");
-        cell.push_str(&Sheet::fcolref(col_to));
-        cell.push_str(&(row_to + 1).to_string());
-        cell.push_str("]");
-
-        cell
-    }
-
     /// Sheet name.
     pub fn set_name<V: Into<String>>(&mut self, name: V) {
         self.name = name.into();
@@ -367,7 +342,7 @@ impl Sheet {
     }
 
     /// Column wide style.
-    pub fn set_column_style<V: Into<String>>(&mut self, col: usize, style: V) {
+    pub fn set_column_style<V: Into<String>>(&mut self, col: ucell, style: V) {
         if self.col_style.is_none() {
             self.col_style = Some(BTreeMap::new());
         }
@@ -377,7 +352,7 @@ impl Sheet {
     }
 
     /// Returns the column wide style.
-    pub fn column_style(&self, col: usize) -> Option<&String> {
+    pub fn column_style(&self, col: ucell) -> Option<&String> {
         if let Some(col_style) = &self.col_style {
             col_style.get(&col)
         } else {
@@ -386,7 +361,7 @@ impl Sheet {
     }
 
     /// Default cell style for this column.
-    pub fn set_column_cell_style<V: Into<String>>(&mut self, col: usize, style: V) {
+    pub fn set_column_cell_style<V: Into<String>>(&mut self, col: ucell, style: V) {
         if self.col_cell_style.is_none() {
             self.col_cell_style = Some(BTreeMap::new());
         }
@@ -396,7 +371,7 @@ impl Sheet {
     }
 
     /// Returns the default cell style for this column.
-    pub fn column_cell_style(&self, col: usize) -> Option<&String> {
+    pub fn column_cell_style(&self, col: ucell) -> Option<&String> {
         if let Some(col_cell_style) = &self.col_cell_style {
             col_cell_style.get(&col)
         } else {
@@ -405,7 +380,7 @@ impl Sheet {
     }
 
     /// Row style.
-    pub fn set_row_style<V: Into<String>>(&mut self, row: usize, style: V) {
+    pub fn set_row_style<V: Into<String>>(&mut self, row: ucell, style: V) {
         if self.row_style.is_none() {
             self.row_style = Some(BTreeMap::new());
         }
@@ -415,7 +390,7 @@ impl Sheet {
     }
 
     /// Returns the row style.
-    pub fn row_style(&self, row: usize) -> Option<&String> {
+    pub fn row_style(&self, row: ucell) -> Option<&String> {
         if let Some(row_style) = &self.row_style {
             row_style.get(&row)
         } else {
@@ -424,62 +399,57 @@ impl Sheet {
     }
 
     /// Returns a tuple of (max(row)+1, max(col)+1)
-    pub fn used_grid_size(&self) -> (usize, usize) {
+    pub fn used_grid_size(&self) -> (ucell, ucell) {
         let max = self.data.keys().fold((0, 0), |mut max, (r, c)| {
-            max.0 = usize::max(max.0, *r);
-            max.1 = usize::max(max.1, *c);
+            max.0 = u32::max(max.0, *r);
+            max.1 = u32::max(max.1, *c);
             max
         });
 
         (max.0 + 1, max.1 + 1)
     }
 
-    /// Returns a row of data.
-    pub fn row_cells(&self, row: usize) -> Range<(usize, usize), SCell> {
-        self.data.range((row, 0)..(row + 1, 0))
-    }
-
     /// Returns the cell if available.
-    pub fn cell(&self, row: usize, col: usize) -> Option<&SCell> {
+    pub fn cell(&self, row: ucell, col: ucell) -> Option<&SCell> {
         self.data.get(&(row, col))
     }
 
     /// Returns a mutable reference to the cell.
-    pub fn cell_mut(&mut self, row: usize, col: usize) -> Option<&mut SCell> {
+    pub fn cell_mut(&mut self, row: ucell, col: ucell) -> Option<&mut SCell> {
         self.data.get_mut(&(row, col))
     }
 
     /// Creates an empty cell if the position is currently empty and returns
     /// a reference.
-    pub fn create_cell(&mut self, row: usize, col: usize) -> &mut SCell {
+    pub fn create_cell(&mut self, row: ucell, col: ucell) -> &mut SCell {
         self.data.entry((row, col)).or_insert_with(SCell::new)
     }
 
     /// Adds a cell. Replaces an existing one.
-    pub fn add_cell(&mut self, row: usize, col: usize, cell: SCell) -> Option<SCell> {
+    pub fn add_cell(&mut self, row: ucell, col: ucell, cell: SCell) -> Option<SCell> {
         self.data.insert((row, col), cell)
     }
 
     // Removes a value.
-    pub fn remove_cell(&mut self, row: usize, col: usize) -> Option<SCell> {
+    pub fn remove_cell(&mut self, row: ucell, col: ucell) -> Option<SCell> {
         self.data.remove(&(row, col))
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
-    pub fn set_styled_value<V: Into<Value>, W: Into<String>>(&mut self, row: usize, col: usize, value: V, style: W) {
+    pub fn set_styled_value<V: Into<Value>, W: Into<String>>(&mut self, row: ucell, col: ucell, value: V, style: W) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
         cell.value = value.into();
         cell.style = Some(style.into());
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
-    pub fn set_value<V: Into<Value>>(&mut self, row: usize, col: usize, value: V) {
+    pub fn set_value<V: Into<Value>>(&mut self, row: ucell, col: ucell, value: V) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
         cell.value = value.into();
     }
 
     /// Returns a value
-    pub fn value(&self, row: usize, col: usize) -> &Value {
+    pub fn value(&self, row: ucell, col: ucell) -> &Value {
         if let Some(cell) = self.data.get(&(row, col)) {
             &cell.value
         } else {
@@ -488,13 +458,13 @@ impl Sheet {
     }
 
     /// Sets a formula for the specified cell. Creates a new cell if necessary.
-    pub fn set_formula<V: Into<String>>(&mut self, row: usize, col: usize, formula: V) {
+    pub fn set_formula<V: Into<String>>(&mut self, row: ucell, col: ucell, formula: V) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
         cell.formula = Some(formula.into());
     }
 
     /// Returns a value
-    pub fn formula(&self, row: usize, col: usize) -> Option<&String> {
+    pub fn formula(&self, row: ucell, col: ucell) -> Option<&String> {
         if let Some(c) = self.data.get(&(row, col)) {
             c.formula.as_ref()
         } else {
@@ -503,17 +473,48 @@ impl Sheet {
     }
 
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
-    pub fn set_cell_style<V: Into<String>>(&mut self, row: usize, col: usize, style: V) {
+    pub fn set_cell_style<V: Into<String>>(&mut self, row: ucell, col: ucell, style: V) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
         cell.style = Some(style.into());
     }
 
     /// Returns a value
-    pub fn cell_style(&self, row: usize, col: usize) -> Option<&String> {
+    pub fn cell_style(&self, row: ucell, col: ucell) -> Option<&String> {
         if let Some(c) = self.data.get(&(row, col)) {
             c.style.as_ref()
         } else {
             None
+        }
+    }
+
+    /// Sets the rowspan of the cell. Must be greater than 0.
+    pub fn set_row_span(&mut self, row: ucell, col: ucell, span: ucell) {
+        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        cell.span.0 = span;
+    }
+
+    // Rowspan of the cell.
+    pub fn row_span(&self, row: ucell, col: ucell) -> ucell {
+        if let Some(c) = self.data.get(&(row, col)) {
+            c.span.0
+        } else {
+            1
+        }
+    }
+
+    /// Sets the colspan of the cell. Must be greater than 0.
+    pub fn set_col_span(&mut self, row: ucell, col: ucell, span: ucell) {
+        assert!(span > 0);
+        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        cell.span.1 = span;
+    }
+
+    // Colspan of the cell.
+    pub fn col_span(&self, row: ucell, col: ucell) -> ucell {
+        if let Some(c) = self.data.get(&(row, col)) {
+            c.span.1
+        } else {
+            1
         }
     }
 }
@@ -522,10 +523,12 @@ impl Sheet {
 #[derive(Debug, Clone, Default)]
 pub struct SCell {
     value: Value,
-    /// Unparsed formula string.
+    // Unparsed formula string.
     formula: Option<String>,
-    /// Cell style name.
+    // Cell style name.
     style: Option<String>,
+    // Row/Column span.
+    span: (ucell, ucell),
 }
 
 impl SCell {
@@ -535,6 +538,7 @@ impl SCell {
             value: Value::Empty,
             formula: None,
             style: None,
+            span: (1, 1),
         }
     }
 
@@ -544,6 +548,7 @@ impl SCell {
             value: value.into(),
             formula: None,
             style: None,
+            span: (1, 1),
         }
     }
 
@@ -575,6 +580,30 @@ impl SCell {
     /// Sets the cell style.
     pub fn set_style<V: Into<String>>(&mut self, style: V) {
         self.style = Some(style.into());
+    }
+
+    /// Sets the row span of this cell.
+    /// Cells below with values will be lost when writing.
+    pub fn set_row_span(&mut self, rows: ucell) {
+        assert!(rows > 0);
+        self.span.0 = rows;
+    }
+
+    /// Returns the row span.
+    pub fn row_span(&self) -> ucell {
+        self.span.0
+    }
+
+    /// Sets the column span of this cell.
+    /// Cells to the right with values will be lost when writing.
+    pub fn set_col_span(&mut self, cols: ucell) {
+        assert!(cols > 0);
+        self.span.1 = cols;
+    }
+
+    /// Returns the col span.
+    pub fn col_span(&self) -> ucell {
+        self.span.1
     }
 }
 

@@ -1,7 +1,6 @@
-use std::io::{self, Write};
 use std::fmt;
 use std::fmt::{Display, Formatter};
-
+use std::io::{self, Write};
 #[cfg(not(feature = "check_xml"))]
 use std::marker::PhantomData;
 
@@ -228,7 +227,8 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     }
 
     /// Write an attr, make sure name contains only allowed chars
-    pub fn attr_esc(&mut self, name: &str, value: &str) -> Result {
+    pub fn attr_esc(&mut self, name: &str, value: &str) -> Result
+    {
         if cfg!(feature = "check_xml") && self.open == Open::None {
             panic!("Attempted to write attr to elem, when no elem was opened, stack {:?}", self.stack);
         }

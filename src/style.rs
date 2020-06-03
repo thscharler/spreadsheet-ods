@@ -1,6 +1,8 @@
-use color::Rgb;
-use crate::{Style, FontDecl, StyleFor, Sheet, WorkBook};
 use std::fmt::{Display, Formatter};
+
+use color::Rgb;
+
+use crate::{FontDecl, Sheet, Style, StyleFor, ucell, WorkBook};
 
 /// This is just a starting point for all the available style in ods.
 /// I just added what I think I could use some time.
@@ -246,7 +248,7 @@ pub fn text_align(style: &mut Style, align: Align) {
     style.set_paragraph_prp("fo:text-align", align.to_string());
 }
 
-pub fn set_col_width(workbook: &mut WorkBook, sheet: &mut Sheet, col: usize, width: &str) {
+pub fn set_col_width(workbook: &mut WorkBook, sheet: &mut Sheet, col: ucell, width: &str) {
     let style_name = format!("co{}", col);
 
     let mut col_style = Style::with_name(StyleFor::TableColumn, &style_name, "");
@@ -256,7 +258,7 @@ pub fn set_col_width(workbook: &mut WorkBook, sheet: &mut Sheet, col: usize, wid
     sheet.set_column_style(col, &style_name);
 }
 
-pub fn set_row_height(workbook: &mut WorkBook, sheet: &mut Sheet, row: usize, height: &str) {
+pub fn set_row_height(workbook: &mut WorkBook, sheet: &mut Sheet, row: ucell, height: &str) {
     let style_name = format!("ro{}", row);
 
     let mut row_style = Style::row_style(&style_name, "");

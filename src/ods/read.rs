@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -7,9 +8,8 @@ use quick_xml::events::{BytesStart, Event};
 use quick_xml::events::attributes::Attribute;
 use zip::read::ZipFile;
 
-use crate::{StyleFor, XMLOrigin, FormatPart, FormatPartType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
+use crate::{FontDecl, FormatPart, FormatPartType, SCell, Sheet, Style, StyleFor, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
 use crate::ods::error::OdsError;
-use std::collections::BTreeMap;
 
 // Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
@@ -41,14 +41,14 @@ fn read_content(zip_file: &mut ZipFile, dump_xml: bool) -> Result<WorkBook, OdsE
     let mut sheet = Sheet::new();
 
     // Separate counter for table-columns
-    let mut tcol: usize = 0;
+    let mut tcol: ucell = 0;
 
     // Cell position
-    let mut row: usize = 0;
-    let mut col: usize = 0;
+    let mut row: ucell = 0;
+    let mut col: ucell = 0;
 
     // Rows can be repeated. In reality only empty ones ever are.
-    let mut row_repeat: usize = 1;
+    let mut row_repeat: ucell = 1;
     // Row style.
     let mut row_style: Option<String> = None;
 
@@ -102,12 +102,12 @@ fn read_content(zip_file: &mut ZipFile, dump_xml: bool) -> Result<WorkBook, OdsE
                 read_styles(&mut book, &mut xml, b"office:automatic-styles", dump_xml)?,
 
             Event::Empty(xml_tag)
-            if xml_tag.name() == b"table:table-cell" => {
+            if xml_tag.name() == b"table:table-cell" || xml_tag.name() == b"table:covered-table-cell" => {
                 col = read_empty_table_cell(&mut xml, xml_tag, row, col, &mut sheet)?;
             }
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"table:table-cell" => {
+            if xml_tag.name() == b"table:table-cell" || xml_tag.name() == b"table:covered-table-cell" => {
                 col = read_table_cell(&mut xml, xml_tag, row, col, &mut sheet, dump_xml)?;
             }
 
@@ -145,16 +145,16 @@ fn read_table(xml: &quick_xml::Reader<BufReader<&mut ZipFile>>,
 
 fn read_table_row(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                   xml_tag: BytesStart,
-                  row_style: &mut Option<String>) -> Result<usize, OdsError>
+                  row_style: &mut Option<String>) -> Result<ucell, OdsError>
 {
-    let mut row_repeat: usize = 1;
+    let mut row_repeat: ucell = 1;
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:number-rows-repeated" => {
                 let v = attr.unescaped_value()?;
                 let v = xml.decode(v.as_ref())?;
-                row_repeat = v.parse::<usize>()?;
+                row_repeat = v.parse::<ucell>()?;
             }
             attr if attr.key == b"table:style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
@@ -169,11 +169,11 @@ fn read_table_row(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
 
 fn read_table_column(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                      xml_tag: &BytesStart,
-                     mut tcol: usize,
-                     sheet: &mut Sheet) -> Result<usize, OdsError> {
+                     mut tcol: ucell,
+                     sheet: &mut Sheet) -> Result<ucell, OdsError> {
     let mut style = None;
     let mut cell_style = None;
-    let mut repeat: usize = 1;
+    let mut repeat: ucell = 1;
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -219,15 +219,18 @@ fn read_table_column(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
 
 fn read_table_cell(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                    xml_tag: BytesStart,
-                   row: usize,
-                   mut col: usize,
+                   row: ucell,
+                   mut col: ucell,
                    sheet: &mut Sheet,
-                   dump_xml: bool) -> Result<usize, OdsError> {
+                   dump_xml: bool) -> Result<ucell, OdsError> {
+
+    // Current cell tag
+    let tag_name = xml_tag.name();
 
     // The current cell.
     let mut cell: SCell = SCell::new();
     // Columns can be repeated, not only empty ones.
-    let mut cell_repeat: usize = 1;
+    let mut cell_repeat: ucell = 1;
     // Decoded type.
     let mut value_type: Option<ValueType> = None;
     // Basic cell value here.
@@ -241,7 +244,15 @@ fn read_table_cell(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
         match attr? {
             attr if attr.key == b"table:number-columns-repeated" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                cell_repeat = v.parse::<usize>()?;
+                cell_repeat = v.parse::<ucell>()?;
+            }
+            attr if attr.key == b"table:number-rows-spanned" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                cell.span.0 = v.parse::<ucell>()?;
+            }
+            attr if attr.key == b"table:number-columns-spanned" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                cell.span.1 = v.parse::<ucell>()?;
             }
 
             attr if attr.key == b"office:value-type" =>
@@ -299,7 +310,7 @@ fn read_table_cell(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
             }
 
             Event::End(xml_tag)
-            if xml_tag.name() == b"table:table-cell" => {
+            if xml_tag.name() == tag_name => {
                 cell.value = parse_value(value_type,
                                          cell_value,
                                          cell_content,
@@ -345,9 +356,9 @@ fn text_append(text: Option<String>, append: &str) -> Option<String> {
 
 fn read_empty_table_cell(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                          xml_tag: BytesStart,
-                         row: usize,
-                         mut col: usize,
-                         sheet: &mut Sheet) -> Result<usize, OdsError> {
+                         row: ucell,
+                         mut col: ucell,
+                         sheet: &mut Sheet) -> Result<ucell, OdsError> {
     let mut cell = None;
     // Default advance is one column.
     let mut cell_repeat = 1;
@@ -356,7 +367,7 @@ fn read_empty_table_cell(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
             attr if attr.key == b"table:number-columns-repeated" => {
                 let v = attr.unescaped_value()?;
                 let v = xml.decode(v.as_ref())?;
-                cell_repeat = v.parse::<usize>()?;
+                cell_repeat = v.parse::<ucell>()?;
             }
 
             attr if attr.key == b"table:formula" => {
@@ -373,6 +384,24 @@ fn read_empty_table_cell(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                 }
                 if let Some(c) = &mut cell {
                     c.style = Some(attr.unescape_and_decode_value(&xml)?);
+                }
+            }
+            attr if attr.key == b"table:number-rows-spanned" => {
+                if cell.is_none() {
+                    cell = Some(SCell::new());
+                }
+                if let Some(c) = &mut cell {
+                    let v = attr.unescape_and_decode_value(&xml)?;
+                    c.span.0 = v.parse::<ucell>()?;
+                }
+            }
+            attr if attr.key == b"table:number-columns-spanned" => {
+                if cell.is_none() {
+                    cell = Some(SCell::new());
+                }
+                if let Some(c) = &mut cell {
+                    let v = attr.unescape_and_decode_value(&xml)?;
+                    c.span.1 = v.parse::<ucell>()?;
                 }
             }
 
@@ -624,58 +653,58 @@ fn read_styles(book: &mut WorkBook,
                         copy_style_properties(&mut style, &Style::set_paragraph_prp, xml, xml_tag)?,
 
                     b"number:boolean-style" =>
-                        read_value_style(ValueType::Boolean, &mut value_style, xml, xml_tag)?,
+                        read_value_format(ValueType::Boolean, &mut value_style, xml, xml_tag)?,
                     b"number:date-style" =>
-                        read_value_style(ValueType::DateTime, &mut value_style, xml, xml_tag)?,
+                        read_value_format(ValueType::DateTime, &mut value_style, xml, xml_tag)?,
                     b"number:time-style" =>
-                        read_value_style(ValueType::TimeDuration, &mut value_style, xml, xml_tag)?,
+                        read_value_format(ValueType::TimeDuration, &mut value_style, xml, xml_tag)?,
                     b"number:number-style" =>
-                        read_value_style(ValueType::Number, &mut value_style, xml, xml_tag)?,
+                        read_value_format(ValueType::Number, &mut value_style, xml, xml_tag)?,
                     b"number:currency-style" =>
-                        read_value_style(ValueType::Currency, &mut value_style, xml, xml_tag)?,
+                        read_value_format(ValueType::Currency, &mut value_style, xml, xml_tag)?,
                     b"number:percentage-style" =>
-                        read_value_style(ValueType::Percentage, &mut value_style, xml, xml_tag)?,
+                        read_value_format(ValueType::Percentage, &mut value_style, xml, xml_tag)?,
                     b"number:text-style" =>
-                        read_value_style(ValueType::Text, &mut value_style, xml, xml_tag)?,
+                        read_value_format(ValueType::Text, &mut value_style, xml, xml_tag)?,
 
                     b"number:boolean" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Boolean, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Boolean, xml, xml_tag)?,
                     b"number:number" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Number, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Number, xml, xml_tag)?,
                     b"number:scientific-number" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Scientific, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Scientific, xml, xml_tag)?,
                     b"number:day" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Day, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Day, xml, xml_tag)?,
                     b"number:month" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Month, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Month, xml, xml_tag)?,
                     b"number:year" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Year, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Year, xml, xml_tag)?,
                     b"number:era" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Era, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Era, xml, xml_tag)?,
                     b"number:day-of-week" =>
-                        push_value_style_part(&mut value_style, FormatPartType::DayOfWeek, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::DayOfWeek, xml, xml_tag)?,
                     b"number:week-of-year" =>
-                        push_value_style_part(&mut value_style, FormatPartType::WeekOfYear, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::WeekOfYear, xml, xml_tag)?,
                     b"number:quarter" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Quarter, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Quarter, xml, xml_tag)?,
                     b"number:hours" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Hours, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Hours, xml, xml_tag)?,
                     b"number:minutes" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Minutes, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Minutes, xml, xml_tag)?,
                     b"number:seconds" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Seconds, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Seconds, xml, xml_tag)?,
                     b"number:fraction" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Fraction, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Fraction, xml, xml_tag)?,
                     b"number:am-pm" =>
-                        push_value_style_part(&mut value_style, FormatPartType::AmPm, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::AmPm, xml, xml_tag)?,
                     b"number:embedded-text" =>
-                        push_value_style_part(&mut value_style, FormatPartType::EmbeddedText, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::EmbeddedText, xml, xml_tag)?,
                     b"number:text-content" =>
-                        push_value_style_part(&mut value_style, FormatPartType::TextContent, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::TextContent, xml, xml_tag)?,
                     b"style:text" =>
-                        push_value_style_part(&mut value_style, FormatPartType::Day, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::Day, xml, xml_tag)?,
                     b"style:map" =>
-                        push_value_style_part(&mut value_style, FormatPartType::StyleMap, xml, xml_tag)?,
+                        push_value_format_part(&mut value_style, FormatPartType::StyleMap, xml, xml_tag)?,
                     b"number:currency-symbol" => {
                         value_style_part = Some(read_part(xml, xml_tag, FormatPartType::CurrencySymbol)?);
 
@@ -751,10 +780,10 @@ fn read_styles(book: &mut WorkBook,
     Ok(())
 }
 
-fn read_value_style(value_type: ValueType,
-                    value_style: &mut ValueFormat,
-                    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-                    xml_tag: &BytesStart) -> Result<(), OdsError> {
+fn read_value_format(value_type: ValueType,
+                     value_style: &mut ValueFormat,
+                     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                     xml_tag: &BytesStart) -> Result<(), OdsError> {
     value_style.v_type = value_type;
 
     for attr in xml_tag.attributes().with_checks(false) {
@@ -774,10 +803,10 @@ fn read_value_style(value_type: ValueType,
     Ok(())
 }
 
-fn push_value_style_part(value_style: &mut ValueFormat,
-                         part_type: FormatPartType,
-                         xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-                         xml_tag: &BytesStart) -> Result<(), OdsError> {
+fn push_value_format_part(value_style: &mut ValueFormat,
+                          part_type: FormatPartType,
+                          xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                          xml_tag: &BytesStart) -> Result<(), OdsError> {
     value_style.push_part(read_part(xml, xml_tag, part_type)?);
 
     Ok(())

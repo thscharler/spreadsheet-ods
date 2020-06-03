@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::fs::{File, rename};
 use std::io;
 use std::io::{Read, Write};
@@ -7,9 +7,9 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
-use crate::{StyleFor, XMLOrigin, FormatPartType, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook, FontDecl};
+use crate::{FontDecl, FormatPartType, SCell, Sheet, Style, StyleFor, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
 use crate::ods::error::OdsError;
-use crate::ods::tmp2zip::{TempZip, TempWrite};
+use crate::ods::tmp2zip::{TempWrite, TempZip};
 use crate::ods::xmlwriter::XmlWriter;
 
 // this did not work out as expected ...
@@ -96,7 +96,7 @@ fn copy_workbook(ods_orig_name: &PathBuf, file_set: &mut HashSet<String>, zip_wr
         } else if !file_set.contains(zip_entry.name()) {
             file_set.insert(zip_entry.name().to_string());
             let mut wr = zip_writer.start_file(zip_entry.name(), FileOptions::default())?;
-            let mut buf: [u8; 1024] = [0; 1024];
+            let mut buf = [0u8; 1024];
             loop {
                 let n = zip_entry.read(&mut buf)?;
                 if n == 0 {
@@ -429,21 +429,67 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
     Ok(())
 }
 
+// holds one span
+struct Span {
+    row: ucell,
+    col: ucell,
+    end_row: ucell,
+    end_col: ucell,
+}
+
+impl Span {
+    fn new(row: ucell, col: ucell, span: (ucell, ucell)) -> Self {
+        Self {
+            row,
+            col,
+            end_row: row + span.0 - 1,
+            end_col: col + span.1 - 1,
+        }
+    }
+
+    fn hides(&self, row: ucell, col: ucell) -> bool {
+        row >= self.row && row <= self.end_row
+            && col >= self.col && col <= self.end_col
+    }
+
+    // is the cell hidden, and if yes how many more columns are hit.
+    fn is_hidden(spans: &Vec<Span>, row: ucell, col: ucell) -> (bool, ucell) {
+        if let Some(found) = spans.iter().find(|s| s.hides(row, col)) {
+            (true, found.end_col - col)
+        } else {
+            (false, 0)
+        }
+    }
+
+    fn outlived(&self, row: ucell, col: ucell) -> bool {
+        row > self.end_row
+            || row == self.end_row && col > self.end_col
+    }
+
+    fn clean_outlived(spans: &mut Vec<Span>, row: ucell, col: ucell) {
+        *spans = spans.drain(..).filter(|s| !s.outlived(row, col)).collect();
+    }
+}
+
+
 fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     xml_out.elem("table:table")?;
-    xml_out.attr_esc("table:name", &sheet.name)?;
+    xml_out.attr_esc("table:name", &*sheet.name)?;
     if let Some(style) = &sheet.style {
-        xml_out.attr_esc("table:style-name", &style)?;
+        xml_out.attr_esc("table:style-name", style.as_str())?;
     }
 
     let max_cell = sheet.used_grid_size();
 
     write_table_columns(&sheet, &max_cell, xml_out)?;
 
+    // list of current spans
+    let mut spans = Vec::<Span>::new();
+
     // table-row + table-cell
     let mut first_cell = true;
-    let mut last_r: usize = 0;
-    let mut last_c: usize = 0;
+    let mut last_r: ucell = 0;
+    let mut last_c: ucell = 0;
 
     for ((cur_row, cur_col), cell) in sheet.data.iter() {
 
@@ -499,12 +545,24 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
             write_start_current_row(sheet, *cur_row, backward_dc, xml_out)?;
         }
 
+        // Remove invalid spans.
+        Span::clean_outlived(&mut spans, *cur_row, *cur_col);
+
+        // Cell is hidden?
+        let (is_hidden, hidden_cols) = Span::is_hidden(&spans, *cur_row, *cur_col);
+
         // And now to something completely different ...
-        write_cell(book, cell, xml_out)?;
+        write_cell(book, cell, is_hidden, xml_out)?;
 
         // There may be some blank cells until the next one, but only one less the forward.
         if forward_dc > 1 {
-            write_empty_cells(forward_dc, xml_out)?;
+            write_empty_cells(forward_dc, hidden_cols as i32, xml_out)?;
+        }
+
+        // maybe span. only if visible, that nicely eliminates all
+        // double hides.
+        if !is_hidden && (cell.span.0 > 1 || cell.span.1 > 1) {
+            spans.push(Span::new(*cur_row, *cur_col, cell.span));
         }
 
         first_cell = false;
@@ -521,15 +579,36 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     Ok(())
 }
 
-fn write_empty_cells(forward_dc: i32, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    xml_out.empty("table:table-cell")?;
-    let repeat = (forward_dc - 1).to_string();
-    xml_out.attr("table:number-columns-repeated", repeat.as_str())?;
+fn write_empty_cells(mut forward_dc: i32,
+                     hidden_cols: i32,
+                     xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+
+    // split between hidden and regular cells.
+    if hidden_cols >= forward_dc {
+        xml_out.empty("covered-table-cell")?;
+        let repeat = (forward_dc - 1).to_string();
+        xml_out.attr("table:number-columns-repeated", repeat.as_str())?;
+
+        forward_dc = 0;
+    } else if hidden_cols > 0 {
+        xml_out.empty("covered-table-cell")?;
+        let repeat = hidden_cols.to_string();
+        xml_out.attr("table:number-columns-repeated", repeat.as_str())?;
+
+        forward_dc -= hidden_cols;
+    }
+
+    if forward_dc > 0 {
+        xml_out.empty("table:table-cell")?;
+        let repeat = (forward_dc - 1).to_string();
+        xml_out.attr("table:number-columns-repeated", repeat.as_str())?;
+    }
+
     Ok(())
 }
 
 fn write_start_current_row(sheet: &Sheet,
-                           cur_row: usize,
+                           cur_row: ucell,
                            backward_dc: i32,
                            xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     xml_out.elem("table:table-row")?;
@@ -549,7 +628,7 @@ fn write_start_current_row(sheet: &Sheet,
 
 fn write_empty_rows_before(first_cell: bool,
                            mut backward_dr: i32,
-                           max_cell: &(usize, usize),
+                           max_cell: &(ucell, ucell),
                            xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     // Empty rows in between are 1 less than the delta, except at the very start.
     if first_cell {
@@ -575,7 +654,7 @@ fn write_empty_rows_before(first_cell: bool,
 }
 
 fn write_table_columns(sheet: &Sheet,
-                       max_cell: &(usize, usize),
+                       max_cell: &(ucell, ucell),
                        xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     // table:table-column
     for c in 0..max_cell.1 {
@@ -585,10 +664,10 @@ fn write_table_columns(sheet: &Sheet,
         if style.is_some() || cell_style.is_some() {
             xml_out.empty("table:table-column")?;
             if let Some(style) = style {
-                xml_out.attr_esc("table:style-name", &style)?;
+                xml_out.attr_esc("table:style-name", style.as_str())?;
             }
             if let Some(cell_style) = cell_style {
-                xml_out.attr_esc("table:default-cell-style-name", &cell_style)?;
+                xml_out.attr_esc("table:default-cell-style-name", cell_style.as_str())?;
             }
         } else {
             xml_out.empty("table:table-column")?;
@@ -600,20 +679,32 @@ fn write_table_columns(sheet: &Sheet,
 
 fn write_cell(book: &WorkBook,
               cell: &SCell,
+              is_hidden: bool,
               xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    let tag = if is_hidden { "table:covered-table-cell" } else { "table:table-cell" };
+
     match cell.value {
-        Value::Empty => xml_out.empty("table:table-cell")?,
-        _ => xml_out.elem("table:table-cell")?,
+        Value::Empty => xml_out.empty(tag)?,
+        _ => xml_out.elem(tag)?,
     }
 
     if let Some(formula) = &cell.formula {
         xml_out.attr_esc("table:formula", formula.as_str())?;
     }
 
+    // Direct style oder value based default style.
     if let Some(style) = &cell.style {
         xml_out.attr_esc("table:style-name", style.as_str())?;
     } else if let Some(style) = book.def_style(cell.value.value_type()) {
         xml_out.attr_esc("table:style-name", style.as_str())?;
+    }
+
+    // Spans
+    if cell.span.0 > 1 {
+        xml_out.attr_esc("table:number-rows-spanned", cell.span.0.to_string().as_str())?;
+    }
+    if cell.span.1 > 1 {
+        xml_out.attr_esc("table:number-columns-spanned", cell.span.1.to_string().as_str())?;
     }
 
     // Might not yield a useful result. Could not exist, or be in styles.xml
@@ -728,13 +819,13 @@ fn write_cell(book: &WorkBook,
 
     match cell.value {
         Value::Empty => {}
-        _ => xml_out.end_elem("table:table-cell")?
+        _ => xml_out.end_elem(tag)?
     }
 
     Ok(())
 }
 
-fn write_font_decl(fonts: &BTreeMap<String, FontDecl>, origin: XMLOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_font_decl(fonts: &HashMap<String, FontDecl>, origin: XMLOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     for font in fonts.values().filter(|s| s.origin == origin) {
         xml_out.empty("style:style")?;
         xml_out.attr_esc("style:name", font.name.as_str())?;
@@ -747,7 +838,7 @@ fn write_font_decl(fonts: &BTreeMap<String, FontDecl>, origin: XMLOrigin, xml_ou
     Ok(())
 }
 
-fn write_styles(styles: &BTreeMap<String, Style>, origin: XMLOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_styles(styles: &HashMap<String, Style>, origin: XMLOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     for style in styles.values().filter(|s| s.origin == origin) {
         xml_out.elem("style:style")?;
         xml_out.attr_esc("style:name", style.name.as_str())?;
@@ -812,7 +903,7 @@ fn write_styles(styles: &BTreeMap<String, Style>, origin: XMLOrigin, xml_out: &m
     Ok(())
 }
 
-fn write_value_styles(styles: &BTreeMap<String, ValueFormat>, origin: XMLOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_value_styles(styles: &HashMap<String, ValueFormat>, origin: XMLOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     for style in styles.values().filter(|s| s.origin == origin) {
         let tag = match style.v_type {
             ValueType::Empty => "number:empty_style", // ???
