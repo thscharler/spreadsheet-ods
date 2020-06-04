@@ -84,3 +84,4 @@ fn test_span() -> Result<(), OdsError> {
 
     Ok(())
 }
+
