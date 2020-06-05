@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
-use crate::{FontDecl, FormatPartType, SCell, Sheet, Style, StyleFor, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
+use crate::{CellRange, FontDecl, FormatPartType, SCell, Sheet, Style, StyleFor, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
 use crate::ods::error::OdsError;
 use crate::ods::tmp2zip::{TempWrite, TempZip};
 use crate::ods::xmlwriter::XmlWriter;
@@ -429,50 +429,22 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
     Ok(())
 }
 
-// holds one span
-struct Span {
-    row: ucell,
-    col: ucell,
-    end_row: ucell,
-    end_col: ucell,
-}
-
-impl Span {
-    fn new(row: ucell, col: ucell, span: (ucell, ucell)) -> Self {
-        Self {
-            row,
-            col,
-            end_row: row + span.0 - 1,
-            end_col: col + span.1 - 1,
-        }
-    }
-
-    fn hides(&self, row: ucell, col: ucell) -> bool {
-        row >= self.row && row <= self.end_row
-            && col >= self.col && col <= self.end_col
-    }
-
-    // is the cell hidden, and if yes how many more columns are hit.
-    fn is_hidden(spans: &Vec<Span>, row: ucell, col: ucell) -> (bool, ucell) {
-        if let Some(found) = spans.iter().find(|s| s.hides(row, col)) {
-            (true, found.end_col - col)
-        } else {
-            (false, 0)
-        }
-    }
-
-    fn outlived(&self, row: ucell, col: ucell) -> bool {
-        row > self.end_row
-            || row == self.end_row && col > self.end_col
-    }
-
-    fn clean_outlived(spans: &mut Vec<Span>, row: ucell, col: ucell) {
-        *spans = spans.drain(..).filter(|s| !s.outlived(row, col)).collect();
+/// Is the cell hidden, and if yes how many more columns are hit.
+fn check_hidden(ranges: &Vec<CellRange>, row: ucell, col: ucell) -> (bool, ucell) {
+    if let Some(found) = ranges.iter().find(|s| s.contains(row, col)) {
+        (true, found.to.col - col)
+    } else {
+        (false, 0)
     }
 }
 
+/// Removes any outlived Ranges from the vector.
+pub(crate) fn remove_outlooped(ranges: &mut Vec<CellRange>, row: ucell, col: ucell) {
+    *ranges = ranges.drain(..).filter(|s| !s.out_looped(row, col)).collect();
+}
 
 fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    println!("<< sheet >>");
     xml_out.elem("table:table")?;
     xml_out.attr_esc("table:name", &*sheet.name)?;
     if let Some(style) = &sheet.style {
@@ -481,10 +453,10 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
 
     let max_cell = sheet.used_grid_size();
 
-    write_table_columns(&sheet, &max_cell, xml_out)?;
+    write_table_columns(&sheet, max_cell, xml_out)?;
 
     // list of current spans
-    let mut spans = Vec::<Span>::new();
+    let mut spans = Vec::<CellRange>::new();
 
     // table-row + table-cell
     let mut first_cell = true;
@@ -500,69 +472,77 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
 
         // For the repeat-counter we need to look forward.
         // Works nicely with the range operator :-)
-        let (next_r, next_c) =
+        let (next_r, next_c, is_last_cell) =
             if let Some(((next_r, next_c), _)) = sheet.data.range((*cur_row, cur_col + 1)..).next() {
-                (*next_r, *next_c)
+                (*next_r, *next_c, false)
             } else {
-                (max_cell.0, max_cell.1)
+                (max_cell.0, max_cell.1, true)
             };
 
         // Looking forward row-wise.
-        let forward_dr = next_r as i32 - *cur_row as i32;
+        let forward_dr = next_r - *cur_row;
 
-        // Column deltas are only relevant in the same row. Except we need to
+        // Column deltas are only relevant in the same row, but we need to
         // fill up to max used columns.
         let forward_dc = if forward_dr >= 1 {
-            max_cell.1 as i32 - *cur_col as i32
+            max_cell.1 - *cur_col
         } else {
-            next_c as i32 - *cur_col as i32
+            next_c - *cur_col
         };
 
         // Looking backward row-wise.
-        let backward_dr = *cur_row as i32 - last_r as i32;
+        let backward_dr = *cur_row - last_r;
         // When a row changes our delta is from zero to cur_col.
         let backward_dc = if backward_dr >= 1 {
-            *cur_col as i32
+            *cur_col
         } else {
-            *cur_col as i32 - last_c as i32
+            *cur_col - last_c
         };
 
         // println!("cell first={} {},{} < *{},{}* < {},{} ", first_cell, last_r, last_c, cur_row, cur_col, next_r, next_c);
         // println!("     backward {},{} forward {},{}", backward_dr, backward_dc, forward_dr, forward_dc);
 
-        // After the first cell there is always an open row tag.
+        // After the first cell there is always an open row tag that
+        // needs to be closed.
         if backward_dr > 0 && !first_cell {
-            xml_out.end_elem("table:table-row")?;
+            write_end_last_row(sheet, *cur_row, backward_dr, xml_out)?;
         }
 
         // Any empty rows before this one?
         if backward_dr > 0 {
-            write_empty_rows_before(first_cell, backward_dr, &max_cell, xml_out)?;
+            write_empty_rows_before(sheet, *cur_row, first_cell, backward_dr, max_cell, xml_out)?;
         }
 
-        // Start a new row if there is a delta or we are at the start
+        // Start a new row if there is a delta or we are at the start.
+        // Fills in any blank cells before the current cell.
         if backward_dr > 0 || first_cell {
             write_start_current_row(sheet, *cur_row, backward_dc, xml_out)?;
         }
 
-        // Remove invalid spans.
-        Span::clean_outlived(&mut spans, *cur_row, *cur_col);
+        // Remove no longer usefull cell-spans.
+        remove_outlooped(&mut spans, *cur_row, *cur_col);
 
-        // Cell is hidden?
-        let (is_hidden, hidden_cols) = Span::is_hidden(&spans, *cur_row, *cur_col);
+        // Current cell is hidden?
+        let (is_hidden, hidden_cols) = check_hidden(&spans, *cur_row, *cur_col);
 
         // And now to something completely different ...
         write_cell(book, cell, is_hidden, xml_out)?;
 
         // There may be some blank cells until the next one, but only one less the forward.
         if forward_dc > 1 {
-            write_empty_cells(forward_dc, hidden_cols as i32, xml_out)?;
+            write_empty_cells(forward_dc, hidden_cols, xml_out)?;
+        }
+
+        // The last cell we will write? We can close the last row here,
+        // where we have all the data.
+        if is_last_cell {
+            write_end_current_row(sheet, *cur_row, xml_out)?;
         }
 
         // maybe span. only if visible, that nicely eliminates all
         // double hides.
         if !is_hidden && (cell.span.0 > 1 || cell.span.1 > 1) {
-            spans.push(Span::new(*cur_row, *cur_col, cell.span));
+            spans.push(CellRange::origin_span(*cur_row, *cur_col, cell.span));
         }
 
         first_cell = false;
@@ -570,17 +550,13 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
         last_c = *cur_col;
     }
 
-    if !first_cell {
-        xml_out.end_elem("table:table-row")?;
-    }
-
     xml_out.end_elem("table:table")?;
 
     Ok(())
 }
 
-fn write_empty_cells(mut forward_dc: i32,
-                     hidden_cols: i32,
+fn write_empty_cells(mut forward_dc: u32,
+                     hidden_cols: u32,
                      xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
 
     // split between hidden and regular cells.
@@ -609,8 +585,16 @@ fn write_empty_cells(mut forward_dc: i32,
 
 fn write_start_current_row(sheet: &Sheet,
                            cur_row: ucell,
-                           backward_dc: i32,
+                           backward_dc: u32,
                            xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+
+    // Start of headers
+    if let Some(header_rows) = sheet.header_rows {
+        if header_rows.from == cur_row {
+            xml_out.elem("table:table-header-rows")?;
+        }
+    }
+
     xml_out.elem("table:table-row")?;
     if let Some(row_style) = sheet.row_style(cur_row) {
         xml_out.attr_esc("table:style-name", row_style.as_str())?;
@@ -626,40 +610,123 @@ fn write_start_current_row(sheet: &Sheet,
     Ok(())
 }
 
-fn write_empty_rows_before(first_cell: bool,
-                           mut backward_dr: i32,
-                           max_cell: &(ucell, ucell),
-                           xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    // Empty rows in between are 1 less than the delta, except at the very start.
-    if first_cell {
-        backward_dr += 1;
-    }
+fn write_end_last_row(sheet: &Sheet,
+                      cur_row: u32,
+                      backward_dr: u32,
+                      xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    xml_out.end_elem("table:table-row")?;
 
-    // Only deltas greater 1 are relevant.
-    if backward_dr > 1 {
-        xml_out.elem("table:table-row")?;
-
-        let empty_count = backward_dr - 1;
-        xml_out.attr("table:number-rows-repeated", &empty_count.to_string())?;
-
-        // We fill the empty spaces completely up to max columns.
-        let max_cell_col = max_cell.1.to_string();
-        xml_out.empty("table:table-cell")?;
-        xml_out.attr("table:number-columns-repeated", max_cell_col.as_str())?;
-
-        xml_out.end_elem("table:table-row")?;
+    // This row was the end of the header.
+    if let Some(header_rows) = sheet.header_rows {
+        let last_row = cur_row - backward_dr;
+        if header_rows.to == last_row {
+            xml_out.end_elem("table:table-header-rows")?;
+        }
     }
 
     Ok(())
 }
 
+fn write_end_current_row(sheet: &Sheet,
+                         cur_row: u32,
+                         xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    xml_out.end_elem("table:table-row")?;
+
+
+    // This row was the end of the header.
+    if let Some(header_rows) = sheet.header_rows {
+        if header_rows.to == cur_row {
+            xml_out.end_elem("table:table-header-rows")?;
+        }
+    }
+
+    Ok(())
+}
+
+fn write_empty_rows_before(sheet: &Sheet,
+                           cur_row: ucell,
+                           first_cell: bool,
+                           mut backward_dr: u32,
+                           max_cell: (ucell, ucell),
+                           xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    // Empty rows in between are 1 less than the delta, except at the very start.
+    let mut corr = if first_cell {
+        0u32
+    } else {
+        1u32
+    };
+
+    // Only deltas greater 1 are relevant.
+    // Or if this is the very start.
+    if backward_dr > 1 || first_cell && backward_dr > 0 {
+
+        // split up the empty rows, if there is some header stuff.
+        if let Some(header_rows) = sheet.header_rows {
+
+            // What was the last_row? Was there a header start since?
+            let last_row = cur_row - backward_dr;
+            if header_rows.from < cur_row && header_rows.from > last_row {
+                write_empty_row(header_rows.from - last_row - corr, max_cell, xml_out)?;
+                xml_out.elem("table:table-header-rows")?;
+                // Don't write the empty line for the first header-row, we can
+                // collapse it with the rest. corr suits fine for this.
+                corr = 0;
+                // We correct the empty line count.
+                backward_dr = cur_row - header_rows.from;
+            }
+
+            // What was the last row here? Was there a header end since?
+            let last_row = cur_row - backward_dr;
+            if header_rows.to < cur_row && header_rows.to > cur_row - backward_dr {
+                // Empty lines, including the current line that marks
+                // the end of the header.
+                write_empty_row(header_rows.to - last_row - corr + 1, max_cell, xml_out)?;
+                xml_out.end_elem("table:table-header-rows")?;
+                // Correction for table start is no longer needed.
+                corr = 1;
+                // We correct the empty line count.
+                backward_dr = cur_row - header_rows.to;
+            }
+        }
+
+        // Write out the empty lines.
+        write_empty_row(backward_dr - corr, max_cell, xml_out)?;
+    }
+
+    Ok(())
+}
+
+fn write_empty_row(empty_count: u32,
+                   max_cell: (u32, u32),
+                   xml_out: &mut XmlWriter<TempWrite>) -> Result<(), OdsError> {
+    xml_out.elem("table:table-row")?;
+    xml_out.attr("table:number-rows-repeated", &empty_count.to_string())?;
+
+    // We fill the empty spaces completely up to max columns.
+    let max_cell_col = max_cell.1.to_string();
+    xml_out.empty("table:table-cell")?;
+    xml_out.attr("table:number-columns-repeated", max_cell_col.as_str())?;
+
+    xml_out.end_elem("table:table-row")?;
+
+    Ok(())
+}
+
 fn write_table_columns(sheet: &Sheet,
-                       max_cell: &(ucell, ucell),
+                       max_cell: (ucell, ucell),
                        xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+
     // table:table-column
     for c in 0..max_cell.1 {
         let style = sheet.column_style(c);
         let cell_style = sheet.column_cell_style(c);
+
+        // markup header columns
+        if let Some(header_cols) = sheet.header_cols {
+            if header_cols.from == c {
+                xml_out.elem("table:table-header-columns")?;
+            }
+        }
 
         if style.is_some() || cell_style.is_some() {
             xml_out.empty("table:table-column")?;
@@ -671,6 +738,13 @@ fn write_table_columns(sheet: &Sheet,
             }
         } else {
             xml_out.empty("table:table-column")?;
+        }
+
+        // markup header columns
+        if let Some(header_cols) = sheet.header_cols {
+            if header_cols.to == c {
+                xml_out.end_elem("table:table-header-columns")?;
+            }
         }
     }
 

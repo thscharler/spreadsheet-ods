@@ -23,7 +23,7 @@
 //! let nice_date_style = Style::with_name(StyleFor::TableCell, "nice_date_style", "nice_date_format");
 //! wb.add_style(nice_date_style);
 //!
-//! spreadsheet_ods::ods::write_ods(&wb, "tryout.ods");
+//! spreadsheet_ods::ods::write_ods(&wb, "test_out/tryout.ods");
 //!
 //! ```
 //!
@@ -54,6 +54,8 @@ use chrono::{Duration, NaiveDate, NaiveDateTime};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
 use string_cache::DefaultAtom;
+
+use crate::formula::{push_colname, push_rowname};
 
 pub mod ods;
 pub mod style;
@@ -268,6 +270,9 @@ pub struct Sheet {
     col_style: Option<BTreeMap<ucell, String>>,
     col_cell_style: Option<BTreeMap<ucell, String>>,
     row_style: Option<BTreeMap<ucell, String>>,
+
+    header_rows: Option<RowRange>,
+    header_cols: Option<ColRange>,
 }
 
 impl fmt::Debug for Sheet {
@@ -291,6 +296,12 @@ impl fmt::Debug for Sheet {
                 writeln!(f, "{:?} {:?}", k, v)?;
             }
         }
+        if let Some(header_rows) = &self.header_rows {
+            writeln!(f, "header rows {:?}", header_rows)?;
+        }
+        if let Some(header_cols) = &self.header_cols {
+            writeln!(f, "header cols {:?}", header_cols)?;
+        }
         Ok(())
     }
 }
@@ -306,6 +317,8 @@ impl Sheet {
             col_style: None,
             col_cell_style: None,
             row_style: None,
+            header_rows: None,
+            header_cols: None,
         }
     }
 
@@ -318,6 +331,8 @@ impl Sheet {
             col_style: None,
             col_cell_style: None,
             row_style: None,
+            header_rows: None,
+            header_cols: None,
         }
     }
 
@@ -509,13 +524,43 @@ impl Sheet {
         cell.span.1 = span;
     }
 
-    // Colspan of the cell.
+    /// Colspan of the cell.
     pub fn col_span(&self, row: ucell, col: ucell) -> ucell {
         if let Some(c) = self.data.get(&(row, col)) {
             c.span.1
         } else {
             1
         }
+    }
+
+    /// Defines a range of rows as header rows.
+    pub fn set_header_rows(&mut self, row_start: ucell, row_end: ucell) {
+        self.header_rows = Some(RowRange::new(row_start, row_end));
+    }
+
+    /// Clears the header-rows definition.
+    pub fn clear_header_rows(&mut self) {
+        self.header_rows = None;
+    }
+
+    /// Returns the header rows.
+    pub fn header_rows(&self) -> Option<RowRange> {
+        self.header_rows
+    }
+
+    /// Defines a range of columns as header columns.
+    pub fn set_header_cols(&mut self, col_start: ucell, col_end: ucell) {
+        self.header_cols = Some(ColRange::new(col_start, col_end));
+    }
+
+    /// Clears the header-columns definition.
+    pub fn clear_header_cols(&mut self) {
+        self.header_cols = None;
+    }
+
+    /// Returns the header columns.
+    pub fn header_cols(&self) -> Option<ColRange> {
+        self.header_cols
     }
 }
 
@@ -1626,6 +1671,211 @@ impl FormatPart {
     }
 }
 
+/// Reference to a cell.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct CellRef<'a> {
+    // Tablename
+    pub table: Option<&'a str>,
+    // Row
+    pub row: ucell,
+    // Absolute ($) reference
+    pub abs_row: bool,
+    // Column
+    pub col: ucell,
+    // Absolute ($) reference
+    pub abs_col: bool,
+}
+
+impl<'a> CellRef<'a> {
+    pub fn simple(row: ucell, col: ucell) -> Self {
+        Self {
+            table: None,
+            row,
+            abs_row: false,
+            col,
+            abs_col: false,
+        }
+    }
+
+    pub fn table(table: &'a str, row: ucell, col: ucell) -> Self {
+        Self {
+            table: Some(table),
+            row,
+            abs_row: false,
+            col,
+            abs_col: false,
+        }
+    }
+
+    /// Returns the spreadsheet column name.
+    pub fn colname(&self) -> String {
+        formula::colname(self.col)
+    }
+
+    /// Returns the spreadsheet row name.
+    pub fn rowname(&self) -> String {
+        formula::rowname(self.row)
+    }
+
+    /// Returns a cell reference.
+    pub fn to_ref(&self) -> String {
+        let mut refstr = String::new();
+        if let Some(table) = &self.table {
+            refstr.push_str(table);
+        }
+        refstr.push('.');
+        if self.abs_col {
+            refstr.push('$');
+        }
+        push_colname(&mut refstr, self.col);
+        if self.abs_row {
+            refstr.push('$');
+        }
+        push_rowname(&mut refstr, self.row);
+
+        refstr
+    }
+
+    /// Returns a cell reference for a formula.
+    pub fn to_formula(&self) -> String {
+        let mut refstr = String::new();
+        refstr.push('[');
+        if let Some(table) = &self.table {
+            refstr.push_str(table);
+        }
+        refstr.push('.');
+        if self.abs_col {
+            refstr.push('$');
+        }
+        push_colname(&mut refstr, self.col);
+        if self.abs_row {
+            refstr.push('$');
+        }
+        push_rowname(&mut refstr, self.row);
+        refstr.push(']');
+
+        refstr
+    }
+}
+
+/// A cell-range.
+/// As usual for a spreadsheet this is meant as inclusive from and to.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct CellRange<'a> {
+    pub from: CellRef<'a>,
+    pub to: CellRef<'a>,
+}
+
+impl<'a> CellRange<'a> {
+    /// Creates the cell range from from + to data.
+    pub fn simple(row: ucell, col: ucell, row_to: ucell, col_to: ucell) -> Self {
+        assert!(row <= row_to);
+        assert!(col <= col_to);
+        Self {
+            from: CellRef::simple(row, col),
+            to: CellRef::simple(row_to, col_to),
+        }
+    }
+
+    /// Creates the cell range from from + to data.
+    pub fn table(table: &'a str, row: ucell, col: ucell, row_to: ucell, col_to: ucell) -> Self {
+        assert!(row <= row_to);
+        assert!(col <= col_to);
+        Self {
+            from: CellRef::table(table, row, col),
+            to: CellRef::table(table, row_to, col_to),
+        }
+    }
+
+    /// Creates the cell range from origin + spanning data.
+    pub fn origin_span(row: ucell, col: ucell, span: (ucell, ucell)) -> Self {
+        assert!(span.0 > 0);
+        assert!(span.1 > 0);
+        Self {
+            from: CellRef::simple(row, col),
+            to: CellRef::simple(row + span.0 - 1, col + span.1 - 1),
+        }
+    }
+
+    /// Returns a range reference.
+    pub fn to_ref(&self) -> String {
+        let mut refstr = String::new();
+        refstr.push_str(&self.from.to_ref());
+        refstr.push(':');
+        refstr.push_str(&self.to.to_ref());
+        refstr
+    }
+
+    /// Returns a range reference for a formula.
+    pub fn to_formula(&self) -> String {
+        let mut refstr = String::new();
+        refstr.push('[');
+        refstr.push_str(&self.from.to_ref());
+        refstr.push(':');
+        refstr.push_str(&self.to.to_ref());
+        refstr.push(']');
+        refstr
+    }
+
+    /// Does the range contain the cell.
+    pub fn contains(&self, row: ucell, col: ucell) -> bool {
+        row >= self.from.row && row <= self.to.row
+            && col >= self.from.col && col <= self.to.col
+    }
+
+    /// Is this range any longer relevant, when looping rows first, then columns?
+    pub fn out_looped(&self, row: ucell, col: ucell) -> bool {
+        row > self.to.row
+            || row == self.to.row && col > self.to.col
+    }
+}
+
+/// A range over columns.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct ColRange {
+    pub from: ucell,
+    pub to: ucell,
+}
+
+impl ColRange {
+    pub fn new(from: ucell, to: ucell) -> Self {
+        assert!(from <= to);
+        Self {
+            from,
+            to,
+        }
+    }
+
+    pub fn contains(&self, col: ucell) -> bool {
+        col >= self.from && col <= self.to
+    }
+}
+
+/// A range over rows.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct RowRange {
+    pub from: ucell,
+    pub to: ucell,
+}
+
+impl RowRange {
+    pub fn new(from: ucell, to: ucell) -> Self {
+        assert!(from <= to);
+        Self {
+            from,
+            to,
+        }
+    }
+
+    pub fn contains(&self, row: ucell) -> bool {
+        row >= self.from && row <= self.to
+    }
+}
+
+
+// property functions
+
+// copy the vector to a property-map.
 fn set_prp_vec(map: &mut Option<HashMap<DefaultAtom, String>>, vec: Vec<(&str, String)>) {
     if map.is_none() {
         map.replace(HashMap::new());
@@ -1638,6 +1888,7 @@ fn set_prp_vec(map: &mut Option<HashMap<DefaultAtom, String>>, vec: Vec<(&str, S
     }
 }
 
+// set a property
 fn set_prp(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str, value: String) {
     if map.is_none() {
         map.replace(HashMap::new());
@@ -1648,6 +1899,7 @@ fn set_prp(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str, value: St
     }
 }
 
+// remove a property
 fn clear_prp(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str) -> Option<String> {
     if !map.is_none() {
         if let Some(map) = map {
@@ -1660,6 +1912,7 @@ fn clear_prp(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str) -> Opti
     }
 }
 
+// return a property
 fn get_prp<'a, 'b>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &'b str) -> Option<&'a String> {
     if let Some(map) = map {
         map.get(&DefaultAtom::from(name))
@@ -1668,6 +1921,7 @@ fn get_prp<'a, 'b>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &'b str)
     }
 }
 
+// return a property
 fn get_prp_def<'a>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &str, default: &'a str) -> &'a str {
     if let Some(map) = map {
         if let Some(value) = map.get(&DefaultAtom::from(name)) {

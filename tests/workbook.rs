@@ -1,16 +1,14 @@
-use std::mem::{size_of, size_of_val};
-
-use spreadsheet_ods::{SCell, Sheet, ucell, ValueType, WorkBook};
+use spreadsheet_ods::{SCell, Sheet, ValueType, WorkBook};
 
 #[test]
 fn test_workbook() {
     let mut wb = WorkBook::new();
-    println!("sizeof usize {}", size_of::<usize>());
-    println!("sizeof ucell {}", size_of::<ucell>());
-    println!("sizeof WorkBook {}", size_of_val(&wb));
+    // println!("sizeof usize {}", size_of::<usize>());
+    // println!("sizeof ucell {}", size_of::<ucell>());
+    // println!("sizeof WorkBook {}", size_of_val(&wb));
 
     let sh = Sheet::new();
-    println!("sizeof Sheet {}", size_of_val(&sh));
+    // println!("sizeof Sheet {}", size_of_val(&sh));
     wb.push_sheet(sh);
     assert_eq!(wb.num_sheets(), 1);
     wb.push_sheet(Sheet::with_name("b"));

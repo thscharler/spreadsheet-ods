@@ -1,8 +1,9 @@
-use spreadsheet_ods::{Sheet, WorkBook};
+use spreadsheet_ods::{ColRange, RowRange, Sheet, WorkBook};
 use spreadsheet_ods::ods::{OdsError, read_ods, read_ods_flags, write_ods};
 
 #[test]
 fn test_0() -> Result<(), OdsError> {
+    println!("test_0");
     let mut wb = WorkBook::new();
     let mut sh = Sheet::new();
 
@@ -22,6 +23,7 @@ fn test_0() -> Result<(), OdsError> {
 
 #[test]
 fn test_span() -> Result<(), OdsError> {
+    println!("test_span");
     env_logger::init();
 
     let mut wb = WorkBook::new();
@@ -69,8 +71,7 @@ fn test_span() -> Result<(), OdsError> {
 
     let wi = read_ods_flags("test_out/test_span.ods", true)?;
 
-    println!("{:?}", wi);
-
+    // println!("{:?}", wi);
 
     let si = wi.sheet(0);
 
@@ -85,3 +86,48 @@ fn test_span() -> Result<(), OdsError> {
     Ok(())
 }
 
+#[test]
+fn test_header() -> Result<(), OdsError> {
+    println!("test_header");
+    let mut wb = WorkBook::new();
+
+    let mut sh = Sheet::new();
+    for i in 0..10 {
+        for j in 0..10 {
+            sh.set_value(i, j, i + j);
+        }
+    }
+    sh.set_header_cols(0, 2);
+    sh.set_header_rows(0, 2);
+    wb.push_sheet(sh);
+
+    let mut sh = Sheet::new();
+    sh.set_value(0, 0, 0);
+    sh.set_value(9, 0, 0);
+    sh.set_header_rows(2, 3);
+    wb.push_sheet(sh);
+
+    let mut sh = Sheet::new();
+    sh.set_value(0, 0, 0);
+    sh.set_value(9, 0, 0);
+    sh.set_header_rows(0, 3);
+    wb.push_sheet(sh);
+
+    let mut sh = Sheet::new();
+    sh.set_value(0, 0, 0);
+    sh.set_value(9, 0, 0);
+    sh.set_header_rows(2, 9);
+    wb.push_sheet(sh);
+
+    write_ods(&wb, "test_out/test_header0.ods")?;
+
+    let wb = read_ods("test_out/test_header0.ods")?;
+
+    assert_eq!(wb.sheet(0).header_rows(), Some(RowRange::new(0, 2)));
+    assert_eq!(wb.sheet(0).header_cols(), Some(ColRange::new(0, 2)));
+    assert_eq!(wb.sheet(1).header_rows(), Some(RowRange::new(2, 3)));
+    assert_eq!(wb.sheet(2).header_rows(), Some(RowRange::new(0, 3)));
+    assert_eq!(wb.sheet(3).header_rows(), Some(RowRange::new(2, 9)));
+
+    Ok(())
+}

@@ -8,7 +8,7 @@ use quick_xml::events::{BytesStart, Event};
 use quick_xml::events::attributes::Attribute;
 use zip::read::ZipFile;
 
-use crate::{FontDecl, FormatPart, FormatPartType, SCell, Sheet, Style, StyleFor, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
+use crate::{ColRange, FontDecl, FormatPart, FormatPartType, RowRange, SCell, Sheet, Style, StyleFor, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
 use crate::ods::error::OdsError;
 
 // Reads an ODS-file.
@@ -52,6 +52,9 @@ fn read_content(zip_file: &mut ZipFile, dump_xml: bool) -> Result<WorkBook, OdsE
     // Row style.
     let mut row_style: Option<String> = None;
 
+    let mut col_range_from = 0;
+    let mut row_range_from = 0;
+
     loop {
         let event = xml.read_event(&mut buf)?;
         if dump_xml { log::debug!("{:?}", event); }
@@ -68,9 +71,29 @@ fn read_content(zip_file: &mut ZipFile, dump_xml: bool) -> Result<WorkBook, OdsE
                 sheet = Sheet::new();
             }
 
+            Event::Start(xml_tag)
+            if xml_tag.name() == b"table:table-header-columns" => {
+                col_range_from = tcol;
+            }
+
+            Event::End(xml_tag)
+            if xml_tag.name() == b"table:table-header-columns" => {
+                sheet.header_cols = Some(ColRange::new(col_range_from, tcol - 1));
+            }
+
             Event::Empty(xml_tag)
             if xml_tag.name() == b"table:table-column" => {
                 tcol = read_table_column(&mut xml, &xml_tag, tcol, &mut sheet)?;
+            }
+
+            Event::Start(xml_tag)
+            if xml_tag.name() == b"table:table-header-rows" => {
+                row_range_from = row;
+            }
+
+            Event::End(xml_tag)
+            if xml_tag.name() == b"table:table-header-rows" => {
+                sheet.header_rows = Some(RowRange::new(row_range_from, row - 1));
             }
 
             Event::Start(xml_tag)
@@ -79,8 +102,12 @@ fn read_content(zip_file: &mut ZipFile, dump_xml: bool) -> Result<WorkBook, OdsE
             }
             Event::End(xml_tag)
             if xml_tag.name() == b"table:table-row" => {
-                // Dieser Row-Style ist oft 1.000.000 mal wiederholt.
-                // Das bremst gewaltig, deshalb für's erste ignorieren.
+                // There is often a strange repeat count for the last
+                // row of the table that is in the millions.
+                // That hits the break quite thoroughly, for now I ignore
+                // this. Removes the row style for empty rows, I can live
+                // with that for now.
+                //
                 // if let Some(style) = row_style {
                 //     for r in row..row + row_repeat {
                 //         sheet.set_row_style(r, style.clone());
