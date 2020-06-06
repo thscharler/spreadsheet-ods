@@ -1,5 +1,6 @@
-use spreadsheet_ods::{ColRange, RowRange, Sheet, WorkBook};
-use spreadsheet_ods::ods::{OdsError, read_ods, read_ods_flags, write_ods};
+use spreadsheet_ods::{Sheet, WorkBook};
+use spreadsheet_ods::io::{OdsError, read_ods, read_ods_flags, write_ods};
+use spreadsheet_ods::refs::{ColRange, RowRange};
 
 #[test]
 fn test_0() -> Result<(), OdsError> {
@@ -123,11 +124,11 @@ fn test_header() -> Result<(), OdsError> {
 
     let wb = read_ods("test_out/test_header0.ods")?;
 
-    assert_eq!(wb.sheet(0).header_rows(), Some(RowRange::new(0, 2)));
-    assert_eq!(wb.sheet(0).header_cols(), Some(ColRange::new(0, 2)));
-    assert_eq!(wb.sheet(1).header_rows(), Some(RowRange::new(2, 3)));
-    assert_eq!(wb.sheet(2).header_rows(), Some(RowRange::new(0, 3)));
-    assert_eq!(wb.sheet(3).header_rows(), Some(RowRange::new(2, 9)));
+    assert_eq!(wb.sheet(0).header_rows().clone(), Some(RowRange::new(0, 2)));
+    assert_eq!(wb.sheet(0).header_cols().clone(), Some(ColRange::new(0, 2)));
+    assert_eq!(wb.sheet(1).header_rows().clone(), Some(RowRange::new(2, 3)));
+    assert_eq!(wb.sheet(2).header_rows().clone(), Some(RowRange::new(0, 3)));
+    assert_eq!(wb.sheet(3).header_rows().clone(), Some(RowRange::new(2, 9)));
 
     Ok(())
 }

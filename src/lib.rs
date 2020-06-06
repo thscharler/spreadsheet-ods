@@ -4,18 +4,19 @@
 //! useable subset to read + modify + write back an ODS file.
 //!
 //! ```
-//! use spreadsheet_ods::{WorkBook, Sheet, Style, StyleFor, ValueFormat, ValueType, FormatPart};
+//! use spreadsheet_ods::{WorkBook, Sheet};
 //! use chrono::NaiveDate;
 //! use spreadsheet_ods::format;
 //! use spreadsheet_ods::formula;
+//! use spreadsheet_ods::style::{Style, StyleFor};
 //!
-//! let mut wb = spreadsheet_ods::ods::read_ods("tests/example.ods").unwrap();
+//! let mut wb = spreadsheet_ods::io::read_ods("tests/example.ods").unwrap();
 //!
 //! let mut sheet = wb.sheet_mut(0);
 //! sheet.set_value(0, 0, 21.4f32);
 //! sheet.set_value(0, 1, "foo");
 //! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), "nice_date_style");
-//! sheet.set_formula(0, 3, format!("of:={}+1", formula::cellref(0,0)));
+//! sheet.set_formula(0, 3, format!("of:={}+1", formula::fcellref(0,0)));
 //!
 //! let nice_date_format = format::create_date_dmy_format("nice_date_format");
 //! wb.add_format(nice_date_format);
@@ -23,7 +24,7 @@
 //! let nice_date_style = Style::with_name(StyleFor::TableCell, "nice_date_style", "nice_date_format");
 //! wb.add_style(nice_date_style);
 //!
-//! spreadsheet_ods::ods::write_ods(&wb, "test_out/tryout.ods");
+//! spreadsheet_ods::io::write_ods(&wb, "test_out/tryout.ods");
 //!
 //! ```
 //!
@@ -31,41 +32,51 @@
 //! except for content.xml which is rewritten.
 //!
 //! For content.xml the following information is read and written:
-//! * fonts
-//! * styles
-//! * data-formats
-//! * table-data
-//! ** all datatypes
-//! ** no complex text
+//! TODO: more detailed description
 //!
 //! The following things are ignored for now
-//! * conditional formats
-//! * charts
-//! * ...
+//! TODO: more detailed description
 //!
 //!
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
-use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 
-use chrono::{Duration, NaiveDate, NaiveDateTime};
+use chrono::{NaiveDate, NaiveDateTime};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
-use string_cache::DefaultAtom;
+use time::Duration;
 
-use crate::formula::{push_colname, push_rowname};
+use crate::format::ValueFormat;
+use crate::refs::{CellRange, ColRange, RowRange};
+use crate::style::{FontDecl, Style};
 
-pub mod ods;
+pub mod error;
+pub mod io;
+pub mod refs;
 pub mod style;
-pub mod defaultstyles;
 pub mod format;
+pub mod defaultstyles;
 pub mod formula;
+pub mod util;
 
 /// Cell index type for row/column indexes.
 #[allow(non_camel_case_types)]
 pub type ucell = u32;
+
+/// Origin of a style. Content.xml or Styles.xml.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum XMLOrigin {
+    Content,
+    Styles,
+}
+
+impl Default for XMLOrigin {
+    fn default() -> Self {
+        XMLOrigin::Content
+    }
+}
 
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
@@ -93,6 +104,9 @@ pub struct WorkBook {
 
     /// Page styles.
     // page_styles: HashMap<String, PageStyle>,
+
+    /// Print ranges.
+    print_ranges: Option<Vec<CellRange>>,
 
     /// Original file if this book was read from one.
     /// This is used when writing to copy all additional
@@ -130,6 +144,7 @@ impl WorkBook {
             styles: HashMap::new(),
             formats: HashMap::new(),
             def_styles: None,
+            print_ranges: None,
             file: None,
         }
     }
@@ -544,8 +559,8 @@ impl Sheet {
     }
 
     /// Returns the header rows.
-    pub fn header_rows(&self) -> Option<RowRange> {
-        self.header_rows
+    pub fn header_rows(&self) -> &Option<RowRange> {
+        &self.header_rows
     }
 
     /// Defines a range of columns as header columns.
@@ -559,8 +574,8 @@ impl Sheet {
     }
 
     /// Returns the header columns.
-    pub fn header_cols(&self) -> Option<ColRange> {
-        self.header_cols
+    pub fn header_cols(&self) -> &Option<ColRange> {
+        &self.header_cols
     }
 }
 
@@ -894,1043 +909,3 @@ impl From<Duration> for Value {
         Value::TimeDuration(d)
     }
 }
-
-/// Font declarations.
-#[derive(Clone, Debug, Default)]
-pub struct FontDecl {
-    name: String,
-    /// From where did we get this style.
-    origin: XMLOrigin,
-    /// All other attributes.
-    prp: Option<HashMap<DefaultAtom, String>>,
-}
-
-impl FontDecl {
-    /// New, empty.
-    pub fn new() -> Self {
-        FontDecl::new_origin(XMLOrigin::Content)
-    }
-
-    /// New, with origination.
-    pub fn new_origin(origin: XMLOrigin) -> Self {
-        Self {
-            name: "".to_string(),
-            origin,
-            prp: None,
-        }
-    }
-
-    /// New, with a name.
-    pub fn with_name<S: Into<String>>(name: S) -> Self {
-        Self {
-            name: name.into(),
-            origin: XMLOrigin::Content,
-            prp: None,
-        }
-    }
-
-    /// Set the name.
-    pub fn set_name<V: Into<String>>(&mut self, name: V) {
-        self.name = name.into();
-    }
-
-    /// Returns the name.
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    /// Sets a property of the font.
-    pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.prp, name, value);
-    }
-
-    /// Returns a property of the font.
-    pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.prp, name)
-    }
-}
-
-/// Style data fashioned after the ODS spec.
-#[derive(Debug, Clone, Default)]
-pub struct Style {
-    name: String,
-    /// Nice String.
-    display_name: Option<String>,
-    /// From where did we get this style.
-    origin: XMLOrigin,
-    /// Applicability of this style.
-    family: StyleFor,
-    /// Styles can cascade.
-    parent: Option<String>,
-    /// References the actual formatting instructions in the value-styles.
-    value_format: Option<String>,
-    /// Table styling
-    table_prp: Option<HashMap<DefaultAtom, String>>,
-    /// Column styling
-    table_col_prp: Option<HashMap<DefaultAtom, String>>,
-    /// Row styling
-    table_row_prp: Option<HashMap<DefaultAtom, String>>,
-    /// Cell styles
-    table_cell_prp: Option<HashMap<DefaultAtom, String>>,
-    /// Cell paragraph styles
-    paragraph_prp: Option<HashMap<DefaultAtom, String>>,
-    /// Cell text styles
-    text_prp: Option<HashMap<DefaultAtom, String>>,
-}
-
-impl Style {
-    /// New, empty.
-    pub fn new() -> Self {
-        Style::new_origin(XMLOrigin::Content)
-    }
-
-    /// New, with origination.
-    pub fn new_origin(origin: XMLOrigin) -> Self {
-        Style {
-            name: String::from(""),
-            display_name: None,
-            origin,
-            family: StyleFor::None,
-            parent: None,
-            value_format: None,
-            table_prp: None,
-            table_col_prp: None,
-            table_row_prp: None,
-            table_cell_prp: None,
-            paragraph_prp: None,
-            text_prp: None,
-        }
-    }
-
-    pub fn cell_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
-        Style::with_name(StyleFor::TableCell, name, value_style)
-    }
-
-    pub fn col_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
-        Style::with_name(StyleFor::TableColumn, name, value_style)
-    }
-
-    pub fn row_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
-        Style::with_name(StyleFor::TableRow, name, value_style)
-    }
-
-    pub fn table_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
-        Style::with_name(StyleFor::Table, name, value_style)
-    }
-
-    /// New, with name.
-    pub fn with_name<S: Into<String>, T: Into<String>>(family: StyleFor, name: S, value_style: T) -> Self {
-        Style {
-            name: name.into(),
-            display_name: None,
-            origin: XMLOrigin::Content,
-            family,
-            parent: Some(String::from("Default")),
-            value_format: Some(value_style.into()),
-            table_prp: None,
-            table_col_prp: None,
-            table_row_prp: None,
-            table_cell_prp: None,
-            paragraph_prp: None,
-            text_prp: None,
-        }
-    }
-
-    /// Sets the name.
-    pub fn set_name<V: Into<String>>(&mut self, name: V) {
-        self.name = name.into();
-    }
-
-    /// Returns the name.
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    /// Sets the display name.
-    pub fn set_display_name(&mut self, name: &str) {
-        self.display_name = Some(name.to_string());
-    }
-
-    /// Returns the display name.
-    pub fn display_name(&self) -> Option<&String> {
-        self.display_name.as_ref()
-    }
-
-    /// Sets the origin.
-    pub fn set_origin(&mut self, origin: XMLOrigin) {
-        self.origin = origin;
-    }
-
-    /// Returns the origin.
-    pub fn origin(&self) -> &XMLOrigin {
-        &self.origin
-    }
-
-    /// Sets the style-family.
-    pub fn set_family(&mut self, family: StyleFor) {
-        self.family = family;
-    }
-
-    /// Returns the style-family.
-    pub fn family(&self) -> &StyleFor {
-        &self.family
-    }
-
-    /// Sets the parent style.
-    pub fn set_parent(&mut self, parent: &str) {
-        self.parent = Some(parent.to_string());
-    }
-
-    /// Returns the parent style.
-    pub fn parent(&self) -> Option<&String> {
-        self.parent.as_ref()
-    }
-
-    /// Sets the value format.
-    pub fn set_value_format(&mut self, value_format: &str) {
-        self.value_format = Some(value_format.to_string());
-    }
-
-    /// Returns the value format.
-    pub fn value_format(&self) -> Option<&String> {
-        self.value_format.as_ref()
-    }
-
-    /// Sets a property for a table style.
-    pub fn set_table_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_prp, name, value);
-    }
-
-    /// Returns a property for a table style.
-    pub fn table_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_prp, name)
-    }
-
-    /// Sets a property for a table column.
-    pub fn set_table_col_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_col_prp, name, value);
-    }
-
-    /// Returns a property for a table column.
-    pub fn table_col_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_col_prp, name)
-    }
-
-    /// Set a table row property.
-    pub fn set_table_row_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_row_prp, name, value);
-    }
-
-    /// Returns a table row property.
-    pub fn table_row_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_row_prp, name)
-    }
-
-    /// Sets a table cell property.
-    pub fn set_table_cell_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_cell_prp, name, value);
-    }
-
-    /// Returns a table cell property.
-    pub fn table_cell_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_cell_prp, name)
-    }
-
-    /// Sets a text property.
-    pub fn set_text_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.text_prp, name, value);
-    }
-
-    /// Removes a text property.
-    pub fn clear_text_prp(&mut self, name: &str) -> Option<String> {
-        clear_prp(&mut self.text_prp, name)
-    }
-
-    /// Returns a text property.
-    pub fn text_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.text_prp, name)
-    }
-
-    /// Sets a paragraph property.
-    pub fn set_paragraph_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.paragraph_prp, name, value);
-    }
-
-    /// Returns a paragraph property.
-    pub fn paragraph_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.paragraph_prp, name)
-    }
-}
-
-/// Origin of a style. Content.xml or Styles.xml.
-#[derive(Debug, Clone, PartialEq)]
-pub enum XMLOrigin {
-    Content,
-    Styles,
-}
-
-impl Default for XMLOrigin {
-    fn default() -> Self {
-        XMLOrigin::Content
-    }
-}
-
-/// Applicability of this style.
-#[derive(Debug, Clone, PartialEq)]
-pub enum StyleFor {
-    Table,
-    TableRow,
-    TableColumn,
-    TableCell,
-    None,
-}
-
-impl Default for StyleFor {
-    fn default() -> Self {
-        StyleFor::None
-    }
-}
-
-#[derive(Debug)]
-pub enum ValueFormatError {
-    Format(String),
-    NaN,
-}
-
-impl Display for ValueFormatError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self {
-            ValueFormatError::Format(s) => write!(f, "{}", s)?,
-            ValueFormatError::NaN => write!(f, "Digit expected")?,
-        }
-        Ok(())
-    }
-}
-
-impl std::error::Error for ValueFormatError {}
-
-/// Actual textual formatting of values.
-#[derive(Debug, Clone, Default)]
-pub struct ValueFormat {
-    // Name
-    name: String,
-    // Value type
-    v_type: ValueType,
-    // Origin information.
-    origin: XMLOrigin,
-    // Properties of the format.
-    prp: Option<HashMap<DefaultAtom, String>>,
-    // Parts of the format.
-    parts: Option<Vec<FormatPart>>,
-}
-
-impl ValueFormat {
-    /// New, empty.
-    pub fn new() -> Self {
-        ValueFormat::new_origin(XMLOrigin::Content)
-    }
-
-    /// New, with origin.
-    pub fn new_origin(origin: XMLOrigin) -> Self {
-        ValueFormat {
-            name: String::from(""),
-            v_type: ValueType::Text,
-            origin,
-            prp: None,
-            parts: None,
-        }
-    }
-
-    /// New, with name.
-    pub fn with_name<S: Into<String>>(name: S, value_type: ValueType) -> Self {
-        ValueFormat {
-            name: name.into(),
-            v_type: value_type,
-            origin: XMLOrigin::Content,
-            prp: None,
-            parts: None,
-        }
-    }
-
-    /// Sets the name.
-    pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.name = name.into();
-    }
-
-    /// Returns the name.
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    /// Sets the value type.
-    pub fn set_value_type(&mut self, value_type: ValueType) {
-        self.v_type = value_type;
-    }
-
-    /// Returns the value type.
-    pub fn value_type(&self) -> &ValueType {
-        &self.v_type
-    }
-
-    /// Sets the origin.
-    pub fn set_origin(&mut self, origin: XMLOrigin) {
-        self.origin = origin;
-    }
-
-    /// Returns the origin.
-    pub fn origin(&self) -> &XMLOrigin {
-        &self.origin
-    }
-
-    /// Sets a property of the format.
-    pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.prp, name, value);
-    }
-
-    /// Returns a property of the format.
-    pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.prp, name)
-    }
-
-    /// Adds a format part.
-    pub fn push_part(&mut self, part: FormatPart) {
-        if let Some(parts) = &mut self.parts {
-            parts.push(part);
-        } else {
-            self.parts = Some(vec![part]);
-        }
-    }
-
-    /// Adds all format parts.
-    pub fn push_parts(&mut self, parts: Vec<FormatPart>) {
-        for p in parts.into_iter() {
-            self.push_part(p);
-        }
-    }
-
-    /// Returns the parts.
-    pub fn parts(&self) -> Option<&Vec<FormatPart>> {
-        self.parts.as_ref()
-    }
-
-    /// Returns the mutable parts.
-    pub fn parts_mut(&mut self) -> &mut Vec<FormatPart> {
-        self.parts.get_or_insert(Vec::new())
-    }
-
-    // Tries to format.
-    // If there are no matching parts, does nothing.
-    pub fn format_boolean(&self, b: bool) -> String {
-        let mut buf = String::new();
-        if let Some(parts) = &self.parts {
-            for p in parts {
-                p.format_boolean(&mut buf, b);
-            }
-        }
-        buf
-    }
-
-    // Tries to format.
-    // If there are no matching parts, does nothing.
-    pub fn format_float(&self, f: f64) -> String {
-        let mut buf = String::new();
-        if let Some(parts) = &self.parts {
-            for p in parts {
-                p.format_float(&mut buf, f);
-            }
-        }
-        buf
-    }
-
-    // Tries to format.
-    // If there are no matching parts, does nothing.
-    pub fn format_str(&self, s: &str) -> String {
-        let mut buf = String::new();
-        if let Some(parts) = &self.parts {
-            for p in parts {
-                p.format_str(&mut buf, s);
-            }
-        }
-        buf
-    }
-
-    // Tries to format.
-    // If there are no matching parts, does nothing.
-    // Should work reasonably. Don't ask me about other calenders.
-    pub fn format_datetime(&self, d: &NaiveDateTime) -> String {
-        let mut buf = String::new();
-        if let Some(parts) = &self.parts {
-            let h12 = parts.iter().any(|v| v.part_type == FormatPartType::AmPm);
-
-            for p in parts {
-                p.format_datetime(&mut buf, d, h12);
-            }
-        }
-        buf
-    }
-
-    // Tries to format. Should work reasonably.
-    // If there are no matching parts, does nothing.
-    pub fn format_time_duration(&self, d: &Duration) -> String {
-        let mut buf = String::new();
-        if let Some(parts) = &self.parts {
-            for p in parts {
-                p.format_time_duration(&mut buf, d);
-            }
-        }
-        buf
-    }
-}
-
-/// Identifies the structural parts of a value format.
-#[derive(Debug, Clone, PartialEq)]
-pub enum FormatPartType {
-    Boolean,
-    Number,
-    Fraction,
-    Scientific,
-    CurrencySymbol,
-    Day,
-    Month,
-    Year,
-    Era,
-    DayOfWeek,
-    WeekOfYear,
-    Quarter,
-    Hours,
-    Minutes,
-    Seconds,
-    AmPm,
-    EmbeddedText,
-    Text,
-    TextContent,
-    StyleText,
-    StyleMap,
-}
-
-/// One structural part of a value format.
-#[derive(Debug, Clone)]
-pub struct FormatPart {
-    // What kind of format part is this?
-    part_type: FormatPartType,
-    // Properties of this part.
-    prp: Option<HashMap<DefaultAtom, String>>,
-    // Some content.
-    content: Option<String>,
-}
-
-impl FormatPart {
-    /// New, empty
-    pub fn new(ftype: FormatPartType) -> Self {
-        FormatPart {
-            part_type: ftype,
-            prp: None,
-            content: None,
-        }
-    }
-
-    /// New, with string content.
-    pub fn new_content(ftype: FormatPartType, content: &str) -> Self {
-        FormatPart {
-            part_type: ftype,
-            prp: None,
-            content: Some(content.to_string()),
-        }
-    }
-
-    /// New with properties.
-    pub fn new_vec(ftype: FormatPartType, prp_vec: Vec<(&str, String)>) -> Self {
-        let mut part = FormatPart {
-            part_type: ftype,
-            prp: None,
-            content: None,
-        };
-        part.set_prp_vec(prp_vec);
-        part
-    }
-
-    /// Sets the kind of the part.
-    pub fn set_part_type(&mut self, p_type: FormatPartType) {
-        self.part_type = p_type;
-    }
-
-    /// What kind of part?
-    pub fn part_type(&self) -> &FormatPartType {
-        &self.part_type
-    }
-
-    /// Sets a vec of properties.
-    pub fn set_prp_vec(&mut self, vec: Vec<(&str, String)>) {
-        set_prp_vec(&mut self.prp, vec);
-    }
-
-    /// Sets a property.
-    pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.prp, name, value);
-    }
-
-    /// Returns a property.
-    pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.prp, name)
-    }
-
-    /// Returns a property or a default.
-    pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.prp, name, default)
-    }
-
-    /// Sets a textual content for this part. This is only used
-    /// for text and currency-symbol.
-    pub fn set_content(&mut self, content: &str) {
-        self.content = Some(content.to_string());
-    }
-
-    /// Returns the text content.
-    pub fn content(&self) -> Option<&String> {
-        self.content.as_ref()
-    }
-
-    /// Tries to format the given boolean, and appends the result to buf.
-    /// If this part does'nt match does nothing
-    fn format_boolean(&self, buf: &mut String, b: bool) {
-        match self.part_type {
-            FormatPartType::Boolean => {
-                buf.push_str(if b { "true" } else { "false" });
-            }
-            FormatPartType::Text => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// Tries to format the given float, and appends the result to buf.
-    /// If this part does'nt match does nothing
-    fn format_float(&self, buf: &mut String, f: f64) {
-        match self.part_type {
-            FormatPartType::Number => {
-                let dec = self.prp_def("number:decimal-places", "0").parse::<usize>();
-                if let Ok(dec) = dec {
-                    buf.push_str(&format!("{:.*}", dec, f));
-                }
-            }
-            FormatPartType::Scientific => {
-                buf.push_str(&format!("{:e}", f));
-            }
-            FormatPartType::CurrencySymbol => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            FormatPartType::Text => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// Tries to format the given string, and appends the result to buf.
-    /// If this part does'nt match does nothing
-    fn format_str(&self, buf: &mut String, s: &str) {
-        match self.part_type {
-            FormatPartType::TextContent => {
-                buf.push_str(s);
-            }
-            FormatPartType::Text => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// Tries to format the given DateTime, and appends the result to buf.
-    /// Uses chrono::strftime for the implementation.
-    /// If this part does'nt match does nothing
-    #[allow(clippy::collapsible_if)]
-    fn format_datetime(&self, buf: &mut String, d: &NaiveDateTime, h12: bool) {
-        match self.part_type {
-            FormatPartType::Day => {
-                let is_long = self.prp_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%d").to_string());
-                } else {
-                    buf.push_str(&d.format("%-d").to_string());
-                }
-            }
-            FormatPartType::Month => {
-                let is_long = self.prp_def("number:style", "") == "long";
-                let is_text = self.prp_def("number:textual", "") == "true";
-                if is_text {
-                    if is_long {
-                        buf.push_str(&d.format("%b").to_string());
-                    } else {
-                        buf.push_str(&d.format("%B").to_string());
-                    }
-                } else {
-                    if is_long {
-                        buf.push_str(&d.format("%m").to_string());
-                    } else {
-                        buf.push_str(&d.format("%-m").to_string());
-                    }
-                }
-            }
-            FormatPartType::Year => {
-                let is_long = self.prp_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%Y").to_string());
-                } else {
-                    buf.push_str(&d.format("%y").to_string());
-                }
-            }
-            FormatPartType::DayOfWeek => {
-                let is_long = self.prp_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%A").to_string());
-                } else {
-                    buf.push_str(&d.format("%a").to_string());
-                }
-            }
-            FormatPartType::WeekOfYear => {
-                let is_long = self.prp_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%W").to_string());
-                } else {
-                    buf.push_str(&d.format("%-W").to_string());
-                }
-            }
-            FormatPartType::Hours => {
-                let is_long = self.prp_def("number:style", "") == "long";
-                if !h12 {
-                    if is_long {
-                        buf.push_str(&d.format("%H").to_string());
-                    } else {
-                        buf.push_str(&d.format("%-H").to_string());
-                    }
-                } else {
-                    if is_long {
-                        buf.push_str(&d.format("%I").to_string());
-                    } else {
-                        buf.push_str(&d.format("%-I").to_string());
-                    }
-                }
-            }
-            FormatPartType::Minutes => {
-                let is_long = self.prp_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%M").to_string());
-                } else {
-                    buf.push_str(&d.format("%-M").to_string());
-                }
-            }
-            FormatPartType::Seconds => {
-                let is_long = self.prp_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%S").to_string());
-                } else {
-                    buf.push_str(&d.format("%-S").to_string());
-                }
-            }
-            FormatPartType::AmPm => {
-                buf.push_str(&d.format("%p").to_string());
-            }
-            FormatPartType::Text => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// Tries to format the given Duration, and appends the result to buf.
-    /// If this part does'nt match does nothing
-    fn format_time_duration(&self, buf: &mut String, d: &Duration) {
-        match self.part_type {
-            FormatPartType::Hours => {
-                buf.push_str(&d.num_hours().to_string());
-            }
-            FormatPartType::Minutes => {
-                buf.push_str(&(d.num_minutes() % 60).to_string());
-            }
-            FormatPartType::Seconds => {
-                buf.push_str(&(d.num_seconds() % 60).to_string());
-            }
-            FormatPartType::Text => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            _ => {}
-        }
-    }
-}
-
-/// Reference to a cell.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct CellRef<'a> {
-    // Tablename
-    pub table: Option<&'a str>,
-    // Row
-    pub row: ucell,
-    // Absolute ($) reference
-    pub abs_row: bool,
-    // Column
-    pub col: ucell,
-    // Absolute ($) reference
-    pub abs_col: bool,
-}
-
-impl<'a> CellRef<'a> {
-    pub fn simple(row: ucell, col: ucell) -> Self {
-        Self {
-            table: None,
-            row,
-            abs_row: false,
-            col,
-            abs_col: false,
-        }
-    }
-
-    pub fn table(table: &'a str, row: ucell, col: ucell) -> Self {
-        Self {
-            table: Some(table),
-            row,
-            abs_row: false,
-            col,
-            abs_col: false,
-        }
-    }
-
-    /// Returns the spreadsheet column name.
-    pub fn colname(&self) -> String {
-        formula::colname(self.col)
-    }
-
-    /// Returns the spreadsheet row name.
-    pub fn rowname(&self) -> String {
-        formula::rowname(self.row)
-    }
-
-    /// Returns a cell reference.
-    pub fn to_ref(&self) -> String {
-        let mut refstr = String::new();
-        if let Some(table) = &self.table {
-            refstr.push_str(table);
-        }
-        refstr.push('.');
-        if self.abs_col {
-            refstr.push('$');
-        }
-        push_colname(&mut refstr, self.col);
-        if self.abs_row {
-            refstr.push('$');
-        }
-        push_rowname(&mut refstr, self.row);
-
-        refstr
-    }
-
-    /// Returns a cell reference for a formula.
-    pub fn to_formula(&self) -> String {
-        let mut refstr = String::new();
-        refstr.push('[');
-        if let Some(table) = &self.table {
-            refstr.push_str(table);
-        }
-        refstr.push('.');
-        if self.abs_col {
-            refstr.push('$');
-        }
-        push_colname(&mut refstr, self.col);
-        if self.abs_row {
-            refstr.push('$');
-        }
-        push_rowname(&mut refstr, self.row);
-        refstr.push(']');
-
-        refstr
-    }
-}
-
-/// A cell-range.
-/// As usual for a spreadsheet this is meant as inclusive from and to.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct CellRange<'a> {
-    pub from: CellRef<'a>,
-    pub to: CellRef<'a>,
-}
-
-impl<'a> CellRange<'a> {
-    /// Creates the cell range from from + to data.
-    pub fn simple(row: ucell, col: ucell, row_to: ucell, col_to: ucell) -> Self {
-        assert!(row <= row_to);
-        assert!(col <= col_to);
-        Self {
-            from: CellRef::simple(row, col),
-            to: CellRef::simple(row_to, col_to),
-        }
-    }
-
-    /// Creates the cell range from from + to data.
-    pub fn table(table: &'a str, row: ucell, col: ucell, row_to: ucell, col_to: ucell) -> Self {
-        assert!(row <= row_to);
-        assert!(col <= col_to);
-        Self {
-            from: CellRef::table(table, row, col),
-            to: CellRef::table(table, row_to, col_to),
-        }
-    }
-
-    /// Creates the cell range from origin + spanning data.
-    pub fn origin_span(row: ucell, col: ucell, span: (ucell, ucell)) -> Self {
-        assert!(span.0 > 0);
-        assert!(span.1 > 0);
-        Self {
-            from: CellRef::simple(row, col),
-            to: CellRef::simple(row + span.0 - 1, col + span.1 - 1),
-        }
-    }
-
-    /// Returns a range reference.
-    pub fn to_ref(&self) -> String {
-        let mut refstr = String::new();
-        refstr.push_str(&self.from.to_ref());
-        refstr.push(':');
-        refstr.push_str(&self.to.to_ref());
-        refstr
-    }
-
-    /// Returns a range reference for a formula.
-    pub fn to_formula(&self) -> String {
-        let mut refstr = String::new();
-        refstr.push('[');
-        refstr.push_str(&self.from.to_ref());
-        refstr.push(':');
-        refstr.push_str(&self.to.to_ref());
-        refstr.push(']');
-        refstr
-    }
-
-    /// Does the range contain the cell.
-    pub fn contains(&self, row: ucell, col: ucell) -> bool {
-        row >= self.from.row && row <= self.to.row
-            && col >= self.from.col && col <= self.to.col
-    }
-
-    /// Is this range any longer relevant, when looping rows first, then columns?
-    pub fn out_looped(&self, row: ucell, col: ucell) -> bool {
-        row > self.to.row
-            || row == self.to.row && col > self.to.col
-    }
-}
-
-/// A range over columns.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct ColRange {
-    pub from: ucell,
-    pub to: ucell,
-}
-
-impl ColRange {
-    pub fn new(from: ucell, to: ucell) -> Self {
-        assert!(from <= to);
-        Self {
-            from,
-            to,
-        }
-    }
-
-    pub fn contains(&self, col: ucell) -> bool {
-        col >= self.from && col <= self.to
-    }
-}
-
-/// A range over rows.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct RowRange {
-    pub from: ucell,
-    pub to: ucell,
-}
-
-impl RowRange {
-    pub fn new(from: ucell, to: ucell) -> Self {
-        assert!(from <= to);
-        Self {
-            from,
-            to,
-        }
-    }
-
-    pub fn contains(&self, row: ucell) -> bool {
-        row >= self.from && row <= self.to
-    }
-}
-
-
-// property functions
-
-// copy the vector to a property-map.
-fn set_prp_vec(map: &mut Option<HashMap<DefaultAtom, String>>, vec: Vec<(&str, String)>) {
-    if map.is_none() {
-        map.replace(HashMap::new());
-    }
-    if let Some(map) = map {
-        for (name, value) in vec {
-            let a = DefaultAtom::from(name);
-            map.insert(a, value);
-        }
-    }
-}
-
-// set a property
-fn set_prp(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str, value: String) {
-    if map.is_none() {
-        map.replace(HashMap::new());
-    }
-    if let Some(map) = map {
-        let a = DefaultAtom::from(name);
-        map.insert(a, value);
-    }
-}
-
-// remove a property
-fn clear_prp(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str) -> Option<String> {
-    if !map.is_none() {
-        if let Some(map) = map {
-            map.remove(&DefaultAtom::from(name))
-        } else {
-            None
-        }
-    } else {
-        None
-    }
-}
-
-// return a property
-fn get_prp<'a, 'b>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &'b str) -> Option<&'a String> {
-    if let Some(map) = map {
-        map.get(&DefaultAtom::from(name))
-    } else {
-        None
-    }
-}
-
-// return a property
-fn get_prp_def<'a>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &str, default: &'a str) -> &'a str {
-    if let Some(map) = map {
-        if let Some(value) = map.get(&DefaultAtom::from(name)) {
-            value.as_ref()
-        } else {
-            default
-        }
-    } else {
-        default
-    }
-}
-

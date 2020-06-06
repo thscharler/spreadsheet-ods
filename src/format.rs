@@ -1,4 +1,492 @@
-use crate::{FormatPart, FormatPartType, ValueFormat, ValueType};
+use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
+
+use chrono::NaiveDateTime;
+use string_cache::DefaultAtom;
+use time::Duration;
+
+use crate::{ValueType, XMLOrigin};
+use crate::util::{get_prp, get_prp_def, set_prp, set_prp_vec};
+
+#[derive(Debug)]
+pub enum ValueFormatError {
+    Format(String),
+    NaN,
+}
+
+impl Display for ValueFormatError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            ValueFormatError::Format(s) => write!(f, "{}", s)?,
+            ValueFormatError::NaN => write!(f, "Digit expected")?,
+        }
+        Ok(())
+    }
+}
+
+impl std::error::Error for ValueFormatError {}
+
+/// Actual textual formatting of values.
+#[derive(Debug, Clone, Default)]
+pub struct ValueFormat {
+    // Name
+    pub(crate) name: String,
+    // Value type
+    pub(crate) v_type: ValueType,
+    // Origin information.
+    pub(crate) origin: XMLOrigin,
+    // Properties of the format.
+    pub(crate) prp: Option<HashMap<DefaultAtom, String>>,
+    // Parts of the format.
+    pub(crate) parts: Option<Vec<FormatPart>>,
+}
+
+impl ValueFormat {
+    /// New, empty.
+    pub fn new() -> Self {
+        ValueFormat::new_origin(XMLOrigin::Content)
+    }
+
+    /// New, with origin.
+    pub fn new_origin(origin: XMLOrigin) -> Self {
+        ValueFormat {
+            name: String::from(""),
+            v_type: ValueType::Text,
+            origin,
+            prp: None,
+            parts: None,
+        }
+    }
+
+    /// New, with name.
+    pub fn with_name<S: Into<String>>(name: S, value_type: ValueType) -> Self {
+        ValueFormat {
+            name: name.into(),
+            v_type: value_type,
+            origin: XMLOrigin::Content,
+            prp: None,
+            parts: None,
+        }
+    }
+
+    /// Sets the name.
+    pub fn set_name<S: Into<String>>(&mut self, name: S) {
+        self.name = name.into();
+    }
+
+    /// Returns the name.
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    /// Sets the value type.
+    pub fn set_value_type(&mut self, value_type: ValueType) {
+        self.v_type = value_type;
+    }
+
+    /// Returns the value type.
+    pub fn value_type(&self) -> &ValueType {
+        &self.v_type
+    }
+
+    /// Sets the origin.
+    pub fn set_origin(&mut self, origin: XMLOrigin) {
+        self.origin = origin;
+    }
+
+    /// Returns the origin.
+    pub fn origin(&self) -> &XMLOrigin {
+        &self.origin
+    }
+
+    /// Sets a property of the format.
+    pub fn set_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.prp, name, value);
+    }
+
+    /// Returns a property of the format.
+    pub fn prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.prp, name)
+    }
+
+    /// Adds a format part.
+    pub fn push_part(&mut self, part: FormatPart) {
+        if let Some(parts) = &mut self.parts {
+            parts.push(part);
+        } else {
+            self.parts = Some(vec![part]);
+        }
+    }
+
+    /// Adds all format parts.
+    pub fn push_parts(&mut self, parts: Vec<FormatPart>) {
+        for p in parts.into_iter() {
+            self.push_part(p);
+        }
+    }
+
+    /// Returns the parts.
+    pub fn parts(&self) -> Option<&Vec<FormatPart>> {
+        self.parts.as_ref()
+    }
+
+    /// Returns the mutable parts.
+    pub fn parts_mut(&mut self) -> &mut Vec<FormatPart> {
+        self.parts.get_or_insert(Vec::new())
+    }
+
+    // Tries to format.
+    // If there are no matching parts, does nothing.
+    pub fn format_boolean(&self, b: bool) -> String {
+        let mut buf = String::new();
+        if let Some(parts) = &self.parts {
+            for p in parts {
+                p.format_boolean(&mut buf, b);
+            }
+        }
+        buf
+    }
+
+    // Tries to format.
+    // If there are no matching parts, does nothing.
+    pub fn format_float(&self, f: f64) -> String {
+        let mut buf = String::new();
+        if let Some(parts) = &self.parts {
+            for p in parts {
+                p.format_float(&mut buf, f);
+            }
+        }
+        buf
+    }
+
+    // Tries to format.
+    // If there are no matching parts, does nothing.
+    pub fn format_str(&self, s: &str) -> String {
+        let mut buf = String::new();
+        if let Some(parts) = &self.parts {
+            for p in parts {
+                p.format_str(&mut buf, s);
+            }
+        }
+        buf
+    }
+
+    // Tries to format.
+    // If there are no matching parts, does nothing.
+    // Should work reasonably. Don't ask me about other calenders.
+    pub fn format_datetime(&self, d: &NaiveDateTime) -> String {
+        let mut buf = String::new();
+        if let Some(parts) = &self.parts {
+            let h12 = parts.iter().any(|v| v.part_type == FormatPartType::AmPm);
+
+            for p in parts {
+                p.format_datetime(&mut buf, d, h12);
+            }
+        }
+        buf
+    }
+
+    // Tries to format. Should work reasonably.
+    // If there are no matching parts, does nothing.
+    pub fn format_time_duration(&self, d: &Duration) -> String {
+        let mut buf = String::new();
+        if let Some(parts) = &self.parts {
+            for p in parts {
+                p.format_time_duration(&mut buf, d);
+            }
+        }
+        buf
+    }
+}
+
+/// Identifies the structural parts of a value format.
+#[derive(Debug, Clone, PartialEq)]
+pub enum FormatPartType {
+    Boolean,
+    Number,
+    Fraction,
+    Scientific,
+    CurrencySymbol,
+    Day,
+    Month,
+    Year,
+    Era,
+    DayOfWeek,
+    WeekOfYear,
+    Quarter,
+    Hours,
+    Minutes,
+    Seconds,
+    AmPm,
+    EmbeddedText,
+    Text,
+    TextContent,
+    StyleText,
+    StyleMap,
+}
+
+/// One structural part of a value format.
+#[derive(Debug, Clone)]
+pub struct FormatPart {
+    // What kind of format part is this?
+    pub(crate) part_type: FormatPartType,
+    // Properties of this part.
+    pub(crate) prp: Option<HashMap<DefaultAtom, String>>,
+    // Some content.
+    pub(crate) content: Option<String>,
+}
+
+impl FormatPart {
+    /// New, empty
+    pub fn new(ftype: FormatPartType) -> Self {
+        FormatPart {
+            part_type: ftype,
+            prp: None,
+            content: None,
+        }
+    }
+
+    /// New, with string content.
+    pub fn new_content(ftype: FormatPartType, content: &str) -> Self {
+        FormatPart {
+            part_type: ftype,
+            prp: None,
+            content: Some(content.to_string()),
+        }
+    }
+
+    /// New with properties.
+    pub fn new_vec(ftype: FormatPartType, prp_vec: Vec<(&str, String)>) -> Self {
+        let mut part = FormatPart {
+            part_type: ftype,
+            prp: None,
+            content: None,
+        };
+        part.set_prp_vec(prp_vec);
+        part
+    }
+
+    /// Sets the kind of the part.
+    pub fn set_part_type(&mut self, p_type: FormatPartType) {
+        self.part_type = p_type;
+    }
+
+    /// What kind of part?
+    pub fn part_type(&self) -> &FormatPartType {
+        &self.part_type
+    }
+
+    /// Sets a vec of properties.
+    pub fn set_prp_vec(&mut self, vec: Vec<(&str, String)>) {
+        set_prp_vec(&mut self.prp, vec);
+    }
+
+    /// Sets a property.
+    pub fn set_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.prp, name, value);
+    }
+
+    /// Returns a property.
+    pub fn prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.prp, name)
+    }
+
+    /// Returns a property or a default.
+    pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
+        get_prp_def(&self.prp, name, default)
+    }
+
+    /// Sets a textual content for this part. This is only used
+    /// for text and currency-symbol.
+    pub fn set_content<S: Into<String>>(&mut self, content: S) {
+        self.content = Some(content.into());
+    }
+
+    /// Returns the text content.
+    pub fn content(&self) -> Option<&String> {
+        self.content.as_ref()
+    }
+
+    /// Tries to format the given boolean, and appends the result to buf.
+    /// If this part does'nt match does nothing
+    fn format_boolean(&self, buf: &mut String, b: bool) {
+        match self.part_type {
+            FormatPartType::Boolean => {
+                buf.push_str(if b { "true" } else { "false" });
+            }
+            FormatPartType::Text => {
+                if let Some(content) = &self.content {
+                    buf.push_str(content)
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Tries to format the given float, and appends the result to buf.
+    /// If this part does'nt match does nothing
+    fn format_float(&self, buf: &mut String, f: f64) {
+        match self.part_type {
+            FormatPartType::Number => {
+                let dec = self.prp_def("number:decimal-places", "0").parse::<usize>();
+                if let Ok(dec) = dec {
+                    buf.push_str(&format!("{:.*}", dec, f));
+                }
+            }
+            FormatPartType::Scientific => {
+                buf.push_str(&format!("{:e}", f));
+            }
+            FormatPartType::CurrencySymbol => {
+                if let Some(content) = &self.content {
+                    buf.push_str(content)
+                }
+            }
+            FormatPartType::Text => {
+                if let Some(content) = &self.content {
+                    buf.push_str(content)
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Tries to format the given string, and appends the result to buf.
+    /// If this part does'nt match does nothing
+    fn format_str(&self, buf: &mut String, s: &str) {
+        match self.part_type {
+            FormatPartType::TextContent => {
+                buf.push_str(s);
+            }
+            FormatPartType::Text => {
+                if let Some(content) = &self.content {
+                    buf.push_str(content)
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Tries to format the given DateTime, and appends the result to buf.
+    /// Uses chrono::strftime for the implementation.
+    /// If this part does'nt match does nothing
+    #[allow(clippy::collapsible_if)]
+    fn format_datetime(&self, buf: &mut String, d: &NaiveDateTime, h12: bool) {
+        match self.part_type {
+            FormatPartType::Day => {
+                let is_long = self.prp_def("number:style", "") == "long";
+                if is_long {
+                    buf.push_str(&d.format("%d").to_string());
+                } else {
+                    buf.push_str(&d.format("%-d").to_string());
+                }
+            }
+            FormatPartType::Month => {
+                let is_long = self.prp_def("number:style", "") == "long";
+                let is_text = self.prp_def("number:textual", "") == "true";
+                if is_text {
+                    if is_long {
+                        buf.push_str(&d.format("%b").to_string());
+                    } else {
+                        buf.push_str(&d.format("%B").to_string());
+                    }
+                } else {
+                    if is_long {
+                        buf.push_str(&d.format("%m").to_string());
+                    } else {
+                        buf.push_str(&d.format("%-m").to_string());
+                    }
+                }
+            }
+            FormatPartType::Year => {
+                let is_long = self.prp_def("number:style", "") == "long";
+                if is_long {
+                    buf.push_str(&d.format("%Y").to_string());
+                } else {
+                    buf.push_str(&d.format("%y").to_string());
+                }
+            }
+            FormatPartType::DayOfWeek => {
+                let is_long = self.prp_def("number:style", "") == "long";
+                if is_long {
+                    buf.push_str(&d.format("%A").to_string());
+                } else {
+                    buf.push_str(&d.format("%a").to_string());
+                }
+            }
+            FormatPartType::WeekOfYear => {
+                let is_long = self.prp_def("number:style", "") == "long";
+                if is_long {
+                    buf.push_str(&d.format("%W").to_string());
+                } else {
+                    buf.push_str(&d.format("%-W").to_string());
+                }
+            }
+            FormatPartType::Hours => {
+                let is_long = self.prp_def("number:style", "") == "long";
+                if !h12 {
+                    if is_long {
+                        buf.push_str(&d.format("%H").to_string());
+                    } else {
+                        buf.push_str(&d.format("%-H").to_string());
+                    }
+                } else {
+                    if is_long {
+                        buf.push_str(&d.format("%I").to_string());
+                    } else {
+                        buf.push_str(&d.format("%-I").to_string());
+                    }
+                }
+            }
+            FormatPartType::Minutes => {
+                let is_long = self.prp_def("number:style", "") == "long";
+                if is_long {
+                    buf.push_str(&d.format("%M").to_string());
+                } else {
+                    buf.push_str(&d.format("%-M").to_string());
+                }
+            }
+            FormatPartType::Seconds => {
+                let is_long = self.prp_def("number:style", "") == "long";
+                if is_long {
+                    buf.push_str(&d.format("%S").to_string());
+                } else {
+                    buf.push_str(&d.format("%-S").to_string());
+                }
+            }
+            FormatPartType::AmPm => {
+                buf.push_str(&d.format("%p").to_string());
+            }
+            FormatPartType::Text => {
+                if let Some(content) = &self.content {
+                    buf.push_str(content)
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Tries to format the given Duration, and appends the result to buf.
+    /// If this part does'nt match does nothing
+    fn format_time_duration(&self, buf: &mut String, d: &Duration) {
+        match self.part_type {
+            FormatPartType::Hours => {
+                buf.push_str(&d.num_hours().to_string());
+            }
+            FormatPartType::Minutes => {
+                buf.push_str(&(d.num_minutes() % 60).to_string());
+            }
+            FormatPartType::Seconds => {
+                buf.push_str(&(d.num_seconds() % 60).to_string());
+            }
+            FormatPartType::Text => {
+                if let Some(content) = &self.content {
+                    buf.push_str(content)
+                }
+            }
+            _ => {}
+        }
+    }
+}
 
 /// Creates a new number format.
 pub fn create_boolean_format<S: Into<String>>(name: S) -> ValueFormat {

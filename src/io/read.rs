@@ -8,8 +8,10 @@ use quick_xml::events::{BytesStart, Event};
 use quick_xml::events::attributes::Attribute;
 use zip::read::ZipFile;
 
-use crate::{ColRange, FontDecl, FormatPart, FormatPartType, RowRange, SCell, Sheet, Style, StyleFor, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
-use crate::ods::error::OdsError;
+use crate::{ColRange, RowRange, SCell, Sheet, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
+use crate::error::OdsError;
+use crate::format::{FormatPart, FormatPartType};
+use crate::style::{FontDecl, Style, StyleFor};
 
 // Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {

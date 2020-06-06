@@ -1,4 +1,4 @@
-use spreadsheet_ods::formula::{push_colname, push_rowname};
+use spreadsheet_ods::refs::{push_colname, push_rowname};
 
 #[test]
 fn test_names() {

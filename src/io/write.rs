@@ -7,10 +7,13 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
-use crate::{CellRange, FontDecl, FormatPartType, SCell, Sheet, Style, StyleFor, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
-use crate::ods::error::OdsError;
-use crate::ods::tmp2zip::{TempWrite, TempZip};
-use crate::ods::xmlwriter::XmlWriter;
+use crate::{SCell, Sheet, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
+use crate::error::OdsError;
+use crate::format::FormatPartType;
+use crate::io::tmp2zip::{TempWrite, TempZip};
+use crate::io::xmlwriter::XmlWriter;
+use crate::refs::CellRange;
+use crate::style::{FontDecl, Style, StyleFor};
 
 // this did not work out as expected ...
 // TODO: find out why this breaks content.xml
@@ -589,7 +592,7 @@ fn write_start_current_row(sheet: &Sheet,
                            xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
 
     // Start of headers
-    if let Some(header_rows) = sheet.header_rows {
+    if let Some(header_rows) = &sheet.header_rows {
         if header_rows.from == cur_row {
             xml_out.elem("table:table-header-rows")?;
         }
@@ -617,7 +620,7 @@ fn write_end_last_row(sheet: &Sheet,
     xml_out.end_elem("table:table-row")?;
 
     // This row was the end of the header.
-    if let Some(header_rows) = sheet.header_rows {
+    if let Some(header_rows) = &sheet.header_rows {
         let last_row = cur_row - backward_dr;
         if header_rows.to == last_row {
             xml_out.end_elem("table:table-header-rows")?;
@@ -634,7 +637,7 @@ fn write_end_current_row(sheet: &Sheet,
 
 
     // This row was the end of the header.
-    if let Some(header_rows) = sheet.header_rows {
+    if let Some(header_rows) = &sheet.header_rows {
         if header_rows.to == cur_row {
             xml_out.end_elem("table:table-header-rows")?;
         }
@@ -661,7 +664,7 @@ fn write_empty_rows_before(sheet: &Sheet,
     if backward_dr > 1 || first_cell && backward_dr > 0 {
 
         // split up the empty rows, if there is some header stuff.
-        if let Some(header_rows) = sheet.header_rows {
+        if let Some(header_rows) = &sheet.header_rows {
 
             // What was the last_row? Was there a header start since?
             let last_row = cur_row - backward_dr;
@@ -722,7 +725,7 @@ fn write_table_columns(sheet: &Sheet,
         let cell_style = sheet.column_cell_style(c);
 
         // markup header columns
-        if let Some(header_cols) = sheet.header_cols {
+        if let Some(header_cols) = &sheet.header_cols {
             if header_cols.from == c {
                 xml_out.elem("table:table-header-columns")?;
             }
@@ -741,7 +744,7 @@ fn write_table_columns(sheet: &Sheet,
         }
 
         // markup header columns
-        if let Some(header_cols) = sheet.header_cols {
+        if let Some(header_cols) = &sheet.header_cols {
             if header_cols.to == c {
                 xml_out.end_elem("table:table-header-columns")?;
             }

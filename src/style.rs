@@ -1,11 +1,304 @@
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
 use color::Rgb;
+use string_cache::DefaultAtom;
 
-use crate::{FontDecl, Sheet, Style, StyleFor, ucell, WorkBook};
+use crate::{Sheet, ucell, WorkBook, XMLOrigin};
+use crate::util::{clear_prp, get_prp, set_prp};
 
-/// This is just a starting point for all the available style in ods.
-/// I just added what I think I could use some time.
+/// Font declarations.
+#[derive(Clone, Debug, Default)]
+pub struct FontDecl {
+    pub(crate) name: String,
+    /// From where did we get this style.
+    pub(crate) origin: XMLOrigin,
+    /// All other attributes.
+    pub(crate) prp: Option<HashMap<DefaultAtom, String>>,
+}
+
+impl FontDecl {
+    /// New, empty.
+    pub fn new() -> Self {
+        FontDecl::new_origin(XMLOrigin::Content)
+    }
+
+    /// New, with origination.
+    pub fn new_origin(origin: XMLOrigin) -> Self {
+        Self {
+            name: "".to_string(),
+            origin,
+            prp: None,
+        }
+    }
+
+    /// New, with a name.
+    pub fn with_name<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            origin: XMLOrigin::Content,
+            prp: None,
+        }
+    }
+
+    ///
+    pub fn set_origin(&mut self, origin: XMLOrigin) {
+        self.origin = origin;
+    }
+
+    pub fn origin(&self) -> XMLOrigin {
+        self.origin
+    }
+
+    /// Set the name.
+    pub fn set_name<V: Into<String>>(&mut self, name: V) {
+        self.name = name.into();
+    }
+
+    /// Returns the name.
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    /// Sets a property of the font.
+    pub fn set_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.prp, name, value);
+    }
+
+    /// Returns a property of the font.
+    pub fn prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.prp, name)
+    }
+}
+
+/// Style data fashioned after the ODS spec.
+#[derive(Debug, Clone, Default)]
+pub struct Style {
+    pub(crate) name: String,
+    /// Nice String.
+    pub(crate) display_name: Option<String>,
+    /// From where did we get this style.
+    pub(crate) origin: XMLOrigin,
+    /// Applicability of this style.
+    pub(crate) family: StyleFor,
+    /// Styles can cascade.
+    pub(crate) parent: Option<String>,
+    /// References the actual formatting instructions in the value-styles.
+    pub(crate) value_format: Option<String>,
+    /// Table styling
+    pub(crate) table_prp: Option<HashMap<DefaultAtom, String>>,
+    /// Column styling
+    pub(crate) table_col_prp: Option<HashMap<DefaultAtom, String>>,
+    /// Row styling
+    pub(crate) table_row_prp: Option<HashMap<DefaultAtom, String>>,
+    /// Cell styles
+    pub(crate) table_cell_prp: Option<HashMap<DefaultAtom, String>>,
+    /// Cell paragraph styles
+    pub(crate) paragraph_prp: Option<HashMap<DefaultAtom, String>>,
+    /// Cell text styles
+    pub(crate) text_prp: Option<HashMap<DefaultAtom, String>>,
+}
+
+impl Style {
+    /// New, empty.
+    pub fn new() -> Self {
+        Style::new_origin(XMLOrigin::Content)
+    }
+
+    /// New, with origination.
+    pub fn new_origin(origin: XMLOrigin) -> Self {
+        Style {
+            name: String::from(""),
+            display_name: None,
+            origin,
+            family: StyleFor::None,
+            parent: None,
+            value_format: None,
+            table_prp: None,
+            table_col_prp: None,
+            table_row_prp: None,
+            table_cell_prp: None,
+            paragraph_prp: None,
+            text_prp: None,
+        }
+    }
+
+    pub fn cell_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::with_name(StyleFor::TableCell, name, value_style)
+    }
+
+    pub fn col_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::with_name(StyleFor::TableColumn, name, value_style)
+    }
+
+    pub fn row_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::with_name(StyleFor::TableRow, name, value_style)
+    }
+
+    pub fn table_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::with_name(StyleFor::Table, name, value_style)
+    }
+
+    /// New, with name.
+    pub fn with_name<S: Into<String>, T: Into<String>>(family: StyleFor, name: S, value_style: T) -> Self {
+        Style {
+            name: name.into(),
+            display_name: None,
+            origin: XMLOrigin::Content,
+            family,
+            parent: Some(String::from("Default")),
+            value_format: Some(value_style.into()),
+            table_prp: None,
+            table_col_prp: None,
+            table_row_prp: None,
+            table_cell_prp: None,
+            paragraph_prp: None,
+            text_prp: None,
+        }
+    }
+
+    /// Sets the name.
+    pub fn set_name<S: Into<String>>(&mut self, name: S) {
+        self.name = name.into();
+    }
+
+    /// Returns the name.
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    /// Sets the display name.
+    pub fn set_display_name<S: Into<String>>(&mut self, name: S) {
+        self.display_name = Some(name.into());
+    }
+
+    /// Returns the display name.
+    pub fn display_name(&self) -> Option<&String> {
+        self.display_name.as_ref()
+    }
+
+    /// Sets the origin.
+    pub fn set_origin(&mut self, origin: XMLOrigin) {
+        self.origin = origin;
+    }
+
+    /// Returns the origin.
+    pub fn origin(&self) -> &XMLOrigin {
+        &self.origin
+    }
+
+    /// Sets the style-family.
+    pub fn set_family(&mut self, family: StyleFor) {
+        self.family = family;
+    }
+
+    /// Returns the style-family.
+    pub fn family(&self) -> &StyleFor {
+        &self.family
+    }
+
+    /// Sets the parent style.
+    pub fn set_parent<S: Into<String>>(&mut self, parent: S) {
+        self.parent = Some(parent.into());
+    }
+
+    /// Returns the parent style.
+    pub fn parent(&self) -> Option<&String> {
+        self.parent.as_ref()
+    }
+
+    /// Sets the value format.
+    pub fn set_value_format<S: Into<String>>(&mut self, value_format: S) {
+        self.value_format = Some(value_format.into());
+    }
+
+    /// Returns the value format.
+    pub fn value_format(&self) -> Option<&String> {
+        self.value_format.as_ref()
+    }
+
+    /// Sets a property for a table style.
+    pub fn set_table_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.table_prp, name, value);
+    }
+
+    /// Returns a property for a table style.
+    pub fn table_prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.table_prp, name)
+    }
+
+    /// Sets a property for a table column.
+    pub fn set_table_col_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.table_col_prp, name, value);
+    }
+
+    /// Returns a property for a table column.
+    pub fn table_col_prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.table_col_prp, name)
+    }
+
+    /// Set a table row property.
+    pub fn set_table_row_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.table_row_prp, name, value);
+    }
+
+    /// Returns a table row property.
+    pub fn table_row_prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.table_row_prp, name)
+    }
+
+    /// Sets a table cell property.
+    pub fn set_table_cell_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.table_cell_prp, name, value);
+    }
+
+    /// Returns a table cell property.
+    pub fn table_cell_prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.table_cell_prp, name)
+    }
+
+    /// Sets a text property.
+    pub fn set_text_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.text_prp, name, value);
+    }
+
+    /// Removes a text property.
+    pub fn clear_text_prp(&mut self, name: &str) -> Option<String> {
+        clear_prp(&mut self.text_prp, name)
+    }
+
+    /// Returns a text property.
+    pub fn text_prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.text_prp, name)
+    }
+
+    /// Sets a paragraph property.
+    pub fn set_paragraph_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.paragraph_prp, name, value);
+    }
+
+    /// Returns a paragraph property.
+    pub fn paragraph_prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.paragraph_prp, name)
+    }
+}
+
+/// Applicability of this style.
+#[derive(Debug, Clone, PartialEq)]
+pub enum StyleFor {
+    Table,
+    TableRow,
+    TableColumn,
+    TableCell,
+    None,
+}
+
+impl Default for StyleFor {
+    fn default() -> Self {
+        StyleFor::None
+    }
+}
+
 
 pub fn font_decl<S: Into<String>>(fontdecl: &mut FontDecl, family: S) {
     fontdecl.set_prp("svg:font-family", family.into());
