@@ -52,6 +52,8 @@ use crate::format::ValueFormat;
 use crate::refs::{CellRange, ColRange, RowRange};
 use crate::style::{FontDecl, Style};
 
+pub use error::OdsError;
+
 pub mod error;
 pub mod io;
 pub mod refs;
