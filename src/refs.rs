@@ -250,7 +250,7 @@ pub fn cellranges_to_string(v: &Vec<CellRange>) -> String {
         } else {
             buf.push(' ');
         }
-        buf.push_str(&r.to_ref());
+        buf.push_str(&r.to_string());
     }
 
     buf
@@ -331,7 +331,7 @@ impl CellRef {
     }
 
     /// Returns a cell reference.
-    pub fn to_ref(&self) -> String {
+    pub fn to_string(&self) -> String {
         let mut refstr = String::new();
         if let Some(table) = &self.table {
             refstr.push_str(table);
@@ -412,11 +412,11 @@ impl CellRange {
     }
 
     /// Returns a range reference.
-    pub fn to_ref(&self) -> String {
+    pub fn to_string(&self) -> String {
         let mut refstr = String::new();
-        refstr.push_str(&self.from.to_ref());
+        refstr.push_str(&self.from.to_string());
         refstr.push(':');
-        refstr.push_str(&self.to.to_ref());
+        refstr.push_str(&self.to.to_string());
         refstr
     }
 
@@ -424,9 +424,9 @@ impl CellRange {
     pub fn to_formula(&self) -> String {
         let mut refstr = String::new();
         refstr.push('[');
-        refstr.push_str(&self.from.to_ref());
+        refstr.push_str(&self.from.to_string());
         refstr.push(':');
-        refstr.push_str(&self.to.to_ref());
+        refstr.push_str(&self.to.to_string());
         refstr.push(']');
         refstr
     }

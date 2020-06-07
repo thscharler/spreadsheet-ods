@@ -457,7 +457,7 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     if let Some(print_ranges) = &sheet.print_ranges {
         let mut rbuf = String::new();
         for r in print_ranges {
-            rbuf.push_str(&r.to_ref());
+            rbuf.push_str(&r.to_string());
             rbuf.push(' ');
         }
         xml_out.attr_esc("table:print-ranges", &rbuf)?;
