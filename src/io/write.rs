@@ -448,10 +448,19 @@ pub(crate) fn remove_outlooped(ranges: &mut Vec<CellRange>, row: ucell, col: uce
 
 fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     println!("<< sheet >>");
+
     xml_out.elem("table:table")?;
     xml_out.attr_esc("table:name", &*sheet.name)?;
     if let Some(style) = &sheet.style {
         xml_out.attr_esc("table:style-name", style.as_str())?;
+    }
+    if let Some(print_ranges) = &sheet.print_ranges {
+        let mut rbuf = String::new();
+        for r in print_ranges {
+            rbuf.push_str(&r.to_ref());
+            rbuf.push(' ');
+        }
+        xml_out.attr_esc("table:print-ranges", &rbuf)?;
     }
 
     let max_cell = sheet.used_grid_size();

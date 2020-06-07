@@ -1,6 +1,6 @@
 use spreadsheet_ods::{Sheet, WorkBook};
 use spreadsheet_ods::io::{OdsError, read_ods, read_ods_flags, write_ods};
-use spreadsheet_ods::refs::{ColRange, RowRange};
+use spreadsheet_ods::refs::{CellRange, ColRange, RowRange};
 
 #[test]
 fn test_0() -> Result<(), OdsError> {
@@ -72,8 +72,6 @@ fn test_span() -> Result<(), OdsError> {
 
     let wi = read_ods_flags("test_out/test_span.ods", true)?;
 
-    // println!("{:?}", wi);
-
     let si = wi.sheet(0);
 
     assert_eq!(si.value(0, 0).as_str_or(""), "A");
@@ -129,6 +127,33 @@ fn test_header() -> Result<(), OdsError> {
     assert_eq!(wb.sheet(1).header_rows().clone(), Some(RowRange::new(2, 3)));
     assert_eq!(wb.sheet(2).header_rows().clone(), Some(RowRange::new(0, 3)));
     assert_eq!(wb.sheet(3).header_rows().clone(), Some(RowRange::new(2, 9)));
+
+    Ok(())
+}
+
+#[test]
+fn test_print_range() -> Result<(), OdsError> {
+    println!("test_print_range");
+    let mut wb = WorkBook::new();
+
+    let mut sh = Sheet::new();
+    for i in 0..10 {
+        for j in 0..10 {
+            sh.set_value(i, j, i * j);
+        }
+    }
+    sh.set_header_cols(0, 0);
+    sh.set_header_rows(0, 0);
+    sh.add_print_range(CellRange::simple(1, 1, 9, 9));
+    wb.push_sheet(sh);
+
+
+    write_ods(&wb, "test_out/test_print_range.ods")?;
+
+    let wb = read_ods("test_out/test_print_range.ods")?;
+
+    assert_eq!(wb.sheet(0).header_rows().clone(), Some(RowRange::new(0, 0)));
+    assert_eq!(wb.sheet(0).header_cols().clone(), Some(ColRange::new(0, 0)));
 
     Ok(())
 }

@@ -46,6 +46,5 @@ fn test_cell() {
         std::mem::swap(c, &mut x);
         assert_eq!(x.value().as_f64_or(0.0), 3.0);
     }
-    println!("{:?}", sh);
 }
 

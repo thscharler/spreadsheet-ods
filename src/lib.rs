@@ -48,11 +48,11 @@ use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
 use time::Duration;
 
+pub use error::OdsError;
+
 use crate::format::ValueFormat;
 use crate::refs::{CellRange, ColRange, RowRange};
 use crate::style::{FontDecl, Style};
-
-pub use error::OdsError;
 
 pub mod error;
 pub mod io;
@@ -101,14 +101,11 @@ pub struct WorkBook {
     /// This is only used when writing the ods file.
     def_styles: Option<HashMap<ValueType, String>>,
 
-    /// Page layouts.
+    /// TODO: Page layouts.
     // page_layouts: HashMap<String, PageLayout>,
 
-    /// Page styles.
+    /// TODO: Page styles.
     // page_styles: HashMap<String, PageStyle>,
-
-    /// Print ranges.
-    print_ranges: Option<Vec<CellRange>>,
 
     /// Original file if this book was read from one.
     /// This is used when writing to copy all additional
@@ -146,7 +143,6 @@ impl WorkBook {
             styles: HashMap::new(),
             formats: HashMap::new(),
             def_styles: None,
-            print_ranges: None,
             file: None,
         }
     }
@@ -290,6 +286,7 @@ pub struct Sheet {
 
     header_rows: Option<RowRange>,
     header_cols: Option<ColRange>,
+    print_ranges: Option<Vec<CellRange>>,
 }
 
 impl fmt::Debug for Sheet {
@@ -336,6 +333,8 @@ impl Sheet {
             row_style: None,
             header_rows: None,
             header_cols: None,
+            print_ranges: None,
+
         }
     }
 
@@ -350,6 +349,8 @@ impl Sheet {
             row_style: None,
             header_rows: None,
             header_cols: None,
+            print_ranges: None,
+
         }
     }
 
@@ -579,6 +580,26 @@ impl Sheet {
     pub fn header_cols(&self) -> &Option<ColRange> {
         &self.header_cols
     }
+
+    /// Print ranges.
+    pub fn add_print_range(&mut self, range: CellRange) {
+        if self.print_ranges.is_none() {
+            self.print_ranges = Some(Vec::new());
+        }
+        if let Some(ref mut print_ranges) = self.print_ranges {
+            print_ranges.push(range);
+        }
+    }
+
+    /// Remove print ranges.
+    pub fn clear_print_ranges(&mut self) {
+        self.print_ranges = None;
+    }
+
+    /// Return the print ranges.
+    pub fn print_ranges(&self) -> &Option<Vec<CellRange>> {
+        &self.print_ranges
+    }
 }
 
 /// One Cell of the spreadsheet.
@@ -697,6 +718,8 @@ pub enum Value {
     Percentage(f64),
     Currency(String, f64),
     Text(String),
+    // TODO: CompositText(...)
+    // TODO: Frame(Image)
     DateTime(NaiveDateTime),
     TimeDuration(Duration),
 }

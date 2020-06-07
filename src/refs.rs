@@ -1,4 +1,181 @@
-use crate::ucell;
+use std::convert::TryFrom;
+use std::fmt::{Display, Formatter};
+
+use crate::{OdsError, ucell};
+
+/// Parse the colname.
+/// Stops when the colname ends and returns the byte position in end.
+pub fn parse_colname(buf: &str, pos: &mut usize) -> Option<ucell> {
+    let mut col = 0u32;
+
+    let mut loop_break = false;
+    for (p, c) in buf[*pos..].char_indices() {
+        if c < 'A' || c > 'Z' {
+            loop_break = true;
+            *pos += p;
+            break;
+        }
+
+        let mut v = c as u32 - b'A' as u32;
+        if v == 25 {
+            v = 0;
+            col = (col + 1) * 26;
+        } else {
+            v += 1;
+            col = col * 26;
+        }
+        col += v as u32;
+    }
+    // consumed all chars
+    if !loop_break {
+        *pos = buf.len();
+    }
+
+    if col == 0 {
+        None
+    } else {
+        Some(col - 1)
+    }
+}
+
+/// Parse the rowname.
+/// Stops when the rowname ends and returns the byte position in end.
+pub fn parse_rowname(buf: &str, pos: &mut usize) -> Option<ucell> {
+    let mut row = 0u32;
+
+    let mut loop_break = false;
+    for (p, c) in buf[*pos..].char_indices() {
+        if c < '0' || c > '9' {
+            loop_break = true;
+            *pos += p;
+            break;
+        }
+
+        row *= 10;
+        row += c as u32 - '0' as u32;
+    }
+
+    // consumed all chars
+    if !loop_break {
+        *pos = buf.len();
+    }
+
+    if row == 0 {
+        None
+    } else {
+        Some(row - 1)
+    }
+}
+
+/// Parse a cell reference.
+pub fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, OdsError> {
+    let mut dot_idx = None;
+    let mut any_quote = false;
+    let mut state_quote = false;
+
+    for (p, c) in buf[*pos..].char_indices() {
+        if !state_quote {
+            if c == '\'' {
+                state_quote = true;
+                any_quote = true;
+            }
+            if c == '.' {
+                dot_idx = Some(*pos + p);
+                break;
+            }
+        } else {
+            if c == '\'' {
+                state_quote = false;
+            }
+        }
+    }
+    if dot_idx.is_none() {
+        return Err(OdsError::Ods(format!("No '.' in the cell reference {}", &buf[*pos..])));
+    }
+    let dot_idx = dot_idx.unwrap();
+
+    // Tablename
+    let table = if dot_idx > *pos {
+        if any_quote {
+            // quoting rules: enclose with ' and double contained ''
+            Some(buf[*pos..dot_idx].trim_matches('\'').replace("''", "'"))
+        } else {
+            Some(buf[*pos..dot_idx].to_string())
+        }
+    } else {
+        None
+    };
+
+    *pos = dot_idx + 1;
+    let abs_col = buf[*pos..].starts_with('$');
+    if abs_col {
+        *pos += 1;
+    }
+
+    let col = parse_colname(buf, pos);
+    if col.is_none() {
+        return Err(OdsError::Ods(format!("No colname in the cell reference {}", &buf[*pos..])));
+    }
+
+    let abs_row = buf[*pos..].starts_with('$');
+    if abs_row {
+        *pos += 1;
+    }
+
+    let row = parse_rowname(buf, pos);
+    if row.is_none() {
+        return Err(OdsError::Ods(format!("No rowname in the cell reference {}", &buf[*pos..])));
+    }
+
+    Ok(CellRef {
+        table,
+        row: row.unwrap(),
+        abs_row,
+        col: col.unwrap(),
+        abs_col,
+    })
+}
+
+/// Parse a range ref.
+pub fn parse_cellrange(buf: &str, pos: &mut usize) -> Result<CellRange, OdsError> {
+    let ffrom = parse_cellref(buf, pos)?;
+
+    let colon = buf[*pos..].starts_with(':');
+    if !colon {
+        return Err(OdsError::Ods(format!("No colon in cellrange {}", &buf[*pos..])));
+    } else {
+        *pos += 1;
+    }
+
+    let tto = parse_cellref(buf, pos)?;
+
+    Ok(CellRange {
+        from: ffrom,
+        to: tto,
+    })
+}
+
+/// Parse a list of range refs
+pub fn parse_cellranges(buf: &str, pos: &mut usize) -> Result<Vec<CellRange>, OdsError> {
+    let mut v = Vec::new();
+
+    loop {
+        let r = parse_cellrange(buf, pos)?;
+        v.push(r);
+
+        if *pos == buf.len() {
+            break;
+        }
+
+        if !buf[*pos..].starts_with(' ') {
+            return Err(OdsError::Ods(format!("No blank between cellranges {}", &buf[*pos..])));
+        } else {
+            *pos += 1;
+        }
+    }
+
+    Ok(v)
+}
 
 /// Returns the spreadsheet column name.
 pub fn push_colname(buf: &mut String, mut col: ucell) {
@@ -32,15 +209,12 @@ pub fn push_rowname(buf: &mut String, mut row: ucell) {
     let mut i = 0;
     let mut dbuf = [0u8; 10];
 
-    if row == 0 {
-        i = 1;
-    } else {
-        while row > 0 {
-            dbuf[i] = (row % 10) as u8;
-            row /= 10;
+    row += 1;
+    while row > 0 {
+        dbuf[i] = (row % 10) as u8;
+        row /= 10;
 
-            i += 1;
-        }
+        i += 1;
     }
 
     // reverse order
@@ -65,6 +239,23 @@ pub fn rowname(row: ucell) -> String {
     row_str
 }
 
+/// Returns a list of ranges as string.
+pub fn cellranges_to_string(v: &Vec<CellRange>) -> String {
+    let mut buf = String::new();
+
+    let mut first = true;
+    for r in v {
+        if first {
+            first = false;
+        } else {
+            buf.push(' ');
+        }
+        buf.push_str(&r.to_ref());
+    }
+
+    buf
+}
+
 
 /// Reference to a cell.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -73,12 +264,39 @@ pub struct CellRef {
     pub table: Option<String>,
     // Row
     pub row: ucell,
-    // Absolute ($) reference
-    pub abs_row: bool,
     // Column
     pub col: ucell,
     // Absolute ($) reference
+    pub abs_row: bool,
+    // Absolute ($) reference
     pub abs_col: bool,
+}
+
+impl TryFrom<&str> for CellRef {
+    type Error = OdsError;
+
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        let mut pos = 0usize;
+        parse_cellref(s, &mut pos)
+    }
+}
+
+impl Display for CellRef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
+        if let Some(table) = &self.table {
+            write!(f, "{}", table)?;
+        }
+        write!(f, ".")?;
+        if self.abs_row {
+            write!(f, "$")?;
+        }
+        write!(f, "R{}", self.row)?;
+        if self.abs_col {
+            write!(f, "$")?;
+        }
+        write!(f, "C{}", self.col)?;
+        Ok(())
+    }
 }
 
 impl CellRef {
@@ -226,6 +444,22 @@ impl CellRange {
     }
 }
 
+impl TryFrom<&str> for CellRange {
+    type Error = OdsError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let mut pos = 0usize;
+        parse_cellrange(value, &mut pos)
+    }
+}
+
+impl Display for CellRange {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
+        write!(f, "{}:{}", &self.from, &self.to)?;
+        Ok(())
+    }
+}
+
 /// A range over columns.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ColRange {
@@ -267,17 +501,3 @@ impl RowRange {
         row >= self.from && row <= self.to
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
