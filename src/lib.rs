@@ -597,8 +597,8 @@ impl Sheet {
     }
 
     /// Return the print ranges.
-    pub fn print_ranges(&self) -> &Option<Vec<CellRange>> {
-        &self.print_ranges
+    pub fn print_ranges(&self) -> Option<&Vec<CellRange>> {
+        self.print_ranges.as_ref()
     }
 }
 

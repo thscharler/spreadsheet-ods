@@ -12,7 +12,7 @@ use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
-use crate::refs::CellRange;
+use crate::refs::{CellRange, cellranges_string};
 use crate::style::{FontDecl, Style, StyleFor};
 
 // this did not work out as expected ...
@@ -455,12 +455,7 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
         xml_out.attr_esc("table:style-name", style.as_str())?;
     }
     if let Some(print_ranges) = &sheet.print_ranges {
-        let mut rbuf = String::new();
-        for r in print_ranges {
-            rbuf.push_str(&r.to_string());
-            rbuf.push(' ');
-        }
-        xml_out.attr_esc("table:print-ranges", &rbuf)?;
+        xml_out.attr_esc("table:print-ranges", &cellranges_string(print_ranges))?;
     }
 
     let max_cell = sheet.used_grid_size();

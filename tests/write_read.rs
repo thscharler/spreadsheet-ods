@@ -1,6 +1,6 @@
 use spreadsheet_ods::{Sheet, WorkBook};
 use spreadsheet_ods::io::{OdsError, read_ods, read_ods_flags, write_ods};
-use spreadsheet_ods::refs::{CellRange, ColRange, RowRange};
+use spreadsheet_ods::refs::{CellRange, CellRef, ColRange, RowRange};
 
 #[test]
 fn test_0() -> Result<(), OdsError> {
@@ -145,15 +145,51 @@ fn test_print_range() -> Result<(), OdsError> {
     sh.set_header_cols(0, 0);
     sh.set_header_rows(0, 0);
     sh.add_print_range(CellRange::simple(1, 1, 9, 9));
+    sh.add_print_range(CellRange::simple(11, 11, 19, 19));
     wb.push_sheet(sh);
 
 
     write_ods(&wb, "test_out/test_print_range.ods")?;
 
     let wb = read_ods("test_out/test_print_range.ods")?;
+    let sh = wb.sheet(0);
 
     assert_eq!(wb.sheet(0).header_rows().clone(), Some(RowRange::new(0, 0)));
     assert_eq!(wb.sheet(0).header_cols().clone(), Some(ColRange::new(0, 0)));
+
+    let r = sh.print_ranges().unwrap();
+    assert_eq!(r[0], CellRange {
+        from: CellRef {
+            table: None,
+            row: 1,
+            col: 1,
+            abs_row: false,
+            abs_col: false,
+        },
+        to: CellRef {
+            table: None,
+            row: 9,
+            col: 9,
+            abs_row: false,
+            abs_col: false,
+        },
+    });
+    assert_eq!(r[1], CellRange {
+        from: CellRef {
+            table: None,
+            row: 11,
+            col: 11,
+            abs_row: false,
+            abs_col: false,
+        },
+        to: CellRef {
+            table: None,
+            row: 19,
+            col: 19,
+            abs_row: false,
+            abs_col: false,
+        },
+    });
 
     Ok(())
 }

@@ -1,5 +1,5 @@
 use spreadsheet_ods::OdsError;
-use spreadsheet_ods::refs::{CellRange, CellRef, colname, parse_cellrange, parse_cellranges, parse_cellref, parse_colname, parse_rowname, push_colname, push_rowname, rowname};
+use spreadsheet_ods::refs::{CellRange, CellRef, colname, parse_cellrange, parse_cellranges, parse_cellref, parse_colname, parse_rowname, push_cellrange, push_cellref, push_colname, push_rowname, push_tablename, rowname};
 
 #[test]
 fn test_names() {
@@ -31,6 +31,34 @@ fn test_names() {
 
     push_rowname(&mut buf, 927);
     assert_eq!(buf, "928");
+    buf.clear();
+
+    push_tablename(&mut buf, Some(&"fable".to_string()));
+    assert_eq!(buf, "fable.");
+    buf.clear();
+
+    push_tablename(&mut buf, Some(&"fa le".to_string()));
+    assert_eq!(buf, "'fa le'.");
+    buf.clear();
+
+    push_tablename(&mut buf, Some(&"fa'le".to_string()));
+    assert_eq!(buf, "'fa''le'.");
+    buf.clear();
+
+    push_tablename(&mut buf, None);
+    assert_eq!(buf, ".");
+    buf.clear();
+
+    push_cellref(&mut buf, &CellRef::simple(5, 6));
+    assert_eq!(buf, ".G6");
+    buf.clear();
+
+    push_cellrange(&mut buf, &CellRange::simple(5, 6, 7, 8));
+    assert_eq!(buf, ".G6:.I8");
+    buf.clear();
+
+    push_cellrange(&mut buf, &CellRange::table("blame", 5, 6, 7, 8));
+    assert_eq!(buf, "blame.G6:blame.I8");
     buf.clear();
 }
 
@@ -204,7 +232,7 @@ fn test_parse() -> Result<(), OdsError> {
     let mut pos = 0usize;
     let cn = "table.A3:fable.F9 table.A4:fable.F10";
     let cr = parse_cellranges(cn, &mut pos)?;
-    assert_eq!(cr, vec![
+    assert_eq!(cr, Some(vec![
         CellRange {
             from: CellRef {
                 table: Some("table".to_string()),
@@ -237,7 +265,7 @@ fn test_parse() -> Result<(), OdsError> {
                 abs_col: false,
             },
         }
-    ]
+    ])
     );
 
 

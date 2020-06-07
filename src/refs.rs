@@ -67,8 +67,8 @@ pub fn parse_rowname(buf: &str, pos: &mut usize) -> Option<ucell> {
     }
 }
 
-/// Parse a cell reference.
-pub fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, OdsError> {
+/// Parse a table-name in a reference
+pub fn parse_tablename(buf: &str, pos: &mut usize) -> Result<Option<String>, OdsError> {
     let mut dot_idx = None;
     let mut any_quote = false;
     let mut state_quote = false;
@@ -107,6 +107,14 @@ pub fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, OdsError> {
     };
 
     *pos = dot_idx + 1;
+
+    Ok(table)
+}
+
+/// Parse a cell reference.
+pub fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, OdsError> {
+    let table = parse_tablename(buf, pos)?;
+
     let abs_col = buf[*pos..].starts_with('$');
     if abs_col {
         *pos += 1;
@@ -138,30 +146,36 @@ pub fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, OdsError> {
 
 /// Parse a range ref.
 pub fn parse_cellrange(buf: &str, pos: &mut usize) -> Result<CellRange, OdsError> {
-    let ffrom = parse_cellref(buf, pos)?;
+    let rfrom = parse_cellref(buf, pos)?;
 
+    // a range can be a single cell too
     let colon = buf[*pos..].starts_with(':');
-    if !colon {
-        return Err(OdsError::Ods(format!("No colon in cellrange {}", &buf[*pos..])));
-    } else {
+    let rto = if colon {
         *pos += 1;
-    }
-
-    let tto = parse_cellref(buf, pos)?;
+        parse_cellref(buf, pos)?
+    } else {
+        rfrom.clone()
+    };
 
     Ok(CellRange {
-        from: ffrom,
-        to: tto,
+        from: rfrom,
+        to: rto,
     })
 }
 
 /// Parse a list of range refs
-pub fn parse_cellranges(buf: &str, pos: &mut usize) -> Result<Vec<CellRange>, OdsError> {
-    let mut v = Vec::new();
+pub fn parse_cellranges(buf: &str, pos: &mut usize) -> Result<Option<Vec<CellRange>>, OdsError> {
+    let mut v = None;
 
     loop {
         let r = parse_cellrange(buf, pos)?;
-        v.push(r);
+
+        if v.is_none() {
+            v = Some(Vec::new());
+        }
+        if let Some(ref mut v) = v {
+            v.push(r);
+        }
 
         if *pos == buf.len() {
             break;
@@ -177,7 +191,7 @@ pub fn parse_cellranges(buf: &str, pos: &mut usize) -> Result<Vec<CellRange>, Od
     Ok(v)
 }
 
-/// Returns the spreadsheet column name.
+/// Appends the spreadsheet column name.
 pub fn push_colname(buf: &mut String, mut col: ucell) {
     let mut i = 0;
     let mut dbuf = [0u8; 7];
@@ -204,7 +218,7 @@ pub fn push_colname(buf: &mut String, mut col: ucell) {
     }
 }
 
-/// Returns the spreadsheet row name
+/// Appends the spreadsheet row name
 pub fn push_rowname(buf: &mut String, mut row: ucell) {
     let mut i = 0;
     let mut dbuf = [0u8; 10];
@@ -225,6 +239,44 @@ pub fn push_rowname(buf: &mut String, mut row: ucell) {
     }
 }
 
+/// Appends the table-name
+pub fn push_tablename(buf: &mut String, table: Option<&String>) {
+    if let Some(table) = &table {
+        if table.contains(|c| c == '\'' || c == ' ') {
+            buf.push('\'');
+            buf.push_str(&table.replace('\'', "''"));
+            buf.push('\'');
+        } else {
+            buf.push_str(table);
+        }
+        buf.push('.');
+    } else {
+        buf.push('.');
+    }
+}
+
+/// Appends the cell reference
+pub fn push_cellref(buf: &mut String,
+                    cellref: &CellRef) {
+    push_tablename(buf, cellref.table.as_ref());
+    if cellref.abs_col {
+        buf.push('$');
+    }
+    push_colname(buf, cellref.col);
+    if cellref.abs_row {
+        buf.push('$');
+    }
+    push_rowname(buf, cellref.row);
+}
+
+/// Appends the range reference
+pub fn push_cellrange(buf: &mut String,
+                      cellrange: &CellRange) {
+    push_cellref(buf, &cellrange.from);
+    buf.push(':');
+    push_cellref(buf, &cellrange.to);
+}
+
 /// Returns the spreadsheet column name.
 pub fn colname(col: ucell) -> String {
     let mut col_str = String::new();
@@ -239,8 +291,22 @@ pub fn rowname(row: ucell) -> String {
     row_str
 }
 
+/// Returns a cellref
+pub fn cellref_string(cellref: &CellRef) -> String {
+    let mut buf = String::new();
+    push_cellref(&mut buf, cellref);
+    buf
+}
+
+/// Returns a rangeref
+pub fn cellrange_string(cellrange: &CellRange) -> String {
+    let mut buf = String::new();
+    push_cellrange(&mut buf, cellrange);
+    buf
+}
+
 /// Returns a list of ranges as string.
-pub fn cellranges_to_string(v: &Vec<CellRange>) -> String {
+pub fn cellranges_string(v: &Vec<CellRange>) -> String {
     let mut buf = String::new();
 
     let mut first = true;
@@ -250,12 +316,11 @@ pub fn cellranges_to_string(v: &Vec<CellRange>) -> String {
         } else {
             buf.push(' ');
         }
-        buf.push_str(&r.to_string());
+        push_cellrange(&mut buf, r);
     }
 
     buf
 }
-
 
 /// Reference to a cell.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -283,18 +348,7 @@ impl TryFrom<&str> for CellRef {
 
 impl Display for CellRef {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
-        if let Some(table) = &self.table {
-            write!(f, "{}", table)?;
-        }
-        write!(f, ".")?;
-        if self.abs_row {
-            write!(f, "$")?;
-        }
-        write!(f, "R{}", self.row)?;
-        if self.abs_col {
-            write!(f, "$")?;
-        }
-        write!(f, "C{}", self.col)?;
+        write!(f, "{}", self.to_string())?;
         Ok(())
     }
 }
@@ -332,42 +386,17 @@ impl CellRef {
 
     /// Returns a cell reference.
     pub fn to_string(&self) -> String {
-        let mut refstr = String::new();
-        if let Some(table) = &self.table {
-            refstr.push_str(table);
-        }
-        refstr.push('.');
-        if self.abs_col {
-            refstr.push('$');
-        }
-        push_colname(&mut refstr, self.col);
-        if self.abs_row {
-            refstr.push('$');
-        }
-        push_rowname(&mut refstr, self.row);
-
-        refstr
+        cellref_string(self)
     }
 
     /// Returns a cell reference for a formula.
     pub fn to_formula(&self) -> String {
-        let mut refstr = String::new();
-        refstr.push('[');
-        if let Some(table) = &self.table {
-            refstr.push_str(table);
-        }
-        refstr.push('.');
-        if self.abs_col {
-            refstr.push('$');
-        }
-        push_colname(&mut refstr, self.col);
-        if self.abs_row {
-            refstr.push('$');
-        }
-        push_rowname(&mut refstr, self.row);
-        refstr.push(']');
+        let mut buf = String::new();
+        buf.push('[');
+        push_cellref(&mut buf, self);
+        buf.push(']');
 
-        refstr
+        buf
     }
 }
 
@@ -413,22 +442,16 @@ impl CellRange {
 
     /// Returns a range reference.
     pub fn to_string(&self) -> String {
-        let mut refstr = String::new();
-        refstr.push_str(&self.from.to_string());
-        refstr.push(':');
-        refstr.push_str(&self.to.to_string());
-        refstr
+        cellrange_string(self)
     }
 
     /// Returns a range reference for a formula.
     pub fn to_formula(&self) -> String {
-        let mut refstr = String::new();
-        refstr.push('[');
-        refstr.push_str(&self.from.to_string());
-        refstr.push(':');
-        refstr.push_str(&self.to.to_string());
-        refstr.push(']');
-        refstr
+        let mut buf = String::new();
+        buf.push('[');
+        push_cellrange(&mut buf, self);
+        buf.push(']');
+        buf
     }
 
     /// Does the range contain the cell.
@@ -479,6 +502,15 @@ impl ColRange {
     pub fn contains(&self, col: ucell) -> bool {
         col >= self.from && col <= self.to
     }
+
+    pub fn to_string(&self) -> String {
+        let mut buf = String::new();
+        push_colname(&mut buf, self.from);
+        buf.push(':');
+        push_colname(&mut buf, self.to);
+
+        buf
+    }
 }
 
 /// A range over rows.
@@ -499,5 +531,14 @@ impl RowRange {
 
     pub fn contains(&self, row: ucell) -> bool {
         row >= self.from && row <= self.to
+    }
+
+    pub fn to_string(&self) -> String {
+        let mut buf = String::new();
+        push_rowname(&mut buf, self.from);
+        buf.push(':');
+        push_rowname(&mut buf, self.to);
+
+        buf
     }
 }

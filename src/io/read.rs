@@ -11,6 +11,7 @@ use zip::read::ZipFile;
 use crate::{ColRange, RowRange, SCell, Sheet, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
+use crate::refs::parse_cellranges;
 use crate::style::{FontDecl, Style, StyleFor};
 
 // Reads an ODS-file.
@@ -164,6 +165,11 @@ fn read_table(xml: &quick_xml::Reader<BufReader<&mut ZipFile>>,
             attr if attr.key == b"table:style-name" => {
                 let v = attr.unescape_and_decode_value(xml)?;
                 sheet.set_style(v);
+            }
+            attr if attr.key == b"table:print-ranges" => {
+                let v = attr.unescape_and_decode_value(xml)?;
+                let mut pos = 0usize;
+                sheet.print_ranges = parse_cellranges(v.as_str(), &mut pos)?;
             }
             _ => { /* ignore other attr */ }
         }
