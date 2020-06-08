@@ -5,7 +5,7 @@ use chrono::NaiveDateTime;
 use string_cache::DefaultAtom;
 use time::Duration;
 
-use crate::{ValueType, XMLOrigin};
+use crate::{StyleOrigin, StyleUse, ValueType};
 use crate::util::{get_prp, get_prp_def, set_prp, set_prp_vec};
 
 #[derive(Debug)]
@@ -34,7 +34,9 @@ pub struct ValueFormat {
     // Value type
     pub(crate) v_type: ValueType,
     // Origin information.
-    pub(crate) origin: XMLOrigin,
+    pub(crate) origin: StyleOrigin,
+    // Usage of this style.
+    pub(crate) styleuse: StyleUse,
     // Properties of the format.
     pub(crate) prp: Option<HashMap<DefaultAtom, String>>,
     // Parts of the format.
@@ -44,15 +46,16 @@ pub struct ValueFormat {
 impl ValueFormat {
     /// New, empty.
     pub fn new() -> Self {
-        ValueFormat::new_origin(XMLOrigin::Content)
+        ValueFormat::new_origin(Default::default(), Default::default())
     }
 
     /// New, with origin.
-    pub fn new_origin(origin: XMLOrigin) -> Self {
+    pub fn new_origin(origin: StyleOrigin, styleuse: StyleUse) -> Self {
         ValueFormat {
             name: String::from(""),
             v_type: ValueType::Text,
             origin,
+            styleuse,
             prp: None,
             parts: None,
         }
@@ -63,7 +66,8 @@ impl ValueFormat {
         ValueFormat {
             name: name.into(),
             v_type: value_type,
-            origin: XMLOrigin::Content,
+            origin: Default::default(),
+            styleuse: Default::default(),
             prp: None,
             parts: None,
         }
@@ -85,18 +89,28 @@ impl ValueFormat {
     }
 
     /// Returns the value type.
-    pub fn value_type(&self) -> &ValueType {
-        &self.v_type
+    pub fn value_type(&self) -> ValueType {
+        self.v_type
     }
 
     /// Sets the origin.
-    pub fn set_origin(&mut self, origin: XMLOrigin) {
+    pub fn set_origin(&mut self, origin: StyleOrigin) {
         self.origin = origin;
     }
 
     /// Returns the origin.
-    pub fn origin(&self) -> &XMLOrigin {
-        &self.origin
+    pub fn origin(&self) -> StyleOrigin {
+        self.origin
+    }
+
+    /// Style usage.
+    pub fn set_styleuse(&mut self, styleuse: StyleUse) {
+        self.styleuse = styleuse;
+    }
+
+    /// Returns the usage.
+    pub fn styleuse(&self) -> StyleUse {
+        self.styleuse
     }
 
     /// Sets a property of the format.

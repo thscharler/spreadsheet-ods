@@ -4,15 +4,199 @@ use std::fmt::{Display, Formatter};
 use color::Rgb;
 use string_cache::DefaultAtom;
 
-use crate::{Sheet, ucell, WorkBook, XMLOrigin};
+use crate::{CompositVec, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, WorkBook};
 use crate::util::{clear_prp, get_prp, set_prp};
+
+type PrpMap = Option<HashMap<DefaultAtom, String>>;
+
+#[derive(Clone, Debug, Default)]
+pub struct PageLayout {
+    pub(crate) name: String,
+    pub(crate) masterpage_name: String,
+
+    pub(crate) prp: PrpMap,
+
+    pub(crate) header: HeaderFooter,
+    pub(crate) header_left: HeaderFooter,
+    pub(crate) header_prp: PrpMap,
+
+    pub(crate) footer: HeaderFooter,
+    pub(crate) footer_left: HeaderFooter,
+    pub(crate) footer_prp: PrpMap,
+}
+
+impl PageLayout {
+    pub fn new() -> Self {
+        Self {
+            name: "".to_string(),
+            masterpage_name: "".to_string(),
+            prp: None,
+            header: Default::default(),
+            header_left: Default::default(),
+            header_prp: None,
+            footer: Default::default(),
+            footer_left: Default::default(),
+            footer_prp: None,
+        }
+    }
+
+    pub fn set_name(&mut self, name: String) {
+        self.name = name;
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn set_masterpage_name(&mut self, name: String) {
+        self.masterpage_name = name.to_string();
+    }
+
+    pub fn masterpage_name(&self) -> &String {
+        &self.masterpage_name
+    }
+
+    /// Sets a property.
+    pub fn set_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.prp, name, value);
+    }
+
+    /// Returns a property.
+    pub fn prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.prp, name)
+    }
+
+    pub fn set_header(&mut self, header: HeaderFooter) {
+        self.header = header;
+    }
+
+    pub fn header(&self) -> &HeaderFooter {
+        &self.header
+    }
+
+    pub fn set_header_left(&mut self, header: HeaderFooter) {
+        self.header_left = header;
+    }
+
+    pub fn header_left(&self) -> &HeaderFooter {
+        &self.header_left
+    }
+
+    pub fn set_header_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.header_prp, name, value);
+    }
+
+    pub fn header_prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.header_prp, name)
+    }
+
+    pub fn set_footer(&mut self, footer: HeaderFooter) {
+        self.footer = footer;
+    }
+
+    pub fn footer(&self) -> &HeaderFooter {
+        &self.footer
+    }
+
+    pub fn set_footer_left(&mut self, footer: HeaderFooter) {
+        self.footer_left = footer;
+    }
+
+    pub fn footer_left(&self) -> &HeaderFooter {
+        &self.footer_left
+    }
+
+    pub fn set_footer_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.footer_prp, name, value);
+    }
+
+    pub fn footer_prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.footer_prp, name)
+    }
+}
+
+/// Header/Footer data
+#[derive(Clone, Debug, Default)]
+pub struct HeaderFooter {
+    pub(crate) display: bool,
+
+    pub(crate) prp: PrpMap,
+
+    pub(crate) region_left: CompositVec,
+    pub(crate) region_center: CompositVec,
+    pub(crate) region_right: CompositVec,
+    pub(crate) content: CompositVec,
+}
+
+impl HeaderFooter {
+    pub fn new() -> Self {
+        Self {
+            display: true,
+            prp: Default::default(),
+            region_left: CompositVec::new(),
+            region_center: CompositVec::new(),
+            region_right: CompositVec::new(),
+            content: CompositVec::new(),
+        }
+    }
+
+    pub fn set_display(&mut self, display: bool) {
+        self.display = display;
+    }
+
+    pub fn display(&self) -> bool {
+        self.display
+    }
+
+    /// Sets a property.
+    pub fn set_prp(&mut self, name: &str, value: String) {
+        set_prp(&mut self.prp, name, value);
+    }
+
+    /// Returns a property for a table style.
+    pub fn prp(&self, name: &str) -> Option<&String> {
+        get_prp(&self.prp, name)
+    }
+
+    pub fn set_region_left(&mut self, region: CompositVec) {
+        self.region_left = region;
+    }
+
+    pub fn region_left(&self) -> &CompositVec {
+        &self.region_left
+    }
+
+    pub fn set_region_center(&mut self, region: CompositVec) {
+        self.region_center = region;
+    }
+
+    pub fn region_center(&self) -> &CompositVec {
+        &self.region_center
+    }
+
+    pub fn set_region_right(&mut self, region: CompositVec) {
+        self.region_right = region;
+    }
+
+    pub fn region_right(&self) -> &CompositVec {
+        &self.region_right
+    }
+
+    pub fn set_content(&mut self, content: CompositVec) {
+        self.content = content;
+    }
+
+    pub fn content(&mut self) -> &CompositVec {
+        &self.content
+    }
+}
 
 /// Font declarations.
 #[derive(Clone, Debug, Default)]
 pub struct FontDecl {
     pub(crate) name: String,
     /// From where did we get this style.
-    pub(crate) origin: XMLOrigin,
+    pub(crate) origin: StyleOrigin,
     /// All other attributes.
     pub(crate) prp: Option<HashMap<DefaultAtom, String>>,
 }
@@ -20,11 +204,11 @@ pub struct FontDecl {
 impl FontDecl {
     /// New, empty.
     pub fn new() -> Self {
-        FontDecl::new_origin(XMLOrigin::Content)
+        FontDecl::new_origin(StyleOrigin::Content)
     }
 
     /// New, with origination.
-    pub fn new_origin(origin: XMLOrigin) -> Self {
+    pub fn new_origin(origin: StyleOrigin) -> Self {
         Self {
             name: "".to_string(),
             origin,
@@ -36,18 +220,9 @@ impl FontDecl {
     pub fn with_name<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            origin: XMLOrigin::Content,
+            origin: StyleOrigin::Content,
             prp: None,
         }
-    }
-
-    ///
-    pub fn set_origin(&mut self, origin: XMLOrigin) {
-        self.origin = origin;
-    }
-
-    pub fn origin(&self) -> XMLOrigin {
-        self.origin
     }
 
     /// Set the name.
@@ -58,6 +233,16 @@ impl FontDecl {
     /// Returns the name.
     pub fn name(&self) -> &String {
         &self.name
+    }
+
+    /// Origin of the style
+    pub fn set_origin(&mut self, origin: StyleOrigin) {
+        self.origin = origin;
+    }
+
+    /// Origin of the style
+    pub fn origin(&self) -> StyleOrigin {
+        self.origin
     }
 
     /// Sets a property of the font.
@@ -78,7 +263,9 @@ pub struct Style {
     /// Nice String.
     pub(crate) display_name: Option<String>,
     /// From where did we get this style.
-    pub(crate) origin: XMLOrigin,
+    pub(crate) origin: StyleOrigin,
+    /// Which tag contains this style.
+    pub(crate) styleuse: StyleUse,
     /// Applicability of this style.
     pub(crate) family: StyleFor,
     /// Styles can cascade.
@@ -102,16 +289,17 @@ pub struct Style {
 impl Style {
     /// New, empty.
     pub fn new() -> Self {
-        Style::new_origin(XMLOrigin::Content)
+        Style::new_origin(Default::default(), Default::default())
     }
 
     /// New, with origination.
-    pub fn new_origin(origin: XMLOrigin) -> Self {
+    pub fn new_origin(origin: StyleOrigin, styleuse: StyleUse) -> Self {
         Style {
             name: String::from(""),
             display_name: None,
             origin,
-            family: StyleFor::None,
+            styleuse,
+            family: Default::default(),
             parent: None,
             value_format: None,
             table_prp: None,
@@ -144,7 +332,8 @@ impl Style {
         Style {
             name: name.into(),
             display_name: None,
-            origin: XMLOrigin::Content,
+            origin: Default::default(),
+            styleuse: Default::default(),
             family,
             parent: Some(String::from("Default")),
             value_format: Some(value_style.into()),
@@ -178,13 +367,23 @@ impl Style {
     }
 
     /// Sets the origin.
-    pub fn set_origin(&mut self, origin: XMLOrigin) {
+    pub fn set_origin(&mut self, origin: StyleOrigin) {
         self.origin = origin;
     }
 
     /// Returns the origin.
-    pub fn origin(&self) -> &XMLOrigin {
+    pub fn origin(&self) -> &StyleOrigin {
         &self.origin
+    }
+
+    /// Style usage.
+    pub fn set_styleuse(&mut self, styleuse: StyleUse) {
+        self.styleuse = styleuse;
+    }
+
+    /// Returns the usage.
+    pub fn styleuse(&self) -> StyleUse {
+        self.styleuse
     }
 
     /// Sets the style-family.
@@ -280,22 +479,6 @@ impl Style {
     /// Returns a paragraph property.
     pub fn paragraph_prp(&self, name: &str) -> Option<&String> {
         get_prp(&self.paragraph_prp, name)
-    }
-}
-
-/// Applicability of this style.
-#[derive(Debug, Clone, PartialEq)]
-pub enum StyleFor {
-    Table,
-    TableRow,
-    TableColumn,
-    TableCell,
-    None,
-}
-
-impl Default for StyleFor {
-    fn default() -> Self {
-        StyleFor::None
     }
 }
 

@@ -4,7 +4,7 @@
 //! useable subset to read + modify + write back an ODS file.
 //!
 //! ```
-//! use spreadsheet_ods::{WorkBook, Sheet};
+//! use spreadsheet_ods::{WorkBook, Sheet, StyleFor};
 //! use chrono::NaiveDate;
 //! use spreadsheet_ods::format;
 //! use spreadsheet_ods::formula;
@@ -46,13 +46,15 @@ use std::path::PathBuf;
 use chrono::{NaiveDate, NaiveDateTime};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
+use string_cache::DefaultAtom;
 use time::Duration;
 
 pub use error::OdsError;
 
 use crate::format::ValueFormat;
 use crate::refs::{CellRange, ColRange, RowRange};
-use crate::style::{FontDecl, Style};
+use crate::style::{FontDecl, PageLayout, Style};
+use crate::util::{clear_prp, get_prp, set_prp};
 
 pub mod error;
 pub mod io;
@@ -69,14 +71,44 @@ pub type ucell = u32;
 
 /// Origin of a style. Content.xml or Styles.xml.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum XMLOrigin {
+pub enum StyleOrigin {
     Content,
     Styles,
 }
 
-impl Default for XMLOrigin {
+impl Default for StyleOrigin {
     fn default() -> Self {
-        XMLOrigin::Content
+        StyleOrigin::Content
+    }
+}
+
+/// Placement of a style. office:styles or office:automatic-styles
+/// Defines the usage pattern for the style.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum StyleUse {
+    Named,
+    Automatic,
+}
+
+impl Default for StyleUse {
+    fn default() -> Self {
+        StyleUse::Automatic
+    }
+}
+
+/// Applicability of this style.
+#[derive(Debug, Clone, PartialEq)]
+pub enum StyleFor {
+    Table,
+    TableRow,
+    TableColumn,
+    TableCell,
+    None,
+}
+
+impl Default for StyleFor {
+    fn default() -> Self {
+        StyleFor::None
     }
 }
 
@@ -101,11 +133,8 @@ pub struct WorkBook {
     /// This is only used when writing the ods file.
     def_styles: Option<HashMap<ValueType, String>>,
 
-    /// TODO: Page layouts.
-    // page_layouts: HashMap<String, PageLayout>,
-
-    /// TODO: Page styles.
-    // page_styles: HashMap<String, PageStyle>,
+    /// Page-layout data.
+    page_layouts: HashMap<String, PageLayout>,
 
     /// Original file if this book was read from one.
     /// This is used when writing to copy all additional
@@ -118,16 +147,21 @@ impl fmt::Debug for WorkBook {
         for s in self.sheets.iter() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.fonts.iter() {
+        for s in self.fonts.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.styles.iter() {
+        for s in self.styles.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.formats.iter() {
+        for s in self.formats.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.def_styles.iter() {
+        if let Some(def_styles) = &self.def_styles {
+            for (t, s) in def_styles {
+                writeln!(f, "{:?} -> {:?}", t, s)?;
+            }
+        }
+        for s in self.page_layouts.values() {
             writeln!(f, "{:?}", s)?;
         }
         writeln!(f, "{:?}", self.file)?;
@@ -143,6 +177,7 @@ impl WorkBook {
             styles: HashMap::new(),
             formats: HashMap::new(),
             def_styles: None,
+            page_layouts: Default::default(),
             file: None,
         }
     }
@@ -266,6 +301,21 @@ impl WorkBook {
     pub fn format_mut(&mut self, name: &str) -> Option<&mut ValueFormat> {
         self.formats.get_mut(name)
     }
+
+    /// Pagelayout
+    pub fn add_pagelayout(&mut self, pagelayout: PageLayout) {
+        self.page_layouts.insert(pagelayout.name.to_string(), pagelayout);
+    }
+
+    /// Pagelayout
+    pub fn pagelayout(&self, name: &str) -> Option<&PageLayout> {
+        self.page_layouts.get(name)
+    }
+
+    /// Pagelayout
+    pub fn pagelayout_mut(&mut self, name: &str) -> Option<&mut PageLayout> {
+        self.page_layouts.get_mut(name)
+    }
 }
 
 /// One sheet of the spreadsheet.
@@ -320,7 +370,6 @@ impl fmt::Debug for Sheet {
     }
 }
 
-
 impl Sheet {
     /// New, empty
     pub fn new() -> Self {
@@ -334,7 +383,6 @@ impl Sheet {
             header_rows: None,
             header_cols: None,
             print_ranges: None,
-
         }
     }
 
@@ -350,7 +398,6 @@ impl Sheet {
             header_rows: None,
             header_cols: None,
             print_ranges: None,
-
         }
     }
 
@@ -691,7 +738,7 @@ impl SCell {
 }
 
 /// Datatypes
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ValueType {
     Empty,
     Boolean,
@@ -932,5 +979,92 @@ impl From<Option<NaiveDate>> for Value {
 impl From<Duration> for Value {
     fn from(d: Duration) -> Self {
         Value::TimeDuration(d)
+    }
+}
+
+// A tag within a text region.
+#[derive(Debug, Clone, Default)]
+pub struct CompositTag {
+    pub(crate) tag: String,
+    pub(crate) attr: Option<HashMap<DefaultAtom, String>>,
+}
+
+/// Complex text is laid out as a sequence of tags, end-tags and text.
+#[derive(Debug, Clone)]
+pub enum Composit {
+    Start(CompositTag),
+    Empty(CompositTag),
+    Text(String),
+    End(String),
+}
+
+/// A vector of text.
+#[derive(Debug, Clone, Default)]
+pub struct CompositVec {
+    pub(crate) vec: Option<Vec<Composit>>,
+}
+
+impl CompositTag {
+    pub fn new<S: Into<String>>(tag: S) -> Self {
+        Self {
+            tag: tag.into(),
+            attr: None,
+        }
+    }
+
+    pub fn set_tag<S: Into<String>>(&mut self, tag: S) {
+        self.tag = tag.into();
+    }
+
+    pub fn tag(&self) -> &String {
+        &self.tag
+    }
+
+    /// Sets a text property.
+    pub fn set_attr(&mut self, name: &str, value: String) {
+        set_prp(&mut self.attr, name, value);
+    }
+
+    /// Removes a text property.
+    pub fn clear_attr(&mut self, name: &str) -> Option<String> {
+        clear_prp(&mut self.attr, name)
+    }
+
+    /// Returns a text property.
+    pub fn attr(&self, name: &str) -> Option<&String> {
+        get_prp(&self.attr, name)
+    }
+}
+
+impl CompositVec {
+    pub fn new() -> Self {
+        Self {
+            vec: None
+        }
+    }
+
+    pub fn push(&mut self, cm: Composit) {
+        if self.vec.is_none() {
+            self.vec = Some(Vec::new());
+        }
+        if let Some(ref mut vec) = self.vec {
+            vec.push(cm);
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.vec = None;
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.vec.is_none()
+    }
+
+    pub fn is_valid(&self) -> bool {
+        unimplemented!()
+    }
+
+    pub fn vec(&self) -> Option<&Vec<Composit>> {
+        self.vec.as_ref()
     }
 }

@@ -7,13 +7,13 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
-use crate::{SCell, Sheet, ucell, Value, ValueFormat, ValueType, WorkBook, XMLOrigin};
+use crate::{SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{CellRange, cellranges_string};
-use crate::style::{FontDecl, Style, StyleFor};
+use crate::style::{FontDecl, Style};
 
 // this did not work out as expected ...
 // TODO: find out why this breaks content.xml
@@ -408,12 +408,12 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
     xml_out.empty("office:scripts")?;
 
     xml_out.elem("office:font-face-decls")?;
-    write_font_decl(&book.fonts, XMLOrigin::Content, &mut xml_out)?;
+    write_font_decl(&book.fonts, StyleOrigin::Content, &mut xml_out)?;
     xml_out.end_elem("office:font-face-decls")?;
 
     xml_out.elem("office:automatic-styles")?;
-    write_styles(&book.styles, XMLOrigin::Content, &mut xml_out)?;
-    write_value_styles(&book.formats, XMLOrigin::Content, &mut xml_out)?;
+    write_styles(&book.styles, StyleOrigin::Content, StyleUse::Automatic, &mut xml_out)?;
+    write_value_styles(&book.formats, StyleOrigin::Content, StyleUse::Automatic, &mut xml_out)?;
     xml_out.end_elem("office:automatic-styles")?;
 
     xml_out.elem("office:body")?;
@@ -906,7 +906,7 @@ fn write_cell(book: &WorkBook,
     Ok(())
 }
 
-fn write_font_decl(fonts: &HashMap<String, FontDecl>, origin: XMLOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_font_decl(fonts: &HashMap<String, FontDecl>, origin: StyleOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     for font in fonts.values().filter(|s| s.origin == origin) {
         xml_out.empty("style:style")?;
         xml_out.attr_esc("style:name", font.name.as_str())?;
@@ -919,8 +919,11 @@ fn write_font_decl(fonts: &HashMap<String, FontDecl>, origin: XMLOrigin, xml_out
     Ok(())
 }
 
-fn write_styles(styles: &HashMap<String, Style>, origin: XMLOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    for style in styles.values().filter(|s| s.origin == origin) {
+fn write_styles(styles: &HashMap<String, Style>,
+                origin: StyleOrigin,
+                styleuse: StyleUse,
+                xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    for style in styles.values().filter(|s| s.origin == origin && s.styleuse == styleuse) {
         xml_out.elem("style:style")?;
         xml_out.attr_esc("style:name", style.name.as_str())?;
         let family = match style.family {
@@ -984,8 +987,11 @@ fn write_styles(styles: &HashMap<String, Style>, origin: XMLOrigin, xml_out: &mu
     Ok(())
 }
 
-fn write_value_styles(styles: &HashMap<String, ValueFormat>, origin: XMLOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    for style in styles.values().filter(|s| s.origin == origin) {
+fn write_value_styles(styles: &HashMap<String, ValueFormat>,
+                      origin: StyleOrigin,
+                      styleuse: StyleUse,
+                      xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    for style in styles.values().filter(|s| s.origin == origin && s.styleuse == styleuse) {
         let tag = match style.v_type {
             ValueType::Empty => "number:empty_style", // ???
             ValueType::Boolean => "number:boolean-style",

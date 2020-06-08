@@ -1,5 +1,5 @@
-use crate::{format, ValueType, WorkBook};
-use crate::style::{Style, StyleFor};
+use crate::{format, StyleFor, ValueType, WorkBook};
+use crate::style::Style;
 
 /// Adds default-styles for all basic ValueTypes. These are also set as default
 /// styles for the respective types. By calling this function for a new workbook,
