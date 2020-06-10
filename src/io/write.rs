@@ -1157,6 +1157,8 @@ fn write_masterpage<'a>(styles: &'a HashMap<String, PageLayout>,
         }
         write_regions(&style.footer_left, xml_out)?;
         xml_out.end_elem("style:footer_left")?;
+
+        xml_out.end_elem("style:master-page")?;
     }
 
     Ok(())

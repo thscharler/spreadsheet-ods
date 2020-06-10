@@ -1,5 +1,5 @@
 use spreadsheet_ods::{Sheet, WorkBook};
-use spreadsheet_ods::io::{OdsError, read_ods, read_ods_flags, write_ods};
+use spreadsheet_ods::io::{OdsError, read_ods, write_ods};
 use spreadsheet_ods::refs::{CellRange, CellRef, ColRange, RowRange};
 
 #[test]
@@ -68,8 +68,7 @@ fn test_span() -> Result<(), OdsError> {
     wb.push_sheet(sh);
 
     write_ods(&wb, "test_out/test_span.ods")?;
-
-    let wi = read_ods_flags("test_out/test_span.ods", true)?;
+    let wi = read_ods("test_out/test_span.ods")?;
 
     let si = wi.sheet(0);
 

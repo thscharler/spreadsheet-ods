@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -324,7 +323,7 @@ fn read_table_cell(sheet: &mut Sheet,
         let evt = xml.read_event(&mut buf)?;
         if dump_xml { println!(" style {:?}", evt); }
         match evt {
-            /// todo: insert CompositVec reading here
+            // todo: insert CompositVec reading here
             Event::Text(xml_tag) => {
                 // Not every cell type has a value attribute, some take
                 // their value from the string representation.
@@ -672,7 +671,7 @@ fn read_page_layout(book: &mut WorkBook,
                     dump_xml: bool) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut pl = PageLayout::new();
+    let mut pl = PageLayout::default();
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:name" => {
@@ -810,7 +809,7 @@ fn read_master_page(book: &mut WorkBook,
 
     // may not exist? but should
     if book.pagelayout(&pagelayout_name).is_none() {
-        let mut p = PageLayout::new();
+        let mut p = PageLayout::default();
         p.set_name(pagelayout_name.clone());
         book.add_pagelayout(p);
     }

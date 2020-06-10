@@ -28,11 +28,26 @@ pub struct PageLayout {
 }
 
 impl PageLayout {
-    // Create.
-    pub fn new() -> Self {
+    /// Create with name "Mpm1" and masterpage-name "Default".
+    pub fn default() -> Self {
         Self {
-            name: "".to_string(),
-            masterpage_name: "".to_string(),
+            name: "Mpm1".to_string(),
+            masterpage_name: "Default".to_string(),
+            prp: None,
+            header: Default::default(),
+            header_left: Default::default(),
+            header_prp: None,
+            footer: Default::default(),
+            footer_left: Default::default(),
+            footer_prp: None,
+        }
+    }
+
+    /// Create with name "Mpm2" and masterpage-name "Report".
+    pub fn report() -> Self {
+        Self {
+            name: "Mpm2".to_string(),
+            masterpage_name: "Report".to_string(),
             prp: None,
             header: Default::default(),
             header_left: Default::default(),
