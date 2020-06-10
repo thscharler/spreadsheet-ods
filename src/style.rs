@@ -5,9 +5,10 @@ use color::Rgb;
 use string_cache::DefaultAtom;
 
 use crate::{CompositVec, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, WorkBook};
+use crate::attrmap::{AttrFoBackground, AttrFoBorder, AttrFoMargin, AttrFoMinHeight, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, Border};
 use crate::util::{clear_prp, get_prp, set_prp};
 
-type PrpMap = Option<HashMap<DefaultAtom, String>>;
+type PrpMap = HashMap<DefaultAtom, String>;
 
 /// Page layout.
 /// Contains all header and footer information.
@@ -16,16 +17,35 @@ pub struct PageLayout {
     pub(crate) name: String,
     pub(crate) masterpage_name: String,
 
-    pub(crate) prp: PrpMap,
+    pub(crate) attr: Option<AttrMapType>,
 
+    pub(crate) header_attr: HeaderFooterAttr,
     pub(crate) header: HeaderFooter,
     pub(crate) header_left: HeaderFooter,
-    pub(crate) header_prp: PrpMap,
 
+    pub(crate) footer_attr: HeaderFooterAttr,
     pub(crate) footer: HeaderFooter,
     pub(crate) footer_left: HeaderFooter,
-    pub(crate) footer_prp: PrpMap,
 }
+
+impl AttrMap for PageLayout {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.attr.as_ref()
+    }
+
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.attr
+    }
+}
+
+impl AttrFoBackground for PageLayout {}
+
+impl AttrFoBorder for PageLayout {}
+
+impl AttrFoMargin for PageLayout {}
+
+impl AttrFoPadding for PageLayout {}
+
 
 impl PageLayout {
     /// Create with name "Mpm1" and masterpage-name "Default".
@@ -33,13 +53,13 @@ impl PageLayout {
         Self {
             name: "Mpm1".to_string(),
             masterpage_name: "Default".to_string(),
-            prp: None,
+            attr: None,
             header: Default::default(),
             header_left: Default::default(),
-            header_prp: None,
+            header_attr: Default::default(),
             footer: Default::default(),
             footer_left: Default::default(),
-            footer_prp: None,
+            footer_attr: Default::default(),
         }
     }
 
@@ -48,13 +68,13 @@ impl PageLayout {
         Self {
             name: "Mpm2".to_string(),
             masterpage_name: "Report".to_string(),
-            prp: None,
+            attr: None,
             header: Default::default(),
             header_left: Default::default(),
-            header_prp: None,
+            header_attr: Default::default(),
             footer: Default::default(),
             footer_left: Default::default(),
-            footer_prp: None,
+            footer_attr: Default::default(),
         }
     }
 
@@ -78,14 +98,9 @@ impl PageLayout {
         &self.masterpage_name
     }
 
-    /// Sets a property.
-    pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.prp, name, value);
-    }
-
-    /// Returns a property.
-    pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.prp, name)
+    /// Iterator over the attributes of this pagelayout.
+    pub fn attr_iter(&self) -> AttrMapIter {
+        AttrMapIter::from(self.attr_map())
     }
 
     /// Header. This is the regular header for left and right side pages.
@@ -109,13 +124,8 @@ impl PageLayout {
     }
 
     /// Attributes for header.
-    pub fn set_header_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.header_prp, name, value);
-    }
-
-    /// Attributes for header.
-    pub fn header_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.header_prp, name)
+    pub fn header_attr(&mut self) -> &mut HeaderFooterAttr {
+        &mut self.header_attr
     }
 
     /// Footer. This is the regular footer for left and right side pages.
@@ -139,15 +149,45 @@ impl PageLayout {
     }
 
     /// Attributes for footer.
-    pub fn set_footer_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.footer_prp, name, value);
-    }
-
-    /// Attributes for footer.
-    pub fn footer_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.footer_prp, name)
+    pub fn footer_attr(&mut self) -> &mut HeaderFooterAttr {
+        &mut self.footer_attr
     }
 }
+
+#[derive(Clone, Debug, Default)]
+pub struct HeaderFooterAttr {
+    pub(crate) attr: Option<AttrMapType>,
+}
+
+impl AttrMap for HeaderFooterAttr {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.attr.as_ref()
+    }
+
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.attr
+    }
+}
+
+impl AttrFoBackground for HeaderFooterAttr {}
+
+impl AttrFoBorder for HeaderFooterAttr {}
+
+impl AttrFoMargin for HeaderFooterAttr {}
+
+impl AttrFoMinHeight for HeaderFooterAttr {}
+
+impl AttrFoPadding for HeaderFooterAttr {}
+
+impl<'a> IntoIterator for &'a HeaderFooterAttr {
+    type Item = (&'a DefaultAtom, &'a String);
+    type IntoIter = AttrMapIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        AttrMapIter::from(self.attr_map())
+    }
+}
+
 
 /// Header/Footer data.
 /// Can be seen as three regions left/center/right or as one region.
@@ -309,17 +349,17 @@ pub struct Style {
     /// References the actual formatting instructions in the value-styles.
     pub(crate) value_format: Option<String>,
     /// Table styling
-    pub(crate) table_prp: PrpMap,
+    pub(crate) table_prp: Option<PrpMap>,
     /// Column styling
-    pub(crate) table_col_prp: PrpMap,
+    pub(crate) table_col_prp: Option<PrpMap>,
     /// Row styling
-    pub(crate) table_row_prp: PrpMap,
+    pub(crate) table_row_prp: Option<PrpMap>,
     /// Cell styles
-    pub(crate) table_cell_prp: PrpMap,
+    pub(crate) table_cell_prp: Option<PrpMap>,
     /// Cell paragraph styles
-    pub(crate) paragraph_prp: PrpMap,
+    pub(crate) paragraph_prp: Option<PrpMap>,
     /// Cell text styles
-    pub(crate) text_prp: PrpMap,
+    pub(crate) text_prp: Option<PrpMap>,
 }
 
 impl Style {
@@ -671,38 +711,6 @@ pub fn font_outline(style: &mut Style, outline: bool) {
 /// Font with shadow.
 pub fn font_shadow(style: &mut Style, pt_shadow_x: f32, pt_shadow_y: f32) {
     style.set_text_prp("fo:text-shadow", format!("{}pt {}pt", pt_shadow_x, pt_shadow_y));
-}
-
-/// Various border styles.
-#[derive(Debug, Clone, Copy)]
-pub enum Border {
-    None,
-    Hidden,
-    Dotted,
-    Dashed,
-    Solid,
-    Double,
-    Groove,
-    Ridge,
-    Inset,
-    Outset,
-}
-
-impl Display for Border {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self {
-            Border::None => write!(f, "none"),
-            Border::Hidden => write!(f, "hidden"),
-            Border::Dotted => write!(f, "dotted"),
-            Border::Dashed => write!(f, "dashed"),
-            Border::Solid => write!(f, "solid"),
-            Border::Double => write!(f, "double"),
-            Border::Groove => write!(f, "groove"),
-            Border::Ridge => write!(f, "ridge"),
-            Border::Inset => write!(f, "inset"),
-            Border::Outset => write!(f, "outset"),
-        }
-    }
 }
 
 // format as string

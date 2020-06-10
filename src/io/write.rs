@@ -8,6 +8,7 @@ use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
 use crate::{Composit, CompositVec, SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
+use crate::attrmap::AttrMap;
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::tmp2zip::{TempWrite, TempZip};
@@ -1092,17 +1093,17 @@ fn write_pagelayout(styles: &HashMap<String, PageLayout>,
         xml_out.elem("style:page-layout")?;
         xml_out.attr_esc("style:name", &style.name)?;
 
-        if let Some(prp) = &style.prp {
+        if !style.is_empty() {
             xml_out.empty("style:page-layout-properties")?;
-            for (k, v) in prp {
+            for (k, v) in style.attr_iter() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }
 
         xml_out.elem("style:header-style")?;
         xml_out.empty("style:header-footer-properties")?;
-        if let Some(prp) = &style.header_prp {
-            for (k, v) in prp {
+        if !style.header_attr.is_empty() {
+            for (k, v) in &style.header_attr {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }
@@ -1110,8 +1111,8 @@ fn write_pagelayout(styles: &HashMap<String, PageLayout>,
 
         xml_out.elem("style:footer-style")?;
         xml_out.empty("style:header-footer-properties")?;
-        if let Some(prp) = &style.header_prp {
-            for (k, v) in prp {
+        if !style.header_attr.is_empty() {
+            for (k, v) in &style.footer_attr {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }

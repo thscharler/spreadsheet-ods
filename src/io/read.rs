@@ -8,6 +8,7 @@ use quick_xml::events::attributes::Attribute;
 use zip::read::ZipFile;
 
 use crate::{ColRange, Composit, CompositTag, CompositVec, RowRange, SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
+use crate::attrmap::AttrMap;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{CellRef, parse_cellranges};
@@ -693,17 +694,17 @@ fn read_page_layout(book: &mut WorkBook,
             | Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
                     b"style:page-layout-properties" =>
-                        copy_pagelayout_properties(&mut pl, &PageLayout::set_prp, xml, xml_tag)?,
+                        copy_pagelayout_properties(&mut pl, xml, xml_tag)?,
                     b"style:header-style" =>
                         header_style = true,
                     b"style:footer-style" =>
                         footer_style = true,
                     b"style:header-footer-properties" => {
                         if header_style {
-                            copy_pagelayout_properties(&mut pl, &PageLayout::set_header_prp, xml, xml_tag)?;
+                            copy_pagelayout_properties(&mut pl.header_attr, xml, xml_tag)?;
                         }
                         if footer_style {
-                            copy_pagelayout_properties(&mut pl, &PageLayout::set_footer_prp, xml, xml_tag)?;
+                            copy_pagelayout_properties(&mut pl.footer_attr, xml, xml_tag)?;
                         }
                     }
                     _ => (),
@@ -734,15 +735,14 @@ fn read_page_layout(book: &mut WorkBook,
 }
 
 // copy all attr of the xml_tag. uses the given function for the setter.
-fn copy_pagelayout_properties(pagelayout: &mut PageLayout,
-                              add_fn: &dyn Fn(&mut PageLayout, &str, String),
+fn copy_pagelayout_properties(attrmap: &mut dyn AttrMap,
                               xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                               xml_tag: &BytesStart) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         if let Ok(attr) = attr {
             let k = xml.decode(&attr.key)?;
             let v = attr.unescape_and_decode_value(&xml)?;
-            add_fn(pagelayout, k, v);
+            attrmap.set_attr(k, v);
         }
     }
 

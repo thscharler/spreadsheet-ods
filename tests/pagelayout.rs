@@ -1,4 +1,7 @@
+use color::Rgb;
+
 use spreadsheet_ods::{Composit, CompositTag, CompositVec, OdsError, WorkBook};
+use spreadsheet_ods::attrmap::{AttrFoBackground, AttrFoMargin, AttrFoMinHeight};
 use spreadsheet_ods::io::{read_ods, write_ods};
 use spreadsheet_ods::style::{HeaderFooter, PageLayout};
 
@@ -17,11 +20,15 @@ fn crpagelayout() -> Result<(), OdsError> {
 
     let mut pl = PageLayout::default();
 
-    pl.set_prp("style:writing-mode", "lr-tb".to_string());
-    pl.set_header_prp("fo:min-height", "0.75cm".to_string());
-    pl.set_header_prp("fo:margin-left", "0.15cm".to_string());
-    pl.set_header_prp("fo:margin-right", "0.15cm".to_string());
-    pl.set_header_prp("fo:margin-bottom", "0.25cm".to_string());
+
+    pl.set_background_color(Rgb::new(12, 129, 252));
+
+    pl.header_attr().set_min_height("0.75cm");
+    pl.header_attr().set_margin_left("0.15cm");
+    pl.header_attr().set_margin_right("0.15cm");
+    pl.header_attr().set_margin_bottom("0.15cm");
+
+    //pl.set_prp("style:writing-mode", "lr-tb".to_string());
 
     let mut hf = HeaderFooter::new();
     let mut cv = CompositVec::new();

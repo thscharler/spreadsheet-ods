@@ -58,6 +58,7 @@ use crate::util::{clear_prp, get_prp, set_prp};
 
 pub mod error;
 pub mod io;
+pub mod attrmap;
 pub mod refs;
 pub mod style;
 pub mod format;
