@@ -7,13 +7,13 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
-use crate::{SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
+use crate::{Composit, CompositVec, SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{CellRange, cellranges_string};
-use crate::style::{FontDecl, Style};
+use crate::style::{FontDecl, HeaderFooter, PageLayout, Style};
 
 // this did not work out as expected ...
 // TODO: find out why this breaks content.xml
@@ -71,7 +71,7 @@ pub fn write_ods_flags<P: AsRef<Path>>(book: &WorkBook,
     write_meta(&mut zip_writer, &mut file_set)?;
     //write_settings(&mut zip_writer, &mut file_set)?;
     //write_configurations(&mut zip_writer, &mut file_set)?;
-    write_ods_styles(&mut zip_writer, &mut file_set)?;
+    write_ods_styles(&book, &mut zip_writer, &mut file_set)?;
     write_ods_content(&book, &mut zip_writer, &mut file_set)?;
 
     if zip {
@@ -250,7 +250,9 @@ fn write_meta(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result
         xml_out.elem_text("meta:creation-date", &d.format("%Y-%m-%dT%H:%M:%S%.f").to_string())?;
         xml_out.elem_text("meta:editing-duration", "P0D")?;
         xml_out.elem_text("meta:editing-cycles", "1")?;
-        xml_out.elem_text_esc("meta:initial-creator", &username::get_user_name().unwrap())?;
+        // xml_out.elem_text_esc("meta:initial-creator", &username::get_user_name().unwrap())?;
+
+        // TODO: allow to set this data.
 
         xml_out.end_elem("office:meta")?;
 
@@ -319,7 +321,9 @@ fn write_meta(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result
 //    Ok(())
 //}
 
-fn write_ods_styles(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+fn write_ods_styles(book: &WorkBook,
+                    zip_out: &mut OdsWriter,
+                    file_set: &mut HashSet<String>) -> Result<(), OdsError> {
     if !file_set.contains("styles.xml") {
         file_set.insert(String::from("styles.xml"));
 
@@ -349,7 +353,24 @@ fn write_ods_styles(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> 
         xml_out.attr("xmlns:presentation", "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0")?;
         xml_out.attr("office:version", "1.2")?;
 
-        // TODO: read and write global styles
+        xml_out.elem("office:font-face-decls")?;
+        write_font_decl(&book.fonts, StyleOrigin::Styles, &mut xml_out)?;
+        xml_out.end_elem("office:font-face-decls")?;
+
+        xml_out.elem("office:styles")?;
+        write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
+        write_value_styles(&book.formats, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
+        xml_out.end_elem("office:styles")?;
+
+        xml_out.elem("office:automatic-styles")?;
+        write_pagelayout(&book.page_layouts, &mut xml_out)?;
+        write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
+        write_value_styles(&book.formats, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
+        xml_out.end_elem("office:automatic-styles")?;
+
+        xml_out.elem("office:master-styles")?;
+        write_masterpage(&book.page_layouts, &mut xml_out)?;
+        xml_out.end_elem("office:master-styles")?;
 
         xml_out.end_elem("office:document-styles")?;
 
@@ -908,7 +929,7 @@ fn write_cell(book: &WorkBook,
 
 fn write_font_decl(fonts: &HashMap<String, FontDecl>, origin: StyleOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     for font in fonts.values().filter(|s| s.origin == origin) {
-        xml_out.empty("style:style")?;
+        xml_out.empty("style:font-face")?;
         xml_out.attr_esc("style:name", font.name.as_str())?;
         if let Some(prp) = &font.prp {
             for (a, v) in prp {
@@ -1064,3 +1085,141 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
 
     Ok(())
 }
+
+fn write_pagelayout(styles: &HashMap<String, PageLayout>,
+                    xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    for style in styles.values() {
+        xml_out.elem("style:page-layout")?;
+        xml_out.attr_esc("style:name", &style.name)?;
+
+        if let Some(prp) = &style.prp {
+            xml_out.empty("style:page-layout-properties")?;
+            for (k, v) in prp {
+                xml_out.attr(k.as_ref(), v.as_str())?;
+            }
+        }
+
+        xml_out.elem("style:header-style")?;
+        xml_out.empty("style:header-footer-properties")?;
+        if let Some(prp) = &style.header_prp {
+            for (k, v) in prp {
+                xml_out.attr(k.as_ref(), v.as_str())?;
+            }
+        }
+        xml_out.end_elem("style:header-style")?;
+
+        xml_out.elem("style:footer-style")?;
+        xml_out.empty("style:header-footer-properties")?;
+        if let Some(prp) = &style.header_prp {
+            for (k, v) in prp {
+                xml_out.attr(k.as_ref(), v.as_str())?;
+            }
+        }
+        xml_out.end_elem("style:footer-style")?;
+
+        xml_out.end_elem("style:page-layout")?;
+    }
+
+    Ok(())
+}
+
+fn write_masterpage<'a>(styles: &'a HashMap<String, PageLayout>,
+                        xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
+    for style in styles.values() {
+        xml_out.elem("style:master-page")?;
+        xml_out.attr("style:name", &style.masterpage_name)?;
+        xml_out.attr("style:page-layout-name", &style.name)?;
+
+        xml_out.elem("style:header")?;
+        if !style.header.display {
+            xml_out.attr("style:display", "false")?;
+        }
+        write_regions(&style.header, xml_out)?;
+        xml_out.end_elem("style:header")?;
+
+        xml_out.elem("style:header_left")?;
+        if !style.header_left.display {
+            xml_out.attr("style:display", "false")?;
+        }
+        write_regions(&style.header_left, xml_out)?;
+        xml_out.end_elem("style:header_left")?;
+
+        xml_out.elem("style:footer")?;
+        if !style.footer.display {
+            xml_out.attr("style:display", "false")?;
+        }
+        write_regions(&style.footer, xml_out)?;
+        xml_out.end_elem("style:footer")?;
+
+        xml_out.elem("style:footer_left")?;
+        if !style.footer_left.display {
+            xml_out.attr("style:display", "false")?;
+        }
+        write_regions(&style.footer_left, xml_out)?;
+        xml_out.end_elem("style:footer_left")?;
+    }
+
+    Ok(())
+}
+
+fn write_regions<'a>(hf: &'a HeaderFooter,
+                     xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
+    if !hf.region_left.is_empty() {
+        xml_out.elem("style:region-left")?;
+        write_composit(&hf.region_left, xml_out)?;
+        xml_out.end_elem("style:region-left")?;
+    }
+    if !hf.region_center.is_empty() {
+        xml_out.elem("style:region-center")?;
+        write_composit(&hf.region_center, xml_out)?;
+        xml_out.end_elem("style:region-center")?;
+    }
+    if !hf.region_right.is_empty() {
+        xml_out.elem("style:region-right")?;
+        write_composit(&hf.region_right, xml_out)?;
+        xml_out.end_elem("style:region-right")?;
+    }
+    if !hf.content.is_empty() {
+        xml_out.elem("text:p")?;
+        write_composit(&hf.content, xml_out)?;
+        xml_out.end_elem("text:p")?;
+    }
+
+    Ok(())
+}
+
+fn write_composit<'a>(region: &'a CompositVec,
+                      xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
+    if let Some(region) = &region.vec {
+        for c in region {
+            match c {
+                Composit::Start(ref t) => {
+                    xml_out.elem(&t.tag)?;
+                    if let Some(attr) = &t.attr {
+                        for (k, v) in attr {
+                            xml_out.attr_esc(k.as_ref(), v.as_ref())?;
+                        }
+                    }
+                }
+                Composit::Empty(t) => {
+                    xml_out.empty(t.tag.as_str())?;
+                    if let Some(attr) = &t.attr {
+                        for (k, v) in attr {
+                            xml_out.attr_esc(k.as_ref(), v.as_ref())?;
+                        }
+                    }
+                }
+                Composit::Text(t) => {
+                    xml_out.text(t)?;
+                }
+                Composit::End(t) => {
+                    xml_out.end_elem(t)?;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+

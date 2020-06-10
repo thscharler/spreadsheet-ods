@@ -8,7 +8,7 @@
 //! use chrono::NaiveDate;
 //! use spreadsheet_ods::format;
 //! use spreadsheet_ods::formula;
-//! use spreadsheet_ods::style::{Style, StyleFor};
+//! use spreadsheet_ods::style::Style;
 //!
 //! let mut wb = spreadsheet_ods::io::read_ods("tests/example.ods").unwrap();
 //!
@@ -772,6 +772,7 @@ pub enum Value {
 }
 
 impl Value {
+    // Return the plan ValueType for this value.
     pub fn value_type(&self) -> ValueType {
         match self {
             Value::Empty => ValueType::Empty,
@@ -785,7 +786,7 @@ impl Value {
         }
     }
 
-    /// Return content.
+    /// Return the bool if the value is a Boolean. Default otherwise.
     pub fn as_bool_or(&self, d: bool) -> bool {
         match self {
             Value::Boolean(b) => *b,
@@ -793,6 +794,8 @@ impl Value {
         }
     }
 
+    /// Return the content as i32 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_i32_or(&self, d: i32) -> i32 {
         match self {
             Value::Number(n) => *n as i32,
@@ -802,6 +805,8 @@ impl Value {
         }
     }
 
+    /// Return the content as u32 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_u32_or(&self, d: u32) -> u32 {
         match self {
             Value::Number(n) => *n as u32,
@@ -811,6 +816,8 @@ impl Value {
         }
     }
 
+    /// Return the content as decimal if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_decimal_or(&self, d: Decimal) -> Decimal {
         match self {
             Value::Number(n) => Decimal::from_f64(*n).unwrap(),
@@ -820,6 +827,8 @@ impl Value {
         }
     }
 
+    /// Return the content as f64 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_f64_or(&self, d: f64) -> f64 {
         match self {
             Value::Number(n) => *n,
@@ -829,6 +838,7 @@ impl Value {
         }
     }
 
+    /// Return the content as str if the value is text.
     pub fn as_str_or<'a>(&'a self, d: &'a str) -> &'a str {
         match self {
             Value::Text(s) => s.as_ref(),
@@ -836,6 +846,8 @@ impl Value {
         }
     }
 
+    /// Return the content as Duration if the value is a TimeDuration.
+    /// Default otherwise.
     pub fn as_timeduration_or(&self, d: Duration) -> Duration {
         match self {
             Value::TimeDuration(td) => *td,
@@ -843,6 +855,8 @@ impl Value {
         }
     }
 
+    /// Return the content as NaiveDateTime if the value is a DateTime.
+    /// Default otherwise.
     pub fn as_datetime_or(&self, d: NaiveDateTime) -> NaiveDateTime {
         match self {
             Value::DateTime(dt) => *dt,
@@ -850,6 +864,8 @@ impl Value {
         }
     }
 
+    /// Return the content as an optional NaiveDateTime if the value is
+    /// a DateTime.
     pub fn as_datetime_opt(&self) -> Option<NaiveDateTime> {
         match self {
             Value::DateTime(dt) => Some(*dt),
@@ -857,10 +873,12 @@ impl Value {
         }
     }
 
+    /// Create a currency value.
     pub fn currency(currency: &str, value: f64) -> Self {
         Value::Currency(currency.to_string(), value)
     }
 
+    /// Create a percentage value.
     pub fn percentage(percent: f64) -> Self {
         Value::Percentage(percent)
     }
@@ -982,7 +1000,7 @@ impl From<Duration> for Value {
     }
 }
 
-// A tag within a text region.
+/// A tag within a text region.
 #[derive(Debug, Clone, Default)]
 pub struct CompositTag {
     pub(crate) tag: String,
@@ -990,6 +1008,7 @@ pub struct CompositTag {
 }
 
 /// Complex text is laid out as a sequence of tags, end-tags and text.
+/// The user of this must ensure that the result is valid xml.
 #[derive(Debug, Clone)]
 pub enum Composit {
     Start(CompositTag),
@@ -1037,12 +1056,14 @@ impl CompositTag {
 }
 
 impl CompositVec {
+    /// Create.
     pub fn new() -> Self {
         Self {
             vec: None
         }
     }
 
+    /// Append to the vector
     pub fn push(&mut self, cm: Composit) {
         if self.vec.is_none() {
             self.vec = Some(Vec::new());
@@ -1052,18 +1073,51 @@ impl CompositVec {
         }
     }
 
+    /// Remove all content.
     pub fn clear(&mut self) {
         self.vec = None;
     }
 
+    /// No vec contained.
     pub fn is_empty(&self) -> bool {
         self.vec.is_none()
     }
 
-    pub fn is_valid(&self) -> bool {
-        unimplemented!()
+    /// Checks if this is a valid sequence of text, in way that it
+    /// can be written to output without destroying the xml.
+    pub fn is_valid(&self, open_tag: &mut String, close_tag: &mut String) -> bool {
+        let mut res = true;
+
+        let mut tags = Vec::new();
+
+        if let Some(vec) = &self.vec {
+            for c in vec {
+                match c {
+                    Composit::Start(t) =>
+                        tags.push(t.tag.clone()),
+                    Composit::End(t) => {
+                        let tag = tags.pop();
+                        if let Some(ref tag) = tag {
+                            if t != tag {
+                                std::mem::swap(open_tag, &mut tag.clone());
+                                std::mem::swap(close_tag, &mut t.clone());
+                                res = false;
+                                break;
+                            }
+                        } else {
+                            res = false;
+                            break;
+                        }
+                    }
+                    _ => (),
+                }
+            }
+        }
+
+        res
     }
 
+    /// Returns the text vec itself.
     pub fn vec(&self) -> Option<&Vec<Composit>> {
         self.vec.as_ref()
     }

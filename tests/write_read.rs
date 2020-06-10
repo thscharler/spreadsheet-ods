@@ -25,7 +25,6 @@ fn test_0() -> Result<(), OdsError> {
 #[test]
 fn test_span() -> Result<(), OdsError> {
     println!("test_span");
-    env_logger::init();
 
     let mut wb = WorkBook::new();
 

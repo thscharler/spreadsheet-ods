@@ -149,6 +149,7 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     }
 
     /// Write an element with inlined text (escaped)
+    #[allow(dead_code)]
     pub fn elem_text_esc(&mut self, name: &str, text: &str) -> Result {
         self.close_elem()?;
 
