@@ -3,6 +3,227 @@ use std::fmt::{Display, Formatter};
 
 use crate::{OdsError, ucell};
 
+/// Reference to a cell.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct CellRef {
+    // Tablename
+    pub table: Option<String>,
+    // Row
+    pub row: ucell,
+    // Column
+    pub col: ucell,
+    // Absolute ($) reference
+    pub abs_row: bool,
+    // Absolute ($) reference
+    pub abs_col: bool,
+}
+
+impl TryFrom<&str> for CellRef {
+    type Error = OdsError;
+
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        let mut pos = 0usize;
+        parse_cellref(s, &mut pos)
+    }
+}
+
+impl Display for CellRef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
+        write!(f, "{}", self.to_string())?;
+        Ok(())
+    }
+}
+
+impl CellRef {
+    pub fn simple(row: ucell, col: ucell) -> Self {
+        Self {
+            table: None,
+            row,
+            abs_row: false,
+            col,
+            abs_col: false,
+        }
+    }
+
+    pub fn table<S: Into<String>>(table: S, row: ucell, col: ucell) -> Self {
+        Self {
+            table: Some(table.into()),
+            row,
+            abs_row: false,
+            col,
+            abs_col: false,
+        }
+    }
+
+    /// Returns the spreadsheet column name.
+    pub fn colname(&self) -> String {
+        colname(self.col)
+    }
+
+    /// Returns the spreadsheet row name.
+    pub fn rowname(&self) -> String {
+        rowname(self.row)
+    }
+
+    /// Returns a cell reference.
+    pub fn to_string(&self) -> String {
+        cellref_string(self)
+    }
+
+    /// Returns a cell reference for a formula.
+    pub fn to_formula(&self) -> String {
+        let mut buf = String::new();
+        buf.push('[');
+        push_cellref(&mut buf, self);
+        buf.push(']');
+
+        buf
+    }
+}
+
+/// A cell-range.
+/// As usual for a spreadsheet this is meant as inclusive from and to.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct CellRange {
+    pub from: CellRef,
+    pub to: CellRef,
+}
+
+impl CellRange {
+    /// Creates the cell range from from + to data.
+    pub fn simple(row: ucell, col: ucell, row_to: ucell, col_to: ucell) -> Self {
+        assert!(row <= row_to);
+        assert!(col <= col_to);
+        Self {
+            from: CellRef::simple(row, col),
+            to: CellRef::simple(row_to, col_to),
+        }
+    }
+
+    /// Creates the cell range from from + to data.
+    pub fn table<S: Into<String>>(table: S, row: ucell, col: ucell, row_to: ucell, col_to: ucell) -> Self {
+        assert!(row <= row_to);
+        assert!(col <= col_to);
+        let table = table.into();
+        Self {
+            from: CellRef::table(table.to_string(), row, col),
+            to: CellRef::table(table.to_string(), row_to, col_to),
+        }
+    }
+
+    /// Creates the cell range from origin + spanning data.
+    pub fn origin_span(row: ucell, col: ucell, span: (ucell, ucell)) -> Self {
+        assert!(span.0 > 0);
+        assert!(span.1 > 0);
+        Self {
+            from: CellRef::simple(row, col),
+            to: CellRef::simple(row + span.0 - 1, col + span.1 - 1),
+        }
+    }
+
+    /// Returns a range reference.
+    pub fn to_string(&self) -> String {
+        cellrange_string(self)
+    }
+
+    /// Returns a range reference for a formula.
+    pub fn to_formula(&self) -> String {
+        let mut buf = String::new();
+        buf.push('[');
+        push_cellrange(&mut buf, self);
+        buf.push(']');
+        buf
+    }
+
+    /// Does the range contain the cell.
+    pub fn contains(&self, row: ucell, col: ucell) -> bool {
+        row >= self.from.row && row <= self.to.row
+            && col >= self.from.col && col <= self.to.col
+    }
+
+    /// Is this range any longer relevant, when looping rows first, then columns?
+    pub fn out_looped(&self, row: ucell, col: ucell) -> bool {
+        row > self.to.row
+            || row == self.to.row && col > self.to.col
+    }
+}
+
+impl TryFrom<&str> for CellRange {
+    type Error = OdsError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let mut pos = 0usize;
+        parse_cellrange(value, &mut pos)
+    }
+}
+
+impl Display for CellRange {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
+        write!(f, "{}:{}", &self.from, &self.to)?;
+        Ok(())
+    }
+}
+
+/// A range over columns.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct ColRange {
+    pub from: ucell,
+    pub to: ucell,
+}
+
+impl ColRange {
+    pub fn new(from: ucell, to: ucell) -> Self {
+        assert!(from <= to);
+        Self {
+            from,
+            to,
+        }
+    }
+
+    pub fn contains(&self, col: ucell) -> bool {
+        col >= self.from && col <= self.to
+    }
+
+    pub fn to_string(&self) -> String {
+        let mut buf = String::new();
+        push_colname(&mut buf, self.from);
+        buf.push(':');
+        push_colname(&mut buf, self.to);
+
+        buf
+    }
+}
+
+/// A range over rows.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct RowRange {
+    pub from: ucell,
+    pub to: ucell,
+}
+
+impl RowRange {
+    pub fn new(from: ucell, to: ucell) -> Self {
+        assert!(from <= to);
+        Self {
+            from,
+            to,
+        }
+    }
+
+    pub fn contains(&self, row: ucell) -> bool {
+        row >= self.from && row <= self.to
+    }
+
+    pub fn to_string(&self) -> String {
+        let mut buf = String::new();
+        push_rowname(&mut buf, self.from);
+        buf.push(':');
+        push_rowname(&mut buf, self.to);
+
+        buf
+    }
+}
+
 /// Parse the colname.
 /// Stops when the colname ends and returns the byte position in end.
 pub fn parse_colname(buf: &str, pos: &mut usize) -> Option<ucell> {
@@ -320,225 +541,4 @@ pub fn cellranges_string(v: &Vec<CellRange>) -> String {
     }
 
     buf
-}
-
-/// Reference to a cell.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct CellRef {
-    // Tablename
-    pub table: Option<String>,
-    // Row
-    pub row: ucell,
-    // Column
-    pub col: ucell,
-    // Absolute ($) reference
-    pub abs_row: bool,
-    // Absolute ($) reference
-    pub abs_col: bool,
-}
-
-impl TryFrom<&str> for CellRef {
-    type Error = OdsError;
-
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
-        let mut pos = 0usize;
-        parse_cellref(s, &mut pos)
-    }
-}
-
-impl Display for CellRef {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
-        write!(f, "{}", self.to_string())?;
-        Ok(())
-    }
-}
-
-impl CellRef {
-    pub fn simple(row: ucell, col: ucell) -> Self {
-        Self {
-            table: None,
-            row,
-            abs_row: false,
-            col,
-            abs_col: false,
-        }
-    }
-
-    pub fn table<S: Into<String>>(table: S, row: ucell, col: ucell) -> Self {
-        Self {
-            table: Some(table.into()),
-            row,
-            abs_row: false,
-            col,
-            abs_col: false,
-        }
-    }
-
-    /// Returns the spreadsheet column name.
-    pub fn colname(&self) -> String {
-        colname(self.col)
-    }
-
-    /// Returns the spreadsheet row name.
-    pub fn rowname(&self) -> String {
-        rowname(self.row)
-    }
-
-    /// Returns a cell reference.
-    pub fn to_string(&self) -> String {
-        cellref_string(self)
-    }
-
-    /// Returns a cell reference for a formula.
-    pub fn to_formula(&self) -> String {
-        let mut buf = String::new();
-        buf.push('[');
-        push_cellref(&mut buf, self);
-        buf.push(']');
-
-        buf
-    }
-}
-
-/// A cell-range.
-/// As usual for a spreadsheet this is meant as inclusive from and to.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct CellRange {
-    pub from: CellRef,
-    pub to: CellRef,
-}
-
-impl CellRange {
-    /// Creates the cell range from from + to data.
-    pub fn simple(row: ucell, col: ucell, row_to: ucell, col_to: ucell) -> Self {
-        assert!(row <= row_to);
-        assert!(col <= col_to);
-        Self {
-            from: CellRef::simple(row, col),
-            to: CellRef::simple(row_to, col_to),
-        }
-    }
-
-    /// Creates the cell range from from + to data.
-    pub fn table<S: Into<String>>(table: S, row: ucell, col: ucell, row_to: ucell, col_to: ucell) -> Self {
-        assert!(row <= row_to);
-        assert!(col <= col_to);
-        let table = table.into();
-        Self {
-            from: CellRef::table(table.to_string(), row, col),
-            to: CellRef::table(table.to_string(), row_to, col_to),
-        }
-    }
-
-    /// Creates the cell range from origin + spanning data.
-    pub fn origin_span(row: ucell, col: ucell, span: (ucell, ucell)) -> Self {
-        assert!(span.0 > 0);
-        assert!(span.1 > 0);
-        Self {
-            from: CellRef::simple(row, col),
-            to: CellRef::simple(row + span.0 - 1, col + span.1 - 1),
-        }
-    }
-
-    /// Returns a range reference.
-    pub fn to_string(&self) -> String {
-        cellrange_string(self)
-    }
-
-    /// Returns a range reference for a formula.
-    pub fn to_formula(&self) -> String {
-        let mut buf = String::new();
-        buf.push('[');
-        push_cellrange(&mut buf, self);
-        buf.push(']');
-        buf
-    }
-
-    /// Does the range contain the cell.
-    pub fn contains(&self, row: ucell, col: ucell) -> bool {
-        row >= self.from.row && row <= self.to.row
-            && col >= self.from.col && col <= self.to.col
-    }
-
-    /// Is this range any longer relevant, when looping rows first, then columns?
-    pub fn out_looped(&self, row: ucell, col: ucell) -> bool {
-        row > self.to.row
-            || row == self.to.row && col > self.to.col
-    }
-}
-
-impl TryFrom<&str> for CellRange {
-    type Error = OdsError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let mut pos = 0usize;
-        parse_cellrange(value, &mut pos)
-    }
-}
-
-impl Display for CellRange {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
-        write!(f, "{}:{}", &self.from, &self.to)?;
-        Ok(())
-    }
-}
-
-/// A range over columns.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct ColRange {
-    pub from: ucell,
-    pub to: ucell,
-}
-
-impl ColRange {
-    pub fn new(from: ucell, to: ucell) -> Self {
-        assert!(from <= to);
-        Self {
-            from,
-            to,
-        }
-    }
-
-    pub fn contains(&self, col: ucell) -> bool {
-        col >= self.from && col <= self.to
-    }
-
-    pub fn to_string(&self) -> String {
-        let mut buf = String::new();
-        push_colname(&mut buf, self.from);
-        buf.push(':');
-        push_colname(&mut buf, self.to);
-
-        buf
-    }
-}
-
-/// A range over rows.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct RowRange {
-    pub from: ucell,
-    pub to: ucell,
-}
-
-impl RowRange {
-    pub fn new(from: ucell, to: ucell) -> Self {
-        assert!(from <= to);
-        Self {
-            from,
-            to,
-        }
-    }
-
-    pub fn contains(&self, row: ucell) -> bool {
-        row >= self.from && row <= self.to
-    }
-
-    pub fn to_string(&self) -> String {
-        let mut buf = String::new();
-        push_rowname(&mut buf, self.from);
-        buf.push(':');
-        push_rowname(&mut buf, self.to);
-
-        buf
-    }
 }
