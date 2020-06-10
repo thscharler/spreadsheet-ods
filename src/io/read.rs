@@ -893,7 +893,7 @@ fn read_headerfooter(end_tag: &[u8],
                         let cm = read_composit(b"text:p", xml, dump_xml)?;
                         hf.set_content(cm);
                     }
-                    // TODO: other than text:p maybe?
+                    // no other tags supported for now.
                     _ => (),
                 }
             }

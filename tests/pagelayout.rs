@@ -5,6 +5,7 @@ use spreadsheet_ods::style::{HeaderFooter, PageLayout};
 #[test]
 fn pagelayout() -> Result<(), OdsError> {
     let ods = read_ods("test_out/experiment.ods")?;
+    println!("{:?}", ods.pagelayout("Mpm1").unwrap().header().region_left());
     write_ods(&ods, "test_out/rexp.ods")?;
 
     Ok(())

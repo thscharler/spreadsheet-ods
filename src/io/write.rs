@@ -1168,17 +1168,23 @@ fn write_regions<'a>(hf: &'a HeaderFooter,
                      xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
     if !hf.region_left.is_empty() {
         xml_out.elem("style:region-left")?;
+        xml_out.elem("text:p")?;
         write_composit(&hf.region_left, xml_out)?;
+        xml_out.end_elem("text:p")?;
         xml_out.end_elem("style:region-left")?;
     }
     if !hf.region_center.is_empty() {
         xml_out.elem("style:region-center")?;
+        xml_out.elem("text:p")?;
         write_composit(&hf.region_center, xml_out)?;
+        xml_out.end_elem("text:p")?;
         xml_out.end_elem("style:region-center")?;
     }
     if !hf.region_right.is_empty() {
         xml_out.elem("style:region-right")?;
+        xml_out.elem("text:p")?;
         write_composit(&hf.region_right, xml_out)?;
+        xml_out.end_elem("text:p")?;
         xml_out.end_elem("style:region-right")?;
     }
     if !hf.content.is_empty() {

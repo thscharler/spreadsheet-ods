@@ -160,6 +160,7 @@ pub struct HeaderFooter {
     pub(crate) region_left: CompositVec,
     pub(crate) region_center: CompositVec,
     pub(crate) region_right: CompositVec,
+
     pub(crate) content: CompositVec,
 }
 
