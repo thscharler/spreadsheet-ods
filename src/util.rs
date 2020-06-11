@@ -26,19 +26,6 @@ pub(crate) fn set_prp(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str
     }
 }
 
-// remove a property
-pub(crate) fn clear_prp(map: &mut Option<HashMap<DefaultAtom, String>>, name: &str) -> Option<String> {
-    if !map.is_none() {
-        if let Some(map) = map {
-            map.remove(&DefaultAtom::from(name))
-        } else {
-            None
-        }
-    } else {
-        None
-    }
-}
-
 // return a property
 pub(crate) fn get_prp<'a, 'b>(map: &'a Option<HashMap<DefaultAtom, String>>, name: &'b str) -> Option<&'a String> {
     if let Some(map) = map {

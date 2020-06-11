@@ -1,3 +1,7 @@
+///
+/// Defines ValueFormat for formatting related issues
+///
+
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 

@@ -1,14 +1,11 @@
-use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
+///
+/// Defines the basic structures for table styling, PageLayout and Style
+///
 
-use color::Rgb;
 use string_cache::DefaultAtom;
 
-use crate::{CompositVec, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, WorkBook};
-use crate::attrmap::{AttrFoBackground, AttrFoBorder, AttrFoMargin, AttrFoMinHeight, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, Border};
-use crate::util::{clear_prp, get_prp, set_prp};
-
-type PrpMap = HashMap<DefaultAtom, String>;
+use crate::{CompositVec, StyleFor, StyleOrigin, StyleUse};
+use crate::attrmap::{AttrFoBackgroundColor, AttrFoBorder, AttrFoBreak, AttrFoKeepTogether, AttrFoKeepWithNext, AttrFoMargin, AttrFoMinHeight, AttrFontDecl, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, AttrParagraph, AttrStyleAlignVertical, AttrStyleBorderLineWidth, AttrStyleDynamicSpacing, AttrStyleShadow, AttrStyleWritingMode, AttrSvgHeight, AttrTableCell, AttrTableCol, AttrTableRow, AttrText};
 
 /// Page layout.
 /// Contains all header and footer information.
@@ -38,13 +35,21 @@ impl AttrMap for PageLayout {
     }
 }
 
-impl AttrFoBackground for PageLayout {}
+impl AttrFoBackgroundColor for PageLayout {}
 
 impl AttrFoBorder for PageLayout {}
 
 impl AttrFoMargin for PageLayout {}
 
 impl AttrFoPadding for PageLayout {}
+
+impl AttrStyleBorderLineWidth for PageLayout {}
+
+impl AttrStyleDynamicSpacing for PageLayout {}
+
+impl AttrStyleShadow for PageLayout {}
+
+impl AttrSvgHeight for PageLayout {}
 
 
 impl PageLayout {
@@ -169,7 +174,7 @@ impl AttrMap for HeaderFooterAttr {
     }
 }
 
-impl AttrFoBackground for HeaderFooterAttr {}
+impl AttrFoBackgroundColor for HeaderFooterAttr {}
 
 impl AttrFoBorder for HeaderFooterAttr {}
 
@@ -178,6 +183,14 @@ impl AttrFoMargin for HeaderFooterAttr {}
 impl AttrFoMinHeight for HeaderFooterAttr {}
 
 impl AttrFoPadding for HeaderFooterAttr {}
+
+impl AttrStyleBorderLineWidth for HeaderFooterAttr {}
+
+impl AttrStyleDynamicSpacing for HeaderFooterAttr {}
+
+impl AttrStyleShadow for HeaderFooterAttr {}
+
+impl AttrSvgHeight for HeaderFooterAttr {}
 
 impl<'a> IntoIterator for &'a HeaderFooterAttr {
     type Item = (&'a DefaultAtom, &'a String);
@@ -269,18 +282,30 @@ impl HeaderFooter {
 
 /// Font declarations.
 #[derive(Clone, Debug, Default)]
-pub struct FontDecl {
+pub struct FontFaceDecl {
     pub(crate) name: String,
     /// From where did we get this style.
     pub(crate) origin: StyleOrigin,
     /// All other attributes.
-    pub(crate) prp: Option<HashMap<DefaultAtom, String>>,
+    pub(crate) attr: Option<AttrMapType>,
 }
 
-impl FontDecl {
+impl AttrFontDecl for FontFaceDecl {}
+
+impl AttrMap for FontFaceDecl {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.attr.as_ref()
+    }
+
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.attr
+    }
+}
+
+impl FontFaceDecl {
     /// New, empty.
     pub fn new() -> Self {
-        FontDecl::new_origin(StyleOrigin::Content)
+        FontFaceDecl::new_origin(StyleOrigin::Content)
     }
 
     /// New, with origination.
@@ -288,7 +313,7 @@ impl FontDecl {
         Self {
             name: "".to_string(),
             origin,
-            prp: None,
+            attr: None,
         }
     }
 
@@ -297,7 +322,7 @@ impl FontDecl {
         Self {
             name: name.into(),
             origin: StyleOrigin::Content,
-            prp: None,
+            attr: None,
         }
     }
 
@@ -321,14 +346,9 @@ impl FontDecl {
         self.origin
     }
 
-    /// Sets a property of the font.
-    pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.prp, name, value);
-    }
-
-    /// Returns a property of the font.
-    pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.prp, name)
+    /// Iterator over the attributes of this pagelayout.
+    pub fn attr_iter(&self) -> AttrMapIter {
+        AttrMapIter::from(self.attr_map())
     }
 }
 
@@ -349,17 +369,17 @@ pub struct Style {
     /// References the actual formatting instructions in the value-styles.
     pub(crate) value_format: Option<String>,
     /// Table styling
-    pub(crate) table_prp: Option<PrpMap>,
+    pub(crate) table_attr: TableAttr,
     /// Column styling
-    pub(crate) table_col_prp: Option<PrpMap>,
+    pub(crate) table_col_attr: TableColAttr,
     /// Row styling
-    pub(crate) table_row_prp: Option<PrpMap>,
+    pub(crate) table_row_attr: TableRowAttr,
     /// Cell styles
-    pub(crate) table_cell_prp: Option<PrpMap>,
+    pub(crate) table_cell_attr: TableCellAttr,
     /// Cell paragraph styles
-    pub(crate) paragraph_prp: Option<PrpMap>,
+    pub(crate) paragraph_attr: ParagraphAttr,
     /// Cell text styles
-    pub(crate) text_prp: Option<PrpMap>,
+    pub(crate) text_attr: TextAttr,
 }
 
 impl Style {
@@ -378,12 +398,12 @@ impl Style {
             family: Default::default(),
             parent: None,
             value_format: None,
-            table_prp: None,
-            table_col_prp: None,
-            table_row_prp: None,
-            table_cell_prp: None,
-            paragraph_prp: None,
-            text_prp: None,
+            table_attr: Default::default(),
+            table_col_attr: Default::default(),
+            table_row_attr: Default::default(),
+            table_cell_attr: Default::default(),
+            paragraph_attr: Default::default(),
+            text_attr: Default::default(),
         }
     }
 
@@ -422,12 +442,12 @@ impl Style {
             family,
             parent: Some(String::from("Default")),
             value_format: Some(value_style.into()),
-            table_prp: None,
-            table_col_prp: None,
-            table_row_prp: None,
-            table_cell_prp: None,
-            paragraph_prp: None,
-            text_prp: None,
+            table_attr: Default::default(),
+            table_col_attr: Default::default(),
+            table_row_attr: Default::default(),
+            table_cell_attr: Default::default(),
+            paragraph_attr: Default::default(),
+            text_attr: Default::default(),
         }
     }
 
@@ -501,329 +521,245 @@ impl Style {
         self.value_format.as_ref()
     }
 
-    /// Sets a property for a table style.
-    pub fn set_table_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_prp, name, value);
+    /// Table style attributes.
+    pub fn table_attr(&mut self) -> &mut TableAttr {
+        &mut self.table_attr
     }
 
-    /// Returns a property for a table style.
-    pub fn table_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_prp, name)
+    pub fn col_attr(&mut self) -> &mut TableColAttr {
+        &mut self.table_col_attr
     }
 
-    /// Sets a property for a table column.
-    pub fn set_table_col_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_col_prp, name, value);
+    /// Table-row style attributes.
+    pub fn row_attr(&mut self) -> &mut TableRowAttr {
+        &mut self.table_row_attr
     }
 
-    /// Returns a property for a table column.
-    pub fn table_col_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_col_prp, name)
+    /// Table-cell style attributes.
+    pub fn cell_attr(&mut self) -> &mut TableCellAttr {
+        &mut self.table_cell_attr
     }
 
-    /// Set a table row property.
-    pub fn set_table_row_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_row_prp, name, value);
+    /// Paragraph style attributes.
+    pub fn paragraph_attr(&mut self) -> &mut ParagraphAttr {
+        &mut self.paragraph_attr
     }
 
-    /// Returns a table row property.
-    pub fn table_row_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_row_prp, name)
-    }
-
-    /// Sets a table cell property.
-    pub fn set_table_cell_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.table_cell_prp, name, value);
-    }
-
-    /// Returns a table cell property.
-    pub fn table_cell_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.table_cell_prp, name)
-    }
-
-    /// Sets a text property.
-    pub fn set_text_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.text_prp, name, value);
-    }
-
-    /// Removes a text property.
-    pub fn clear_text_prp(&mut self, name: &str) -> Option<String> {
-        clear_prp(&mut self.text_prp, name)
-    }
-
-    /// Returns a text property.
-    pub fn text_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.text_prp, name)
-    }
-
-    /// Sets a paragraph property.
-    pub fn set_paragraph_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.paragraph_prp, name, value);
-    }
-
-    /// Returns a paragraph property.
-    pub fn paragraph_prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.paragraph_prp, name)
+    /// Text style attributes.
+    pub fn text_attr(&mut self) -> &mut TextAttr {
+        &mut self.text_attr
     }
 }
 
-/// Sets the fontname for the font decl.
-pub fn font_decl<S: Into<String>>(fontdecl: &mut FontDecl, family: S) {
-    fontdecl.set_prp("svg:font-family", family.into());
+#[derive(Clone, Debug, Default)]
+pub struct TableAttr {
+    pub(crate) attr: Option<AttrMapType>,
 }
 
-/// Fontname for this style.
-pub fn font_name<S: Into<String>>(style: &mut Style, font: S) {
-    style.set_text_prp("style:font-name", font.into());
-}
+impl AttrMap for TableAttr {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.attr.as_ref()
+    }
 
-/// Font attributes for this style.
-pub fn font_style(style: &mut Style, pt_size: f32, bold: bool, italic: bool) {
-    font_size(style, pt_size);
-    font_bold(style, bold);
-    font_italic(style, italic);
-}
-
-/// Italic style.
-pub fn font_italic(style: &mut Style, italic: bool) {
-    if italic {
-        style.set_text_prp("fo:font-style", "italic".to_string());
-        style.set_text_prp("fo:font-style-asian", "italic".to_string());
-        style.set_text_prp("fo:font-style-complex", "italic".to_string());
-    } else {
-        style.clear_text_prp("fo:font-style");
-        style.clear_text_prp("fo:font-style-asian");
-        style.clear_text_prp("fo:font-style-complex");
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.attr
     }
 }
 
-/// Bold style.
-pub fn font_bold(style: &mut Style, bold: bool) {
-    if bold {
-        style.set_text_prp("fo:font-weight", "bold".to_string());
-        style.set_text_prp("fo:font-weight-asian", "bold".to_string());
-        style.set_text_prp("fo:font-weight-complex", "bold".to_string());
-    } else {
-        style.clear_text_prp("fo:font-weight");
-        style.clear_text_prp("fo:font-weight-asian");
-        style.clear_text_prp("fo:font-weight-complex");
+impl<'a> IntoIterator for &'a TableAttr {
+    type Item = (&'a DefaultAtom, &'a String);
+    type IntoIter = AttrMapIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        AttrMapIter::from(self.attr_map())
     }
 }
 
-/// Font size.
-pub fn font_size(style: &mut Style, pt_size: f32) {
-    style.set_text_prp("fo:font-size", format!("{}pt", pt_size));
-    style.set_text_prp("fo:font-size-asian", format!("{}pt", pt_size));
-    style.set_text_prp("fo:font-size-complex", format!("{}pt", pt_size));
+impl AttrFoBackgroundColor for TableAttr {}
+
+impl AttrFoMargin for TableAttr {}
+
+impl AttrFoBreak for TableAttr {}
+
+impl AttrFoKeepWithNext for TableAttr {}
+
+impl AttrStyleShadow for TableAttr {}
+
+impl AttrStyleWritingMode for TableAttr {}
+
+#[derive(Clone, Debug, Default)]
+pub struct TableRowAttr {
+    pub(crate) attr: Option<AttrMapType>,
 }
 
-/// Font color.
-pub fn font_color(style: &mut Style, color: Rgb<u8>) {
-    style.set_text_prp("fo:color", color_string(color));
-}
+impl AttrMap for TableRowAttr {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.attr.as_ref()
+    }
 
-/// Various underline styles.
-#[derive(Debug, Clone, Copy)]
-pub enum Underline {
-    Solid,
-    Double,
-    Dotted,
-    Dashed,
-    Wavy,
-}
-
-impl Display for Underline {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self {
-            Underline::Solid => write!(f, "solid"),
-            Underline::Double => write!(f, "double"),
-            Underline::Dotted => write!(f, "dotted"),
-            Underline::Dashed => write!(f, "dashed"),
-            Underline::Wavy => write!(f, "wavy"),
-        }
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.attr
     }
 }
 
-/// Underline style.
-pub fn font_underline(style: &mut Style, ustyle: Underline) {
-    style.set_text_prp("style:text-underline-style", ustyle.to_string());
-    style.set_text_prp("style:text-underline-width", "auto".to_string());
-    style.set_text_prp("style:text-underline-color", "font-color".to_string());
-}
+impl<'a> IntoIterator for &'a TableRowAttr {
+    type Item = (&'a DefaultAtom, &'a String);
+    type IntoIter = AttrMapIter<'a>;
 
-/// Various line-throug styles.
-#[derive(Debug, Clone, Copy)]
-pub enum LineThroughStyle {
-    Dashed,
-    DotDash,
-    DotDotDash,
-    Dotted,
-    LongDash,
-    None,
-    Solid,
-    Wave,
-}
-
-impl Display for LineThroughStyle {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self {
-            LineThroughStyle::Dashed => write!(f, "dashed"),
-            LineThroughStyle::DotDash => write!(f, "dot-dash"),
-            LineThroughStyle::DotDotDash => write!(f, "dot-dot-dash"),
-            LineThroughStyle::Dotted => write!(f, "dotted"),
-            LineThroughStyle::LongDash => write!(f, "long-dash"),
-            LineThroughStyle::None => write!(f, "none"),
-            LineThroughStyle::Solid => write!(f, "solid"),
-            LineThroughStyle::Wave => write!(f, "wavae"),
-        }
+    fn into_iter(self) -> Self::IntoIter {
+        AttrMapIter::from(self.attr_map())
     }
 }
 
-/// Various line-through types.
-#[derive(Debug, Clone, Copy)]
-pub enum LineThroughType {
-    None,
-    Single,
-    Double,
+impl AttrFoBackgroundColor for TableRowAttr {}
+
+impl AttrFoBreak for TableRowAttr {}
+
+impl AttrFoKeepTogether for TableRowAttr {}
+
+impl AttrTableRow for TableRowAttr {}
+
+#[derive(Clone, Debug, Default)]
+pub struct TableColAttr {
+    pub(crate) attr: Option<AttrMapType>,
 }
 
-impl Display for LineThroughType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self {
-            LineThroughType::None => write!(f, "none"),
-            LineThroughType::Single => write!(f, "single"),
-            LineThroughType::Double => write!(f, "double"),
-        }
+impl AttrMap for TableColAttr {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.attr.as_ref()
+    }
+
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.attr
     }
 }
 
-/// Sets the line-through style
-pub fn font_line_through(style: &mut Style, ltstyle: LineThroughStyle, lttype: LineThroughType) {
-    style.set_text_prp("style:text-line-through-style", ltstyle.to_string());
-    style.set_text_prp("style:text-line-through-type", lttype.to_string());
-}
+impl<'a> IntoIterator for &'a TableColAttr {
+    type Item = (&'a DefaultAtom, &'a String);
+    type IntoIter = AttrMapIter<'a>;
 
-/// Font as outline.
-pub fn font_outline(style: &mut Style, outline: bool) {
-    style.set_text_prp("style:text-outline", outline.to_string());
-}
-
-/// Font with shadow.
-pub fn font_shadow(style: &mut Style, pt_shadow_x: f32, pt_shadow_y: f32) {
-    style.set_text_prp("fo:text-shadow", format!("{}pt {}pt", pt_shadow_x, pt_shadow_y));
-}
-
-// format as string
-fn border_string(width: f32, border: Border, color: Rgb<u8>) -> String {
-    format!("{}pt {} #{:02x}{:02x}{:02x}", width, border, color.r, color.g, color.b)
-}
-
-// format as string
-fn color_string(color: Rgb<u8>) -> String {
-    format!(" #{:02x}{:02x}{:02x}", color.r, color.g, color.b)
-}
-
-/// Border style all four sides.
-pub fn cell_border(style: &mut Style, pt_width: f32, border: Border, color: Rgb<u8>) {
-    style.set_table_cell_prp("fo:border", border_string(pt_width, border, color));
-}
-
-/// Border style.
-pub fn cell_border_bottom(style: &mut Style, pt_width: f32, border: Border, color: Rgb<u8>) {
-    style.set_table_cell_prp("fo:border-bottom", border_string(pt_width, border, color));
-}
-
-/// Border style.
-pub fn cell_border_top(style: &mut Style, pt_width: f32, border: Border, color: Rgb<u8>) {
-    style.set_table_cell_prp("fo:border-top", border_string(pt_width, border, color));
-}
-
-/// Border style.
-pub fn cell_border_left(style: &mut Style, pt_width: f32, border: Border, color: Rgb<u8>) {
-    style.set_table_cell_prp("fo:border-left", border_string(pt_width, border, color));
-}
-
-/// Border style.
-pub fn cell_border_right(style: &mut Style, pt_width: f32, border: Border, color: Rgb<u8>) {
-    style.set_table_cell_prp("fo:border-right", border_string(pt_width, border, color));
-}
-
-/// Border style.
-pub fn cell_background(style: &mut Style, color: Rgb<u8>) {
-    style.set_table_cell_prp("fo:background-color", color_string(color));
-}
-
-/// Border style.
-pub fn cell_padding(style: &mut Style, pt_padding: f32) {
-    style.set_table_cell_prp("fo:padding", format!("{}pt", pt_padding));
-}
-
-/// Border style.
-pub fn cell_shadow(style: &mut Style, pt_off_x: f32, pt_off_y: f32, color: Rgb<u8>) {
-    style.set_table_cell_prp("style:shadow", format!("#{:02x}{:02x}{:02x} {}pt {}pt", color.r, color.g, color.b, pt_off_x, pt_off_y));
-}
-
-/// Border style.
-pub fn cell_shrink_to_fit(style: &mut Style, shrink: bool) {
-    style.set_table_cell_prp("style:shrink-to-fit", shrink.to_string());
-}
-
-/// Border style.
-pub fn cell_rotation_angle(style: &mut Style, angle: f32) {
-    style.set_table_cell_prp("style:rotation-angle", angle.to_string());
-}
-
-/// Horizontal alignment.
-pub enum Align {
-    Start,
-    Center,
-    End,
-    Justify,
-    Inside,
-    Outside,
-    Left,
-    Right,
-}
-
-impl Display for Align {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self {
-            Align::Start => write!(f, "start"),
-            Align::Center => write!(f, "center"),
-            Align::End => write!(f, "end"),
-            Align::Justify => write!(f, "justify"),
-            Align::Inside => write!(f, "inside"),
-            Align::Outside => write!(f, "outside"),
-            Align::Left => write!(f, "left"),
-            Align::Right => write!(f, "right"),
-        }
+    fn into_iter(self) -> Self::IntoIter {
+        AttrMapIter::from(self.attr_map())
     }
 }
 
-/// Alignment
-pub fn text_align(style: &mut Style, align: Align) {
-    style.set_paragraph_prp("fo:text-align", align.to_string());
+impl AttrFoBreak for TableColAttr {}
+
+impl AttrTableCol for TableColAttr {}
+
+#[derive(Clone, Debug, Default)]
+pub struct TableCellAttr {
+    pub(crate) attr: Option<AttrMapType>,
 }
 
-/// Column width.
-pub fn set_col_width(workbook: &mut WorkBook, sheet: &mut Sheet, col: ucell, width: &str) {
-    let style_name = format!("co{}", col);
+impl AttrMap for TableCellAttr {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.attr.as_ref()
+    }
 
-    let mut col_style = Style::with_name(StyleFor::TableColumn, &style_name, "");
-    col_style.set_table_col_prp("style:column-width", width.to_string());
-    workbook.add_style(col_style);
-
-    sheet.set_column_style(col, &style_name);
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.attr
+    }
 }
 
-/// Row height.
-pub fn set_row_height(workbook: &mut WorkBook, sheet: &mut Sheet, row: ucell, height: &str) {
-    let style_name = format!("ro{}", row);
+impl<'a> IntoIterator for &'a TableCellAttr {
+    type Item = (&'a DefaultAtom, &'a String);
+    type IntoIter = AttrMapIter<'a>;
 
-    let mut row_style = Style::row_style(&style_name, "");
-    row_style.set_table_row_prp("style:row-height", height.to_string());
-    row_style.set_table_row_prp("style:use-optimal-row-height", "false".to_string());
-    workbook.add_style(row_style);
-
-    sheet.set_row_style(row, &style_name);
+    fn into_iter(self) -> Self::IntoIter {
+        AttrMapIter::from(self.attr_map())
+    }
 }
+
+impl AttrFoBackgroundColor for TableCellAttr {}
+
+impl AttrFoBorder for TableCellAttr {}
+
+impl AttrFoPadding for TableCellAttr {}
+
+impl AttrStyleBorderLineWidth for TableCellAttr {}
+
+impl AttrStyleShadow for TableCellAttr {}
+
+impl AttrStyleWritingMode for TableCellAttr {}
+
+impl AttrTableCell for TableCellAttr {}
+
+impl AttrStyleAlignVertical for TableCellAttr {}
+
+#[derive(Clone, Debug, Default)]
+pub struct ParagraphAttr {
+    pub(crate) attr: Option<AttrMapType>,
+}
+
+impl AttrMap for ParagraphAttr {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.attr.as_ref()
+    }
+
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.attr
+    }
+}
+
+impl<'a> IntoIterator for &'a ParagraphAttr {
+    type Item = (&'a DefaultAtom, &'a String);
+    type IntoIter = AttrMapIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        AttrMapIter::from(self.attr_map())
+    }
+}
+
+impl AttrFoBackgroundColor for ParagraphAttr {}
+
+impl AttrFoBorder for ParagraphAttr {}
+
+impl AttrFoBreak for ParagraphAttr {}
+
+impl AttrFoKeepTogether for ParagraphAttr {}
+
+impl AttrFoKeepWithNext for ParagraphAttr {}
+
+impl AttrFoMargin for ParagraphAttr {}
+
+impl AttrFoPadding for ParagraphAttr {}
+
+impl AttrStyleBorderLineWidth for ParagraphAttr {}
+
+impl AttrStyleShadow for ParagraphAttr {}
+
+impl AttrStyleAlignVertical for ParagraphAttr {}
+
+impl AttrStyleWritingMode for ParagraphAttr {}
+
+impl AttrParagraph for ParagraphAttr {}
+
+
+#[derive(Clone, Debug, Default)]
+pub struct TextAttr {
+    pub(crate) attr: Option<AttrMapType>,
+}
+
+impl AttrMap for TextAttr {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.attr.as_ref()
+    }
+
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.attr
+    }
+}
+
+impl<'a> IntoIterator for &'a TextAttr {
+    type Item = (&'a DefaultAtom, &'a String);
+    type IntoIter = AttrMapIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        AttrMapIter::from(self.attr_map())
+    }
+}
+
+impl AttrFoBackgroundColor for TextAttr {}
+
+impl AttrText for TextAttr {}

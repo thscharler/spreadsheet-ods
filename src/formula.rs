@@ -1,8 +1,11 @@
+///
+/// For now defines functions to create cell references for formulas.
+///
+
 use crate::refs::{CellRange, CellRef};
 use crate::ucell;
 
 // TODO: more formula stuff. parsing?
-
 
 /// Creates a cell-reference for use in formulas.
 pub fn fcellref(row: ucell, col: ucell) -> String {

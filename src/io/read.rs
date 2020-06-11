@@ -12,7 +12,7 @@ use crate::attrmap::AttrMap;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{CellRef, parse_cellranges};
-use crate::style::{FontDecl, HeaderFooter, PageLayout, Style};
+use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style};
 
 /// Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
@@ -616,7 +616,7 @@ fn read_fonts(book: &mut WorkBook,
               dump_xml: bool) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut font: FontDecl = FontDecl::new_origin(origin);
+    let mut font: FontFaceDecl = FontFaceDecl::new_origin(origin);
 
     loop {
         let evt = xml.read_event(&mut buf)?;
@@ -635,13 +635,13 @@ fn read_fonts(book: &mut WorkBook,
                                 attr => {
                                     let k = xml.decode(&attr.key)?;
                                     let v = attr.unescape_and_decode_value(&xml)?;
-                                    font.set_prp(k, v);
+                                    font.set_attr(k, v);
                                 }
                             }
                         }
 
                         book.add_font(font);
-                        font = FontDecl::new_origin(StyleOrigin::Content);
+                        font = FontFaceDecl::new_origin(StyleOrigin::Content);
                     }
                     _ => {}
                 }
@@ -1284,23 +1284,18 @@ fn read_style_style(book: &mut WorkBook,
                 Event::Start(ref xml_tag)
                 | Event::Empty(ref xml_tag) => {
                     match xml_tag.name() {
-// style:chart-properties
-// style:drawing-page-properties
-// style:graphic-properties
-// style:ruby-properties
-// style:section-properties
                         b"style:table-properties" =>
-                            copy_style_properties(&mut style, &Style::set_table_prp, xml, xml_tag)?,
+                            copy_style_properties(&mut style.table_attr, xml, xml_tag)?,
                         b"style:table-column-properties" =>
-                            copy_style_properties(&mut style, &Style::set_table_col_prp, xml, xml_tag)?,
+                            copy_style_properties(&mut style.table_col_attr, xml, xml_tag)?,
                         b"style:table-row-properties" =>
-                            copy_style_properties(&mut style, &Style::set_table_row_prp, xml, xml_tag)?,
+                            copy_style_properties(&mut style.table_row_attr, xml, xml_tag)?,
                         b"style:table-cell-properties" =>
-                            copy_style_properties(&mut style, &Style::set_table_cell_prp, xml, xml_tag)?,
+                            copy_style_properties(&mut style.table_cell_attr, xml, xml_tag)?,
                         b"style:text-properties" =>
-                            copy_style_properties(&mut style, &Style::set_text_prp, xml, xml_tag)?,
+                            copy_style_properties(&mut style.text_attr, xml, xml_tag)?,
                         b"style:paragraph-properties" =>
-                            copy_style_properties(&mut style, &Style::set_paragraph_prp, xml, xml_tag)?,
+                            copy_style_properties(&mut style.paragraph_attr, xml, xml_tag)?,
                         _ => (),
                     }
                 }
@@ -1357,15 +1352,14 @@ fn read_style_attr(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     Ok(())
 }
 
-fn copy_style_properties(style: &mut Style,
-                         add_fn: &dyn Fn(&mut Style, &str, String),
+fn copy_style_properties(attrmap: &mut dyn AttrMap,
                          xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                          xml_tag: &BytesStart) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         if let Ok(attr) = attr {
             let k = xml.decode(&attr.key)?;
             let v = attr.unescape_and_decode_value(&xml)?;
-            add_fn(style, k, v);
+            attrmap.set_attr(k, v);
         }
     }
 

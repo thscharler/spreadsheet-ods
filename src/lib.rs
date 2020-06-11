@@ -46,15 +46,14 @@ use std::path::PathBuf;
 use chrono::{NaiveDate, NaiveDateTime};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
-use string_cache::DefaultAtom;
 use time::Duration;
 
 pub use error::OdsError;
 
+use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType, AttrTableCol, AttrTableRow};
 use crate::format::ValueFormat;
 use crate::refs::{CellRange, ColRange, RowRange};
-use crate::style::{FontDecl, PageLayout, Style};
-use crate::util::{clear_prp, get_prp, set_prp};
+use crate::style::{FontFaceDecl, PageLayout, Style};
 
 pub mod error;
 pub mod io;
@@ -120,7 +119,7 @@ pub struct WorkBook {
     sheets: Vec<Sheet>,
 
     //// FontDecl hold the style:font-face elements
-    fonts: HashMap<String, FontDecl>,
+    fonts: HashMap<String, FontFaceDecl>,
 
     /// Styles hold the style:style elements.
     styles: HashMap<String, Style>,
@@ -250,33 +249,39 @@ impl WorkBook {
     }
 
     /// Adds a font.
-    pub fn add_font(&mut self, font: FontDecl) {
+    pub fn add_font(&mut self, font: FontFaceDecl) {
         self.fonts.insert(font.name.to_string(), font);
     }
 
     /// Removes a font.
-    pub fn remove_font(&mut self, name: &str) {
-        self.fonts.remove(name);
+    pub fn remove_font(&mut self, name: &str) -> Option<FontFaceDecl> {
+        self.fonts.remove(name)
     }
 
     /// Returns the FontDecl.
-    pub fn font(&self, name: &str) -> Option<&FontDecl> {
+    pub fn font(&self, name: &str) -> Option<&FontFaceDecl> {
         self.fonts.get(name)
     }
 
     /// Returns a mutable FontDecl.
-    pub fn font_mut(&mut self, name: &str) -> Option<&mut FontDecl> {
+    pub fn font_mut(&mut self, name: &str) -> Option<&mut FontFaceDecl> {
         self.fonts.get_mut(name)
     }
 
     /// Adds a style.
-    pub fn add_style(&mut self, style: Style) { self.styles.insert(style.name.to_string(), style); }
+    pub fn add_style(&mut self, style: Style) {
+        self.styles.insert(style.name.to_string(), style);
+    }
 
     /// Removes a style.
-    pub fn remove_style(&mut self, name: &str) { self.styles.remove(name); }
+    pub fn remove_style(&mut self, name: &str) -> Option<Style> {
+        self.styles.remove(name)
+    }
 
     /// Returns the style.
-    pub fn style(&self, name: &str) -> Option<&Style> { self.styles.get(name) }
+    pub fn style(&self, name: &str) -> Option<&Style> {
+        self.styles.get(name)
+    }
 
     /// Returns the mutable style.
     pub fn style_mut(&mut self, name: &str) -> Option<&mut Style> {
@@ -289,8 +294,8 @@ impl WorkBook {
     }
 
     /// Removes the format.
-    pub fn remove_format(&mut self, name: &str) {
-        self.formats.remove(name);
+    pub fn remove_format(&mut self, name: &str) -> Option<ValueFormat> {
+        self.formats.remove(name)
     }
 
     /// Returns the format.
@@ -306,6 +311,10 @@ impl WorkBook {
     /// Pagelayout
     pub fn add_pagelayout(&mut self, pagelayout: PageLayout) {
         self.page_layouts.insert(pagelayout.name.to_string(), pagelayout);
+    }
+
+    pub fn remove_pagelayout(&mut self, name: &str) -> Option<PageLayout> {
+        self.page_layouts.remove(name)
     }
 
     /// Pagelayout
@@ -460,6 +469,22 @@ impl Sheet {
         }
     }
 
+    /// Creates a col style and sets the col width.
+    pub fn set_col_width(&mut self, workbook: &mut WorkBook, col: ucell, width: &str) {
+        let style_name = format!("co{}", col);
+
+        let mut col_style = if let Some(style) = workbook.remove_style(&style_name) {
+            style
+        } else {
+            Style::with_name(StyleFor::TableColumn, &style_name, "")
+        };
+        col_style.col_attr().set_col_width(width);
+        col_style.col_attr().set_use_optimal_col_width(false);
+        workbook.add_style(col_style);
+
+        self.set_column_style(col, &style_name);
+    }
+
     /// Row style.
     pub fn set_row_style<V: Into<String>>(&mut self, row: ucell, style: V) {
         if self.row_style.is_none() {
@@ -477,6 +502,22 @@ impl Sheet {
         } else {
             None
         }
+    }
+
+    /// Creates a row-style and sets the row height.
+    pub fn set_row_height(&mut self, workbook: &mut WorkBook, row: ucell, height: &str) {
+        let style_name = format!("ro{}", row);
+
+        let mut row_style = if let Some(style) = workbook.remove_style(&style_name) {
+            style
+        } else {
+            Style::with_name(StyleFor::TableColumn, &style_name, "")
+        };
+        row_style.row_attr().set_row_height(height);
+        row_style.row_attr().set_use_optimal_row_height(false);
+        workbook.add_style(row_style);
+
+        self.set_row_style(row, &style_name);
     }
 
     /// Returns a tuple of (max(row)+1, max(col)+1)
@@ -1005,23 +1046,17 @@ impl From<Duration> for Value {
 #[derive(Debug, Clone, Default)]
 pub struct CompositTag {
     pub(crate) tag: String,
-    pub(crate) attr: Option<HashMap<DefaultAtom, String>>,
+    pub(crate) attr: Option<AttrMapType>,
 }
 
-/// Complex text is laid out as a sequence of tags, end-tags and text.
-/// The user of this must ensure that the result is valid xml.
-#[derive(Debug, Clone)]
-pub enum Composit {
-    Start(CompositTag),
-    Empty(CompositTag),
-    Text(String),
-    End(String),
-}
+impl AttrMap for CompositTag {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.attr.as_ref()
+    }
 
-/// A vector of text.
-#[derive(Debug, Clone, Default)]
-pub struct CompositVec {
-    pub(crate) vec: Option<Vec<Composit>>,
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.attr
+    }
 }
 
 impl CompositTag {
@@ -1040,21 +1075,27 @@ impl CompositTag {
         &self.tag
     }
 
-    /// Sets a text property.
-    pub fn set_attr(&mut self, name: &str, value: String) {
-        set_prp(&mut self.attr, name, value);
-    }
-
-    /// Removes a text property.
-    pub fn clear_attr(&mut self, name: &str) -> Option<String> {
-        clear_prp(&mut self.attr, name)
-    }
-
-    /// Returns a text property.
-    pub fn attr(&self, name: &str) -> Option<&String> {
-        get_prp(&self.attr, name)
+    pub fn attr_iter(&self) -> AttrMapIter {
+        AttrMapIter::from(self.attr_map())
     }
 }
+
+/// Complex text is laid out as a sequence of tags, end-tags and text.
+/// The user of this must ensure that the result is valid xml.
+#[derive(Debug, Clone)]
+pub enum Composit {
+    Start(CompositTag),
+    Empty(CompositTag),
+    Text(String),
+    End(String),
+}
+
+/// A vector of text.
+#[derive(Debug, Clone, Default)]
+pub struct CompositVec {
+    pub(crate) vec: Option<Vec<Composit>>,
+}
+
 
 impl CompositVec {
     /// Create.

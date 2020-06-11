@@ -14,7 +14,7 @@ use crate::format::FormatPartType;
 use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{CellRange, cellranges_string};
-use crate::style::{FontDecl, HeaderFooter, PageLayout, Style};
+use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style};
 
 // this did not work out as expected ...
 // TODO: find out why this breaks content.xml
@@ -928,11 +928,11 @@ fn write_cell(book: &WorkBook,
     Ok(())
 }
 
-fn write_font_decl(fonts: &HashMap<String, FontDecl>, origin: StyleOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_font_decl(fonts: &HashMap<String, FontFaceDecl>, origin: StyleOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     for font in fonts.values().filter(|s| s.origin == origin) {
         xml_out.empty("style:font-face")?;
         xml_out.attr_esc("style:name", font.name.as_str())?;
-        if let Some(prp) = &font.prp {
+        if let Some(prp) = &font.attr {
             for (a, v) in prp {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
@@ -966,39 +966,39 @@ fn write_styles(styles: &HashMap<String, Style>,
             xml_out.attr_esc("style:data-style-name", value_format.as_str())?;
         }
 
-        if let Some(prp) = &style.table_cell_prp {
+        if !style.table_cell_attr.is_empty() {
             xml_out.empty("style:table-cell-properties")?;
-            for (a, v) in prp {
+            for (a, v) in &style.table_cell_attr {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if let Some(prp) = &style.table_col_prp {
+        if !style.table_col_attr.is_empty() {
             xml_out.empty("style:table-column-properties")?;
-            for (a, v) in prp {
+            for (a, v) in &style.table_col_attr {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if let Some(prp) = &style.table_row_prp {
+        if !style.table_row_attr.is_empty() {
             xml_out.empty("style:table-row-properties")?;
-            for (a, v) in prp {
+            for (a, v) in &style.table_row_attr {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if let Some(prp) = &style.table_prp {
+        if !style.table_attr.is_empty() {
             xml_out.empty("style:table-properties")?;
-            for (a, v) in prp {
+            for (a, v) in &style.table_attr {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if let Some(prp) = &style.paragraph_prp {
+        if !&style.paragraph_attr.is_empty() {
             xml_out.empty("style:paragraph-properties")?;
-            for (a, v) in prp {
+            for (a, v) in &style.paragraph_attr {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if let Some(prp) = &style.text_prp {
+        if !style.text_attr.is_empty() {
             xml_out.empty("style:text-properties")?;
-            for (a, v) in prp {
+            for (a, v) in &style.text_attr {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
@@ -1093,9 +1093,9 @@ fn write_pagelayout(styles: &HashMap<String, PageLayout>,
         xml_out.elem("style:page-layout")?;
         xml_out.attr_esc("style:name", &style.name)?;
 
-        if !style.is_empty() {
+        if let Some(attr) = &style.attr {
             xml_out.empty("style:page-layout-properties")?;
-            for (k, v) in style.attr_iter() {
+            for (k, v) in attr {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }
