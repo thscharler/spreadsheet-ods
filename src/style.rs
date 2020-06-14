@@ -5,7 +5,7 @@
 use string_cache::DefaultAtom;
 
 use crate::{CompositVec, StyleFor, StyleOrigin, StyleUse};
-use crate::attrmap::{AttrFoBackgroundColor, AttrFoBorder, AttrFoBreak, AttrFoKeepTogether, AttrFoKeepWithNext, AttrFoMargin, AttrFoMinHeight, AttrFontDecl, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, AttrParagraph, AttrStyleAlignVertical, AttrStyleBorderLineWidth, AttrStyleDynamicSpacing, AttrStyleShadow, AttrStyleWritingMode, AttrSvgHeight, AttrTableCell, AttrTableCol, AttrTableRow, AttrText};
+use crate::attrmap::{AttrFoBackgroundColor, AttrFoBorder, AttrFoBreak, AttrFoKeepTogether, AttrFoKeepWithNext, AttrFoMargin, AttrFoMinHeight, AttrFontDecl, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, AttrParagraph, AttrStyleDynamicSpacing, AttrStyleShadow, AttrStyleWritingMode, AttrSvgHeight, AttrTableCell, AttrTableCol, AttrTableRow, AttrText};
 
 /// Page layout.
 /// Contains all header and footer information.
@@ -42,8 +42,6 @@ impl AttrFoBorder for PageLayout {}
 impl AttrFoMargin for PageLayout {}
 
 impl AttrFoPadding for PageLayout {}
-
-impl AttrStyleBorderLineWidth for PageLayout {}
 
 impl AttrStyleDynamicSpacing for PageLayout {}
 
@@ -183,8 +181,6 @@ impl AttrFoMargin for HeaderFooterAttr {}
 impl AttrFoMinHeight for HeaderFooterAttr {}
 
 impl AttrFoPadding for HeaderFooterAttr {}
-
-impl AttrStyleBorderLineWidth for HeaderFooterAttr {}
 
 impl AttrStyleDynamicSpacing for HeaderFooterAttr {}
 
@@ -677,15 +673,11 @@ impl AttrFoBorder for TableCellAttr {}
 
 impl AttrFoPadding for TableCellAttr {}
 
-impl AttrStyleBorderLineWidth for TableCellAttr {}
-
 impl AttrStyleShadow for TableCellAttr {}
 
 impl AttrStyleWritingMode for TableCellAttr {}
 
 impl AttrTableCell for TableCellAttr {}
-
-impl AttrStyleAlignVertical for TableCellAttr {}
 
 #[derive(Clone, Debug, Default)]
 pub struct ParagraphAttr {
@@ -725,11 +717,7 @@ impl AttrFoMargin for ParagraphAttr {}
 
 impl AttrFoPadding for ParagraphAttr {}
 
-impl AttrStyleBorderLineWidth for ParagraphAttr {}
-
 impl AttrStyleShadow for ParagraphAttr {}
-
-impl AttrStyleAlignVertical for ParagraphAttr {}
 
 impl AttrStyleWritingMode for ParagraphAttr {}
 

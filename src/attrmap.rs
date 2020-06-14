@@ -12,6 +12,7 @@ use string_cache::DefaultAtom;
 
 pub type AttrMapType = HashMap<DefaultAtom, String>;
 
+/// Container trait for attributes.
 pub trait AttrMap {
     /// Reference to the map of actual attributes.
     fn attr_map(&self) -> Option<&AttrMapType>;
@@ -47,6 +48,7 @@ pub trait AttrMap {
         }
     }
 
+    /// Removes an attribute.
     fn clear_attr(&mut self, name: &str) -> Option<String> {
         if let Some(ref mut attr) = self.attr_map_mut() {
             attr.remove(&DefaultAtom::from(name))
@@ -55,6 +57,7 @@ pub trait AttrMap {
         }
     }
 
+    /// Returns the attribute.
     fn attr(&self, name: &str) -> Option<&String> {
         if let Some(prp) = self.attr_map() {
             prp.get(&DefaultAtom::from(name))
@@ -64,6 +67,7 @@ pub trait AttrMap {
     }
 }
 
+/// Iterator for an AttrMap.
 pub struct AttrMapIter<'a> {
     it: Option<hash_map::Iter<'a, DefaultAtom, String>>,
 }
@@ -94,25 +98,47 @@ impl<'a> Iterator for AttrMapIter<'a> {
     }
 }
 
+/// Font pitch.
+#[derive(Debug, Clone, Copy)]
+pub enum FontPitch {
+    Variable,
+    Fixed,
+}
+
+impl Display for FontPitch {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            FontPitch::Variable => write!(f, "variable"),
+            FontPitch::Fixed => write!(f, "fixed"),
+        }
+    }
+}
+
+/// Attributes for a FontFaceDecl
 pub trait AttrFontDecl
     where Self: AttrMap {
+    /// Font-name
     fn set_name(&mut self, name: &str) {
         self.set_attr("style:name", name.to_string());
     }
 
+    /// External font family name.
     fn set_font_family(&mut self, name: &str) {
         self.set_attr("svg:font-family", name.to_string());
     }
 
+    /// System generic name.
     fn set_font_family_generic(&mut self, name: &str) {
         self.set_attr("style:font-family-generic", name.to_string());
     }
 
+    /// Font pitch.
     fn set_font_pitch(&mut self, pitch: &str) {
         self.set_attr("style:font-pitch", pitch.to_string());
     }
 }
 
+/// Margin attributes.
 pub trait AttrFoMargin
     where Self: AttrMap {
     fn set_margin(&mut self, margin: &str) {
@@ -136,7 +162,7 @@ pub trait AttrFoMargin
     }
 }
 
-
+/// Padding attributes.
 pub trait AttrFoPadding
     where Self: AttrMap {
     fn set_padding(&mut self, padding: &str) {
@@ -160,6 +186,7 @@ pub trait AttrFoPadding
     }
 }
 
+/// Background color.
 pub trait AttrFoBackgroundColor
     where Self: AttrMap {
     /// Border style.
@@ -168,13 +195,13 @@ pub trait AttrFoBackgroundColor
     }
 }
 
+/// Minimum height.
 pub trait AttrFoMinHeight
     where Self: AttrMap {
     fn set_min_height(&mut self, height: &str) {
         self.set_attr("fo:min-height", height.to_string());
     }
 }
-
 
 /// Various border styles.
 #[derive(Debug, Clone, Copy)]
@@ -208,6 +235,7 @@ impl Display for Border {
     }
 }
 
+/// Border attributes.
 pub trait AttrFoBorder
     where Self: AttrMap {
     /// Border style all four sides.
@@ -234,8 +262,34 @@ pub trait AttrFoBorder
     fn set_border_right(&mut self, width: &str, border: Border, color: Rgb<u8>) {
         self.set_attr("fo:border-right", border_string(width, border, color));
     }
+
+    /// Widths for double borders.
+    fn set_border_line_width(&mut self, inner: &str, spacing: &str, outer: &str) {
+        self.set_attr("style:border-line-width", border_line_width_string(inner, spacing, outer));
+    }
+
+    /// Widths for double borders.
+    fn set_border_line_width_bottom(&mut self, inner: &str, spacing: &str, outer: &str) {
+        self.set_attr("style:border-line-width-bottom", border_line_width_string(inner, spacing, outer));
+    }
+
+    /// Widths for double borders.
+    fn set_border_line_width_left(&mut self, inner: &str, spacing: &str, outer: &str) {
+        self.set_attr("style:border-line-width-left", border_line_width_string(inner, spacing, outer));
+    }
+
+    /// Widths for double borders.
+    fn set_border_line_width_right(&mut self, inner: &str, spacing: &str, outer: &str) {
+        self.set_attr("style:border-line-width-right", border_line_width_string(inner, spacing, outer));
+    }
+
+    /// Widths for double borders.
+    fn set_border_line_width_top(&mut self, inner: &str, spacing: &str, outer: &str) {
+        self.set_attr("style:border-line-width-top", border_line_width_string(inner, spacing, outer));
+    }
 }
 
+/// Page breaks.
 #[derive(Debug, Clone, Copy)]
 pub enum PageBreak {
     Auto,
@@ -254,6 +308,7 @@ impl Display for PageBreak {
     }
 }
 
+/// Page breaks.
 pub trait AttrFoBreak
     where Self: AttrMap {
     /// page-break
@@ -267,7 +322,7 @@ pub trait AttrFoBreak
     }
 }
 
-
+/// Text keep together.
 #[derive(Debug, Clone, Copy)]
 pub enum TextKeep {
     Auto,
@@ -284,6 +339,7 @@ impl Display for TextKeep {
     }
 }
 
+/// Keep with next.
 pub trait AttrFoKeepWithNext
     where Self: AttrMap {
     /// page-break
@@ -292,6 +348,7 @@ pub trait AttrFoKeepWithNext
     }
 }
 
+/// Keep together.
 pub trait AttrFoKeepTogether
     where Self: AttrMap {
     /// page-break
@@ -300,6 +357,7 @@ pub trait AttrFoKeepTogether
     }
 }
 
+/// Height attribute.
 pub trait AttrSvgHeight
     where Self: AttrMap {
     fn set_height(&mut self, height: &str) {
@@ -307,32 +365,7 @@ pub trait AttrSvgHeight
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum AlignVertical {
-    Top,
-    Middle,
-    Bottom,
-    Automatic,
-}
-
-impl Display for AlignVertical {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self {
-            AlignVertical::Top => write!(f, "top"),
-            AlignVertical::Middle => write!(f, "middle"),
-            AlignVertical::Bottom => write!(f, "bottom"),
-            AlignVertical::Automatic => write!(f, "automatic"),
-        }
-    }
-}
-
-pub trait AttrStyleAlignVertical
-    where Self: AttrMap {
-    fn set_vertical_align(&mut self, align: AlignVertical) {
-        self.set_attr("style:vertical-align", format!("{}", align));
-    }
-}
-
+/// Spacing for header/footer.
 pub trait AttrStyleDynamicSpacing
     where Self: AttrMap {
     fn set_dynamic_spacing(&mut self, dynamic: bool) {
@@ -340,6 +373,7 @@ pub trait AttrStyleDynamicSpacing
     }
 }
 
+/// Shadows. Only a single shadow supported here.
 pub trait AttrStyleShadow
     where Self: AttrMap {
     fn set_shadow(&mut self, x_offset: &str, y_offset: &str, blur: Option<&str>, color: Rgb<u8>) {
@@ -347,33 +381,7 @@ pub trait AttrStyleShadow
     }
 }
 
-
-/// Widths for borders of style "double"
-pub trait AttrStyleBorderLineWidth
-    where Self: AttrMap {
-    /// All four sides.
-    fn set_border_line_width(&mut self, inner: &str, spacing: &str, outer: &str) {
-        self.set_attr("style:border-line-width", border_line_width_string(inner, spacing, outer));
-    }
-
-    fn set_border_line_width_bottom(&mut self, inner: &str, spacing: &str, outer: &str) {
-        self.set_attr("style:border-line-width-bottom", border_line_width_string(inner, spacing, outer));
-    }
-
-    fn set_border_line_width_left(&mut self, inner: &str, spacing: &str, outer: &str) {
-        self.set_attr("style:border-line-width-left", border_line_width_string(inner, spacing, outer));
-    }
-
-    fn set_border_line_width_right(&mut self, inner: &str, spacing: &str, outer: &str) {
-        self.set_attr("style:border-line-width-right", border_line_width_string(inner, spacing, outer));
-    }
-
-    fn set_border_line_width_top(&mut self, inner: &str, spacing: &str, outer: &str) {
-        self.set_attr("style:border-line-width-top", border_line_width_string(inner, spacing, outer));
-    }
-}
-
-
+/// Writing modes.
 #[derive(Debug, Clone, Copy)]
 pub enum WritingMode {
     LrTb,
@@ -401,6 +409,7 @@ impl Display for WritingMode {
     }
 }
 
+/// Writing mode.
 pub trait AttrStyleWritingMode
     where Self: AttrMap {
     fn set_writing_mode(&mut self, writing_mode: WritingMode) {
@@ -408,6 +417,7 @@ pub trait AttrStyleWritingMode
     }
 }
 
+/// Table row specific attributes.
 pub trait AttrTableRow
     where Self: AttrMap {
     fn set_min_row_height(&mut self, min_height: &str) {
@@ -423,6 +433,7 @@ pub trait AttrTableRow
     }
 }
 
+/// Table columns specific attributes.
 pub trait AttrTableCol
     where Self: AttrMap {
     /// Relative weights for the column width
@@ -441,7 +452,7 @@ pub trait AttrTableCol
     }
 }
 
-
+/// Text wrapping.
 #[derive(Debug, Clone, Copy)]
 pub enum WrapOption {
     NoWrap,
@@ -457,6 +468,7 @@ impl Display for WrapOption {
     }
 }
 
+/// Rotation.
 #[derive(Debug, Clone, Copy)]
 pub enum RotationAlign {
     None,
@@ -476,25 +488,29 @@ impl Display for RotationAlign {
     }
 }
 
+/// Vertical alignment.
 #[derive(Debug, Clone, Copy)]
-pub enum TextAlignSource {
-    Fix,
-    ValueType,
+pub enum CellAlignVertical {
+    Top,
+    Middle,
+    Bottom,
+    Automatic,
 }
 
-impl Display for TextAlignSource {
+impl Display for CellAlignVertical {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            TextAlignSource::Fix => write!(f, "fix"),
-            TextAlignSource::ValueType => write!(f, "value-type"),
+            CellAlignVertical::Top => write!(f, "top"),
+            CellAlignVertical::Middle => write!(f, "middle"),
+            CellAlignVertical::Bottom => write!(f, "bottom"),
+            CellAlignVertical::Automatic => write!(f, "automatic"),
         }
     }
 }
 
-
+/// Table cell specific styles.
 pub trait AttrTableCell
     where Self: AttrMap {
-    /// Text wrapping
     fn set_wrap_option(&mut self, wrap: WrapOption) {
         self.set_attr("fo:wrap-option", format!("{}*", wrap));
     }
@@ -508,7 +524,7 @@ pub trait AttrTableCell
     }
 
     fn set_rotation_align(&mut self, align: RotationAlign) {
-        self.set_attr("style:repeat-content", format!("{}", align));
+        self.set_attr("style:rotation-align", format!("{}", align));
     }
 
     fn set_rotation_angle(&mut self, angle: &str) {
@@ -519,8 +535,44 @@ pub trait AttrTableCell
         self.set_attr("style:shrink-to-fit", shrink.to_string());
     }
 
-    fn set_text_align_source(&mut self, align: TextAlignSource) {
-        self.set_attr("style:shrink-to-fit", format!("{}", align));
+    fn set_vertical_align(&mut self, align: CellAlignVertical) {
+        self.set_attr("style:vertical-align", format!("{}", align));
+    }
+
+    /// Diagonal style.
+    fn set_diagonal_bl_tr(&mut self, width: &str, border: Border, color: Rgb<u8>) {
+        self.set_attr("style:diagonal-bl-tr", border_string(width, border, color));
+    }
+
+    /// Widths for double borders.
+    fn set_diagonal_bl_tr_widths(&mut self, inner: &str, spacing: &str, outer: &str) {
+        self.set_attr("style:diagonal-bl-tr-widths", border_line_width_string(inner, spacing, outer));
+    }
+
+    /// Diagonal style.
+    fn set_diagonal_tl_br(&mut self, width: &str, border: Border, color: Rgb<u8>) {
+        self.set_attr("style:diagonal-tl-br", border_string(width, border, color));
+    }
+
+    /// Widths for double borders.
+    fn set_diagonal_tl_br_widths(&mut self, inner: &str, spacing: &str, outer: &str) {
+        self.set_attr("style:diagonal-tl-br-widths", border_line_width_string(inner, spacing, outer));
+    }
+}
+
+/// Fix uses the text-align attribute, value-type bases alignment on content.
+#[derive(Debug, Clone, Copy)]
+pub enum TextAlignSource {
+    Fix,
+    ValueType,
+}
+
+impl Display for TextAlignSource {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            TextAlignSource::Fix => write!(f, "fix"),
+            TextAlignSource::ValueType => write!(f, "value-type"),
+        }
     }
 }
 
@@ -551,11 +603,33 @@ impl Display for TextAlign {
     }
 }
 
+/// Vertical alignment.
+#[derive(Debug, Clone, Copy)]
+pub enum ParaAlignVertical {
+    Top,
+    Middle,
+    Bottom,
+    Auto,
+    Baseline,
+}
+
+impl Display for ParaAlignVertical {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            ParaAlignVertical::Top => write!(f, "top"),
+            ParaAlignVertical::Middle => write!(f, "middle"),
+            ParaAlignVertical::Bottom => write!(f, "bottom"),
+            ParaAlignVertical::Auto => write!(f, "auto"),
+            ParaAlignVertical::Baseline => write!(f, "baseline"),
+        }
+    }
+}
+
+/// Paragraph specific styles.
 pub trait AttrParagraph
     where Self: AttrMap {
-    // line-height as number or percent
-    fn set_text_align_source(&mut self, height: &str) {
-        self.set_attr("fo:line-height", height.to_string());
+    fn set_text_align_source(&mut self, align: TextAlignSource) {
+        self.set_attr("style:text-align-source", format!("{}", align));
     }
 
     fn set_text_align(&mut self, align: TextAlign) {
@@ -573,9 +647,13 @@ pub trait AttrParagraph
     fn set_number_lines(&mut self, number: bool) {
         self.set_attr("text:number-lines", number.to_string());
     }
+
+    fn set_vertical_align(&mut self, align: ParaAlignVertical) {
+        self.set_attr("style:vertical-align", format!("{}", align));
+    }
 }
 
-/// Horizontal alignment.
+/// Text case transformations.
 pub enum TextTransform {
     None,
     Lowercase,
@@ -594,7 +672,7 @@ impl Display for TextTransform {
     }
 }
 
-/// Horizontal alignment.
+/// Text style engraved and embossed.
 pub enum TextRelief {
     None,
     Embossed,
@@ -611,7 +689,22 @@ impl Display for TextRelief {
     }
 }
 
-/// Various line-throug styles.
+/// Text style subscript or superscript.
+pub enum TextPosition {
+    Sub,
+    Super,
+}
+
+impl Display for TextPosition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            TextPosition::Sub => write!(f, "sub"),
+            TextPosition::Super => write!(f, "super"),
+        }
+    }
+}
+
+/// Line style for underline, overline, line-through.
 #[derive(Debug, Clone, Copy)]
 pub enum LineStyle {
     Dashed,
@@ -639,7 +732,7 @@ impl Display for LineStyle {
     }
 }
 
-/// Various line-through types.
+/// Line types for underline, overline, line-through.
 #[derive(Debug, Clone, Copy)]
 pub enum LineType {
     None,
@@ -657,7 +750,7 @@ impl Display for LineType {
     }
 }
 
-/// Various line-through types.
+/// Line modes for underline, overline, line-through.
 #[derive(Debug, Clone, Copy)]
 pub enum LineMode {
     Continuous,
@@ -673,6 +766,31 @@ impl Display for LineMode {
     }
 }
 
+/// Line width for underline, overline, line-through.
+#[derive(Debug, Clone, Copy)]
+pub enum LineWidth {
+    Auto,
+    Normal,
+    Bold,
+    Thin,
+    Medium,
+    Thick,
+}
+
+impl Display for LineWidth {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            LineWidth::Auto => write!(f, "auto"),
+            LineWidth::Normal => write!(f, "normal"),
+            LineWidth::Bold => write!(f, "bold"),
+            LineWidth::Thin => write!(f, "thin"),
+            LineWidth::Medium => write!(f, "medium"),
+            LineWidth::Thick => write!(f, "thick"),
+        }
+    }
+}
+
+/// Text style attributes.
 pub trait AttrText
     where Self: AttrMap {
     fn set_color(&mut self, color: Rgb<u8>) {
@@ -713,6 +831,10 @@ pub trait AttrText
         self.set_attr("fo:text-shadow", shadow_string(x_offset, y_offset, blur, color));
     }
 
+    fn set_text_position(&mut self, pos: TextPosition) {
+        self.set_attr("style:text-position", format!("{}", pos));
+    }
+
     fn set_text_transform(&mut self, trans: TextTransform) {
         self.set_attr("fo:text-transform", format!("{}", trans));
     }
@@ -725,20 +847,28 @@ pub trait AttrText
         self.set_attr("style:text-line-through-color", color_string(color));
     }
 
-    fn font_line_through_style(&mut self, ltstyle: LineStyle) {
-        self.set_attr("style:text-line-through-style", ltstyle.to_string());
+    fn font_line_through_style(&mut self, lstyle: LineStyle) {
+        self.set_attr("style:text-line-through-style", lstyle.to_string());
     }
 
-    fn font_line_through_mode(&mut self, ltmode: LineMode) {
-        self.set_attr("style:text-line-through-mode", ltmode.to_string());
+    fn font_line_through_mode(&mut self, lmode: LineMode) {
+        self.set_attr("style:text-line-through-mode", lmode.to_string());
     }
 
-    fn font_line_through_type(&mut self, lttype: LineType) {
-        self.set_attr("style:text-line-through-type", lttype.to_string());
+    fn font_line_through_type(&mut self, ltype: LineType) {
+        self.set_attr("style:text-line-through-type", ltype.to_string());
     }
 
     fn font_line_through_text(&mut self, text: &str) {
         self.set_attr("style:text-line-through-text", text.to_string());
+    }
+
+    fn font_line_through_text_style(&mut self, styleRef: &str) {
+        self.set_attr("style:text-line-through-text-style", text.to_string());
+    }
+
+    fn font_line_through_width(&mut self, lwidth: LineWidth) {
+        self.set_attr("style:text-line-through-width", lwidth.to_string());
     }
 
     fn font_text_outline(&mut self, outline: bool) {
@@ -749,32 +879,40 @@ pub trait AttrText
         self.set_attr("style:text-underline-color", color_string(color));
     }
 
-    fn font_underline_style(&mut self, style: LineStyle) {
-        self.set_attr("style:text-underline-style", style.to_string());
+    fn font_underline_style(&mut self, lstyle: LineStyle) {
+        self.set_attr("style:text-underline-style", lstyle.to_string());
     }
 
-    fn font_underline_type(&mut self, utype: LineType) {
-        self.set_attr("style:text-underline-type", utype.to_string());
+    fn font_underline_type(&mut self, ltype: LineType) {
+        self.set_attr("style:text-underline-type", ltype.to_string());
     }
 
-    fn font_underline_mode(&mut self, umode: LineMode) {
-        self.set_attr("style:text-underline-mode", umode.to_string());
+    fn font_underline_mode(&mut self, lmode: LineMode) {
+        self.set_attr("style:text-underline-mode", lmode.to_string());
+    }
+
+    fn font_underline_width(&mut self, lwidth: LineWidth) {
+        self.set_attr("style:text-underline-width", lwidth.to_string());
     }
 
     fn font_overline_color(&mut self, color: Rgb<u8>) {
         self.set_attr("style:text-overline-color", color_string(color));
     }
 
-    fn font_overline_style(&mut self, style: LineStyle) {
-        self.set_attr("style:text-overline-style", style.to_string());
+    fn font_overline_style(&mut self, lstyle: LineStyle) {
+        self.set_attr("style:text-overline-style", lstyle.to_string());
     }
 
-    fn font_overline_type(&mut self, utype: LineType) {
-        self.set_attr("style:text-overline-type", utype.to_string());
+    fn font_overline_type(&mut self, ltype: LineType) {
+        self.set_attr("style:text-overline-type", ltype.to_string());
     }
 
-    fn font_overline_mode(&mut self, umode: LineMode) {
-        self.set_attr("style:text-overline-mode", umode.to_string());
+    fn font_overline_mode(&mut self, lmode: LineMode) {
+        self.set_attr("style:text-overline-mode", lmode.to_string());
+    }
+
+    fn font_overline_width(&mut self, lwidth: LineWidth) {
+        self.set_attr("style:text-overline-width", lwidth.to_string());
     }
 }
 

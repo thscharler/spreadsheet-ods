@@ -1096,7 +1096,6 @@ pub struct CompositVec {
     pub(crate) vec: Option<Vec<Composit>>,
 }
 
-
 impl CompositVec {
     /// Create.
     pub fn new() -> Self {
