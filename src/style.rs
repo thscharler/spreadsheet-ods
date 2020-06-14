@@ -351,6 +351,7 @@ impl FontFaceDecl {
 /// Style data fashioned after the ODS spec.
 #[derive(Debug, Clone, Default)]
 pub struct Style {
+    /// Style name.
     pub(crate) name: String,
     /// Nice String.
     pub(crate) display_name: Option<String>,

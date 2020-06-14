@@ -991,7 +991,9 @@ fn read_styles_tag(book: &mut WorkBook,
                     b"style:style" => {
                         read_style_style(book, origin, StyleUse::Named, xml, xml_tag, empty_tag, dump_xml)?;
                     }
-                    // style:default-style
+                    b"style:default-style" => {
+                        read_style_style(book, origin, StyleUse::Default, xml, xml_tag, empty_tag, dump_xml)?;
+                    }
                     b"number:boolean-style" |
                     b"number:date-style" |
                     b"number:time-style" |

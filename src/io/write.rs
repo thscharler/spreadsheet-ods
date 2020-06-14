@@ -359,6 +359,7 @@ fn write_ods_styles(book: &WorkBook,
         xml_out.end_elem("office:font-face-decls")?;
 
         xml_out.elem("office:styles")?;
+        write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Default, &mut xml_out)?;
         write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
         write_value_styles(&book.formats, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
         xml_out.end_elem("office:styles")?;
@@ -946,8 +947,12 @@ fn write_styles(styles: &HashMap<String, Style>,
                 styleuse: StyleUse,
                 xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     for style in styles.values().filter(|s| s.origin == origin && s.styleuse == styleuse) {
-        xml_out.elem("style:style")?;
-        xml_out.attr_esc("style:name", style.name.as_str())?;
+        if styleuse == StyleUse::Default {
+            xml_out.elem("style:default-style")?;
+        } else {
+            xml_out.elem("style:style")?;
+            xml_out.attr_esc("style:name", style.name.as_str())?;
+        }
         let family = match style.family {
             StyleFor::Table => "table",
             StyleFor::TableColumn => "table-column",
@@ -1003,7 +1008,11 @@ fn write_styles(styles: &HashMap<String, Style>,
             }
         }
 
-        xml_out.end_elem("style:style")?;
+        if styleuse == StyleUse::Default {
+            xml_out.end_elem("style:default-style")?;
+        } else {
+            xml_out.end_elem("style:style")?;
+        }
     }
 
     Ok(())

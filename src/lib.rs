@@ -86,6 +86,7 @@ impl Default for StyleOrigin {
 /// Defines the usage pattern for the style.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum StyleUse {
+    Default,
     Named,
     Automatic,
 }

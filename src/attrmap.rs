@@ -863,8 +863,8 @@ pub trait AttrText
         self.set_attr("style:text-line-through-text", text.to_string());
     }
 
-    fn font_line_through_text_style(&mut self, styleRef: &str) {
-        self.set_attr("style:text-line-through-text-style", text.to_string());
+    fn font_line_through_text_style(&mut self, style_ref: &str) {
+        self.set_attr("style:text-line-through-text-style", style_ref.to_string());
     }
 
     fn font_line_through_width(&mut self, lwidth: LineWidth) {
