@@ -34,8 +34,7 @@ impl TryFrom<&str> for CellRef {
 
 impl Display for CellRef {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
-        write!(f, "{}", self.to_string())?;
-        Ok(())
+        write!(f, "{}", cellref_string(self))
     }
 }
 
@@ -68,11 +67,6 @@ impl CellRef {
     /// Returns the spreadsheet row name.
     pub fn rowname(&self) -> String {
         rowname(self.row)
-    }
-
-    /// Returns a cell reference.
-    pub fn to_string(&self) -> String {
-        cellref_string(self)
     }
 
     /// Returns a cell reference for a formula.
@@ -111,8 +105,8 @@ impl CellRange {
         assert!(col <= col_to);
         let table = table.into();
         Self {
-            from: CellRef::table(table.to_string(), row, col),
-            to: CellRef::table(table.to_string(), row_to, col_to),
+            from: CellRef::table(table.clone(), row, col),
+            to: CellRef::table(table, row_to, col_to),
         }
     }
 
@@ -124,11 +118,6 @@ impl CellRange {
             from: CellRef::simple(row, col),
             to: CellRef::simple(row + span.0 - 1, col + span.1 - 1),
         }
-    }
-
-    /// Returns a range reference.
-    pub fn to_string(&self) -> String {
-        cellrange_string(self)
     }
 
     /// Returns a range reference for a formula.
@@ -164,8 +153,7 @@ impl TryFrom<&str> for CellRange {
 
 impl Display for CellRange {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
-        write!(f, "{}:{}", &self.from, &self.to)?;
-        Ok(())
+        write!(f, "{}:{}", &self.from, &self.to)
     }
 }
 
@@ -174,6 +162,12 @@ impl Display for CellRange {
 pub struct ColRange {
     pub from: ucell,
     pub to: ucell,
+}
+
+impl Display for ColRange {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{}:{}", self.from, self.to)
+    }
 }
 
 impl ColRange {
@@ -188,15 +182,6 @@ impl ColRange {
     pub fn contains(&self, col: ucell) -> bool {
         col >= self.from && col <= self.to
     }
-
-    pub fn to_string(&self) -> String {
-        let mut buf = String::new();
-        push_colname(&mut buf, self.from);
-        buf.push(':');
-        push_colname(&mut buf, self.to);
-
-        buf
-    }
 }
 
 /// A range over rows.
@@ -204,6 +189,12 @@ impl ColRange {
 pub struct RowRange {
     pub from: ucell,
     pub to: ucell,
+}
+
+impl Display for RowRange {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{}:{}", self.from, self.to)
+    }
 }
 
 impl RowRange {
@@ -217,15 +208,6 @@ impl RowRange {
 
     pub fn contains(&self, row: ucell) -> bool {
         row >= self.from && row <= self.to
-    }
-
-    pub fn to_string(&self) -> String {
-        let mut buf = String::new();
-        push_rowname(&mut buf, self.from);
-        buf.push(':');
-        push_rowname(&mut buf, self.to);
-
-        buf
     }
 }
 
@@ -248,7 +230,7 @@ pub fn parse_colname(buf: &str, pos: &mut usize) -> Option<ucell> {
             col = (col + 1) * 26;
         } else {
             v += 1;
-            col = col * 26;
+            col *= 26;
         }
         col += v as u32;
     }
@@ -294,6 +276,7 @@ pub fn parse_rowname(buf: &str, pos: &mut usize) -> Option<ucell> {
 }
 
 /// Parse a table-name in a reference
+#[allow(clippy::collapsible_if)]
 pub fn parse_tablename(buf: &str, pos: &mut usize) -> Result<Option<String>, OdsError> {
     let mut dot_idx = None;
     let mut any_quote = false;
@@ -532,7 +515,7 @@ pub fn cellrange_string(cellrange: &CellRange) -> String {
 }
 
 /// Returns a list of ranges as string.
-pub fn cellranges_string(v: &Vec<CellRange>) -> String {
+pub fn cellranges_string(v: &[CellRange]) -> String {
     let mut buf = String::new();
 
     let mut first = true;

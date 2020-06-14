@@ -76,7 +76,7 @@ impl<'a> AttrMapIter<'a> {
     pub fn from(attrmap: Option<&'a AttrMapType>) -> AttrMapIter<'a> {
         if let Some(attrmap) = attrmap {
             Self {
-                it: Some(attrmap.into_iter()),
+                it: Some(attrmap.iter()),
             }
         } else {
             Self {
@@ -916,14 +916,10 @@ pub trait AttrText
     }
 }
 
-// format as string
-#[allow(dead_code)]
 fn color_string(color: Rgb<u8>) -> String {
     format!(" #{:02x}{:02x}{:02x}", color.r, color.g, color.b)
 }
 
-// format as string
-#[allow(dead_code)]
 fn border_string(width: &str, border: Border, color: Rgb<u8>) -> String {
     format!("{}pt {} #{:02x}{:02x}{:02x}", width, border, color.r, color.g, color.b)
 }

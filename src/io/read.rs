@@ -750,6 +750,7 @@ fn copy_pagelayout_properties(attrmap: &mut dyn AttrMap,
 }
 
 // read the master-styles tag
+#[allow(clippy::single_match)]
 fn read_master_styles(book: &mut WorkBook,
                       origin: StyleOrigin,
                       xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
@@ -1263,6 +1264,7 @@ fn read_part(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
 }
 
 // style:style tag
+#[allow(clippy::single_match)]
 fn read_style_style(book: &mut WorkBook,
                     origin: StyleOrigin,
                     styleuse: StyleUse,

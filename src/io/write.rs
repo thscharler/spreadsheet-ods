@@ -456,7 +456,7 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
 }
 
 /// Is the cell hidden, and if yes how many more columns are hit.
-fn check_hidden(ranges: &Vec<CellRange>, row: ucell, col: ucell) -> (bool, ucell) {
+fn check_hidden(ranges: &[CellRange], row: ucell, col: ucell) -> (bool, ucell) {
     if let Some(found) = ranges.iter().find(|s| s.contains(row, col)) {
         (true, found.to.col - col)
     } else {

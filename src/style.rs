@@ -93,7 +93,7 @@ impl PageLayout {
 
     /// In the xml pagelayout is split in two pieces. Each has a name.
     pub fn set_masterpage_name(&mut self, name: String) {
-        self.masterpage_name = name.to_string();
+        self.masterpage_name = name;
     }
 
     /// In the xml pagelayout is split in two pieces. Each has a name.
