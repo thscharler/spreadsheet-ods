@@ -7,8 +7,9 @@ use quick_xml::events::{BytesStart, Event};
 use quick_xml::events::attributes::Attribute;
 use zip::read::ZipFile;
 
-use crate::{ColRange, Composit, CompositTag, CompositVec, RowRange, SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
+use crate::{ColRange, RowRange, SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
 use crate::attrmap::AttrMap;
+use crate::composit::{Composit, CompositTag, CompositVec};
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{CellRef, parse_cellranges};
@@ -1228,7 +1229,7 @@ fn read_value_format_attr(value_type: ValueType,
             attr => {
                 let k = xml.decode(&attr.key)?;
                 let v = attr.unescape_and_decode_value(&xml)?;
-                value_style.set_prp(k, v);
+                value_style.set_attr(k, v);
             }
         }
     }
@@ -1256,7 +1257,7 @@ fn read_part(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
             let k = xml.decode(&attr.key)?;
             let v = attr.unescape_and_decode_value(&xml)?;
 
-            part.set_prp(k, v);
+            part.set_attr(k, v);
         }
     }
 

@@ -1,7 +1,8 @@
 use color::Rgb;
 
-use spreadsheet_ods::{Composit, CompositTag, CompositVec, OdsError, WorkBook};
+use spreadsheet_ods::{OdsError, WorkBook};
 use spreadsheet_ods::attrmap::{AttrFoBackgroundColor, AttrFoMargin, AttrFoMinHeight};
+use spreadsheet_ods::composit::{Composit, CompositTag, CompositVec};
 use spreadsheet_ods::io::{read_ods, write_ods};
 use spreadsheet_ods::style::{HeaderFooter, PageLayout};
 

@@ -7,8 +7,9 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
-use crate::{Composit, CompositVec, SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
+use crate::{SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
 use crate::attrmap::AttrMap;
+use crate::composit::{Composit, CompositVec};
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::tmp2zip::{TempWrite, TempZip};

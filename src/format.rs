@@ -2,15 +2,13 @@
 /// Defines ValueFormat for formatting related issues
 ///
 
-use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
 use chrono::NaiveDateTime;
-use string_cache::DefaultAtom;
 use time::Duration;
 
 use crate::{StyleOrigin, StyleUse, ValueType};
-use crate::util::{get_prp, get_prp_def, set_prp, set_prp_vec};
+use crate::attrmap::{AttrMap, AttrMapType};
 
 #[derive(Debug)]
 pub enum ValueFormatError {
@@ -42,9 +40,19 @@ pub struct ValueFormat {
     // Usage of this style.
     pub(crate) styleuse: StyleUse,
     // Properties of the format.
-    pub(crate) prp: Option<HashMap<DefaultAtom, String>>,
+    pub(crate) prp: Option<AttrMapType>,
     // Parts of the format.
     pub(crate) parts: Option<Vec<FormatPart>>,
+}
+
+impl AttrMap for ValueFormat {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.prp.as_ref()
+    }
+
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.prp
+    }
 }
 
 impl ValueFormat {
@@ -115,16 +123,6 @@ impl ValueFormat {
     /// Returns the usage.
     pub fn styleuse(&self) -> StyleUse {
         self.styleuse
-    }
-
-    /// Sets a property of the format.
-    pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.prp, name, value);
-    }
-
-    /// Returns a property of the format.
-    pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.prp, name)
     }
 
     /// Adds a format part.
@@ -249,9 +247,19 @@ pub struct FormatPart {
     // What kind of format part is this?
     pub(crate) part_type: FormatPartType,
     // Properties of this part.
-    pub(crate) prp: Option<HashMap<DefaultAtom, String>>,
+    pub(crate) prp: Option<AttrMapType>,
     // Some content.
     pub(crate) content: Option<String>,
+}
+
+impl AttrMap for FormatPart {
+    fn attr_map(&self) -> Option<&AttrMapType> {
+        self.prp.as_ref()
+    }
+
+    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+        &mut self.prp
+    }
 }
 
 impl FormatPart {
@@ -280,7 +288,7 @@ impl FormatPart {
             prp: None,
             content: None,
         };
-        part.set_prp_vec(prp_vec);
+        part.add_all(prp_vec);
         part
     }
 
@@ -294,24 +302,28 @@ impl FormatPart {
         &self.part_type
     }
 
-    /// Sets a vec of properties.
-    pub fn set_prp_vec(&mut self, vec: Vec<(&str, String)>) {
-        set_prp_vec(&mut self.prp, vec);
-    }
-
-    /// Sets a property.
-    pub fn set_prp(&mut self, name: &str, value: String) {
-        set_prp(&mut self.prp, name, value);
-    }
-
-    /// Returns a property.
-    pub fn prp(&self, name: &str) -> Option<&String> {
-        get_prp(&self.prp, name)
-    }
-
+    // /// Sets a vec of properties.
+    // pub fn set_prp_vec(&mut self, vec: Vec<(&str, String)>) {
+    //     set_prp_vec(&mut self.prp, vec);
+    // }
+    //
+    // /// Sets a property.
+    // pub fn set_prp(&mut self, name: &str, value: String) {
+    //     set_prp(&mut self.prp, name, value);
+    // }
+    //
+    // /// Returns a property.
+    // pub fn prp(&self, name: &str) -> Option<&String> {
+    //     get_prp(&self.prp, name)
+    // }
+    //
     /// Returns a property or a default.
-    pub fn prp_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        get_prp_def(&self.prp, name, default)
+    pub fn attr_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
+        if let Some(v) = self.attr(name) {
+            v
+        } else {
+            default
+        }
     }
 
     /// Sets a textual content for this part. This is only used
@@ -346,7 +358,7 @@ impl FormatPart {
     fn format_float(&self, buf: &mut String, f: f64) {
         match self.part_type {
             FormatPartType::Number => {
-                let dec = self.prp_def("number:decimal-places", "0").parse::<usize>();
+                let dec = self.attr_def("number:decimal-places", "0").parse::<usize>();
                 if let Ok(dec) = dec {
                     buf.push_str(&format!("{:.*}", dec, f));
                 }
@@ -391,7 +403,7 @@ impl FormatPart {
     fn format_datetime(&self, buf: &mut String, d: &NaiveDateTime, h12: bool) {
         match self.part_type {
             FormatPartType::Day => {
-                let is_long = self.prp_def("number:style", "") == "long";
+                let is_long = self.attr_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%d").to_string());
                 } else {
@@ -399,8 +411,8 @@ impl FormatPart {
                 }
             }
             FormatPartType::Month => {
-                let is_long = self.prp_def("number:style", "") == "long";
-                let is_text = self.prp_def("number:textual", "") == "true";
+                let is_long = self.attr_def("number:style", "") == "long";
+                let is_text = self.attr_def("number:textual", "") == "true";
                 if is_text {
                     if is_long {
                         buf.push_str(&d.format("%b").to_string());
@@ -416,7 +428,7 @@ impl FormatPart {
                 }
             }
             FormatPartType::Year => {
-                let is_long = self.prp_def("number:style", "") == "long";
+                let is_long = self.attr_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%Y").to_string());
                 } else {
@@ -424,7 +436,7 @@ impl FormatPart {
                 }
             }
             FormatPartType::DayOfWeek => {
-                let is_long = self.prp_def("number:style", "") == "long";
+                let is_long = self.attr_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%A").to_string());
                 } else {
@@ -432,7 +444,7 @@ impl FormatPart {
                 }
             }
             FormatPartType::WeekOfYear => {
-                let is_long = self.prp_def("number:style", "") == "long";
+                let is_long = self.attr_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%W").to_string());
                 } else {
@@ -440,7 +452,7 @@ impl FormatPart {
                 }
             }
             FormatPartType::Hours => {
-                let is_long = self.prp_def("number:style", "") == "long";
+                let is_long = self.attr_def("number:style", "") == "long";
                 if !h12 {
                     if is_long {
                         buf.push_str(&d.format("%H").to_string());
@@ -456,7 +468,7 @@ impl FormatPart {
                 }
             }
             FormatPartType::Minutes => {
-                let is_long = self.prp_def("number:style", "") == "long";
+                let is_long = self.attr_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%M").to_string());
                 } else {
@@ -464,7 +476,7 @@ impl FormatPart {
                 }
             }
             FormatPartType::Seconds => {
-                let is_long = self.prp_def("number:style", "") == "long";
+                let is_long = self.attr_def("number:style", "") == "long";
                 if is_long {
                     buf.push_str(&d.format("%S").to_string());
                 } else {
@@ -520,11 +532,11 @@ pub fn create_number_format<S: Into<String>>(name: S, decimal: u8, grouping: boo
     let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
 
     let mut p = FormatPart::new(FormatPartType::Number);
-    p.set_prp("number:min-integer-digits", 1.to_string());
-    p.set_prp("number:decimal-places", decimal.to_string());
-    p.set_prp("loext:min-decimal-places", 0.to_string());
+    p.set_attr("number:min-integer-digits", 1.to_string());
+    p.set_attr("number:decimal-places", decimal.to_string());
+    p.set_attr("loext:min-decimal-places", 0.to_string());
     if grouping {
-        p.set_prp("number:grouping", String::from("true"));
+        p.set_attr("number:grouping", String::from("true"));
     }
 
     v.push_part(p);
@@ -537,11 +549,11 @@ pub fn create_number_format_fixed<S: Into<String>>(name: S, decimal: u8, groupin
     let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
 
     let mut p = FormatPart::new(FormatPartType::Number);
-    p.set_prp("number:min-integer-digits", 1.to_string());
-    p.set_prp("number:decimal-places", decimal.to_string());
-    p.set_prp("loext:min-decimal-places", decimal.to_string());
+    p.set_attr("number:min-integer-digits", 1.to_string());
+    p.set_attr("number:decimal-places", decimal.to_string());
+    p.set_attr("loext:min-decimal-places", decimal.to_string());
     if grouping {
-        p.set_prp("number:grouping", String::from("true"));
+        p.set_attr("number:grouping", String::from("true"));
     }
 
     v.push_part(p);
@@ -554,9 +566,9 @@ pub fn create_percentage_format<S: Into<String>>(name: S, decimal: u8) -> ValueF
     let mut v = ValueFormat::with_name(name.into(), ValueType::Percentage);
 
     let mut p = FormatPart::new(FormatPartType::Number);
-    p.set_prp("number:min-integer-digits", 1.to_string());
-    p.set_prp("number:decimal-places", decimal.to_string());
-    p.set_prp("loext:min-decimal-places", decimal.to_string());
+    p.set_attr("number:min-integer-digits", 1.to_string());
+    p.set_attr("number:decimal-places", decimal.to_string());
+    p.set_attr("loext:min-decimal-places", decimal.to_string());
     v.push_part(p);
 
     let mut p2 = FormatPart::new(FormatPartType::Text);
@@ -571,8 +583,8 @@ pub fn create_euro_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
 
     let mut p0 = FormatPart::new(FormatPartType::CurrencySymbol);
-    p0.set_prp("number:language", String::from("de"));
-    p0.set_prp("number:country", String::from("AT"));
+    p0.set_attr("number:language", String::from("de"));
+    p0.set_attr("number:country", String::from("AT"));
     p0.set_content("€");
     v.push_part(p0);
 
@@ -581,10 +593,10 @@ pub fn create_euro_format<S: Into<String>>(name: S) -> ValueFormat {
     v.push_part(p1);
 
     let mut p2 = FormatPart::new(FormatPartType::Number);
-    p2.set_prp("number:min-integer-digits", 1.to_string());
-    p2.set_prp("number:decimal-places", 2.to_string());
-    p2.set_prp("loext:min-decimal-places", 2.to_string());
-    p2.set_prp("number:grouping", String::from("true"));
+    p2.set_attr("number:min-integer-digits", 1.to_string());
+    p2.set_attr("number:decimal-places", 2.to_string());
+    p2.set_attr("loext:min-decimal-places", 2.to_string());
+    p2.set_attr("number:grouping", String::from("true"));
     v.push_part(p2);
 
     v
@@ -596,7 +608,7 @@ pub fn create_euro_red_format<S: Into<String>>(name: S, positive_style: S) -> Va
     let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
 
     let mut p0 = FormatPart::new(FormatPartType::StyleText);
-    p0.set_prp("fo:color", String::from("#ff0000"));
+    p0.set_attr("fo:color", String::from("#ff0000"));
     v.push_part(p0);
 
     let mut p1 = FormatPart::new(FormatPartType::Text);
@@ -604,8 +616,8 @@ pub fn create_euro_red_format<S: Into<String>>(name: S, positive_style: S) -> Va
     v.push_part(p1);
 
     let mut p2 = FormatPart::new(FormatPartType::CurrencySymbol);
-    p2.set_prp("number:language", String::from("de"));
-    p2.set_prp("number:country", String::from("AT"));
+    p2.set_attr("number:language", String::from("de"));
+    p2.set_attr("number:country", String::from("AT"));
     p2.set_content("€");
     v.push_part(p2);
 
@@ -614,15 +626,15 @@ pub fn create_euro_red_format<S: Into<String>>(name: S, positive_style: S) -> Va
     v.push_part(p3);
 
     let mut p4 = FormatPart::new(FormatPartType::Number);
-    p4.set_prp("number:min-integer-digits", 1.to_string());
-    p4.set_prp("number:decimal-places", 2.to_string());
-    p4.set_prp("loext:min-decimal-places", 2.to_string());
-    p4.set_prp("number:grouping", String::from("true"));
+    p4.set_attr("number:min-integer-digits", 1.to_string());
+    p4.set_attr("number:decimal-places", 2.to_string());
+    p4.set_attr("loext:min-decimal-places", 2.to_string());
+    p4.set_attr("number:grouping", String::from("true"));
     v.push_part(p4);
 
     let mut p5 = FormatPart::new(FormatPartType::StyleMap);
-    p5.set_prp("style:condition", String::from("value()&gt;=0"));
-    p5.set_prp("style:apply-style-name", positive_style.into());
+    p5.set_attr("style:condition", String::from("value()&gt;=0"));
+    p5.set_attr("style:apply-style-name", positive_style.into());
     v.push_part(p5);
 
     v

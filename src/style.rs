@@ -4,8 +4,9 @@
 
 use string_cache::DefaultAtom;
 
-use crate::{CompositVec, StyleFor, StyleOrigin, StyleUse};
+use crate::{StyleFor, StyleOrigin, StyleUse};
 use crate::attrmap::{AttrFoBackgroundColor, AttrFoBorder, AttrFoBreak, AttrFoKeepTogether, AttrFoKeepWithNext, AttrFoMargin, AttrFoMinHeight, AttrFontDecl, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, AttrParagraph, AttrStyleDynamicSpacing, AttrStyleShadow, AttrStyleWritingMode, AttrSvgHeight, AttrTableCell, AttrTableCol, AttrTableRow, AttrText};
+use crate::composit::CompositVec;
 
 /// Page layout.
 /// Contains all header and footer information.
