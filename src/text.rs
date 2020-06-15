@@ -2,12 +2,12 @@ use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType};
 
 /// A tag within a text region.
 #[derive(Debug, Clone, Default)]
-pub struct CompositTag {
+pub struct TextTag {
     pub(crate) tag: String,
     pub(crate) attr: Option<AttrMapType>,
 }
 
-impl AttrMap for CompositTag {
+impl AttrMap for TextTag {
     fn attr_map(&self) -> Option<&AttrMapType> {
         self.attr.as_ref()
     }
@@ -17,7 +17,7 @@ impl AttrMap for CompositTag {
     }
 }
 
-impl CompositTag {
+impl TextTag {
     pub fn new<S: Into<String>>(tag: S) -> Self {
         Self {
             tag: tag.into(),
@@ -41,20 +41,20 @@ impl CompositTag {
 /// Complex text is laid out as a sequence of tags, end-tags and text.
 /// The user of this must ensure that the result is valid xml.
 #[derive(Debug, Clone)]
-pub enum Composit {
-    Start(CompositTag),
-    Empty(CompositTag),
+pub enum TextElem {
+    Start(TextTag),
+    Empty(TextTag),
     Text(String),
     End(String),
 }
 
 /// A vector of text.
 #[derive(Debug, Clone, Default)]
-pub struct CompositVec {
-    pub(crate) vec: Option<Vec<Composit>>,
+pub struct TextVec {
+    pub(crate) vec: Option<Vec<TextElem>>,
 }
 
-impl CompositVec {
+impl TextVec {
     /// Create.
     pub fn new() -> Self {
         Self {
@@ -63,7 +63,37 @@ impl CompositVec {
     }
 
     /// Append to the vector
-    pub fn push(&mut self, cm: Composit) {
+    pub fn start<S: Into<String>>(&mut self, ctag: S) {
+        self.push(TextElem::Start(TextTag::new(ctag.into())));
+    }
+
+    /// Append to the vector
+    pub fn startc(&mut self, ctag: TextTag) {
+        self.push(TextElem::Start(ctag));
+    }
+
+    /// Append to the vector
+    pub fn empty<S: Into<String>>(&mut self, ctag: S) {
+        self.push(TextElem::Empty(TextTag::new(ctag.into())));
+    }
+
+    /// Append to the vector
+    pub fn emptyc(&mut self, ctag: TextTag) {
+        self.push(TextElem::Empty(ctag));
+    }
+
+    /// Append to the vector
+    pub fn text<S: Into<String>>(&mut self, txt: S) {
+        self.push(TextElem::Text(txt.into()));
+    }
+
+    /// Append to the vector
+    pub fn end<S: Into<String>>(&mut self, ctag: S) {
+        self.push(TextElem::End(ctag.into()));
+    }
+
+    /// Append to the vector
+    pub fn push(&mut self, cm: TextElem) {
         if self.vec.is_none() {
             self.vec = Some(Vec::new());
         }
@@ -92,9 +122,9 @@ impl CompositVec {
         if let Some(vec) = &self.vec {
             for c in vec {
                 match c {
-                    Composit::Start(t) =>
+                    TextElem::Start(t) =>
                         tags.push(t.tag.clone()),
-                    Composit::End(t) => {
+                    TextElem::End(t) => {
                         let tag = tags.pop();
                         if let Some(ref tag) = tag {
                             if t != tag {
@@ -117,7 +147,7 @@ impl CompositVec {
     }
 
     /// Returns the text vec itself.
-    pub fn vec(&self) -> Option<&Vec<Composit>> {
+    pub fn vec(&self) -> Option<&Vec<TextElem>> {
         self.vec.as_ref()
     }
 }

@@ -2,9 +2,9 @@ use color::Rgb;
 
 use spreadsheet_ods::{OdsError, WorkBook};
 use spreadsheet_ods::attrmap::{AttrFoBackgroundColor, AttrFoMargin, AttrFoMinHeight};
-use spreadsheet_ods::composit::{Composit, CompositTag, CompositVec};
 use spreadsheet_ods::io::{read_ods, write_ods};
 use spreadsheet_ods::style::{HeaderFooter, PageLayout};
+use spreadsheet_ods::text::TextVec;
 
 #[test]
 fn pagelayout() -> Result<(), OdsError> {
@@ -32,16 +32,16 @@ fn crpagelayout() -> Result<(), OdsError> {
     //pl.set_prp("style:writing-mode", "lr-tb".to_string());
 
     let mut hf = HeaderFooter::new();
-    let mut cv = CompositVec::new();
-    cv.push(Composit::Start(CompositTag::new("text:p")));
-    cv.push(Composit::Text("sioltard".to_string()));
-    cv.push(Composit::End("text:p".to_string()));
+    let mut cv = TextVec::new();
+    cv.start("text:p");
+    cv.text("sioltard");
+    cv.end("text:p");
     hf.set_region_center(cv);
 
-    let mut cv = CompositVec::new();
-    cv.push(Composit::Start(CompositTag::new("text:p")));
-    cv.push(Composit::Text("fimfim".to_string()));
-    cv.push(Composit::End("text:p".to_string()));
+    let mut cv = TextVec::new();
+    cv.start("text:p");
+    cv.text("fimfim");
+    cv.end("text:p");
     hf.set_region_left(cv);
 
     pl.set_header(hf);

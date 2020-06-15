@@ -10,7 +10,7 @@ use std::fmt::{Display, Formatter};
 use color::Rgb;
 use string_cache::DefaultAtom;
 
-pub type AttrMapType = HashMap<DefaultAtom, String>;
+pub type AttrMapType = Box<HashMap<DefaultAtom, String>>;
 
 /// Container trait for attributes.
 pub trait AttrMap {
@@ -28,7 +28,7 @@ pub trait AttrMap {
     fn add_all(&mut self, data: Vec<(&str, String)>) {
         let attr = self.attr_map_mut();
         if attr.is_none() {
-            attr.replace(HashMap::new());
+            attr.replace(Box::new(HashMap::new()));
         }
         if let Some(ref mut attr) = attr {
             for (name, val) in data {
@@ -41,7 +41,7 @@ pub trait AttrMap {
     fn set_attr(&mut self, name: &str, value: String) {
         let attr = self.attr_map_mut();
         if attr.is_none() {
-            attr.replace(HashMap::new());
+            attr.replace(Box::new(HashMap::new()));
         }
         if let Some(ref mut attr) = attr {
             attr.insert(DefaultAtom::from(name), value);

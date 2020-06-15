@@ -9,11 +9,11 @@ use zip::read::ZipFile;
 
 use crate::{ColRange, RowRange, SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
 use crate::attrmap::AttrMap;
-use crate::composit::{Composit, CompositTag, CompositVec};
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{CellRef, parse_cellranges};
 use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style};
+use crate::text::{TextTag, TextVec};
 
 /// Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
@@ -278,6 +278,8 @@ fn read_table_cell(sheet: &mut Sheet,
     let mut cell_value: Option<String> = None;
     // Content of the table-cell tag.
     let mut cell_content: Option<String> = None;
+    // Content of the table-cell tag.
+    let mut cell_content_txt: Option<TextVec> = None;
     // Currency
     let mut cell_currency: Option<String> = None;
 
@@ -325,30 +327,14 @@ fn read_table_cell(sheet: &mut Sheet,
         let evt = xml.read_event(&mut buf)?;
         if dump_xml { println!(" style {:?}", evt); }
         match evt {
-            // todo: insert CompositVec reading here
-            Event::Text(xml_tag) => {
-                // Not every cell type has a value attribute, some take
-                // their value from the string representation.
-                cell_content = text_append(cell_content, &xml_tag.unescape_and_decode(&xml)?);
-            }
-
             Event::Start(xml_tag)
             if xml_tag.name() == b"text:p" => {
-                cell_content = text_append_or(cell_content, "\n", "");
-            }
-            Event::Empty(xml_tag)
-            if xml_tag.name() == b"text:p" => {}
-            Event::End(xml_tag)
-            if xml_tag.name() == b"text:p" => {}
-
-            Event::Start(xml_tag)
-            if xml_tag.name() == b"text:a" => {}
-            Event::End(xml_tag)
-            if xml_tag.name() == b"text:a" => {}
-
-            Event::Empty(xml_tag)
-            if xml_tag.name() == b"text:s" => {
-                cell_content = text_append(cell_content, " ");
+                read_textvec2(&mut cell_content_txt,
+                              &mut cell_content,
+                              b"text:p",
+                              xml,
+                              dump_xml,
+                )?;
             }
 
             Event::End(xml_tag)
@@ -356,6 +342,7 @@ fn read_table_cell(sheet: &mut Sheet,
                 cell.value = parse_value(value_type,
                                          cell_value,
                                          cell_content,
+                                         cell_content_txt,
                                          cell_currency,
                                          row,
                                          col)?;
@@ -382,22 +369,6 @@ fn read_table_cell(sheet: &mut Sheet,
     }
 
     Ok(col)
-}
-
-/// For adding \n to the string. A leading \n is ignored.
-fn text_append_or(text: Option<String>, append: &str, default: &str) -> Option<String> {
-    match text {
-        Some(s) => Some(s + append),
-        None => Some(default.to_string())
-    }
-}
-
-/// Append text.
-fn text_append(text: Option<String>, append: &str) -> Option<String> {
-    match text {
-        Some(s) => Some(s + append),
-        None => Some(append.to_owned())
-    }
 }
 
 /// Reads a table-cell from an empty XML tag.
@@ -477,6 +448,7 @@ fn read_empty_table_cell(sheet: &mut Sheet,
 fn parse_value(value_type: Option<ValueType>,
                cell_value: Option<String>,
                cell_content: Option<String>,
+               cell_content_txt: Option<TextVec>,
                cell_currency: Option<String>,
                row: ucell,
                col: ucell) -> Result<Value, OdsError> {
@@ -486,11 +458,16 @@ fn parse_value(value_type: Option<ValueType>,
                 Ok(Value::Empty)
             }
             ValueType::Text => {
-                if let Some(cell_content) = cell_content {
+                if let Some(cell_content_txt) = cell_content_txt {
+                    Ok(Value::TextM(cell_content_txt))
+                } else if let Some(cell_content) = cell_content {
                     Ok(Value::Text(cell_content))
                 } else {
                     Ok(Value::Text("".to_string()))
                 }
+            }
+            ValueType::TextM => {
+                unreachable!()
             }
             ValueType::Number => {
                 if let Some(cell_value) = cell_value {
@@ -695,17 +672,17 @@ fn read_page_layout(book: &mut WorkBook,
             | Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
                     b"style:page-layout-properties" =>
-                        copy_pagelayout_properties(&mut pl, xml, xml_tag)?,
+                        copy_attr(&mut pl, xml, xml_tag)?,
                     b"style:header-style" =>
                         header_style = true,
                     b"style:footer-style" =>
                         footer_style = true,
                     b"style:header-footer-properties" => {
                         if header_style {
-                            copy_pagelayout_properties(&mut pl.header_attr, xml, xml_tag)?;
+                            copy_attr(&mut pl.header_attr, xml, xml_tag)?;
                         }
                         if footer_style {
-                            copy_pagelayout_properties(&mut pl.footer_attr, xml, xml_tag)?;
+                            copy_attr(&mut pl.footer_attr, xml, xml_tag)?;
                         }
                     }
                     _ => (),
@@ -731,21 +708,6 @@ fn read_page_layout(book: &mut WorkBook,
     }
 
     book.add_pagelayout(pl);
-
-    Ok(())
-}
-
-// copy all attr of the xml_tag. uses the given function for the setter.
-fn copy_pagelayout_properties(attrmap: &mut dyn AttrMap,
-                              xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-                              xml_tag: &BytesStart) -> Result<(), OdsError> {
-    for attr in xml_tag.attributes().with_checks(false) {
-        if let Ok(attr) = attr {
-            let k = xml.decode(&attr.key)?;
-            let v = attr.unescape_and_decode_value(&xml)?;
-            attrmap.set_attr(k, v);
-        }
-    }
 
     Ok(())
 }
@@ -880,19 +842,19 @@ fn read_headerfooter(end_tag: &[u8],
             Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
                     b"style:region-left" => {
-                        let cm = read_composit(b"style:region-left", xml, dump_xml)?;
+                        let cm = read_textvec(b"style:region-left", xml, dump_xml)?;
                         hf.set_region_left(cm);
                     }
                     b"style:region-center" => {
-                        let cm = read_composit(b"style:region-left", xml, dump_xml)?;
+                        let cm = read_textvec(b"style:region-left", xml, dump_xml)?;
                         hf.set_region_center(cm);
                     }
                     b"style:region-right" => {
-                        let cm = read_composit(b"style:region-left", xml, dump_xml)?;
+                        let cm = read_textvec(b"style:region-left", xml, dump_xml)?;
                         hf.set_region_right(cm);
                     }
                     b"text:p" => {
-                        let cm = read_composit(b"text:p", xml, dump_xml)?;
+                        let cm = read_textvec(b"text:p", xml, dump_xml)?;
                         hf.set_content(cm);
                     }
                     // no other tags supported for now.
@@ -915,54 +877,128 @@ fn read_headerfooter(end_tag: &[u8],
     Ok(hf)
 }
 
-// reads all the tags up to end_tag and creates a CompositVec
-fn read_composit(end_tag: &[u8],
+
+// reads all the tags up to end_tag and creates a TextVec.
+// if there are no tags the result is a plain String.
+fn read_textvec2(vec: &mut Option<TextVec>,
+                 str: &mut Option<String>,
+                 end_tag: &[u8],
                  xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-                 dump_xml: bool) -> Result<CompositVec, OdsError> {
+                 dump_xml: bool) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut cv = CompositVec::new();
     loop {
         let evt = xml.read_event(&mut buf)?;
         //let empty_tag = if let Event::Empty(_) = evt { true } else { false };
-        if dump_xml { println!(" master-page {:?}", evt); }
+        if dump_xml { println!(" text:p(2) {:?}", evt); }
+        match evt {
+            Event::Text(ref txt) => {
+                let t = txt.unescape_and_decode(xml)?;
+                if let Some(vec) = vec {
+                    vec.text(t);
+                } else if let Some(s) = str {
+                    let tmp = s.to_string() + t.as_str();
+                    str.replace(tmp);
+                } else {
+                    str.replace(t);
+                }
+            }
+
+            Event::Start(ref xml_tag) => {
+                if vec.is_none() {
+                    let mut txtvec = TextVec::new();
+                    if let Some(s) = str {
+                        txtvec.text(s.as_str());
+                        *str = None;
+                    }
+                    vec.replace(txtvec);
+                }
+
+                let mut c = TextTag::new(xml.decode(xml_tag.name())?);
+                copy_attr(&mut c, xml, xml_tag)?;
+
+                if let Some(vec) = vec {
+                    vec.startc(c);
+                }
+            }
+
+            Event::Empty(ref xml_tag) => {
+                if vec.is_none() {
+                    let mut txtvec = TextVec::new();
+                    if let Some(s) = str {
+                        txtvec.text(s.as_str());
+                        *str = None;
+                    }
+                    vec.replace(txtvec);
+                }
+
+                let mut c = TextTag::new(xml.decode(xml_tag.name())?);
+                copy_attr(&mut c, xml, xml_tag)?;
+
+                if let Some(vec) = vec {
+                    vec.emptyc(c);
+                }
+            }
+
+            Event::End(ref xml_tag) => {
+                if xml_tag.name() == end_tag {
+                    break;
+                } else {
+                    if vec.is_none() {
+                        let mut txtvec = TextVec::new();
+                        if let Some(s) = str {
+                            txtvec.text(s.as_str());
+                            *str = None;
+                        }
+                        vec.replace(txtvec);
+                    }
+
+                    if let Some(vec) = vec {
+                        vec.end(xml.decode(xml_tag.name())?);
+                    }
+                }
+            }
+
+            Event::Eof => break,
+            _ => (),
+        }
+
+        buf.clear();
+    }
+
+    Ok(())
+}
+
+// reads all the tags up to end_tag and creates a TextVec
+fn read_textvec(end_tag: &[u8],
+                xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+                dump_xml: bool) -> Result<TextVec, OdsError> {
+    let mut buf = Vec::new();
+
+    let mut cv = TextVec::new();
+    loop {
+        let evt = xml.read_event(&mut buf)?;
+        //let empty_tag = if let Event::Empty(_) = evt { true } else { false };
+        if dump_xml { println!(" text:p {:?}", evt); }
         match evt {
             Event::Start(ref xml_tag) => {
-                let n = xml.decode(xml_tag.name())?;
-                let mut c = CompositTag::new(n);
-
-                for attr in xml_tag.attributes().with_checks(false) {
-                    if let Ok(attr) = attr {
-                        let k = xml.decode(attr.key)?;
-                        let v = attr.unescape_and_decode_value(xml)?;
-                        c.set_attr(k, v);
-                    }
-                }
-                cv.push(Composit::Start(c));
+                let mut c = TextTag::new(xml.decode(xml_tag.name())?);
+                copy_attr(&mut c, xml, xml_tag)?;
+                cv.startc(c);
             }
             Event::Empty(ref xml_tag) => {
-                let n = xml.decode(xml_tag.name())?;
-                let mut c = CompositTag::new(n);
-
-                for attr in xml_tag.attributes().with_checks(false) {
-                    if let Ok(attr) = attr {
-                        let k = xml.decode(attr.key)?;
-                        let v = attr.unescape_and_decode_value(xml)?;
-                        c.set_attr(k, v);
-                    }
-                }
-                cv.push(Composit::Empty(c));
+                let mut c = TextTag::new(xml.decode(xml_tag.name())?);
+                copy_attr(&mut c, xml, xml_tag)?;
+                cv.emptyc(c);
             }
             Event::Text(ref txt) => {
-                let txt = txt.unescape_and_decode(xml)?;
-                cv.push(Composit::Text(txt));
+                cv.text(txt.unescape_and_decode(xml)?);
             }
             Event::End(ref xml_tag) => {
                 if xml_tag.name() == end_tag {
                     break;
                 } else {
-                    let n = xml.decode(xml_tag.name())?;
-                    cv.push(Composit::End(n.to_string()));
+                    cv.end(xml.decode(xml_tag.name())?);
                 }
             }
             Event::Eof => break,
@@ -1115,43 +1151,43 @@ fn read_value_format(book: &mut WorkBook,
             | Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
                     b"number:boolean" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Boolean, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Boolean)?),
                     b"number:number" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Number, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Number)?),
                     b"number:scientific-number" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Scientific, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Scientific)?),
                     b"number:day" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Day, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Day)?),
                     b"number:month" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Month, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Month)?),
                     b"number:year" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Year, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Year)?),
                     b"number:era" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Era, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Era)?),
                     b"number:day-of-week" =>
-                        push_value_format_part(&mut value_style, FormatPartType::DayOfWeek, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::DayOfWeek)?),
                     b"number:week-of-year" =>
-                        push_value_format_part(&mut value_style, FormatPartType::WeekOfYear, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::WeekOfYear)?),
                     b"number:quarter" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Quarter, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Quarter)?),
                     b"number:hours" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Hours, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Hours)?),
                     b"number:minutes" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Minutes, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Minutes)?),
                     b"number:seconds" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Seconds, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Seconds)?),
                     b"number:fraction" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Fraction, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Fraction)?),
                     b"number:am-pm" =>
-                        push_value_format_part(&mut value_style, FormatPartType::AmPm, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::AmPm)?),
                     b"number:embedded-text" =>
-                        push_value_format_part(&mut value_style, FormatPartType::EmbeddedText, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::EmbeddedText)?),
                     b"number:text-content" =>
-                        push_value_format_part(&mut value_style, FormatPartType::TextContent, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::TextContent)?),
                     b"style:text" =>
-                        push_value_format_part(&mut value_style, FormatPartType::Day, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::Day)?),
                     b"style:map" =>
-                        push_value_format_part(&mut value_style, FormatPartType::StyleMap, xml, xml_tag)?,
+                        value_style.push_part(read_part(xml, xml_tag, FormatPartType::StyleMap)?),
                     b"number:currency-symbol" => {
                         value_style_part = Some(read_part(xml, xml_tag, FormatPartType::CurrencySymbol)?);
 
@@ -1237,30 +1273,11 @@ fn read_value_format_attr(value_type: ValueType,
     Ok(())
 }
 
-/// Append a format-part tag
-fn push_value_format_part(value_style: &mut ValueFormat,
-                          part_type: FormatPartType,
-                          xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-                          xml_tag: &BytesStart) -> Result<(), OdsError> {
-    value_style.push_part(read_part(xml, xml_tag, part_type)?);
-
-    Ok(())
-}
-
 fn read_part(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
              xml_tag: &BytesStart,
              part_type: FormatPartType) -> Result<FormatPart, OdsError> {
     let mut part = FormatPart::new(part_type);
-
-    for a in xml_tag.attributes().with_checks(false) {
-        if let Ok(attr) = a {
-            let k = xml.decode(&attr.key)?;
-            let v = attr.unescape_and_decode_value(&xml)?;
-
-            part.set_attr(k, v);
-        }
-    }
-
+    copy_attr(&mut part, xml, xml_tag)?;
     Ok(part)
 }
 
@@ -1290,17 +1307,17 @@ fn read_style_style(book: &mut WorkBook,
                 | Event::Empty(ref xml_tag) => {
                     match xml_tag.name() {
                         b"style:table-properties" =>
-                            copy_style_properties(&mut style.table_attr, xml, xml_tag)?,
+                            copy_attr(&mut style.table_attr, xml, xml_tag)?,
                         b"style:table-column-properties" =>
-                            copy_style_properties(&mut style.table_col_attr, xml, xml_tag)?,
+                            copy_attr(&mut style.table_col_attr, xml, xml_tag)?,
                         b"style:table-row-properties" =>
-                            copy_style_properties(&mut style.table_row_attr, xml, xml_tag)?,
+                            copy_attr(&mut style.table_row_attr, xml, xml_tag)?,
                         b"style:table-cell-properties" =>
-                            copy_style_properties(&mut style.table_cell_attr, xml, xml_tag)?,
+                            copy_attr(&mut style.table_cell_attr, xml, xml_tag)?,
                         b"style:text-properties" =>
-                            copy_style_properties(&mut style.text_attr, xml, xml_tag)?,
+                            copy_attr(&mut style.text_attr, xml, xml_tag)?,
                         b"style:paragraph-properties" =>
-                            copy_style_properties(&mut style.paragraph_attr, xml, xml_tag)?,
+                            copy_attr(&mut style.paragraph_attr, xml, xml_tag)?,
                         _ => (),
                     }
                 }
@@ -1357,9 +1374,9 @@ fn read_style_attr(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     Ok(())
 }
 
-fn copy_style_properties(attrmap: &mut dyn AttrMap,
-                         xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-                         xml_tag: &BytesStart) -> Result<(), OdsError> {
+fn copy_attr(attrmap: &mut dyn AttrMap,
+             xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+             xml_tag: &BytesStart) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         if let Ok(attr) = attr {
             let k = xml.decode(&attr.key)?;
@@ -1370,7 +1387,6 @@ fn copy_style_properties(attrmap: &mut dyn AttrMap,
 
     Ok(())
 }
-
 
 fn read_styles(book: &mut WorkBook,
                zip_file: &mut ZipFile,

@@ -25,15 +25,15 @@ impl Display for Open {
 }
 
 #[derive(Debug)]
-struct Stack<'a> {
+struct Stack {
     #[cfg(feature = "check_xml")]
-    stack: Vec<&'a str>,
+    stack: Vec<String>,
     #[cfg(not(feature = "check_xml"))]
-    stack: PhantomData<&'a str>,
+    stack: PhantomData<String>,
 }
 
 #[cfg(feature = "check_xml")]
-impl<'a> Stack<'a> {
+impl Stack {
     fn new() -> Self {
         Self {
             stack: Vec::new()
@@ -44,11 +44,11 @@ impl<'a> Stack<'a> {
         self.stack.len()
     }
 
-    fn push(&mut self, name: &'a str) {
-        self.stack.push(name);
+    fn push(&mut self, name: &str) {
+        self.stack.push(name.to_string());
     }
 
-    fn pop(&mut self) -> Option<&'a str> {
+    fn pop(&mut self) -> Option<String> {
         self.stack.pop()
     }
 
@@ -58,7 +58,7 @@ impl<'a> Stack<'a> {
 }
 
 #[cfg(not(feature = "check_xml"))]
-impl<'a> Stack<'a> {
+impl Stack {
     fn new() -> Self {
         Self {
             stack: PhantomData {}
@@ -69,9 +69,9 @@ impl<'a> Stack<'a> {
         0
     }
 
-    fn push(&mut self, _name: &'a str) {}
+    fn push(&mut self, _name: &str) {}
 
-    fn pop(&mut self) -> Option<&'a str> {
+    fn pop(&mut self) -> Option<String> {
         None
     }
 
@@ -81,24 +81,24 @@ impl<'a> Stack<'a> {
 }
 
 /// The XmlWriter himself
-pub struct XmlWriter<'a, W: Write> {
+pub struct XmlWriter<W: Write> {
     writer: Box<W>,
     buf: String,
-    stack: Stack<'a>,
+    stack: Stack,
     open: Open,
     /// if `true` it will indent all opening elements
     pub indent: bool,
 }
 
-impl<'a, W: Write> fmt::Debug for XmlWriter<'a, W> {
+impl<W: Write> fmt::Debug for XmlWriter<W> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         Ok(write!(f, "XmlWriter {{ stack: {:?}, opened: {} }}", self.stack, self.open)?)
     }
 }
 
-impl<'a, W: Write> XmlWriter<'a, W> {
+impl<W: Write> XmlWriter<W> {
     /// Create a new writer, by passing an `io::Write`
-    pub fn new(writer: W) -> XmlWriter<'a, W> {
+    pub fn new(writer: W) -> XmlWriter<W> {
         XmlWriter {
             stack: Stack::new(),
             buf: String::new(),
@@ -170,7 +170,7 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     }
 
     /// Begin an elem, make sure name contains only allowed chars
-    pub fn elem(&mut self, name: &'a str) -> Result {
+    pub fn elem(&mut self, name: &str) -> Result {
         self.close_elem()?;
 
         self.indent();
@@ -184,7 +184,7 @@ impl<'a, W: Write> XmlWriter<'a, W> {
     }
 
     /// Begin an empty elem
-    pub fn empty(&mut self, name: &'a str) -> Result {
+    pub fn empty(&mut self, name: &str) -> Result {
         self.close_elem()?;
 
         self.indent();

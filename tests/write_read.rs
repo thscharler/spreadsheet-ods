@@ -1,4 +1,4 @@
-use spreadsheet_ods::{Sheet, WorkBook};
+use spreadsheet_ods::{Sheet, ValueType, WorkBook};
 use spreadsheet_ods::io::{OdsError, read_ods, write_ods};
 use spreadsheet_ods::refs::{CellRange, CellRef, ColRange, RowRange};
 
@@ -16,6 +16,9 @@ fn test_0() -> Result<(), OdsError> {
 
     let wi = read_ods("test_out/test_0.ods")?;
     let si = wi.sheet(0);
+
+    println!("{:?}", si);
+
 
     assert_eq!(si.value(0, 0).as_str_or(""), "A");
 
@@ -188,6 +191,20 @@ fn test_print_range() -> Result<(), OdsError> {
             abs_col: false,
         },
     });
+
+    Ok(())
+}
+
+#[test]
+fn read_text() -> Result<(), OdsError> {
+    println!("read_text");
+
+    let wb = read_ods("tests/text.ods")?;
+    let sh = wb.sheet(0);
+
+    let v = sh.value(1, 1);
+
+    assert_eq!(v.value_type(), ValueType::TextM);
 
     Ok(())
 }

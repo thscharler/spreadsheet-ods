@@ -9,13 +9,13 @@ use zip::write::FileOptions;
 
 use crate::{SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
 use crate::attrmap::AttrMap;
-use crate::composit::{Composit, CompositVec};
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{CellRange, cellranges_string};
 use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style};
+use crate::text::{TextElem, TextVec};
 
 // this did not work out as expected ...
 // TODO: find out why this breaks content.xml
@@ -23,7 +23,7 @@ use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style};
 // type XmlOdsWriter<'a> = quick_xml::Writer<&'a mut zip::ZipWriter<BufWriter<File>>>;
 
 type OdsWriter = TempZip;
-type XmlOdsWriter<'a> = XmlWriter<'a, TempWrite<'a>>;
+type XmlOdsWriter<'a> = XmlWriter<TempWrite<'a>>;
 
 /// Writes the ODS file.
 pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
@@ -471,8 +471,6 @@ pub(crate) fn remove_outlooped(ranges: &mut Vec<CellRange>, row: ucell, col: uce
 }
 
 fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    println!("<< sheet >>");
-
     xml_out.elem("table:table")?;
     xml_out.attr_esc("table:name", &*sheet.name)?;
     if let Some(style) = &sheet.style {
@@ -830,6 +828,11 @@ fn write_cell(book: &WorkBook,
                 xml_out.end_elem("text:p")?;
             }
         }
+        Value::TextM(t) => {
+            xml_out.elem("text:p")?;
+            write_textvec(t, xml_out)?;
+            xml_out.end_elem("text:p")?;
+        }
         Value::DateTime(d) => {
             xml_out.attr("office:value-type", "date")?;
             let value = d.format("%Y-%m-%dT%H:%M:%S%.f").to_string();
@@ -935,7 +938,7 @@ fn write_font_decl(fonts: &HashMap<String, FontFaceDecl>, origin: StyleOrigin, x
         xml_out.empty("style:font-face")?;
         xml_out.attr_esc("style:name", font.name.as_str())?;
         if let Some(prp) = &font.attr {
-            for (a, v) in prp {
+            for (a, v) in prp.iter() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
@@ -1029,6 +1032,7 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
             ValueType::Boolean => "number:boolean-style",
             ValueType::Number => "number:number-style",
             ValueType::Text => "number:text-style",
+            ValueType::TextM => "number:text-style",
             ValueType::TimeDuration => "number:time-style",
             ValueType::Percentage => "number:percentage-style",
             ValueType::Currency => "number:currency-style",
@@ -1038,7 +1042,7 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
         xml_out.elem(tag)?;
         xml_out.attr_esc("style:name", style.name.as_str())?;
         if let Some(prp) = &style.prp {
-            for (a, v) in prp {
+            for (a, v) in prp.iter() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
@@ -1072,7 +1076,7 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
                 if part.part_type == FormatPartType::Text || part.part_type == FormatPartType::CurrencySymbol {
                     xml_out.elem(part_tag)?;
                     if let Some(prp) = &part.prp {
-                        for (a, v) in prp {
+                        for (a, v) in prp.iter() {
                             xml_out.attr_esc(a.as_ref(), v.as_str())?;
                         }
                     }
@@ -1083,7 +1087,7 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
                 } else {
                     xml_out.empty(part_tag)?;
                     if let Some(prp) = &part.prp {
-                        for (a, v) in prp {
+                        for (a, v) in prp.iter() {
                             xml_out.attr_esc(a.as_ref(), v.as_str())?;
                         }
                     }
@@ -1105,7 +1109,7 @@ fn write_pagelayout(styles: &HashMap<String, PageLayout>,
 
         if let Some(attr) = &style.attr {
             xml_out.empty("style:page-layout-properties")?;
-            for (k, v) in attr {
+            for (k, v) in attr.iter() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }
@@ -1180,58 +1184,58 @@ fn write_regions<'a>(hf: &'a HeaderFooter,
     if !hf.region_left.is_empty() {
         xml_out.elem("style:region-left")?;
         xml_out.elem("text:p")?;
-        write_composit(&hf.region_left, xml_out)?;
+        write_textvec(&hf.region_left, xml_out)?;
         xml_out.end_elem("text:p")?;
         xml_out.end_elem("style:region-left")?;
     }
     if !hf.region_center.is_empty() {
         xml_out.elem("style:region-center")?;
         xml_out.elem("text:p")?;
-        write_composit(&hf.region_center, xml_out)?;
+        write_textvec(&hf.region_center, xml_out)?;
         xml_out.end_elem("text:p")?;
         xml_out.end_elem("style:region-center")?;
     }
     if !hf.region_right.is_empty() {
         xml_out.elem("style:region-right")?;
         xml_out.elem("text:p")?;
-        write_composit(&hf.region_right, xml_out)?;
+        write_textvec(&hf.region_right, xml_out)?;
         xml_out.end_elem("text:p")?;
         xml_out.end_elem("style:region-right")?;
     }
     if !hf.content.is_empty() {
         xml_out.elem("text:p")?;
-        write_composit(&hf.content, xml_out)?;
+        write_textvec(&hf.content, xml_out)?;
         xml_out.end_elem("text:p")?;
     }
 
     Ok(())
 }
 
-fn write_composit<'a>(region: &'a CompositVec,
-                      xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
+fn write_textvec(region: &TextVec,
+                 xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     if let Some(region) = &region.vec {
         for c in region {
             match c {
-                Composit::Start(ref t) => {
+                TextElem::Start(ref t) => {
                     xml_out.elem(&t.tag)?;
                     if let Some(attr) = &t.attr {
-                        for (k, v) in attr {
+                        for (k, v) in attr.iter() {
                             xml_out.attr_esc(k.as_ref(), v.as_ref())?;
                         }
                     }
                 }
-                Composit::Empty(t) => {
+                TextElem::Empty(t) => {
                     xml_out.empty(t.tag.as_str())?;
                     if let Some(attr) = &t.attr {
-                        for (k, v) in attr {
+                        for (k, v) in attr.iter() {
                             xml_out.attr_esc(k.as_ref(), v.as_ref())?;
                         }
                     }
                 }
-                Composit::Text(t) => {
-                    xml_out.text(t)?;
+                TextElem::Text(t) => {
+                    xml_out.text_esc(t)?;
                 }
-                Composit::End(t) => {
+                TextElem::End(t) => {
                     xml_out.end_elem(t)?;
                 }
             }

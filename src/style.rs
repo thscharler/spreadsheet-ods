@@ -6,7 +6,7 @@ use string_cache::DefaultAtom;
 
 use crate::{StyleFor, StyleOrigin, StyleUse};
 use crate::attrmap::{AttrFoBackgroundColor, AttrFoBorder, AttrFoBreak, AttrFoKeepTogether, AttrFoKeepWithNext, AttrFoMargin, AttrFoMinHeight, AttrFontDecl, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, AttrParagraph, AttrStyleDynamicSpacing, AttrStyleShadow, AttrStyleWritingMode, AttrSvgHeight, AttrTableCell, AttrTableCol, AttrTableRow, AttrText};
-use crate::composit::CompositVec;
+use crate::text::TextVec;
 
 /// Page layout.
 /// Contains all header and footer information.
@@ -207,11 +207,11 @@ impl<'a> IntoIterator for &'a HeaderFooterAttr {
 pub struct HeaderFooter {
     pub(crate) display: bool,
 
-    pub(crate) region_left: CompositVec,
-    pub(crate) region_center: CompositVec,
-    pub(crate) region_right: CompositVec,
+    pub(crate) region_left: TextVec,
+    pub(crate) region_center: TextVec,
+    pub(crate) region_right: TextVec,
 
-    pub(crate) content: CompositVec,
+    pub(crate) content: TextVec,
 }
 
 impl HeaderFooter {
@@ -219,10 +219,10 @@ impl HeaderFooter {
     pub fn new() -> Self {
         Self {
             display: true,
-            region_left: CompositVec::new(),
-            region_center: CompositVec::new(),
-            region_right: CompositVec::new(),
-            content: CompositVec::new(),
+            region_left: TextVec::new(),
+            region_center: TextVec::new(),
+            region_right: TextVec::new(),
+            content: TextVec::new(),
         }
     }
 
@@ -237,42 +237,42 @@ impl HeaderFooter {
     }
 
     /// Sets the left region.
-    pub fn set_region_left(&mut self, region: CompositVec) {
+    pub fn set_region_left(&mut self, region: TextVec) {
         self.region_left = region;
     }
 
     /// Left region.
-    pub fn region_left(&self) -> &CompositVec {
+    pub fn region_left(&self) -> &TextVec {
         &self.region_left
     }
 
     /// Sets the center region.
-    pub fn set_region_center(&mut self, region: CompositVec) {
+    pub fn set_region_center(&mut self, region: TextVec) {
         self.region_center = region;
     }
 
     /// Center region.
-    pub fn region_center(&self) -> &CompositVec {
+    pub fn region_center(&self) -> &TextVec {
         &self.region_center
     }
 
     /// Sets the right region.
-    pub fn set_region_right(&mut self, region: CompositVec) {
+    pub fn set_region_right(&mut self, region: TextVec) {
         self.region_right = region;
     }
 
     /// Right region.
-    pub fn region_right(&self) -> &CompositVec {
+    pub fn region_right(&self) -> &TextVec {
         &self.region_right
     }
 
     /// Sets the content for the whole header.
-    pub fn set_content(&mut self, content: CompositVec) {
+    pub fn set_content(&mut self, content: TextVec) {
         self.content = content;
     }
 
     /// Header content, if there are no regions.
-    pub fn content(&mut self) -> &CompositVec {
+    pub fn content(&mut self) -> &TextVec {
         &self.content
     }
 }

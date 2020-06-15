@@ -1,6 +1,7 @@
 use std::mem::size_of;
 
 use spreadsheet_ods::{Sheet, WorkBook};
+use spreadsheet_ods::attrmap::AttrMapType;
 use spreadsheet_ods::style::{FontFaceDecl, HeaderFooterAttr, PageLayout, Style, TextAttr};
 
 #[test]
@@ -12,4 +13,6 @@ fn teststyles() {
     println!("TextAttr {}", size_of::<TextAttr>());
     println!("HeaderFooterAttr {}", size_of::<HeaderFooterAttr>());
     println!("FontFaceDecl {}", size_of::<FontFaceDecl>());
+    println!("AttrMapType {}", size_of::<Option<AttrMapType>>());
+    println!("box AttrMapType {}", size_of::<Option<Box<AttrMapType>>>());
 }

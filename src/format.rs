@@ -302,21 +302,6 @@ impl FormatPart {
         &self.part_type
     }
 
-    // /// Sets a vec of properties.
-    // pub fn set_prp_vec(&mut self, vec: Vec<(&str, String)>) {
-    //     set_prp_vec(&mut self.prp, vec);
-    // }
-    //
-    // /// Sets a property.
-    // pub fn set_prp(&mut self, name: &str, value: String) {
-    //     set_prp(&mut self.prp, name, value);
-    // }
-    //
-    // /// Returns a property.
-    // pub fn prp(&self, name: &str) -> Option<&String> {
-    //     get_prp(&self.prp, name)
-    // }
-    //
     /// Returns a property or a default.
     pub fn attr_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
         if let Some(v) = self.attr(name) {

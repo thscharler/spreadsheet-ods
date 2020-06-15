@@ -56,11 +56,12 @@ pub use style::Style;
 
 use crate::attrmap::{AttrTableCol, AttrTableRow};
 use crate::style::{FontFaceDecl, PageLayout};
+use crate::text::TextVec;
 
 pub mod error;
 pub mod io;
 pub mod attrmap;
-pub mod composit;
+pub mod text;
 pub mod refs;
 pub mod style;
 pub mod format;
@@ -791,6 +792,7 @@ pub enum ValueType {
     Percentage,
     Currency,
     Text,
+    TextM,
     DateTime,
     TimeDuration,
 }
@@ -810,7 +812,7 @@ pub enum Value {
     Percentage(f64),
     Currency(String, f64),
     Text(String),
-    // TODO: CompositText(...)
+    TextM(TextVec),
     // TODO: Frame(Image)
     DateTime(NaiveDateTime),
     TimeDuration(Duration),
@@ -826,6 +828,7 @@ impl Value {
             Value::Percentage(_) => ValueType::Percentage,
             Value::Currency(_, _) => ValueType::Currency,
             Value::Text(_) => ValueType::Text,
+            Value::TextM(_) => ValueType::TextM,
             Value::TimeDuration(_) => ValueType::TimeDuration,
             Value::DateTime(_) => ValueType::DateTime,
         }
