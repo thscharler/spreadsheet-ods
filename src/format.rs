@@ -32,26 +32,26 @@ impl std::error::Error for ValueFormatError {}
 #[derive(Debug, Clone, Default)]
 pub struct ValueFormat {
     // Name
-    pub(crate) name: String,
+    name: String,
     // Value type
-    pub(crate) v_type: ValueType,
+    v_type: ValueType,
     // Origin information.
-    pub(crate) origin: StyleOrigin,
+    origin: StyleOrigin,
     // Usage of this style.
-    pub(crate) styleuse: StyleUse,
+    styleuse: StyleUse,
     // Properties of the format.
-    pub(crate) prp: Option<AttrMapType>,
+    attr: Option<AttrMapType>,
     // Parts of the format.
-    pub(crate) parts: Option<Vec<FormatPart>>,
+    parts: Option<Vec<FormatPart>>,
 }
 
 impl AttrMap for ValueFormat {
     fn attr_map(&self) -> Option<&AttrMapType> {
-        self.prp.as_ref()
+        self.attr.as_ref()
     }
 
     fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
-        &mut self.prp
+        &mut self.attr
     }
 }
 
@@ -68,7 +68,7 @@ impl ValueFormat {
             v_type: ValueType::Text,
             origin,
             styleuse,
-            prp: None,
+            attr: None,
             parts: None,
         }
     }
@@ -80,7 +80,7 @@ impl ValueFormat {
             v_type: value_type,
             origin: Default::default(),
             styleuse: Default::default(),
-            prp: None,
+            attr: None,
             parts: None,
         }
     }
@@ -216,7 +216,7 @@ impl ValueFormat {
 }
 
 /// Identifies the structural parts of a value format.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FormatPartType {
     Boolean,
     Number,
@@ -245,20 +245,20 @@ pub enum FormatPartType {
 #[derive(Debug, Clone)]
 pub struct FormatPart {
     // What kind of format part is this?
-    pub(crate) part_type: FormatPartType,
+    part_type: FormatPartType,
     // Properties of this part.
-    pub(crate) prp: Option<AttrMapType>,
+    attr: Option<AttrMapType>,
     // Some content.
-    pub(crate) content: Option<String>,
+    content: Option<String>,
 }
 
 impl AttrMap for FormatPart {
     fn attr_map(&self) -> Option<&AttrMapType> {
-        self.prp.as_ref()
+        self.attr.as_ref()
     }
 
     fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
-        &mut self.prp
+        &mut self.attr
     }
 }
 
@@ -267,7 +267,7 @@ impl FormatPart {
     pub fn new(ftype: FormatPartType) -> Self {
         FormatPart {
             part_type: ftype,
-            prp: None,
+            attr: None,
             content: None,
         }
     }
@@ -276,7 +276,7 @@ impl FormatPart {
     pub fn new_content(ftype: FormatPartType, content: &str) -> Self {
         FormatPart {
             part_type: ftype,
-            prp: None,
+            attr: None,
             content: Some(content.to_string()),
         }
     }
@@ -285,7 +285,7 @@ impl FormatPart {
     pub fn new_vec(ftype: FormatPartType, prp_vec: Vec<(&str, String)>) -> Self {
         let mut part = FormatPart {
             part_type: ftype,
-            prp: None,
+            attr: None,
             content: None,
         };
         part.add_all(prp_vec);
@@ -298,8 +298,8 @@ impl FormatPart {
     }
 
     /// What kind of part?
-    pub fn part_type(&self) -> &FormatPartType {
-        &self.part_type
+    pub fn part_type(&self) -> FormatPartType {
+        self.part_type
     }
 
     /// Returns a property or a default.
@@ -563,13 +563,58 @@ pub fn create_percentage_format<S: Into<String>>(name: S, decimal: u8) -> ValueF
     v
 }
 
+/// Creates a new currency format.
+pub fn create_currency_prefix<S: Into<String>, T: Into<String>>(name: S, symbol: T) -> ValueFormat {
+    let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
+
+    let mut p0 = FormatPart::new(FormatPartType::CurrencySymbol);
+    p0.set_content(symbol.into());
+    v.push_part(p0);
+
+    let mut p1 = FormatPart::new(FormatPartType::Text);
+    p1.set_content(" ");
+    v.push_part(p1);
+
+    let mut p2 = FormatPart::new(FormatPartType::Number);
+    p2.set_attr("number:min-integer-digits", 1.to_string());
+    p2.set_attr("number:decimal-places", 2.to_string());
+    p2.set_attr("loext:min-decimal-places", 2.to_string());
+    p2.set_attr("number:grouping", String::from("true"));
+    v.push_part(p2);
+
+    v
+}
+
+/// Creates a new currency format.
+pub fn create_currency_suffix<S: Into<String>, T: Into<String>>(name: S, symbol: T) -> ValueFormat {
+    let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
+
+    let mut p2 = FormatPart::new(FormatPartType::Number);
+    p2.set_attr("number:min-integer-digits", 1.to_string());
+    p2.set_attr("number:decimal-places", 2.to_string());
+    p2.set_attr("loext:min-decimal-places", 2.to_string());
+    p2.set_attr("number:grouping", String::from("true"));
+    v.push_part(p2);
+
+    let mut p1 = FormatPart::new(FormatPartType::Text);
+    p1.set_content(" ");
+    v.push_part(p1);
+
+    let mut p0 = FormatPart::new(FormatPartType::CurrencySymbol);
+    p0.set_content(symbol.into());
+    v.push_part(p0);
+
+    v
+}
+
+
 /// Creates a new currency format for EURO.
 pub fn create_euro_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
 
     let mut p0 = FormatPart::new(FormatPartType::CurrencySymbol);
-    p0.set_attr("number:language", String::from("de"));
-    p0.set_attr("number:country", String::from("AT"));
+    // p0.set_attr("number:language", String::from("de"));
+    // p0.set_attr("number:country", String::from("AT"));
     p0.set_content("€");
     v.push_part(p0);
 
@@ -601,8 +646,8 @@ pub fn create_euro_red_format<S: Into<String>>(name: S, positive_style: S) -> Va
     v.push_part(p1);
 
     let mut p2 = FormatPart::new(FormatPartType::CurrencySymbol);
-    p2.set_attr("number:language", String::from("de"));
-    p2.set_attr("number:country", String::from("AT"));
+    // p2.set_attr("number:language", String::from("de"));
+    // p2.set_attr("number:country", String::from("AT"));
     p2.set_content("€");
     v.push_part(p2);
 

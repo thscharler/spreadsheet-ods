@@ -934,13 +934,11 @@ fn write_cell(book: &WorkBook,
 }
 
 fn write_font_decl(fonts: &HashMap<String, FontFaceDecl>, origin: StyleOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    for font in fonts.values().filter(|s| s.origin == origin) {
+    for font in fonts.values().filter(|s| s.origin() == origin) {
         xml_out.empty("style:font-face")?;
-        xml_out.attr_esc("style:name", font.name.as_str())?;
-        if let Some(prp) = &font.attr {
-            for (a, v) in prp.iter() {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
-            }
+        xml_out.attr_esc("style:name", font.name().as_str())?;
+        for (a, v) in font.attr_iter() {
+            xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }
     Ok(())
@@ -950,14 +948,14 @@ fn write_styles(styles: &HashMap<String, Style>,
                 origin: StyleOrigin,
                 styleuse: StyleUse,
                 xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    for style in styles.values().filter(|s| s.origin == origin && s.styleuse == styleuse) {
+    for style in styles.values().filter(|s| s.origin() == origin && s.styleuse() == styleuse) {
         if styleuse == StyleUse::Default {
             xml_out.elem("style:default-style")?;
         } else {
             xml_out.elem("style:style")?;
-            xml_out.attr_esc("style:name", style.name.as_str())?;
+            xml_out.attr_esc("style:name", style.name().as_str())?;
         }
-        let family = match style.family {
+        let family = match style.family() {
             StyleFor::Table => "table",
             StyleFor::TableColumn => "table-column",
             StyleFor::TableRow => "table-row",
@@ -965,49 +963,49 @@ fn write_styles(styles: &HashMap<String, Style>,
             StyleFor::None => "",
         };
         xml_out.attr("style:family", family)?;
-        if let Some(display_name) = &style.display_name {
+        if let Some(display_name) = &style.display_name() {
             xml_out.attr_esc("style:display-name", display_name.as_str())?;
         }
-        if let Some(parent) = &style.parent {
+        if let Some(parent) = &style.parent() {
             xml_out.attr_esc("style:parent-style-name", parent.as_str())?;
         }
-        if let Some(value_format) = &style.value_format {
+        if let Some(value_format) = &style.value_format() {
             xml_out.attr_esc("style:data-style-name", value_format.as_str())?;
         }
 
-        if !style.table_cell_attr.is_empty() {
+        if !style.cell().is_empty() {
             xml_out.empty("style:table-cell-properties")?;
-            for (a, v) in &style.table_cell_attr {
+            for (a, v) in style.cell() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !style.table_col_attr.is_empty() {
+        if !style.col().is_empty() {
             xml_out.empty("style:table-column-properties")?;
-            for (a, v) in &style.table_col_attr {
+            for (a, v) in style.col() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !style.table_row_attr.is_empty() {
+        if !style.row().is_empty() {
             xml_out.empty("style:table-row-properties")?;
-            for (a, v) in &style.table_row_attr {
+            for (a, v) in style.row() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !style.table_attr.is_empty() {
+        if !style.table().is_empty() {
             xml_out.empty("style:table-properties")?;
-            for (a, v) in &style.table_attr {
+            for (a, v) in style.table() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !&style.paragraph_attr.is_empty() {
+        if !&style.paragraph().is_empty() {
             xml_out.empty("style:paragraph-properties")?;
-            for (a, v) in &style.paragraph_attr {
+            for (a, v) in style.paragraph() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !style.text_attr.is_empty() {
+        if !style.text().is_empty() {
             xml_out.empty("style:text-properties")?;
-            for (a, v) in &style.text_attr {
+            for (a, v) in style.text() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
@@ -1026,8 +1024,8 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
                       origin: StyleOrigin,
                       styleuse: StyleUse,
                       xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    for style in styles.values().filter(|s| s.origin == origin && s.styleuse == styleuse) {
-        let tag = match style.v_type {
+    for style in styles.values().filter(|s| s.origin() == origin && s.styleuse() == styleuse) {
+        let tag = match style.value_type() {
             ValueType::Empty => "number:empty_style", // ???
             ValueType::Boolean => "number:boolean-style",
             ValueType::Number => "number:number-style",
@@ -1040,8 +1038,8 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
         };
 
         xml_out.elem(tag)?;
-        xml_out.attr_esc("style:name", style.name.as_str())?;
-        if let Some(prp) = &style.prp {
+        xml_out.attr_esc("style:name", style.name().as_str())?;
+        if let Some(prp) = style.attr_map() {
             for (a, v) in prp.iter() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
@@ -1049,7 +1047,7 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
 
         if let Some(parts) = style.parts() {
             for part in parts {
-                let part_tag = match part.part_type {
+                let part_tag = match part.part_type() {
                     FormatPartType::Boolean => "number:boolean",
                     FormatPartType::Number => "number:number",
                     FormatPartType::Scientific => "number:scientific-number",
@@ -1073,20 +1071,20 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
                     FormatPartType::StyleMap => "style:map",
                 };
 
-                if part.part_type == FormatPartType::Text || part.part_type == FormatPartType::CurrencySymbol {
+                if part.part_type() == FormatPartType::Text || part.part_type() == FormatPartType::CurrencySymbol {
                     xml_out.elem(part_tag)?;
-                    if let Some(prp) = &part.prp {
+                    if let Some(prp) = part.attr_map() {
                         for (a, v) in prp.iter() {
                             xml_out.attr_esc(a.as_ref(), v.as_str())?;
                         }
                     }
-                    if let Some(content) = &part.content {
+                    if let Some(content) = part.content() {
                         xml_out.text_esc(content)?;
                     }
                     xml_out.end_elem(part_tag)?;
                 } else {
                     xml_out.empty(part_tag)?;
-                    if let Some(prp) = &part.prp {
+                    if let Some(prp) = part.attr_map() {
                         for (a, v) in prp.iter() {
                             xml_out.attr_esc(a.as_ref(), v.as_str())?;
                         }
@@ -1105,9 +1103,9 @@ fn write_pagelayout(styles: &HashMap<String, PageLayout>,
                     xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:page-layout")?;
-        xml_out.attr_esc("style:name", &style.name)?;
+        xml_out.attr_esc("style:name", &style.name())?;
 
-        if let Some(attr) = &style.attr {
+        if let Some(attr) = style.attr_map() {
             xml_out.empty("style:page-layout-properties")?;
             for (k, v) in attr.iter() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
@@ -1116,8 +1114,8 @@ fn write_pagelayout(styles: &HashMap<String, PageLayout>,
 
         xml_out.elem("style:header-style")?;
         xml_out.empty("style:header-footer-properties")?;
-        if !style.header_attr.is_empty() {
-            for (k, v) in &style.header_attr {
+        if !style.header_attr().is_empty() {
+            for (k, v) in style.header_attr() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }
@@ -1125,8 +1123,8 @@ fn write_pagelayout(styles: &HashMap<String, PageLayout>,
 
         xml_out.elem("style:footer-style")?;
         xml_out.empty("style:header-footer-properties")?;
-        if !style.header_attr.is_empty() {
-            for (k, v) in &style.footer_attr {
+        if !style.header_attr().is_empty() {
+            for (k, v) in style.footer_attr() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }
@@ -1142,35 +1140,35 @@ fn write_masterpage<'a>(styles: &'a HashMap<String, PageLayout>,
                         xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:master-page")?;
-        xml_out.attr("style:name", &style.masterpage_name)?;
-        xml_out.attr("style:page-layout-name", &style.name)?;
+        xml_out.attr("style:name", &style.masterpage_name())?;
+        xml_out.attr("style:page-layout-name", &style.name())?;
 
         xml_out.elem("style:header")?;
-        if !style.header.display {
+        if !style.header().display() {
             xml_out.attr("style:display", "false")?;
         }
-        write_regions(&style.header, xml_out)?;
+        write_regions(&style.header(), xml_out)?;
         xml_out.end_elem("style:header")?;
 
         xml_out.elem("style:header_left")?;
-        if !style.header_left.display {
+        if !style.header_left().display() {
             xml_out.attr("style:display", "false")?;
         }
-        write_regions(&style.header_left, xml_out)?;
+        write_regions(&style.header_left(), xml_out)?;
         xml_out.end_elem("style:header_left")?;
 
         xml_out.elem("style:footer")?;
-        if !style.footer.display {
+        if !style.footer().display() {
             xml_out.attr("style:display", "false")?;
         }
-        write_regions(&style.footer, xml_out)?;
+        write_regions(&style.footer(), xml_out)?;
         xml_out.end_elem("style:footer")?;
 
         xml_out.elem("style:footer_left")?;
-        if !style.footer_left.display {
+        if !style.footer_left().display() {
             xml_out.attr("style:display", "false")?;
         }
-        write_regions(&style.footer_left, xml_out)?;
+        write_regions(&style.footer_left(), xml_out)?;
         xml_out.end_elem("style:footer_left")?;
 
         xml_out.end_elem("style:master-page")?;
@@ -1181,30 +1179,30 @@ fn write_masterpage<'a>(styles: &'a HashMap<String, PageLayout>,
 
 fn write_regions<'a>(hf: &'a HeaderFooter,
                      xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
-    if !hf.region_left.is_empty() {
+    if !hf.left().is_empty() {
         xml_out.elem("style:region-left")?;
         xml_out.elem("text:p")?;
-        write_textvec(&hf.region_left, xml_out)?;
+        write_textvec(&hf.left(), xml_out)?;
         xml_out.end_elem("text:p")?;
         xml_out.end_elem("style:region-left")?;
     }
-    if !hf.region_center.is_empty() {
+    if !hf.center().is_empty() {
         xml_out.elem("style:region-center")?;
         xml_out.elem("text:p")?;
-        write_textvec(&hf.region_center, xml_out)?;
+        write_textvec(&hf.center(), xml_out)?;
         xml_out.end_elem("text:p")?;
         xml_out.end_elem("style:region-center")?;
     }
-    if !hf.region_right.is_empty() {
+    if !hf.right().is_empty() {
         xml_out.elem("style:region-right")?;
         xml_out.elem("text:p")?;
-        write_textvec(&hf.region_right, xml_out)?;
+        write_textvec(&hf.right(), xml_out)?;
         xml_out.end_elem("text:p")?;
         xml_out.end_elem("style:region-right")?;
     }
-    if !hf.content.is_empty() {
+    if !hf.content().is_empty() {
         xml_out.elem("text:p")?;
-        write_textvec(&hf.content, xml_out)?;
+        write_textvec(&hf.content(), xml_out)?;
         xml_out.end_elem("text:p")?;
     }
 
@@ -1213,20 +1211,20 @@ fn write_regions<'a>(hf: &'a HeaderFooter,
 
 fn write_textvec(region: &TextVec,
                  xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    if let Some(region) = &region.vec {
+    if let Some(region) = &region.vec() {
         for c in region {
             match c {
                 TextElem::Start(ref t) => {
-                    xml_out.elem(&t.tag)?;
-                    if let Some(attr) = &t.attr {
+                    xml_out.elem(&t.tag())?;
+                    if let Some(attr) = t.attr_map() {
                         for (k, v) in attr.iter() {
                             xml_out.attr_esc(k.as_ref(), v.as_ref())?;
                         }
                     }
                 }
                 TextElem::Empty(t) => {
-                    xml_out.empty(t.tag.as_str())?;
-                    if let Some(attr) = &t.attr {
+                    xml_out.empty(t.tag().as_str())?;
+                    if let Some(attr) = t.attr_map() {
                         for (k, v) in attr.iter() {
                             xml_out.attr_esc(k.as_ref(), v.as_ref())?;
                         }

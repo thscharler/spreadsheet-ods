@@ -40,18 +40,18 @@ use crate::text::TextVec;
 ///
 #[derive(Clone, Debug, Default)]
 pub struct PageLayout {
-    pub(crate) name: String,
-    pub(crate) masterpage_name: String,
+    name: String,
+    masterpage_name: String,
 
-    pub(crate) attr: Option<AttrMapType>,
+    attr: Option<AttrMapType>,
 
-    pub(crate) header_attr: HeaderFooterAttr,
-    pub(crate) header: HeaderFooter,
-    pub(crate) header_left: HeaderFooter,
+    header_attr: HeaderFooterAttr,
+    header: HeaderFooter,
+    header_left: HeaderFooter,
 
-    pub(crate) footer_attr: HeaderFooterAttr,
-    pub(crate) footer: HeaderFooter,
-    pub(crate) footer_left: HeaderFooter,
+    footer_attr: HeaderFooterAttr,
+    footer: HeaderFooter,
+    footer_left: HeaderFooter,
 }
 
 impl AttrMap for PageLayout {
@@ -166,7 +166,12 @@ impl PageLayout {
     }
 
     /// Attributes for header.
-    pub fn header_attr(&mut self) -> &mut HeaderFooterAttr {
+    pub fn header_attr(&self) -> &HeaderFooterAttr {
+        &self.header_attr
+    }
+
+    /// Attributes for header.
+    pub fn header_attr_mut(&mut self) -> &mut HeaderFooterAttr {
         &mut self.header_attr
     }
 
@@ -201,14 +206,19 @@ impl PageLayout {
     }
 
     /// Attributes for footer.
-    pub fn footer_attr(&mut self) -> &mut HeaderFooterAttr {
+    pub fn footer_attr(&self) -> &HeaderFooterAttr {
+        &self.footer_attr
+    }
+
+    /// Attributes for footer.
+    pub fn footer_attr_mut(&mut self) -> &mut HeaderFooterAttr {
         &mut self.footer_attr
     }
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct HeaderFooterAttr {
-    pub(crate) attr: Option<AttrMapType>,
+    attr: Option<AttrMapType>,
 }
 
 impl AttrMap for HeaderFooterAttr {
@@ -253,13 +263,13 @@ impl<'a> IntoIterator for &'a HeaderFooterAttr {
 /// Each is a CompositVec of parsed XML-tags.
 #[derive(Clone, Debug, Default)]
 pub struct HeaderFooter {
-    pub(crate) display: bool,
+    display: bool,
 
-    pub(crate) region_left: TextVec,
-    pub(crate) region_center: TextVec,
-    pub(crate) region_right: TextVec,
+    region_left: TextVec,
+    region_center: TextVec,
+    region_right: TextVec,
 
-    pub(crate) content: TextVec,
+    content: TextVec,
 }
 
 impl HeaderFooter {
@@ -348,11 +358,11 @@ impl HeaderFooter {
 /// Font declarations.
 #[derive(Clone, Debug, Default)]
 pub struct FontFaceDecl {
-    pub(crate) name: String,
+    name: String,
     /// From where did we get this style.
-    pub(crate) origin: StyleOrigin,
+    origin: StyleOrigin,
     /// All other attributes.
-    pub(crate) attr: Option<AttrMapType>,
+    attr: Option<AttrMapType>,
 }
 
 impl AttrFontDecl for FontFaceDecl {}
@@ -425,31 +435,31 @@ impl FontFaceDecl {
 #[derive(Debug, Clone, Default)]
 pub struct Style {
     /// Style name.
-    pub(crate) name: String,
+    name: String,
     /// Nice String.
-    pub(crate) display_name: Option<String>,
+    display_name: Option<String>,
     /// From where did we get this style.
-    pub(crate) origin: StyleOrigin,
+    origin: StyleOrigin,
     /// Which tag contains this style.
-    pub(crate) styleuse: StyleUse,
+    styleuse: StyleUse,
     /// Applicability of this style.
-    pub(crate) family: StyleFor,
+    family: StyleFor,
     /// Styles can cascade.
-    pub(crate) parent: Option<String>,
+    parent: Option<String>,
     /// References the actual formatting instructions in the value-styles.
-    pub(crate) value_format: Option<String>,
+    value_format: Option<String>,
     /// Table styling
-    pub(crate) table_attr: TableAttr,
+    table_attr: TableAttr,
     /// Column styling
-    pub(crate) table_col_attr: TableColAttr,
+    table_col_attr: TableColAttr,
     /// Row styling
-    pub(crate) table_row_attr: TableRowAttr,
+    table_row_attr: TableRowAttr,
     /// Cell styles
-    pub(crate) table_cell_attr: TableCellAttr,
+    table_cell_attr: TableCellAttr,
     /// Cell paragraph styles
-    pub(crate) paragraph_attr: ParagraphAttr,
+    paragraph_attr: ParagraphAttr,
     /// Cell text styles
-    pub(crate) text_attr: TextAttr,
+    text_attr: TextAttr,
 }
 
 impl Style {
@@ -547,8 +557,8 @@ impl Style {
     }
 
     /// Returns the origin.
-    pub fn origin(&self) -> &StyleOrigin {
-        &self.origin
+    pub fn origin(&self) -> StyleOrigin {
+        self.origin
     }
 
     /// Style usage.
@@ -567,8 +577,8 @@ impl Style {
     }
 
     /// Returns the style-family.
-    pub fn family(&self) -> &StyleFor {
-        &self.family
+    pub fn family(&self) -> StyleFor {
+        self.family
     }
 
     /// Sets the parent style.
@@ -592,38 +602,69 @@ impl Style {
     }
 
     /// Table style attributes.
-    pub fn table_attr(&mut self) -> &mut TableAttr {
+    pub fn table(&self) -> &TableAttr {
+        &self.table_attr
+    }
+
+    /// Table style attributes.
+    pub fn table_mut(&mut self) -> &mut TableAttr {
         &mut self.table_attr
     }
 
-    pub fn col_attr(&mut self) -> &mut TableColAttr {
+    /// Table column style attributes.
+    pub fn col(&self) -> &TableColAttr {
+        &self.table_col_attr
+    }
+
+    /// Table column style attributes.
+    pub fn col_mut(&mut self) -> &mut TableColAttr {
         &mut self.table_col_attr
     }
 
     /// Table-row style attributes.
-    pub fn row_attr(&mut self) -> &mut TableRowAttr {
+    pub fn row(&self) -> &TableRowAttr {
+        &self.table_row_attr
+    }
+
+    /// Table-row style attributes.
+    pub fn row_mut(&mut self) -> &mut TableRowAttr {
         &mut self.table_row_attr
     }
 
     /// Table-cell style attributes.
-    pub fn cell_attr(&mut self) -> &mut TableCellAttr {
+    pub fn cell(&self) -> &TableCellAttr {
+        &self.table_cell_attr
+    }
+
+    /// Table-cell style attributes.
+    pub fn cell_mut(&mut self) -> &mut TableCellAttr {
         &mut self.table_cell_attr
     }
 
     /// Paragraph style attributes.
-    pub fn paragraph_attr(&mut self) -> &mut ParagraphAttr {
+    pub fn paragraph(&self) -> &ParagraphAttr {
+        &self.paragraph_attr
+    }
+
+    /// Paragraph style attributes.
+    pub fn paragraph_mut(&mut self) -> &mut ParagraphAttr {
         &mut self.paragraph_attr
     }
 
     /// Text style attributes.
-    pub fn text_attr(&mut self) -> &mut TextAttr {
+    pub fn text(&self) -> &TextAttr {
+        &self.text_attr
+    }
+
+    /// Text style attributes.
+    pub fn text_mut(&mut self) -> &mut TextAttr {
         &mut self.text_attr
     }
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct TableAttr {
-    pub(crate) attr: Option<AttrMapType>,
+    attr: Option<AttrMapType>,
 }
 
 impl AttrMap for TableAttr {
@@ -659,7 +700,7 @@ impl AttrStyleWritingMode for TableAttr {}
 
 #[derive(Clone, Debug, Default)]
 pub struct TableRowAttr {
-    pub(crate) attr: Option<AttrMapType>,
+    attr: Option<AttrMapType>,
 }
 
 impl AttrMap for TableRowAttr {
@@ -691,7 +732,7 @@ impl AttrTableRow for TableRowAttr {}
 
 #[derive(Clone, Debug, Default)]
 pub struct TableColAttr {
-    pub(crate) attr: Option<AttrMapType>,
+    attr: Option<AttrMapType>,
 }
 
 impl AttrMap for TableColAttr {
@@ -719,7 +760,7 @@ impl AttrTableCol for TableColAttr {}
 
 #[derive(Clone, Debug, Default)]
 pub struct TableCellAttr {
-    pub(crate) attr: Option<AttrMapType>,
+    attr: Option<AttrMapType>,
 }
 
 impl AttrMap for TableCellAttr {
@@ -755,7 +796,7 @@ impl AttrTableCell for TableCellAttr {}
 
 #[derive(Clone, Debug, Default)]
 pub struct ParagraphAttr {
-    pub(crate) attr: Option<AttrMapType>,
+    attr: Option<AttrMapType>,
 }
 
 impl AttrMap for ParagraphAttr {
@@ -800,7 +841,7 @@ impl AttrParagraph for ParagraphAttr {}
 
 #[derive(Clone, Debug, Default)]
 pub struct TextAttr {
-    pub(crate) attr: Option<AttrMapType>,
+    attr: Option<AttrMapType>,
 }
 
 impl AttrMap for TextAttr {

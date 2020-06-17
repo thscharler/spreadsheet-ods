@@ -101,7 +101,7 @@ impl Default for StyleUse {
 }
 
 /// Applicability of this style.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum StyleFor {
     Table,
     TableRow,
@@ -254,7 +254,7 @@ impl WorkBook {
 
     /// Adds a font.
     pub fn add_font(&mut self, font: FontFaceDecl) {
-        self.fonts.insert(font.name.to_string(), font);
+        self.fonts.insert(font.name().to_string(), font);
     }
 
     /// Removes a font.
@@ -274,7 +274,7 @@ impl WorkBook {
 
     /// Adds a style.
     pub fn add_style(&mut self, style: Style) {
-        self.styles.insert(style.name.to_string(), style);
+        self.styles.insert(style.name().to_string(), style);
     }
 
     /// Removes a style.
@@ -294,7 +294,7 @@ impl WorkBook {
 
     /// Adds a value format.
     pub fn add_format(&mut self, vstyle: ValueFormat) {
-        self.formats.insert(vstyle.name.to_string(), vstyle);
+        self.formats.insert(vstyle.name().to_string(), vstyle);
     }
 
     /// Removes the format.
@@ -314,7 +314,7 @@ impl WorkBook {
 
     /// Pagelayout
     pub fn add_pagelayout(&mut self, pagelayout: PageLayout) {
-        self.page_layouts.insert(pagelayout.name.to_string(), pagelayout);
+        self.page_layouts.insert(pagelayout.name().to_string(), pagelayout);
     }
 
     pub fn remove_pagelayout(&mut self, name: &str) -> Option<PageLayout> {
@@ -482,8 +482,8 @@ impl Sheet {
         } else {
             Style::col_style(&style_name, "")
         };
-        col_style.col_attr().set_col_width(width);
-        col_style.col_attr().set_use_optimal_col_width(false);
+        col_style.col_mut().set_col_width(width);
+        col_style.col_mut().set_use_optimal_col_width(false);
         workbook.add_style(col_style);
 
         self.set_column_style(col, &style_name);
@@ -517,8 +517,8 @@ impl Sheet {
         } else {
             Style::row_style(&style_name, "")
         };
-        row_style.row_attr().set_row_height(height);
-        row_style.row_attr().set_use_optimal_row_height(false);
+        row_style.row_mut().set_row_height(height);
+        row_style.row_mut().set_use_optimal_row_height(false);
         workbook.add_style(row_style);
 
         self.set_row_style(row, &style_name);

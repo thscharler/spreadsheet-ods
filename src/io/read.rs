@@ -679,10 +679,10 @@ fn read_page_layout(book: &mut WorkBook,
                         footer_style = true,
                     b"style:header-footer-properties" => {
                         if header_style {
-                            copy_attr(&mut pl.header_attr, xml, xml_tag)?;
+                            copy_attr(pl.header_attr_mut(), xml, xml_tag)?;
                         }
                         if footer_style {
-                            copy_attr(&mut pl.footer_attr, xml, xml_tag)?;
+                            copy_attr(pl.footer_attr_mut(), xml, xml_tag)?;
                         }
                     }
                     _ => (),
@@ -897,7 +897,7 @@ fn read_textvec2(vec: &mut Option<TextVec>,
                 if let Some(vec) = vec {
                     vec.text(t);
                 } else if let Some(s) = str {
-                    let tmp = s.to_string() + t.as_str();
+                    let tmp = s.clone() + t.as_str();
                     str.replace(tmp);
                 } else {
                     str.replace(t);
@@ -1215,7 +1215,7 @@ fn read_value_format(book: &mut WorkBook,
             }
             Event::Text(ref e) => {
                 if let Some(part) = &mut value_style_part {
-                    part.content = Some(e.unescape_and_decode(&xml)?);
+                    part.set_content(e.unescape_and_decode(&xml)?);
                 }
             }
             Event::End(ref e) => {
@@ -1254,7 +1254,7 @@ fn read_value_format_attr(value_type: ValueType,
                           value_style: &mut ValueFormat,
                           xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                           xml_tag: &BytesStart) -> Result<(), OdsError> {
-    value_style.v_type = value_type;
+    value_style.set_value_type(value_type);
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -1307,17 +1307,17 @@ fn read_style_style(book: &mut WorkBook,
                 | Event::Empty(ref xml_tag) => {
                     match xml_tag.name() {
                         b"style:table-properties" =>
-                            copy_attr(&mut style.table_attr, xml, xml_tag)?,
+                            copy_attr(style.table_mut(), xml, xml_tag)?,
                         b"style:table-column-properties" =>
-                            copy_attr(&mut style.table_col_attr, xml, xml_tag)?,
+                            copy_attr(style.col_mut(), xml, xml_tag)?,
                         b"style:table-row-properties" =>
-                            copy_attr(&mut style.table_row_attr, xml, xml_tag)?,
+                            copy_attr(style.row_mut(), xml, xml_tag)?,
                         b"style:table-cell-properties" =>
-                            copy_attr(&mut style.table_cell_attr, xml, xml_tag)?,
+                            copy_attr(style.cell_mut(), xml, xml_tag)?,
                         b"style:text-properties" =>
-                            copy_attr(&mut style.text_attr, xml, xml_tag)?,
+                            copy_attr(style.text_mut(), xml, xml_tag)?,
                         b"style:paragraph-properties" =>
-                            copy_attr(&mut style.paragraph_attr, xml, xml_tag)?,
+                            copy_attr(style.paragraph_mut(), xml, xml_tag)?,
                         _ => (),
                     }
                 }
@@ -1352,20 +1352,20 @@ fn read_style_attr(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
             attr if attr.key == b"style:family" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
                 match v.as_ref() {
-                    "table" => style.family = StyleFor::Table,
-                    "table-column" => style.family = StyleFor::TableColumn,
-                    "table-row" => style.family = StyleFor::TableRow,
-                    "table-cell" => style.family = StyleFor::TableCell,
+                    "table" => style.set_family(StyleFor::Table),
+                    "table-column" => style.set_family(StyleFor::TableColumn),
+                    "table-row" => style.set_family(StyleFor::TableRow),
+                    "table-cell" => style.set_family(StyleFor::TableCell),
                     _ => {}
                 }
             }
             attr if attr.key == b"style:parent-style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                style.parent = Some(v);
+                style.set_parent(v);
             }
             attr if attr.key == b"style:data-style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                style.value_format = Some(v);
+                style.set_value_format(v);
             }
             _ => { /* noop */ }
         }

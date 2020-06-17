@@ -3,8 +3,8 @@ use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType};
 /// A tag within a text region.
 #[derive(Debug, Clone, Default)]
 pub struct TextTag {
-    pub(crate) tag: String,
-    pub(crate) attr: Option<AttrMapType>,
+    tag: String,
+    attr: Option<AttrMapType>,
 }
 
 impl AttrMap for TextTag {
@@ -51,7 +51,7 @@ pub enum TextElem {
 /// A vector of text.
 #[derive(Debug, Clone, Default)]
 pub struct TextVec {
-    pub(crate) vec: Option<Vec<TextElem>>,
+    vec: Option<Vec<TextElem>>,
 }
 
 impl TextVec {
