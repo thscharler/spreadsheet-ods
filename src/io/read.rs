@@ -843,15 +843,15 @@ fn read_headerfooter(end_tag: &[u8],
                 match xml_tag.name() {
                     b"style:region-left" => {
                         let cm = read_textvec(b"style:region-left", xml, dump_xml)?;
-                        hf.set_region_left(cm);
+                        hf.set_left(cm);
                     }
                     b"style:region-center" => {
                         let cm = read_textvec(b"style:region-left", xml, dump_xml)?;
-                        hf.set_region_center(cm);
+                        hf.set_center(cm);
                     }
                     b"style:region-right" => {
                         let cm = read_textvec(b"style:region-left", xml, dump_xml)?;
-                        hf.set_region_right(cm);
+                        hf.set_right(cm);
                     }
                     b"text:p" => {
                         let cm = read_textvec(b"text:p", xml, dump_xml)?;

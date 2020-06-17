@@ -10,6 +10,34 @@ use crate::text::TextVec;
 
 /// Page layout.
 /// Contains all header and footer information.
+///
+/// ```
+/// use spreadsheet_ods::{write_ods, WorkBook};
+/// use spreadsheet_ods::text::TextVec;
+/// use spreadsheet_ods::style::{HeaderFooter, PageLayout};
+/// use color::Rgb;
+/// use spreadsheet_ods::attrmap::{AttrFoBackgroundColor, AttrFoMinHeight, AttrFoMargin};
+///
+/// let mut wb = WorkBook::new();
+///
+/// let mut pl = PageLayout::default();
+///
+/// pl.set_background_color(Rgb::new(12, 129, 252));
+///
+/// pl.header_attr().set_min_height("0.75cm");
+/// pl.header_attr().set_margin_left("0.15cm");
+/// pl.header_attr().set_margin_right("0.15cm");
+/// pl.header_attr().set_margin_bottom("0.15cm");
+///
+/// pl.header_mut().center_mut().text("middle ground");
+/// pl.header_mut().left_mut().text("left wing");
+/// pl.header_mut().right_mut().text("right wing");
+///
+/// wb.add_pagelayout(pl);
+///
+/// write_ods(&wb, "test_out/hf0.ods").unwrap();
+/// ```
+///
 #[derive(Clone, Debug, Default)]
 pub struct PageLayout {
     pub(crate) name: String,
@@ -107,17 +135,22 @@ impl PageLayout {
         AttrMapIter::from(self.attr_map())
     }
 
-    /// Header. This is the regular header for left and right side pages.
+    /// Left side header.
     pub fn set_header(&mut self, header: HeaderFooter) {
         self.header = header;
     }
 
-    /// Header.
+    /// Left side header.
     pub fn header(&self) -> &HeaderFooter {
         &self.header
     }
 
-    /// If there is a different header on left side pages, set this one too.
+    /// Header.
+    pub fn header_mut(&mut self) -> &mut HeaderFooter {
+        &mut self.header
+    }
+
+    /// Left side header.
     pub fn set_header_left(&mut self, header: HeaderFooter) {
         self.header_left = header;
     }
@@ -127,12 +160,17 @@ impl PageLayout {
         &self.header_left
     }
 
+    /// Left side header.
+    pub fn header_left_mut(&mut self) -> &mut HeaderFooter {
+        &mut self.header_left
+    }
+
     /// Attributes for header.
     pub fn header_attr(&mut self) -> &mut HeaderFooterAttr {
         &mut self.header_attr
     }
 
-    /// Footer. This is the regular footer for left and right side pages.
+    /// Footer.
     pub fn set_footer(&mut self, footer: HeaderFooter) {
         self.footer = footer;
     }
@@ -142,7 +180,12 @@ impl PageLayout {
         &self.footer
     }
 
-    /// If there is a different footer on left side pages, set this one too.
+    /// Footer.
+    pub fn footer_mut(&mut self) -> &mut HeaderFooter {
+        &mut self.footer
+    }
+
+    /// Left side footer.
     pub fn set_footer_left(&mut self, footer: HeaderFooter) {
         self.footer_left = footer;
     }
@@ -150,6 +193,11 @@ impl PageLayout {
     /// Left side footer.
     pub fn footer_left(&self) -> &HeaderFooter {
         &self.footer_left
+    }
+
+    /// Left side footer.
+    pub fn footer_left_mut(&mut self) -> &mut HeaderFooter {
+        &mut self.footer_left
     }
 
     /// Attributes for footer.
@@ -236,44 +284,64 @@ impl HeaderFooter {
         self.display
     }
 
-    /// Sets the left region.
-    pub fn set_region_left(&mut self, region: TextVec) {
-        self.region_left = region;
+    /// Left region.
+    pub fn set_left(&mut self, txt: TextVec) {
+        self.region_left = txt;
     }
 
     /// Left region.
-    pub fn region_left(&self) -> &TextVec {
+    pub fn left(&self) -> &TextVec {
         &self.region_left
     }
 
-    /// Sets the center region.
-    pub fn set_region_center(&mut self, region: TextVec) {
-        self.region_center = region;
+    /// Left region.
+    pub fn left_mut(&mut self) -> &mut TextVec {
+        &mut self.region_left
     }
 
     /// Center region.
-    pub fn region_center(&self) -> &TextVec {
+    pub fn set_center(&mut self, txt: TextVec) {
+        self.region_center = txt;
+    }
+
+    /// Center region.
+    pub fn center(&self) -> &TextVec {
         &self.region_center
     }
 
-    /// Sets the right region.
-    pub fn set_region_right(&mut self, region: TextVec) {
-        self.region_right = region;
+    /// Center region.
+    pub fn center_mut(&mut self) -> &mut TextVec {
+        &mut self.region_center
     }
 
     /// Right region.
-    pub fn region_right(&self) -> &TextVec {
+    pub fn set_right(&mut self, txt: TextVec) {
+        self.region_right = txt;
+    }
+
+    /// Right region.
+    pub fn right(&self) -> &TextVec {
         &self.region_right
     }
 
-    /// Sets the content for the whole header.
-    pub fn set_content(&mut self, content: TextVec) {
-        self.content = content;
+    /// Right region.
+    pub fn right_mut(&mut self) -> &mut TextVec {
+        &mut self.region_right
     }
 
     /// Header content, if there are no regions.
-    pub fn content(&mut self) -> &TextVec {
+    pub fn set_content(&mut self, txt: TextVec) {
+        self.content = txt;
+    }
+
+    /// Header content, if there are no regions.
+    pub fn content(&self) -> &TextVec {
         &self.content
+    }
+
+    /// Header content, if there are no regions.
+    pub fn content_mut(&mut self) -> &mut TextVec {
+        &mut self.content
     }
 }
 
@@ -350,6 +418,10 @@ impl FontFaceDecl {
 }
 
 /// Style data fashioned after the ODS spec.
+///
+///
+///
+///
 #[derive(Debug, Clone, Default)]
 pub struct Style {
     /// Style name.

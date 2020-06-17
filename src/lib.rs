@@ -21,7 +21,7 @@
 //! let nice_date_format = format::create_date_dmy_format("nice_date_format");
 //! wb.add_format(nice_date_format);
 //!
-//! let nice_date_style = Style::with_name(StyleFor::TableCell, "nice_date_style", "nice_date_format");
+//! let nice_date_style = Style::cell_style("nice_date_style", "nice_date_format");
 //! wb.add_style(nice_date_style);
 //!
 //! spreadsheet_ods::io::write_ods(&wb, "test_out/tryout.ods");
@@ -480,7 +480,7 @@ impl Sheet {
         let mut col_style = if let Some(style) = workbook.remove_style(&style_name) {
             style
         } else {
-            Style::with_name(StyleFor::TableColumn, &style_name, "")
+            Style::col_style(&style_name, "")
         };
         col_style.col_attr().set_col_width(width);
         col_style.col_attr().set_use_optimal_col_width(false);
@@ -515,7 +515,7 @@ impl Sheet {
         let mut row_style = if let Some(style) = workbook.remove_style(&style_name) {
             style
         } else {
-            Style::with_name(StyleFor::TableColumn, &style_name, "")
+            Style::row_style(&style_name, "")
         };
         row_style.row_attr().set_row_height(height);
         row_style.row_attr().set_use_optimal_row_height(false);

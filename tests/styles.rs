@@ -1,18 +1,16 @@
-use std::mem::size_of;
+use color::Rgb;
 
-use spreadsheet_ods::{Sheet, WorkBook};
-use spreadsheet_ods::attrmap::AttrMapType;
-use spreadsheet_ods::style::{FontFaceDecl, HeaderFooterAttr, PageLayout, Style, TextAttr};
+use spreadsheet_ods::WorkBook;
+use spreadsheet_ods::attrmap::{AttrFoBorder, AttrTableCell, Border, WrapOption};
+use spreadsheet_ods::style::Style;
 
 #[test]
 fn teststyles() {
-    println!("WorkBook {}", size_of::<WorkBook>());
-    println!("Sheet {}", size_of::<Sheet>());
-    println!("Style {}", size_of::<Style>());
-    println!("PageLayout {}", size_of::<PageLayout>());
-    println!("TextAttr {}", size_of::<TextAttr>());
-    println!("HeaderFooterAttr {}", size_of::<HeaderFooterAttr>());
-    println!("FontFaceDecl {}", size_of::<FontFaceDecl>());
-    println!("AttrMapType {}", size_of::<Option<AttrMapType>>());
-    println!("box AttrMapType {}", size_of::<Option<Box<AttrMapType>>>());
+    let mut wb = WorkBook::new();
+
+    let mut st = Style::cell_style("ce12", "num2");
+    st.cell_attr().set_border("0.5pt", Border::Dotted, Rgb::new(0, 0, 0));
+    st.cell_attr().set_wrap_option(WrapOption::Wrap);
+
+    wb.add_style(st);
 }
