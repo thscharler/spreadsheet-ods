@@ -1010,6 +1010,15 @@ fn write_styles(styles: &HashMap<String, Style>,
             }
         }
 
+        if let Some(stylemaps) = style.stylemaps() {
+            for sm in stylemaps {
+                xml_out.empty("style:map")?;
+                xml_out.attr_esc("style:condition", sm.condition())?;
+                xml_out.attr_esc("style:apply-style-name", sm.applied_style())?;
+                xml_out.attr_esc("style:base-cell-address", &sm.base_cell().to_string())?;
+            }
+        }
+
         if styleuse == StyleUse::Default {
             xml_out.end_elem("style:default-style")?;
         } else {
@@ -1211,7 +1220,7 @@ fn write_regions<'a>(hf: &'a HeaderFooter,
 
 fn write_textvec(region: &TextVec,
                  xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    if let Some(region) = &region.vec() {
+    if let Some(region) = region.vec() {
         for c in region {
             match c {
                 TextElem::Start(ref t) => {
@@ -1231,10 +1240,10 @@ fn write_textvec(region: &TextVec,
                     }
                 }
                 TextElem::Text(t) => {
-                    xml_out.text_esc(t)?;
+                    xml_out.text_esc(t.as_str())?;
                 }
                 TextElem::End(t) => {
-                    xml_out.end_elem(t)?;
+                    xml_out.end_elem(t.as_str())?;
                 }
             }
         }

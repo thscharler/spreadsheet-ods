@@ -4,7 +4,7 @@
 
 use string_cache::DefaultAtom;
 
-use crate::{StyleFor, StyleOrigin, StyleUse};
+use crate::{CellRef, StyleFor, StyleOrigin, StyleUse};
 use crate::attrmap::{AttrFoBackgroundColor, AttrFoBorder, AttrFoBreak, AttrFoKeepTogether, AttrFoKeepWithNext, AttrFoMargin, AttrFoMinHeight, AttrFontDecl, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, AttrParagraph, AttrStyleDynamicSpacing, AttrStyleShadow, AttrStyleWritingMode, AttrSvgHeight, AttrTableCell, AttrTableCol, AttrTableRow, AttrText};
 use crate::text::TextVec;
 
@@ -24,10 +24,10 @@ use crate::text::TextVec;
 ///
 /// pl.set_background_color(Rgb::new(12, 129, 252));
 ///
-/// pl.header_attr().set_min_height("0.75cm");
-/// pl.header_attr().set_margin_left("0.15cm");
-/// pl.header_attr().set_margin_right("0.15cm");
-/// pl.header_attr().set_margin_bottom("0.15cm");
+/// pl.header_attr_mut().set_min_height("0.75cm");
+/// pl.header_attr_mut().set_margin_left("0.15cm");
+/// pl.header_attr_mut().set_margin_right("0.15cm");
+/// pl.header_attr_mut().set_margin_bottom("0.15cm");
 ///
 /// pl.header_mut().center_mut().text("middle ground");
 /// pl.header_mut().left_mut().text("left wing");
@@ -428,10 +428,6 @@ impl FontFaceDecl {
 }
 
 /// Style data fashioned after the ODS spec.
-///
-///
-///
-///
 #[derive(Debug, Clone, Default)]
 pub struct Style {
     /// Style name.
@@ -460,6 +456,8 @@ pub struct Style {
     paragraph_attr: ParagraphAttr,
     /// Cell text styles
     text_attr: TextAttr,
+    /// Style maps
+    style_map: Option<Vec<StyleMap>>,
 }
 
 impl Style {
@@ -484,6 +482,7 @@ impl Style {
             table_cell_attr: Default::default(),
             paragraph_attr: Default::default(),
             text_attr: Default::default(),
+            style_map: None,
         }
     }
 
@@ -528,6 +527,7 @@ impl Style {
             table_cell_attr: Default::default(),
             paragraph_attr: Default::default(),
             text_attr: Default::default(),
+            style_map: None,
         }
     }
 
@@ -660,7 +660,72 @@ impl Style {
     pub fn text_mut(&mut self) -> &mut TextAttr {
         &mut self.text_attr
     }
+
+    /// Adds a stylemap.
+    pub fn add_stylemap(&mut self, stylemap: StyleMap) {
+        if self.style_map.is_none() {
+            self.style_map = Some(Vec::new());
+        }
+        if let Some(style_map) = &mut self.style_map {
+            style_map.push(stylemap);
+        }
+    }
+
+    /// Returns the stylemaps
+    pub fn stylemaps(&self) -> Option<&Vec<StyleMap>> {
+        self.style_map.as_ref()
+    }
 }
+
+/// One style mapping.
+/// The rules for this are not very clear. It writes the necessary data fine,
+/// but the interpretation bei LO is not very accessible.
+/// * The cellref must include a table-name.
+/// * ???
+/// * LO always adds calcext:conditional-formats which I can't handle.
+///   I didn't find a spec for that.
+/// TODO: clarify all of this.
+#[derive(Clone, Debug, Default)]
+pub struct StyleMap {
+    condition: String,
+    applied_style: String,
+    base_cell: CellRef,
+}
+
+impl StyleMap {
+    pub fn new<S: Into<String>, T: Into<String>>(condition: S, apply_style: T, cellref: CellRef) -> Self {
+        Self {
+            condition: condition.into(),
+            applied_style: apply_style.into(),
+            base_cell: cellref,
+        }
+    }
+
+    pub fn condition(&self) -> &String {
+        &self.condition
+    }
+
+    pub fn set_condition<S: Into<String>>(&mut self, cond: S) {
+        self.condition = cond.into();
+    }
+
+    pub fn applied_style(&self) -> &String {
+        &self.applied_style
+    }
+
+    pub fn set_applied_style<S: Into<String>>(&mut self, style: S) {
+        self.applied_style = style.into();
+    }
+
+    pub fn base_cell(&self) -> &CellRef {
+        &self.base_cell
+    }
+
+    pub fn set_base_cell(&mut self, cellref: CellRef) {
+        self.base_cell = cellref;
+    }
+}
+
 
 #[derive(Clone, Debug, Default)]
 pub struct TableAttr {

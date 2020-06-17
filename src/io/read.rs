@@ -11,8 +11,8 @@ use crate::{ColRange, RowRange, SCell, Sheet, StyleFor, StyleOrigin, StyleUse, u
 use crate::attrmap::AttrMap;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
-use crate::refs::{CellRef, parse_cellranges};
-use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style};
+use crate::refs::{CellRef, parse_cellranges, parse_cellref};
+use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style, StyleMap};
 use crate::text::{TextTag, TextVec};
 
 /// Reads an ODS-file.
@@ -1318,6 +1318,27 @@ fn read_style_style(book: &mut WorkBook,
                             copy_attr(style.text_mut(), xml, xml_tag)?,
                         b"style:paragraph-properties" =>
                             copy_attr(style.paragraph_mut(), xml, xml_tag)?,
+                        b"style:map" => {
+                            let mut sm = StyleMap::default();
+                            for attr in xml_tag.attributes().with_checks(false) {
+                                match attr? {
+                                    attr if attr.key == b"style:condition" => {
+                                        let v = attr.unescape_and_decode_value(&xml)?;
+                                        sm.set_condition(v);
+                                    }
+                                    attr if attr.key == b"style:apply-style-name" => {
+                                        let v = attr.unescape_and_decode_value(&xml)?;
+                                        sm.set_applied_style(v);
+                                    }
+                                    attr if attr.key == b"style:base-cell-address" => {
+                                        let v = attr.unescape_and_decode_value(&xml)?;
+                                        let mut pos = 0usize;
+                                        sm.set_base_cell(parse_cellref(v.as_str(), &mut pos)?);
+                                    }
+                                    _ => (),
+                                }
+                            }
+                        }
                         _ => (),
                     }
                 }
