@@ -4,8 +4,8 @@
 
 use string_cache::DefaultAtom;
 
-use crate::CellRef;
 use crate::attrmap::{AttrFoBackgroundColor, AttrFoBorder, AttrFoBreak, AttrFoKeepTogether, AttrFoKeepWithNext, AttrFoMargin, AttrFoMinHeight, AttrFontDecl, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, AttrParagraph, AttrStyleDynamicSpacing, AttrStyleShadow, AttrStyleWritingMode, AttrSvgHeight, AttrTableCell, AttrTableCol, AttrTableRow, AttrText};
+use crate::CellRef;
 use crate::text::TextVec;
 
 /// Origin of a style. Content.xml or Styles.xml.
@@ -501,7 +501,7 @@ pub struct Style {
     /// Cell text styles
     text_attr: TextAttr,
     /// Style maps
-    style_map: Option<Vec<StyleMap>>,
+    stylemaps: Option<Vec<StyleMap>>,
 }
 
 impl Style {
@@ -526,7 +526,7 @@ impl Style {
             table_cell_attr: Default::default(),
             paragraph_attr: Default::default(),
             text_attr: Default::default(),
-            style_map: None,
+            stylemaps: None,
         }
     }
 
@@ -571,7 +571,7 @@ impl Style {
             table_cell_attr: Default::default(),
             paragraph_attr: Default::default(),
             text_attr: Default::default(),
-            style_map: None,
+            stylemaps: None,
         }
     }
 
@@ -706,18 +706,20 @@ impl Style {
     }
 
     /// Adds a stylemap.
-    pub fn add_stylemap(&mut self, stylemap: StyleMap) {
-        if self.style_map.is_none() {
-            self.style_map = Some(Vec::new());
-        }
-        if let Some(style_map) = &mut self.style_map {
-            style_map.push(stylemap);
-        }
+    pub fn push_stylemap(&mut self, stylemap: StyleMap) {
+        self.stylemaps
+            .get_or_insert_with(Vec::new)
+            .push(stylemap);
     }
 
     /// Returns the stylemaps
     pub fn stylemaps(&self) -> Option<&Vec<StyleMap>> {
-        self.style_map.as_ref()
+        self.stylemaps.as_ref()
+    }
+
+    /// Returns the mutable stylemap.
+    pub fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap> {
+        self.stylemaps.get_or_insert_with(Vec::new)
     }
 }
 

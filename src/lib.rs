@@ -177,13 +177,9 @@ impl WorkBook {
     /// Adds a default-style for all new values.
     /// This information is only used when writing the data to the ODS file.
     pub fn add_def_style(&mut self, value_type: ValueType, style: &str) {
-        if self.def_styles.is_none() {
-            self.def_styles = Some(HashMap::new());
-        }
-
-        if let Some(def_styles) = &mut self.def_styles {
-            def_styles.insert(value_type, style.to_string());
-        }
+        self.def_styles
+            .get_or_insert_with(HashMap::new)
+            .insert(value_type, style.to_string());
     }
 
     /// Returns the default style name.
@@ -393,12 +389,9 @@ impl Sheet {
 
     /// Column wide style.
     pub fn set_column_style<V: Into<String>>(&mut self, col: ucell, style: V) {
-        if self.col_style.is_none() {
-            self.col_style = Some(BTreeMap::new());
-        }
-        if let Some(col_style) = &mut self.col_style {
-            col_style.entry(col).or_insert_with(|| style.into());
-        }
+        self.col_style
+            .get_or_insert_with(BTreeMap::new)
+            .insert(col, style.into());
     }
 
     /// Returns the column wide style.
@@ -412,12 +405,9 @@ impl Sheet {
 
     /// Default cell style for this column.
     pub fn set_column_cell_style<V: Into<String>>(&mut self, col: ucell, style: V) {
-        if self.col_cell_style.is_none() {
-            self.col_cell_style = Some(BTreeMap::new());
-        }
-        if let Some(col_cell_style) = &mut self.col_cell_style {
-            col_cell_style.entry(col).or_insert_with(|| style.into());
-        }
+        self.col_cell_style
+            .get_or_insert_with(BTreeMap::new)
+            .insert(col, style.into());
     }
 
     /// Returns the default cell style for this column.
@@ -447,12 +437,9 @@ impl Sheet {
 
     /// Row style.
     pub fn set_row_style<V: Into<String>>(&mut self, row: ucell, style: V) {
-        if self.row_style.is_none() {
-            self.row_style = Some(BTreeMap::new());
-        }
-        if let Some(row_style) = &mut self.row_style {
-            row_style.entry(row).or_insert_with(|| style.into());
-        }
+        self.row_style
+            .get_or_insert_with(BTreeMap::new)
+            .insert(row, style.into());
     }
 
     /// Returns the row style.
@@ -632,12 +619,9 @@ impl Sheet {
 
     /// Print ranges.
     pub fn add_print_range(&mut self, range: CellRange) {
-        if self.print_ranges.is_none() {
-            self.print_ranges = Some(Vec::new());
-        }
-        if let Some(ref mut print_ranges) = self.print_ranges {
-            print_ranges.push(range);
-        }
+        self.print_ranges
+            .get_or_insert_with(Vec::new)
+            .push(range);
     }
 
     /// Remove print ranges.

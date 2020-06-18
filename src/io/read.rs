@@ -391,38 +391,26 @@ fn read_empty_table_cell(sheet: &mut Sheet,
             }
 
             attr if attr.key == b"table:formula" => {
-                if cell.is_none() {
-                    cell = Some(SCell::new());
-                }
-                if let Some(c) = &mut cell {
-                    c.formula = Some(attr.unescape_and_decode_value(&xml)?);
-                }
+                cell.get_or_insert_with(SCell::new)
+                    .set_formula(attr.unescape_and_decode_value(&xml)?);
             }
             attr if attr.key == b"table:style-name" => {
-                if cell.is_none() {
-                    cell = Some(SCell::new());
-                }
-                if let Some(c) = &mut cell {
-                    c.style = Some(attr.unescape_and_decode_value(&xml)?);
-                }
+                cell.get_or_insert_with(SCell::new)
+                    .set_style(attr.unescape_and_decode_value(&xml)?);
             }
             attr if attr.key == b"table:number-rows-spanned" => {
-                if cell.is_none() {
-                    cell = Some(SCell::new());
-                }
-                if let Some(c) = &mut cell {
-                    let v = attr.unescape_and_decode_value(&xml)?;
-                    c.span.0 = v.parse::<ucell>()?;
-                }
+                let v = attr.unescape_and_decode_value(&xml)?;
+                let span = v.parse::<ucell>()?;
+
+                cell.get_or_insert_with(SCell::new)
+                    .set_row_span(span);
             }
             attr if attr.key == b"table:number-columns-spanned" => {
-                if cell.is_none() {
-                    cell = Some(SCell::new());
-                }
-                if let Some(c) = &mut cell {
-                    let v = attr.unescape_and_decode_value(&xml)?;
-                    c.span.1 = v.parse::<ucell>()?;
-                }
+                let v = attr.unescape_and_decode_value(&xml)?;
+                let span = v.parse::<ucell>()?;
+
+                cell.get_or_insert_with(SCell::new)
+                    .set_col_span(span);
             }
 
             _ => { /* should be nothing else of interest here */ }

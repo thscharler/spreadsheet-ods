@@ -7,9 +7,9 @@ use std::fmt::{Display, Formatter};
 use chrono::NaiveDateTime;
 use time::Duration;
 
-use crate::ValueType;
 use crate::attrmap::{AttrMap, AttrMapType};
-use crate::style::{StyleOrigin, StyleUse};
+use crate::style::{StyleMap, StyleOrigin, StyleUse};
+use crate::ValueType;
 
 #[derive(Debug)]
 pub enum ValueFormatError {
@@ -44,6 +44,8 @@ pub struct ValueFormat {
     attr: Option<AttrMapType>,
     // Parts of the format.
     parts: Option<Vec<FormatPart>>,
+    // Style map data.
+    stylemaps: Option<Vec<StyleMap>>,
 }
 
 impl AttrMap for ValueFormat {
@@ -71,6 +73,7 @@ impl ValueFormat {
             styleuse,
             attr: None,
             parts: None,
+            stylemaps: None,
         }
     }
 
@@ -83,6 +86,7 @@ impl ValueFormat {
             styleuse: Default::default(),
             attr: None,
             parts: None,
+            stylemaps: None,
         }
     }
 
@@ -128,17 +132,19 @@ impl ValueFormat {
 
     /// Adds a format part.
     pub fn push_part(&mut self, part: FormatPart) {
-        if let Some(parts) = &mut self.parts {
-            parts.push(part);
-        } else {
-            self.parts = Some(vec![part]);
-        }
+        self.parts
+            .get_or_insert_with(Vec::new)
+            .push(part);
     }
 
     /// Adds all format parts.
-    pub fn push_parts(&mut self, parts: Vec<FormatPart>) {
-        for p in parts.into_iter() {
-            self.push_part(p);
+    pub fn push_parts(&mut self, mut partvec: Vec<FormatPart>) {
+        if self.parts.is_none() {
+            self.parts = Some(partvec);
+        } else {
+            if let Some(parts) = &mut self.parts {
+                parts.append(&mut partvec);
+            }
         }
     }
 
@@ -149,7 +155,24 @@ impl ValueFormat {
 
     /// Returns the mutable parts.
     pub fn parts_mut(&mut self) -> &mut Vec<FormatPart> {
-        self.parts.get_or_insert(Vec::new())
+        self.parts.get_or_insert_with(Vec::new)
+    }
+
+    /// Adds a stylemap.
+    pub fn push_stylemap(&mut self, stylemap: StyleMap) {
+        self.stylemaps
+            .get_or_insert_with(Vec::new)
+            .push(stylemap);
+    }
+
+    /// Returns the stylemaps
+    pub fn stylemaps(&self) -> Option<&Vec<StyleMap>> {
+        self.stylemaps.as_ref()
+    }
+
+    /// Returns the mutable stylemap.
+    pub fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap> {
+        self.stylemaps.get_or_insert_with(Vec::new)
     }
 
     // Tries to format.
@@ -238,9 +261,10 @@ pub enum FormatPartType {
     EmbeddedText,
     Text,
     TextContent,
-    StyleText,
     // todo: should be a separate map for text attr
-    StyleMap, // todo: should be a style map
+    StyleText,
+    // todo: should be a style map
+    StyleMap,
 }
 
 /// One structural part of a value format.

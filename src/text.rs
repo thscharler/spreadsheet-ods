@@ -94,12 +94,9 @@ impl TextVec {
 
     /// Append to the vector
     pub fn push(&mut self, cm: TextElem) {
-        if self.vec.is_none() {
-            self.vec = Some(Vec::new());
-        }
-        if let Some(ref mut vec) = self.vec {
-            vec.push(cm);
-        }
+        self.vec
+            .get_or_insert_with(Vec::new)
+            .push(cm);
     }
 
     /// Remove all content.

@@ -27,25 +27,18 @@ pub trait AttrMap {
     /// Add from Vec
     fn add_all(&mut self, data: Vec<(&str, String)>) {
         let attr = self.attr_map_mut();
-        if attr.is_none() {
-            attr.replace(Box::new(HashMap::new()));
-        }
-        if let Some(ref mut attr) = attr {
-            for (name, val) in data {
-                attr.insert(DefaultAtom::from(name), val);
-            }
+
+        let attr = attr.get_or_insert_with(|| Box::new(HashMap::new()));
+        for (name, val) in data {
+            attr.insert(DefaultAtom::from(name), val);
         }
     }
 
     /// Adds an attribute.
     fn set_attr(&mut self, name: &str, value: String) {
-        let attr = self.attr_map_mut();
-        if attr.is_none() {
-            attr.replace(Box::new(HashMap::new()));
-        }
-        if let Some(ref mut attr) = attr {
-            attr.insert(DefaultAtom::from(name), value);
-        }
+        self.attr_map_mut()
+            .get_or_insert_with(|| Box::new(HashMap::new()))
+            .insert(DefaultAtom::from(name), value);
     }
 
     /// Removes an attribute.
