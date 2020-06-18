@@ -7,14 +7,14 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
-use crate::{SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
+use crate::{SCell, Sheet, ucell, Value, ValueFormat, ValueType, WorkBook};
 use crate::attrmap::AttrMap;
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{CellRange, cellranges_string};
-use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style};
+use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style, StyleFor, StyleOrigin, StyleUse};
 use crate::text::{TextElem, TextVec};
 
 // this did not work out as expected ...

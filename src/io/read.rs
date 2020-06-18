@@ -7,12 +7,12 @@ use quick_xml::events::{BytesStart, Event};
 use quick_xml::events::attributes::Attribute;
 use zip::read::ZipFile;
 
-use crate::{ColRange, RowRange, SCell, Sheet, StyleFor, StyleOrigin, StyleUse, ucell, Value, ValueFormat, ValueType, WorkBook};
+use crate::{ColRange, RowRange, SCell, Sheet, ucell, Value, ValueFormat, ValueType, WorkBook};
 use crate::attrmap::AttrMap;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{CellRef, parse_cellranges, parse_cellref};
-use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style, StyleMap};
+use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style, StyleFor, StyleMap, StyleOrigin, StyleUse};
 use crate::text::{TextTag, TextVec};
 
 /// Reads an ODS-file.

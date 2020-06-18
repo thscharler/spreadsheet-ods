@@ -7,8 +7,9 @@ use std::fmt::{Display, Formatter};
 use chrono::NaiveDateTime;
 use time::Duration;
 
-use crate::{StyleOrigin, StyleUse, ValueType};
+use crate::ValueType;
 use crate::attrmap::{AttrMap, AttrMapType};
+use crate::style::{StyleOrigin, StyleUse};
 
 #[derive(Debug)]
 pub enum ValueFormatError {
@@ -238,7 +239,8 @@ pub enum FormatPartType {
     Text,
     TextContent,
     StyleText,
-    StyleMap,
+    // todo: should be a separate map for text attr
+    StyleMap, // todo: should be a style map
 }
 
 /// One structural part of a value format.

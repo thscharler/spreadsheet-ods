@@ -72,50 +72,6 @@ pub mod formula;
 #[allow(non_camel_case_types)]
 pub type ucell = u32;
 
-/// Origin of a style. Content.xml or Styles.xml.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum StyleOrigin {
-    Content,
-    Styles,
-}
-
-impl Default for StyleOrigin {
-    fn default() -> Self {
-        StyleOrigin::Content
-    }
-}
-
-/// Placement of a style. office:styles or office:automatic-styles
-/// Defines the usage pattern for the style.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum StyleUse {
-    Default,
-    Named,
-    Automatic,
-}
-
-impl Default for StyleUse {
-    fn default() -> Self {
-        StyleUse::Automatic
-    }
-}
-
-/// Applicability of this style.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum StyleFor {
-    Table,
-    TableRow,
-    TableColumn,
-    TableCell,
-    None,
-}
-
-impl Default for StyleFor {
-    fn default() -> Self {
-        StyleFor::None
-    }
-}
-
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
 pub struct WorkBook {
