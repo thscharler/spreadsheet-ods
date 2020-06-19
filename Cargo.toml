@@ -7,12 +7,17 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = [ ]
-
+default = ["dump_unused"]
+# Dump XML while reading.
+dump_xml = [ ]
+# Dump unused XML tags and attributes
+dump_unused = [ ]
 # Allow for indentation of the output xml
 indent_xml = []
 # Apply extra checks.
 check_xml = []
+# Implement decimal bindings
+use_decimal = []
 
 [dependencies]
 rust_decimal = "^1.2.1"

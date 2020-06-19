@@ -7,9 +7,10 @@ use std::fmt::{Display, Formatter};
 use chrono::NaiveDateTime;
 use time::Duration;
 
-use crate::attrmap::{AttrMap, AttrMapType};
-use crate::style::{StyleMap, StyleOrigin, StyleUse};
-use crate::ValueType;
+use crate::attrmap::{AttrMap, AttrMapType, AttrText};
+use crate::style::{StyleMap, StyleOrigin, StyleUse, TextAttr};
+use crate::{ValueType, CellRef};
+use color::Rgb;
 
 #[derive(Debug)]
 pub enum ValueFormatError {
@@ -32,19 +33,21 @@ impl std::error::Error for ValueFormatError {}
 /// Actual textual formatting of values.
 #[derive(Debug, Clone, Default)]
 pub struct ValueFormat {
-    // Name
+    /// Name
     name: String,
-    // Value type
+    /// Value type
     v_type: ValueType,
-    // Origin information.
+    /// Origin information.
     origin: StyleOrigin,
-    // Usage of this style.
+    /// Usage of this style.
     styleuse: StyleUse,
-    // Properties of the format.
+    /// Properties of the format.
     attr: Option<AttrMapType>,
-    // Parts of the format.
+    /// Cell text styles
+    text_attr: TextAttr,
+    /// Parts of the format.
     parts: Option<Vec<FormatPart>>,
-    // Style map data.
+    /// Style map data.
     stylemaps: Option<Vec<StyleMap>>,
 }
 
@@ -72,6 +75,7 @@ impl ValueFormat {
             origin,
             styleuse,
             attr: None,
+            text_attr: Default::default(),
             parts: None,
             stylemaps: None,
         }
@@ -85,6 +89,7 @@ impl ValueFormat {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: None,
+            text_attr: Default::default(),
             parts: None,
             stylemaps: None,
         }
@@ -128,6 +133,16 @@ impl ValueFormat {
     /// Returns the usage.
     pub fn styleuse(&self) -> StyleUse {
         self.styleuse
+    }
+
+    /// Text style attributes.
+    pub fn text(&self) -> &TextAttr {
+        &self.text_attr
+    }
+
+    /// Text style attributes.
+    pub fn text_mut(&mut self) -> &mut TextAttr {
+        &mut self.text_attr
     }
 
     /// Adds a format part.
@@ -261,20 +276,16 @@ pub enum FormatPartType {
     EmbeddedText,
     Text,
     TextContent,
-    // todo: should be a separate map for text attr
-    StyleText,
-    // todo: should be a style map
-    StyleMap,
 }
 
 /// One structural part of a value format.
 #[derive(Debug, Clone)]
 pub struct FormatPart {
-    // What kind of format part is this?
+    /// What kind of format part is this?
     part_type: FormatPartType,
-    // Properties of this part.
+    /// Properties of this part.
     attr: Option<AttrMapType>,
-    // Some content.
+    /// Some content.
     content: Option<String>,
 }
 
@@ -663,9 +674,7 @@ pub fn create_euro_format<S: Into<String>>(name: S) -> ValueFormat {
 pub fn create_euro_red_format<S: Into<String>>(name: S, positive_style: S) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
 
-    let mut p0 = FormatPart::new(FormatPartType::StyleText);
-    p0.set_attr("fo:color", String::from("#ff0000"));
-    v.push_part(p0);
+    v.text_mut().set_color(Rgb::new(255, 0, 0));
 
     let mut p1 = FormatPart::new(FormatPartType::Text);
     p1.set_content("-");
@@ -688,10 +697,7 @@ pub fn create_euro_red_format<S: Into<String>>(name: S, positive_style: S) -> Va
     p4.set_attr("number:grouping", String::from("true"));
     v.push_part(p4);
 
-    let mut p5 = FormatPart::new(FormatPartType::StyleMap);
-    p5.set_attr("style:condition", String::from("value()&gt;=0"));
-    p5.set_attr("style:apply-style-name", positive_style.into());
-    v.push_part(p5);
+    v.push_stylemap(StyleMap::new("value()>=0", positive_style.into(), CellRef::simple(0, 0)));
 
     v
 }

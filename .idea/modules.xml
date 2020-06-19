@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/spreadsheet-ods.iml" filepath="$PROJECT_DIR$/spreadsheet-ods.iml" />
+      <module fileurl="file://$PROJECT_DIR$/test_spreadsheet/test_spreadsheet.iml" filepath="$PROJECT_DIR$/test_spreadsheet/test_spreadsheet.iml" />
     </modules>
   </component>
 </project>

@@ -1029,12 +1029,12 @@ fn write_styles(styles: &HashMap<String, Style>,
     Ok(())
 }
 
-fn write_value_styles(styles: &HashMap<String, ValueFormat>,
+fn write_value_styles(value_formats: &HashMap<String, ValueFormat>,
                       origin: StyleOrigin,
                       styleuse: StyleUse,
                       xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    for style in styles.values().filter(|s| s.origin() == origin && s.styleuse() == styleuse) {
-        let tag = match style.value_type() {
+    for value_format in value_formats.values().filter(|s| s.origin() == origin && s.styleuse() == styleuse) {
+        let tag = match value_format.value_type() {
             ValueType::Empty => "number:empty_style", // ???
             ValueType::Boolean => "number:boolean-style",
             ValueType::Number => "number:number-style",
@@ -1047,14 +1047,21 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
         };
 
         xml_out.elem(tag)?;
-        xml_out.attr_esc("style:name", style.name().as_str())?;
-        if let Some(prp) = style.attr_map() {
+        xml_out.attr_esc("style:name", value_format.name().as_str())?;
+        if let Some(prp) = value_format.attr_map() {
             for (a, v) in prp.iter() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
 
-        if let Some(parts) = style.parts() {
+        if !value_format.text().is_empty() {
+            xml_out.empty("style:text-properties")?;
+            for (a, v) in value_format.text() {
+                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            }
+        }
+
+        if let Some(parts) = value_format.parts() {
             for part in parts {
                 let part_tag = match part.part_type() {
                     FormatPartType::Boolean => "number:boolean",
@@ -1076,8 +1083,6 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
                     FormatPartType::EmbeddedText => "number:embedded-text",
                     FormatPartType::Text => "number:text",
                     FormatPartType::TextContent => "number:text-content",
-                    FormatPartType::StyleText => "style:text",
-                    FormatPartType::StyleMap => "style:map",
                 };
 
                 if part.part_type() == FormatPartType::Text || part.part_type() == FormatPartType::CurrencySymbol {
@@ -1099,6 +1104,15 @@ fn write_value_styles(styles: &HashMap<String, ValueFormat>,
                         }
                     }
                 }
+            }
+        }
+
+        if let Some(stylemaps) = value_format.stylemaps() {
+            for sm in stylemaps {
+                xml_out.empty("style:map")?;
+                xml_out.attr_esc("style:condition", sm.condition())?;
+                xml_out.attr_esc("style:apply-style-name", sm.applied_style())?;
+                xml_out.attr_esc("style:base-cell-address", &sm.base_cell().to_string())?;
             }
         }
 

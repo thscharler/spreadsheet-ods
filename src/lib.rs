@@ -4,7 +4,7 @@
 //! useable subset to read + modify + write back an ODS file.
 //!
 //! ```
-//! use spreadsheet_ods::{WorkBook, Sheet, StyleFor};
+//! use spreadsheet_ods::{WorkBook, Sheet};
 //! use chrono::NaiveDate;
 //! use spreadsheet_ods::format;
 //! use spreadsheet_ods::formula;
@@ -44,7 +44,9 @@ use std::fmt;
 use std::path::PathBuf;
 
 use chrono::{NaiveDate, NaiveDateTime};
+#[cfg(feature = "use_decimal")]
 use rust_decimal::Decimal;
+#[cfg(feature = "use_decimal")]
 use rust_decimal::prelude::*;
 use time::Duration;
 
@@ -806,6 +808,7 @@ impl Value {
 
     /// Return the content as decimal if the value is a number, percentage or
     /// currency. Default otherwise.
+    #[cfg(feature = "use_decimal")]
     pub fn as_decimal_or(&self, d: Decimal) -> Decimal {
         match self {
             Value::Number(n) => Decimal::from_f64(*n).unwrap(),
@@ -906,6 +909,7 @@ impl From<Option<String>> for Value {
     }
 }
 
+#[cfg(feature = "use_decimal")]
 impl From<Decimal> for Value {
     fn from(f: Decimal) -> Self {
         Value::Number(f.to_f64().unwrap())

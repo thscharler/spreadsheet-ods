@@ -1,9 +1,17 @@
-use spreadsheet_ods::{Sheet, ValueType, WorkBook};
+use spreadsheet_ods::{Sheet, WorkBook};
 use spreadsheet_ods::io::{OdsError, read_ods, write_ods};
 use spreadsheet_ods::refs::{CellRange, CellRef, ColRange, RowRange};
 
 #[test]
 fn test_0() -> Result<(), OdsError> {
+    if cfg!(dump_xml) {
+        println!("dump_xml!");
+        panic!();
+    } else {
+        println!("no dump_xml!");
+    }
+
+
     println!("test_0");
     let mut wb = WorkBook::new();
     let mut sh = Sheet::new();
@@ -195,16 +203,25 @@ fn test_print_range() -> Result<(), OdsError> {
     Ok(())
 }
 
+// #[test]
+// fn read_text() -> Result<(), OdsError> {
+//     println!("read_text");
+//
+//     let wb = read_ods("tests/text.ods")?;
+//     let sh = wb.sheet(0);
+//
+//     let v = sh.value(1, 1);
+//
+//     assert_eq!(v.value_type(), ValueType::TextM);
+//
+//     Ok(())
+// }
+
 #[test]
-fn read_text() -> Result<(), OdsError> {
-    println!("read_text");
+fn read_orders() -> Result<(), OdsError> {
+    println!("read_orders");
 
-    let wb = read_ods("tests/text.ods")?;
-    let sh = wb.sheet(0);
-
-    let v = sh.value(1, 1);
-
-    assert_eq!(v.value_type(), ValueType::TextM);
+    let _wb = read_ods("tests/orders.ods");
 
     Ok(())
 }
