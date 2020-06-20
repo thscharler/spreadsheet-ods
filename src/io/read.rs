@@ -61,10 +61,27 @@ fn read_content(book: &mut WorkBook,
         let evt = xml.read_event(&mut buf)?;
         if cfg!(feature = "dump_xml") { println!(" read_content {:?}", evt); }
         match evt {
+            Event::Decl(_) => {}
+
+            Event::Start(xml_tag)
+            if xml_tag.name() == b"office:document-content"
+                || xml_tag.name() == b"office:body"
+                || xml_tag.name() == b"office:spreadsheet" => {
+                // noop
+            }
+
+            Event::End(xml_tag)
+            if xml_tag.name() == b"office:document-content"
+                || xml_tag.name() == b"office:body"
+                || xml_tag.name() == b"office:spreadsheet" => {
+                // noop
+            }
+
             Event::Start(xml_tag)
             if xml_tag.name() == b"table:table" => {
                 read_table_attr(&xml, xml_tag, &mut sheet)?;
             }
+
             Event::End(xml_tag)
             if xml_tag.name() == b"table:table" => {
                 row = 0;
@@ -152,7 +169,7 @@ fn read_content(book: &mut WorkBook,
                 break;
             }
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_content {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" unused read_content {:?}", evt); }
             }
         }
 
@@ -186,7 +203,7 @@ fn read_table_attr(xml: &quick_xml::Reader<BufReader<&mut ZipFile>>,
                     let n = xml.decode(xml_tag.name())?;
                     let k = xml.decode(attr.key)?;
                     let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_table_attr {} {} {}", n, k, v);
+                    println!(" read_table_attr unused {} {} {}", n, k, v);
                 }
             }
         }
@@ -218,7 +235,7 @@ fn read_table_row_attr(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                     let n = xml.decode(xml_tag.name())?;
                     let k = xml.decode(attr.key)?;
                     let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_table_row_attr {} {} {}", n, k, v);
+                    println!(" read_table_row_attr unused {} {} {}", n, k, v);
                 }
             }
         }
@@ -255,7 +272,7 @@ fn read_table_column(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                     let n = xml.decode(xml_tag.name())?;
                     let k = xml.decode(attr.key)?;
                     let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_table_column {} {} {}", n, k, v);
+                    println!(" read_table_column unused {} {} {}", n, k, v);
                 }
             }
         }
@@ -342,7 +359,7 @@ fn read_table_cell(sheet: &mut Sheet,
                     let n = xml.decode(xml_tag.name())?;
                     let k = xml.decode(attr.key)?;
                     let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_table_cell {} {} {}", n, k, v);
+                    println!(" read_table_cell unused {} {} {}", n, k, v);
                 }
             }
         }
@@ -393,7 +410,7 @@ fn read_table_cell(sheet: &mut Sheet,
             }
 
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_table_cell {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_table_cell unused {:?}", evt); }
             }
         }
 
@@ -450,7 +467,7 @@ fn read_empty_table_cell(sheet: &mut Sheet,
                     let n = xml.decode(xml_tag.name())?;
                     let k = xml.decode(attr.key)?;
                     let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_empty_table_cell {} {} {}", n, k, v);
+                    println!(" read_empty_table_cell unused {} {} {}", n, k, v);
                 }
             }
         }
@@ -648,7 +665,7 @@ fn read_fonts(book: &mut WorkBook,
                         font = FontFaceDecl::new_origin(StyleOrigin::Content);
                     }
                     _ => {
-                        if cfg!(feature = "dump_unused") { println!(" read_fonts {:?}", evt); }
+                        if cfg!(feature = "dump_unused") { println!(" read_fonts unused {:?}", evt); }
                     }
                 }
             }
@@ -663,7 +680,7 @@ fn read_fonts(book: &mut WorkBook,
                 break;
             }
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_fonts {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_fonts unused {:?}", evt); }
             }
         }
 
@@ -691,7 +708,7 @@ fn read_page_layout(book: &mut WorkBook,
                     let n = xml.decode(xml_tag.name())?;
                     let k = xml.decode(attr.key)?;
                     let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_page_layout {} {} {}", n, k, v);
+                    println!(" read_page_layout unused {} {} {}", n, k, v);
                 }
             }
         }
@@ -725,7 +742,7 @@ fn read_page_layout(book: &mut WorkBook,
                         // noop for now. sets the background transparent.
                     }
                     _ => {
-                        if cfg!(feature = "dump_unused") { println!(" read_page_layout {:?}", evt); }
+                        if cfg!(feature = "dump_unused") { println!(" read_page_layout unused {:?}", evt); }
                     }
                 }
             }
@@ -741,13 +758,13 @@ fn read_page_layout(book: &mut WorkBook,
                     b"style:header-footer-properties" =>
                         {}
                     _ => {
-                        if cfg!(feature = "dump_unused") { println!(" read_page_layout {:?}", evt); }
+                        if cfg!(feature = "dump_unused") { println!(" read_page_layout unused {:?}", evt); }
                     }
                 }
             }
             Event::Eof => break,
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_page_layout {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_page_layout unused {:?}", evt); }
             }
         }
 
@@ -777,7 +794,7 @@ fn read_master_styles(book: &mut WorkBook,
                         read_master_page(book, origin, xml, xml_tag)?;
                     }
                     _ => {
-                        if cfg!(feature = "dump_unused") { println!(" read_master_styles {:?}", evt); }
+                        if cfg!(feature = "dump_unused") { println!(" read_master_styles unused {:?}", evt); }
                     }
                 }
             }
@@ -789,7 +806,7 @@ fn read_master_styles(book: &mut WorkBook,
             }
             Event::Eof => break,
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_master_styles {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_master_styles unused {:?}", evt); }
             }
         }
 
@@ -821,7 +838,7 @@ fn read_master_page(book: &mut WorkBook,
                     let n = xml.decode(xml_tag.name())?;
                     let k = xml.decode(attr.key)?;
                     let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_master_page {} {} {}", n, k, v);
+                    println!(" read_master_page unused {} {} {}", n, k, v);
                 }
             }
         }
@@ -841,8 +858,7 @@ fn read_master_page(book: &mut WorkBook,
         let evt = xml.read_event(&mut buf)?;
         if cfg!(feature = "dump_xml") { println!(" read_master_page {:?}", evt); }
         match evt {
-            Event::Start(ref xml_tag) |
-            Event::Empty(ref xml_tag) => {
+            Event::Start(ref xml_tag) => {
                 match xml_tag.name() {
                     b"style:header" => {
                         let hf = read_headerfooter(b"style:header", xml)?;
@@ -861,9 +877,13 @@ fn read_master_page(book: &mut WorkBook,
                         pl.set_footer_left(hf);
                     }
                     _ => {
-                        if cfg!(feature = "dump_unused") { println!(" read_master_page {:?}", evt); }
+                        if cfg!(feature = "dump_unused") { println!(" read_master_page unused {:?}", evt); }
                     }
                 }
+            }
+
+            Event::Empty(_) => {
+                // empty header/footer tags can be skipped.
             }
 
             Event::Text(_) => (),
@@ -874,7 +894,7 @@ fn read_master_page(book: &mut WorkBook,
             }
             Event::Eof => break,
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_master_page {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_master_page unused {:?}", evt); }
             }
         }
 
@@ -894,7 +914,6 @@ fn read_headerfooter(end_tag: &[u8],
     loop {
         let evt = xml.read_event(&mut buf)?;
         if cfg!(feature = "dump_xml") { println!(" read_headerfooter {:?}", evt); }
-        { println!(" read_headerfooter 2 {:?}", evt); }
         match evt {
             Event::Start(ref xml_tag) |
             Event::Empty(ref xml_tag) => {
@@ -917,7 +936,7 @@ fn read_headerfooter(end_tag: &[u8],
                     }
                     // no other tags supported for now.
                     _ => {
-                        if cfg!(feature = "dump_unused") { println!(" read_headerfooter {:?}", evt); }
+                        if cfg!(feature = "dump_unused") { println!(" read_headerfooter unused {:?}", evt); }
                     }
                 }
             }
@@ -929,7 +948,7 @@ fn read_headerfooter(end_tag: &[u8],
             }
             Event::Eof => break,
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_headerfooter {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_headerfooter unused {:?}", evt); }
             }
         }
 
@@ -1021,7 +1040,7 @@ fn read_textvec2(vec: &mut Option<TextVec>,
 
             Event::Eof => break,
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_textvec2 {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_textvec2 unused {:?}", evt); }
             }
         }
 
@@ -1063,7 +1082,7 @@ fn read_textvec(end_tag: &[u8],
             }
             Event::Eof => break,
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_textvec {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_textvec unused {:?}", evt); }
             }
         }
 
@@ -1104,7 +1123,7 @@ fn read_styles_tag(book: &mut WorkBook,
                     }
                     // style:default-page-layout
                     _ => {
-                        if cfg!(feature = "dump_unused") { println!(" read_styles_tag {:?}", evt); }
+                        if cfg!(feature = "dump_unused") { println!(" read_styles_tag unused {:?}", evt); }
                     }
                 }
             }
@@ -1116,7 +1135,7 @@ fn read_styles_tag(book: &mut WorkBook,
             }
             Event::Eof => break,
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_styles_tag {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_styles_tag unused {:?}", evt); }
             }
         }
 
@@ -1157,7 +1176,7 @@ fn read_auto_styles(book: &mut WorkBook,
                         read_page_layout(book, xml, xml_tag)?;
                     }
                     _ => {
-                        if cfg!(feature = "dump_unused") { println!(" read_auto_styles {:?}", evt); }
+                        if cfg!(feature = "dump_unused") { println!(" read_auto_styles unused {:?}", evt); }
                     }
                 }
             }
@@ -1169,7 +1188,7 @@ fn read_auto_styles(book: &mut WorkBook,
             }
             Event::Eof => break,
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_auto_styles {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_auto_styles unused {:?}", evt); }
             }
         }
 
@@ -1209,7 +1228,7 @@ fn read_value_format(book: &mut WorkBook,
         _ => {
             if cfg!(feature = "dump_unused") {
                 let n = xml.decode(xml_tag.name())?;
-                println!(" read_value_format {}", n);
+                println!(" read_value_format unused {}", n);
             }
         }
     }
@@ -1284,7 +1303,7 @@ fn read_value_format(book: &mut WorkBook,
                     b"style:text-properties" =>
                         copy_attr(value_style.text_mut(), xml, xml_tag)?,
                     _ =>
-                        if cfg!(feature = "dump_unused") { println!(" read_value_format {:?}", evt); }
+                        if cfg!(feature = "dump_unused") { println!(" read_value_format unused {:?}", evt); }
                 }
             }
             Event::Text(ref e) => {
@@ -1311,13 +1330,13 @@ fn read_value_format(book: &mut WorkBook,
                         value_style_part = None;
                     }
                     _ => {
-                        if cfg!(feature = "dump_unused") { println!(" read_value_format {:?}", evt); }
+                        if cfg!(feature = "dump_unused") { println!(" read_value_format unused {:?}", evt); }
                     }
                 }
             }
             Event::Eof => break,
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_value_format {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_value_format unused {:?}", evt); }
             }
         }
 
@@ -1399,7 +1418,7 @@ fn read_style_style(book: &mut WorkBook,
                         b"style:map" =>
                             style.push_stylemap(read_stylemap(xml, xml_tag)?),
                         _ => {
-                            if cfg!(feature = "dump_unused") { println!(" read_style_style {:?}", evt); }
+                            if cfg!(feature = "dump_unused") { println!(" read_style_style unused {:?}", evt); }
                         }
                     }
                 }
@@ -1409,12 +1428,12 @@ fn read_style_style(book: &mut WorkBook,
                         book.add_style(style);
                         break;
                     } else {
-                        if cfg!(feature = "dump_unused") { println!(" read_style_style {:?}", evt); }
+                        if cfg!(feature = "dump_unused") { println!(" read_style_style unused {:?}", evt); }
                     }
                 }
                 Event::Eof => break,
                 _ => {
-                    if cfg!(feature = "dump_unused") { println!(" read_style_style {:?}", evt); }
+                    if cfg!(feature = "dump_unused") { println!(" read_style_style unused {:?}", evt); }
                 }
             }
         }
@@ -1446,7 +1465,7 @@ fn read_stylemap(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                     let n = xml.decode(xml_tag.name())?;
                     let k = xml.decode(attr.key)?;
                     let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_style_style {} {} {}", n, k, v);
+                    println!(" read_style_style unused {} {} {}", n, k, v);
                 }
             }
         }
@@ -1476,7 +1495,7 @@ fn read_style_attr(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                     "table-row" => style.set_family(StyleFor::TableRow),
                     "table-cell" => style.set_family(StyleFor::TableCell),
                     _ => {
-                        if cfg!(feature = "dump_unused") { println!(" style:family {} ", v); }
+                        if cfg!(feature = "dump_unused") { println!(" style:family unused {} ", v); }
                     }
                 }
             }
@@ -1493,7 +1512,7 @@ fn read_style_attr(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                     let n = xml.decode(xml_tag.name())?;
                     let k = xml.decode(attr.key)?;
                     let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_style_attr {} {} {}", n, k, v);
+                    println!(" read_style_attr unused {} {} {}", n, k, v);
                 }
             }
         }
@@ -1526,23 +1545,34 @@ fn read_styles(book: &mut WorkBook,
         let evt = xml.read_event(&mut buf)?;
         if cfg!(feature = "dump_xml") { println!(" read_styles {:?}", evt); }
         match evt {
+            Event::Decl(_) => {}
+
+            Event::Start(xml_tag)
+            if xml_tag.name() == b"office:document-styles" => {
+                // noop
+            }
+
             Event::Start(xml_tag)
             if xml_tag.name() == b"office:font-face-decls" =>
                 read_fonts(book, StyleOrigin::Styles, &mut xml)?,
+
             Event::Start(xml_tag)
             if xml_tag.name() == b"office:styles" =>
                 read_styles_tag(book, StyleOrigin::Styles, &mut xml)?,
+
             Event::Start(xml_tag)
             if xml_tag.name() == b"office:automatic-styles" =>
                 read_auto_styles(book, StyleOrigin::Styles, &mut xml)?,
+
             Event::Start(xml_tag)
             if xml_tag.name() == b"office:master-styles" =>
                 read_master_styles(book, StyleOrigin::Styles, &mut xml)?,
+
             Event::Eof => {
                 break;
             }
             _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_styles {:?}", evt); }
+                if cfg!(feature = "dump_unused") { println!(" read_styles unused {:?}", evt); }
             }
         }
 

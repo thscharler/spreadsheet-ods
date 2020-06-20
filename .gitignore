@@ -5,3 +5,4 @@ Cargo.lock
 /test_out
 /tests/example.ods
 /tryout.ods
+/test_spreadsheet/target
