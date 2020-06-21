@@ -11,15 +11,15 @@ use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType};
 #[derive(Debug, Clone, Default)]
 pub struct TextTag {
     tag: String,
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
 }
 
 impl AttrMap for TextTag {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }
@@ -59,14 +59,14 @@ pub enum TextElem {
 /// The user of this must ensure that the result is valid xml.
 #[derive(Debug, Clone, Default)]
 pub struct TextVec {
-    vec: Option<Vec<TextElem>>,
+    vec: Vec<TextElem>,
 }
 
 impl TextVec {
     /// Create.
     pub fn new() -> Self {
         Self {
-            vec: None
+            vec: Default::default()
         }
     }
 
@@ -102,19 +102,17 @@ impl TextVec {
 
     /// Append to the vector
     pub fn push(&mut self, cm: TextElem) {
-        self.vec
-            .get_or_insert_with(Vec::new)
-            .push(cm);
+        self.vec.push(cm);
     }
 
     /// Remove all content.
     pub fn clear(&mut self) {
-        self.vec = None;
+        self.vec.clear();
     }
 
     /// No vec contained.
     pub fn is_empty(&self) -> bool {
-        self.vec.is_none()
+        self.vec.is_empty()
     }
 
     /// Checks if this is a valid sequence of text, in way that it
@@ -124,27 +122,25 @@ impl TextVec {
 
         let mut tags = Vec::new();
 
-        if let Some(vec) = &self.vec {
-            for c in vec {
-                match c {
-                    TextElem::Start(t) =>
-                        tags.push(t.tag.clone()),
-                    TextElem::End(t) => {
-                        let tag = tags.pop();
-                        if let Some(ref tag) = tag {
-                            if t != tag {
-                                std::mem::swap(open_tag, &mut tag.clone());
-                                std::mem::swap(close_tag, &mut t.clone());
-                                res = false;
-                                break;
-                            }
-                        } else {
+        for c in &self.vec {
+            match c {
+                TextElem::Start(t) =>
+                    tags.push(t.tag.clone()),
+                TextElem::End(t) => {
+                    let tag = tags.pop();
+                    if let Some(ref tag) = tag {
+                        if t != tag {
+                            std::mem::swap(open_tag, &mut tag.clone());
+                            std::mem::swap(close_tag, &mut t.clone());
                             res = false;
                             break;
                         }
+                    } else {
+                        res = false;
+                        break;
                     }
-                    _ => (),
                 }
+                _ => (),
             }
         }
 
@@ -152,7 +148,7 @@ impl TextVec {
     }
 
     /// Returns the text vec itself.
-    pub fn vec(&self) -> Option<&Vec<TextElem>> {
-        self.vec.as_ref()
+    pub fn vec(&self) -> &Vec<TextElem> {
+        &self.vec
     }
 }

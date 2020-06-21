@@ -41,21 +41,21 @@ pub struct ValueFormat {
     /// Usage of this style.
     styleuse: StyleUse,
     /// Properties of the format.
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
     /// Cell text styles
     text_attr: TextAttr,
     /// Parts of the format.
-    parts: Option<Vec<FormatPart>>,
+    parts: Vec<FormatPart>,
     /// Style map data.
     stylemaps: Option<Vec<StyleMap>>,
 }
 
 impl AttrMap for ValueFormat {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }
@@ -75,7 +75,7 @@ impl ValueFormat {
             styleuse,
             attr: None,
             text_attr: Default::default(),
-            parts: None,
+            parts: Default::default(),
             stylemaps: None,
         }
     }
@@ -89,7 +89,7 @@ impl ValueFormat {
             styleuse: Default::default(),
             attr: None,
             text_attr: Default::default(),
-            parts: None,
+            parts: Default::default(),
             stylemaps: None,
         }
     }
@@ -254,31 +254,23 @@ impl ValueFormat {
 
     /// Adds a format part.
     pub fn push_part(&mut self, part: FormatPart) {
-        self.parts
-            .get_or_insert_with(Vec::new)
-            .push(part);
+        self.parts.push(part);
     }
 
     /// Adds all format parts.
     #[allow(clippy::collapsible_if)]
-    pub fn push_parts(&mut self, mut partvec: Vec<FormatPart>) {
-        if self.parts.is_none() {
-            self.parts = Some(partvec);
-        } else {
-            if let Some(parts) = &mut self.parts {
-                parts.append(&mut partvec);
-            }
-        }
+    pub fn push_parts(&mut self, partvec: &mut Vec<FormatPart>) {
+        self.parts.append(partvec);
     }
 
     /// Returns the parts.
-    pub fn parts(&self) -> Option<&Vec<FormatPart>> {
-        self.parts.as_ref()
+    pub fn parts(&self) -> &Vec<FormatPart> {
+        &self.parts
     }
 
     /// Returns the mutable parts.
     pub fn parts_mut(&mut self) -> &mut Vec<FormatPart> {
-        self.parts.get_or_insert_with(Vec::new)
+        &mut self.parts
     }
 
     /// Adds a stylemap.
@@ -302,10 +294,8 @@ impl ValueFormat {
     /// If there are no matching parts, does nothing.
     pub fn format_boolean(&self, b: bool) -> String {
         let mut buf = String::new();
-        if let Some(parts) = &self.parts {
-            for p in parts {
-                p.format_boolean(&mut buf, b);
-            }
+        for p in &self.parts {
+            p.format_boolean(&mut buf, b);
         }
         buf
     }
@@ -314,10 +304,8 @@ impl ValueFormat {
     /// If there are no matching parts, does nothing.
     pub fn format_float(&self, f: f64) -> String {
         let mut buf = String::new();
-        if let Some(parts) = &self.parts {
-            for p in parts {
-                p.format_float(&mut buf, f);
-            }
+        for p in &self.parts {
+            p.format_float(&mut buf, f);
         }
         buf
     }
@@ -326,10 +314,8 @@ impl ValueFormat {
     /// If there are no matching parts, does nothing.
     pub fn format_str(&self, s: &str) -> String {
         let mut buf = String::new();
-        if let Some(parts) = &self.parts {
-            for p in parts {
-                p.format_str(&mut buf, s);
-            }
+        for p in &self.parts {
+            p.format_str(&mut buf, s);
         }
         buf
     }
@@ -339,12 +325,11 @@ impl ValueFormat {
     /// Should work reasonably. Don't ask me about other calenders.
     pub fn format_datetime(&self, d: &NaiveDateTime) -> String {
         let mut buf = String::new();
-        if let Some(parts) = &self.parts {
-            let h12 = parts.iter().any(|v| v.part_type == FormatPartType::AmPm);
 
-            for p in parts {
-                p.format_datetime(&mut buf, d, h12);
-            }
+        let h12 = self.parts.iter().any(|v| v.part_type == FormatPartType::AmPm);
+
+        for p in &self.parts {
+            p.format_datetime(&mut buf, d, h12);
         }
         buf
     }
@@ -353,10 +338,8 @@ impl ValueFormat {
     /// If there are no matching parts, does nothing.
     pub fn format_time_duration(&self, d: &Duration) -> String {
         let mut buf = String::new();
-        if let Some(parts) = &self.parts {
-            for p in parts {
-                p.format_time_duration(&mut buf, d);
-            }
+        for p in &self.parts {
+            p.format_time_duration(&mut buf, d);
         }
         buf
     }
@@ -392,17 +375,17 @@ pub struct FormatPart {
     /// What kind of format part is this?
     part_type: FormatPartType,
     /// Properties of this part.
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
     /// Some content.
     content: Option<String>,
 }
 
 impl AttrMap for FormatPart {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }

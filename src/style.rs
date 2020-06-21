@@ -90,7 +90,7 @@ pub struct PageLayout {
     name: String,
     masterpage_name: String,
 
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
 
     header_attr: HeaderFooterAttr,
     header: HeaderFooter,
@@ -102,11 +102,11 @@ pub struct PageLayout {
 }
 
 impl AttrMap for PageLayout {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }
@@ -265,15 +265,15 @@ impl PageLayout {
 
 #[derive(Clone, Debug, Default)]
 pub struct HeaderFooterAttr {
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
 }
 
 impl AttrMap for HeaderFooterAttr {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }
@@ -409,17 +409,17 @@ pub struct FontFaceDecl {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// All other attributes.
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
 }
 
 impl AttrFontDecl for FontFaceDecl {}
 
 impl AttrMap for FontFaceDecl {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }
@@ -778,15 +778,15 @@ impl StyleMap {
 /// Style for the whole table.
 #[derive(Clone, Debug, Default)]
 pub struct TableAttr {
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
 }
 
 impl AttrMap for TableAttr {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }
@@ -815,15 +815,15 @@ impl AttrStyleWritingMode for TableAttr {}
 /// Styles for table rows.
 #[derive(Clone, Debug, Default)]
 pub struct TableRowAttr {
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
 }
 
 impl AttrMap for TableRowAttr {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }
@@ -848,15 +848,15 @@ impl AttrTableRow for TableRowAttr {}
 /// Styles for table columns.
 #[derive(Clone, Debug, Default)]
 pub struct TableColAttr {
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
 }
 
 impl AttrMap for TableColAttr {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }
@@ -877,15 +877,15 @@ impl AttrTableCol for TableColAttr {}
 /// Styles for table cells.
 #[derive(Clone, Debug, Default)]
 pub struct TableCellAttr {
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
 }
 
 impl AttrMap for TableCellAttr {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }
@@ -914,15 +914,15 @@ impl AttrTableCell for TableCellAttr {}
 /// Paragraph style.
 #[derive(Clone, Debug, Default)]
 pub struct ParagraphAttr {
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
 }
 
 impl AttrMap for ParagraphAttr {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }
@@ -959,15 +959,15 @@ impl AttrParagraph for ParagraphAttr {}
 /// Text styles.
 #[derive(Clone, Debug, Default)]
 pub struct TextAttr {
-    attr: Option<AttrMapType>,
+    attr: AttrMapType,
 }
 
 impl AttrMap for TextAttr {
-    fn attr_map(&self) -> Option<&AttrMapType> {
-        self.attr.as_ref()
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType> {
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
     }
 }

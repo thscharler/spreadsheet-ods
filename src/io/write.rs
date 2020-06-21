@@ -1061,47 +1061,45 @@ fn write_value_styles(value_formats: &HashMap<String, ValueFormat>,
             }
         }
 
-        if let Some(parts) = value_format.parts() {
-            for part in parts {
-                let part_tag = match part.part_type() {
-                    FormatPartType::Boolean => "number:boolean",
-                    FormatPartType::Number => "number:number",
-                    FormatPartType::Scientific => "number:scientific-number",
-                    FormatPartType::CurrencySymbol => "number:currency-symbol",
-                    FormatPartType::Day => "number:day",
-                    FormatPartType::Month => "number:month",
-                    FormatPartType::Year => "number:year",
-                    FormatPartType::Era => "number:era",
-                    FormatPartType::DayOfWeek => "number:day-of-week",
-                    FormatPartType::WeekOfYear => "number:week-of-year",
-                    FormatPartType::Quarter => "number:quarter",
-                    FormatPartType::Hours => "number:hours",
-                    FormatPartType::Minutes => "number:minutes",
-                    FormatPartType::Seconds => "number:seconds",
-                    FormatPartType::Fraction => "number:fraction",
-                    FormatPartType::AmPm => "number:am-pm",
-                    FormatPartType::EmbeddedText => "number:embedded-text",
-                    FormatPartType::Text => "number:text",
-                    FormatPartType::TextContent => "number:text-content",
-                };
+        for part in value_format.parts() {
+            let part_tag = match part.part_type() {
+                FormatPartType::Boolean => "number:boolean",
+                FormatPartType::Number => "number:number",
+                FormatPartType::Scientific => "number:scientific-number",
+                FormatPartType::CurrencySymbol => "number:currency-symbol",
+                FormatPartType::Day => "number:day",
+                FormatPartType::Month => "number:month",
+                FormatPartType::Year => "number:year",
+                FormatPartType::Era => "number:era",
+                FormatPartType::DayOfWeek => "number:day-of-week",
+                FormatPartType::WeekOfYear => "number:week-of-year",
+                FormatPartType::Quarter => "number:quarter",
+                FormatPartType::Hours => "number:hours",
+                FormatPartType::Minutes => "number:minutes",
+                FormatPartType::Seconds => "number:seconds",
+                FormatPartType::Fraction => "number:fraction",
+                FormatPartType::AmPm => "number:am-pm",
+                FormatPartType::EmbeddedText => "number:embedded-text",
+                FormatPartType::Text => "number:text",
+                FormatPartType::TextContent => "number:text-content",
+            };
 
-                if part.part_type() == FormatPartType::Text || part.part_type() == FormatPartType::CurrencySymbol {
-                    xml_out.elem(part_tag)?;
-                    if let Some(prp) = part.attr_map() {
-                        for (a, v) in prp.iter() {
-                            xml_out.attr_esc(a.as_ref(), v.as_str())?;
-                        }
+            if part.part_type() == FormatPartType::Text || part.part_type() == FormatPartType::CurrencySymbol {
+                xml_out.elem(part_tag)?;
+                if let Some(prp) = part.attr_map() {
+                    for (a, v) in prp.iter() {
+                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
                     }
-                    if let Some(content) = part.content() {
-                        xml_out.text_esc(content)?;
-                    }
-                    xml_out.end_elem(part_tag)?;
-                } else {
-                    xml_out.empty(part_tag)?;
-                    if let Some(prp) = part.attr_map() {
-                        for (a, v) in prp.iter() {
-                            xml_out.attr_esc(a.as_ref(), v.as_str())?;
-                        }
+                }
+                if let Some(content) = part.content() {
+                    xml_out.text_esc(content)?;
+                }
+                xml_out.end_elem(part_tag)?;
+            } else {
+                xml_out.empty(part_tag)?;
+                if let Some(prp) = part.attr_map() {
+                    for (a, v) in prp.iter() {
+                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
                     }
                 }
             }
@@ -1234,31 +1232,29 @@ fn write_regions<'a>(hf: &'a HeaderFooter,
 
 fn write_textvec(region: &TextVec,
                  xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    if let Some(region) = region.vec() {
-        for c in region {
-            match c {
-                TextElem::Start(ref t) => {
-                    xml_out.elem(&t.tag())?;
-                    if let Some(attr) = t.attr_map() {
-                        for (k, v) in attr.iter() {
-                            xml_out.attr_esc(k.as_ref(), v.as_ref())?;
-                        }
+    for c in region.vec() {
+        match c {
+            TextElem::Start(ref t) => {
+                xml_out.elem(&t.tag())?;
+                if let Some(attr) = t.attr_map() {
+                    for (k, v) in attr.iter() {
+                        xml_out.attr_esc(k.as_ref(), v.as_ref())?;
                     }
                 }
-                TextElem::Empty(t) => {
-                    xml_out.empty(t.tag().as_str())?;
-                    if let Some(attr) = t.attr_map() {
-                        for (k, v) in attr.iter() {
-                            xml_out.attr_esc(k.as_ref(), v.as_ref())?;
-                        }
+            }
+            TextElem::Empty(t) => {
+                xml_out.empty(t.tag().as_str())?;
+                if let Some(attr) = t.attr_map() {
+                    for (k, v) in attr.iter() {
+                        xml_out.attr_esc(k.as_ref(), v.as_ref())?;
                     }
                 }
-                TextElem::Text(t) => {
-                    xml_out.text_esc(t.as_str())?;
-                }
-                TextElem::End(t) => {
-                    xml_out.end_elem(t.as_str())?;
-                }
+            }
+            TextElem::Text(t) => {
+                xml_out.text_esc(t.as_str())?;
+            }
+            TextElem::End(t) => {
+                xml_out.end_elem(t.as_str())?;
             }
         }
     }

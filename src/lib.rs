@@ -290,9 +290,9 @@ pub struct Sheet {
 
     data: BTreeMap<(ucell, ucell), SCell>,
 
-    col_style: Option<BTreeMap<ucell, String>>,
-    col_cell_style: Option<BTreeMap<ucell, String>>,
-    row_style: Option<BTreeMap<ucell, String>>,
+    col_style: BTreeMap<ucell, String>,
+    col_cell_style: BTreeMap<ucell, String>,
+    row_style: BTreeMap<ucell, String>,
 
     header_rows: Option<RowRange>,
     header_cols: Option<ColRange>,
@@ -305,20 +305,14 @@ impl fmt::Debug for Sheet {
         for (k, v) in self.data.iter() {
             writeln!(f, "  data {:?} {:?}", k, v)?;
         }
-        if let Some(col_style) = &self.col_style {
-            for (k, v) in col_style {
-                writeln!(f, "{:?} {:?}", k, v)?;
-            }
+        for (k, v) in &self.col_style {
+            writeln!(f, "{:?} {:?}", k, v)?;
         }
-        if let Some(col_cell_style) = &self.col_cell_style {
-            for (k, v) in col_cell_style {
-                writeln!(f, "{:?} {:?}", k, v)?;
-            }
+        for (k, v) in &self.col_cell_style {
+            writeln!(f, "{:?} {:?}", k, v)?;
         }
-        if let Some(row_style) = &self.row_style {
-            for (k, v) in row_style {
-                writeln!(f, "{:?} {:?}", k, v)?;
-            }
+        for (k, v) in &self.row_style {
+            writeln!(f, "{:?} {:?}", k, v)?;
         }
         if let Some(header_rows) = &self.header_rows {
             writeln!(f, "header rows {:?}", header_rows)?;
@@ -337,9 +331,9 @@ impl Sheet {
             name: String::from(""),
             data: BTreeMap::new(),
             style: None,
-            col_style: None,
-            col_cell_style: None,
-            row_style: None,
+            col_style: Default::default(),
+            col_cell_style: Default::default(),
+            row_style: Default::default(),
             header_rows: None,
             header_cols: None,
             print_ranges: None,
@@ -352,9 +346,9 @@ impl Sheet {
             name: name.into(),
             data: BTreeMap::new(),
             style: None,
-            col_style: None,
-            col_cell_style: None,
-            row_style: None,
+            col_style: Default::default(),
+            col_cell_style: Default::default(),
+            row_style: Default::default(),
             header_rows: None,
             header_cols: None,
             print_ranges: None,
@@ -383,34 +377,22 @@ impl Sheet {
 
     /// Column wide style.
     pub fn set_column_style<V: Into<String>>(&mut self, col: ucell, style: V) {
-        self.col_style
-            .get_or_insert_with(BTreeMap::new)
-            .insert(col, style.into());
+        self.col_style.insert(col, style.into());
     }
 
     /// Returns the column wide style.
     pub fn column_style(&self, col: ucell) -> Option<&String> {
-        if let Some(col_style) = &self.col_style {
-            col_style.get(&col)
-        } else {
-            None
-        }
+        self.col_style.get(&col)
     }
 
     /// Default cell style for this column.
     pub fn set_column_cell_style<V: Into<String>>(&mut self, col: ucell, style: V) {
-        self.col_cell_style
-            .get_or_insert_with(BTreeMap::new)
-            .insert(col, style.into());
+        self.col_cell_style.insert(col, style.into());
     }
 
     /// Returns the default cell style for this column.
     pub fn column_cell_style(&self, col: ucell) -> Option<&String> {
-        if let Some(col_cell_style) = &self.col_cell_style {
-            col_cell_style.get(&col)
-        } else {
-            None
-        }
+        self.col_cell_style.get(&col)
     }
 
     /// Creates a col style and sets the col width.
@@ -431,18 +413,12 @@ impl Sheet {
 
     /// Row style.
     pub fn set_row_style<V: Into<String>>(&mut self, row: ucell, style: V) {
-        self.row_style
-            .get_or_insert_with(BTreeMap::new)
-            .insert(row, style.into());
+        self.row_style.insert(row, style.into());
     }
 
     /// Returns the row style.
     pub fn row_style(&self, row: ucell) -> Option<&String> {
-        if let Some(row_style) = &self.row_style {
-            row_style.get(&row)
-        } else {
-            None
-        }
+        self.row_style.get(&row)
     }
 
     /// Creates a row-style and sets the row height.

@@ -11,14 +11,14 @@ use color::Rgb;
 use string_cache::DefaultAtom;
 
 /// Container type for attributes.
-pub type AttrMapType = Box<HashMap<DefaultAtom, String>>;
+pub type AttrMapType = Option<Box<HashMap<DefaultAtom, String>>>;
 
 /// Container trait for attributes.
 pub trait AttrMap {
     /// Reference to the map of actual attributes.
-    fn attr_map(&self) -> Option<&AttrMapType>;
+    fn attr_map(&self) -> &AttrMapType;
     /// Reference to the map of actual attributes.
-    fn attr_map_mut(&mut self) -> &mut Option<AttrMapType>;
+    fn attr_map_mut(&mut self) -> &mut AttrMapType;
 
     /// Are there any attributes?
     fn is_empty(&self) -> bool {
@@ -67,7 +67,7 @@ pub struct AttrMapIter<'a> {
 }
 
 impl<'a> AttrMapIter<'a> {
-    pub fn from(attrmap: Option<&'a AttrMapType>) -> AttrMapIter<'a> {
+    pub fn from(attrmap: &'a AttrMapType) -> AttrMapIter<'a> {
         if let Some(attrmap) = attrmap {
             Self {
                 it: Some(attrmap.iter()),
