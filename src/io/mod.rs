@@ -4,8 +4,7 @@ pub use write::write_ods_flags;
 
 pub use crate::error::OdsError;
 
-mod xmlwriter;
-mod tmp2zip;
-
 mod read;
 mod write;
+mod xmlwriter;
+mod tmp2zip;

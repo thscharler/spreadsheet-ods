@@ -1,6 +1,6 @@
-///
-/// For now defines functions to create cell references for formulas.
-///
+//!
+//! For now defines functions to create cell references for formulas.
+//!
 
 use crate::refs::{CellRange, CellRef};
 use crate::ucell;
@@ -17,7 +17,7 @@ pub fn fcellref_table<S: Into<String>>(table: S, row: ucell, col: ucell) -> Stri
     CellRef::table(table, row, col).to_formula()
 }
 
-/// Creates a cell-reference for use in formulas.
+/// Creates a cellrange-reference for use in formulas.
 pub fn frangeref(row: ucell,
                  col: ucell,
                  row_to: ucell,
@@ -25,7 +25,7 @@ pub fn frangeref(row: ucell,
     CellRange::simple(row, col, row_to, col_to).to_formula()
 }
 
-/// Creates a cell-reference for use in formulas.
+/// Creates a cellrange-reference for use in formulas.
 pub fn frangeref_table<S: Into<String>>(table: S,
                                         row: ucell,
                                         col: ucell,

@@ -40,11 +40,11 @@ fn test_cell() {
     if let Some(c) = sh.cell(5, 5) {
         assert_eq!(c.value().as_i32_or(0), 1);
     }
-    if let Some(c) = sh.cell_mut(6, 6) {
-        c.set_value(3);
-        let mut x = SCell::new();
-        std::mem::swap(c, &mut x);
-        assert_eq!(x.value().as_f64_or(0.0), 3.0);
-    }
+
+    let c = sh.cell_mut(6, 6);
+    c.set_value(3);
+    let mut x = SCell::new();
+    std::mem::swap(c, &mut x);
+    assert_eq!(x.value().as_f64_or(0.0), 3.0);
 }
 

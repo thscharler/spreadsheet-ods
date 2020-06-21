@@ -1380,6 +1380,7 @@ fn read_part(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
 
 // style:style tag
 #[allow(clippy::single_match)]
+#[allow(clippy::collapsible_if)]
 fn read_style_style(book: &mut WorkBook,
                     origin: StyleOrigin,
                     styleuse: StyleUse,

@@ -1,6 +1,6 @@
-///
-/// Defines the basic structures for table styling, PageLayout and Style
-///
+//!
+//! Defines the basic structures for table styling, PageLayout and Style
+//!
 
 use string_cache::DefaultAtom;
 
@@ -728,7 +728,7 @@ impl Style {
 
 /// One style mapping.
 /// The rules for this are not very clear. It writes the necessary data fine,
-/// but the interpretation bei LO is not very accessible.
+/// but the interpretation by LO is not very accessible.
 /// * The cellref must include a table-name.
 /// * ???
 /// * LO always adds calcext:conditional-formats which I can't handle.
@@ -775,7 +775,7 @@ impl StyleMap {
     }
 }
 
-
+/// Style for the whole table.
 #[derive(Clone, Debug, Default)]
 pub struct TableAttr {
     attr: Option<AttrMapType>,
@@ -812,6 +812,7 @@ impl AttrStyleShadow for TableAttr {}
 
 impl AttrStyleWritingMode for TableAttr {}
 
+/// Styles for table rows.
 #[derive(Clone, Debug, Default)]
 pub struct TableRowAttr {
     attr: Option<AttrMapType>,
@@ -844,6 +845,7 @@ impl AttrFoKeepTogether for TableRowAttr {}
 
 impl AttrTableRow for TableRowAttr {}
 
+/// Styles for table columns.
 #[derive(Clone, Debug, Default)]
 pub struct TableColAttr {
     attr: Option<AttrMapType>,
@@ -872,6 +874,7 @@ impl AttrFoBreak for TableColAttr {}
 
 impl AttrTableCol for TableColAttr {}
 
+/// Styles for table cells.
 #[derive(Clone, Debug, Default)]
 pub struct TableCellAttr {
     attr: Option<AttrMapType>,
@@ -908,6 +911,7 @@ impl AttrStyleWritingMode for TableCellAttr {}
 
 impl AttrTableCell for TableCellAttr {}
 
+/// Paragraph style.
 #[derive(Clone, Debug, Default)]
 pub struct ParagraphAttr {
     attr: Option<AttrMapType>,
@@ -952,7 +956,7 @@ impl AttrStyleWritingMode for ParagraphAttr {}
 
 impl AttrParagraph for ParagraphAttr {}
 
-
+/// Text styles.
 #[derive(Clone, Debug, Default)]
 pub struct TextAttr {
     attr: Option<AttrMapType>,

@@ -1,3 +1,10 @@
+//! Text is stored as a simple String whenever possible.
+//! For text mixed with markup a TextVec is used, that represents a linear
+//! view for the text and tags.
+//! It is the responsibility of the user of this type to ensure that this
+//! converts to valid xml.
+//!
+
 use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType};
 
 /// A tag within a text region.
@@ -48,7 +55,8 @@ pub enum TextElem {
     End(String),
 }
 
-/// A vector of text.
+/// A vector of text and tags.
+/// The user of this must ensure that the result is valid xml.
 #[derive(Debug, Clone, Default)]
 pub struct TextVec {
     vec: Option<Vec<TextElem>>,

@@ -1,6 +1,6 @@
-///
-/// Defines ValueFormat for formatting related issues
-///
+//!
+//! Defines ValueFormat for formatting related issues
+//!
 
 use std::fmt::{Display, Formatter};
 
@@ -149,14 +149,17 @@ impl ValueFormat {
         self.push_part(FormatPart::new_boolean());
     }
 
+    /// Appends a format part.
     pub fn push_number(&mut self, decimal: u8, grouping: bool) {
         self.push_part(FormatPart::new_number(decimal, grouping));
     }
 
+    /// Appends a format part.
     pub fn push_number_fix(&mut self, decimal: u8, grouping: bool) {
         self.push_part(FormatPart::new_number_fix(decimal, grouping));
     }
 
+    /// Appends a format part.
     pub fn push_fraction(&mut self, denominator: u32,
                          min_den_digits: u8,
                          min_int_digits: u8,
@@ -165,10 +168,12 @@ impl ValueFormat {
         self.push_part(FormatPart::new_fraction(denominator, min_den_digits, min_int_digits, min_num_digits, grouping));
     }
 
+    /// Appends a format part.
     pub fn push_scientific(&mut self, dec_places: u8) {
         self.push_part(FormatPart::new_scientific(dec_places));
     }
 
+    /// Appends a format part.
     pub fn push_currency<S1, S2, S3>(&mut self, country: S1, language: S2, symbol: S3)
         where S1: Into<String>,
               S2: Into<String>,
@@ -177,58 +182,72 @@ impl ValueFormat {
         self.push_part(FormatPart::new_currency(country, language, symbol));
     }
 
+    /// Appends a format part.
     pub fn push_day(&mut self, number: FormatNumberStyle) {
         self.push_part(FormatPart::new_day(number));
     }
 
+    /// Appends a format part.
     pub fn push_month(&mut self, number: FormatNumberStyle) {
         self.push_part(FormatPart::new_month(number));
     }
 
+    /// Appends a format part.
     pub fn push_year(&mut self, number: FormatNumberStyle) {
         self.push_part(FormatPart::new_year(number));
     }
 
+    /// Appends a format part.
     pub fn push_era(&mut self, number: FormatNumberStyle, calendar: FormatCalendar) {
         self.push_part(FormatPart::new_era(number, calendar));
     }
 
+    /// Appends a format part.
     pub fn push_day_of_week(&mut self, number: FormatNumberStyle, calendar: FormatCalendar) {
         self.push_part(FormatPart::new_day_of_week(number, calendar));
     }
 
+    /// Appends a format part.
     pub fn push_week_of_year(&mut self, calendar: FormatCalendar) {
         self.push_part(FormatPart::new_week_of_year(calendar));
     }
 
+    /// Appends a format part.
     pub fn push_quarter(&mut self, number: FormatNumberStyle, calendar: FormatCalendar) {
         self.push_part(FormatPart::new_quarter(number, calendar));
     }
 
+    /// Appends a format part.
     pub fn push_hours(&mut self, number: FormatNumberStyle) {
         self.push_part(FormatPart::new_hours(number));
     }
 
+    /// Appends a format part.
     pub fn push_minutes(&mut self, number: FormatNumberStyle) {
         self.push_part(FormatPart::new_minutes(number));
     }
 
+    /// Appends a format part.
     pub fn push_seconds(&mut self, number: FormatNumberStyle) {
         self.push_part(FormatPart::new_seconds(number));
     }
 
+    /// Appends a format part.
     pub fn push_am_pm(&mut self) {
         self.push_part(FormatPart::new_am_pm());
     }
 
+    /// Appends a format part.
     pub fn push_embedded_text(&mut self, position: u8) {
         self.push_part(FormatPart::new_embedded_text(position));
     }
 
+    /// Appends a format part.
     pub fn push_text<S: Into<String>>(&mut self, text: S) {
         self.push_part(FormatPart::new_text(text));
     }
 
+    /// Appends a format part.
     pub fn push_text_content(&mut self) {
         self.push_part(FormatPart::new_text_content());
     }
@@ -241,6 +260,7 @@ impl ValueFormat {
     }
 
     /// Adds all format parts.
+    #[allow(clippy::collapsible_if)]
     pub fn push_parts(&mut self, mut partvec: Vec<FormatPart>) {
         if self.parts.is_none() {
             self.parts = Some(partvec);
@@ -278,8 +298,8 @@ impl ValueFormat {
         self.stylemaps.get_or_insert_with(Vec::new)
     }
 
-    // Tries to format.
-    // If there are no matching parts, does nothing.
+    /// Tries to format.
+    /// If there are no matching parts, does nothing.
     pub fn format_boolean(&self, b: bool) -> String {
         let mut buf = String::new();
         if let Some(parts) = &self.parts {
@@ -290,8 +310,8 @@ impl ValueFormat {
         buf
     }
 
-    // Tries to format.
-    // If there are no matching parts, does nothing.
+    /// Tries to format.
+    /// If there are no matching parts, does nothing.
     pub fn format_float(&self, f: f64) -> String {
         let mut buf = String::new();
         if let Some(parts) = &self.parts {
@@ -302,8 +322,8 @@ impl ValueFormat {
         buf
     }
 
-    // Tries to format.
-    // If there are no matching parts, does nothing.
+    /// Tries to format.
+    /// If there are no matching parts, does nothing.
     pub fn format_str(&self, s: &str) -> String {
         let mut buf = String::new();
         if let Some(parts) = &self.parts {
@@ -314,9 +334,9 @@ impl ValueFormat {
         buf
     }
 
-    // Tries to format.
-    // If there are no matching parts, does nothing.
-    // Should work reasonably. Don't ask me about other calenders.
+    /// Tries to format.
+    /// If there are no matching parts, does nothing.
+    /// Should work reasonably. Don't ask me about other calenders.
     pub fn format_datetime(&self, d: &NaiveDateTime) -> String {
         let mut buf = String::new();
         if let Some(parts) = &self.parts {
@@ -329,8 +349,8 @@ impl ValueFormat {
         buf
     }
 
-    // Tries to format. Should work reasonably.
-    // If there are no matching parts, does nothing.
+    /// Tries to format. Should work reasonably.
+    /// If there are no matching parts, does nothing.
     pub fn format_time_duration(&self, d: &Duration) -> String {
         let mut buf = String::new();
         if let Some(parts) = &self.parts {
@@ -387,6 +407,7 @@ impl AttrMap for FormatPart {
     }
 }
 
+/// Flag for several PartTypes.
 #[derive(Debug, Clone, Copy)]
 pub enum FormatNumberStyle {
     Short,
@@ -402,6 +423,7 @@ impl Display for FormatNumberStyle {
     }
 }
 
+/// Calendar types.
 #[derive(Debug, Clone, Copy)]
 pub enum FormatCalendar {
     Gregorian,
@@ -446,10 +468,12 @@ impl FormatPart {
         }
     }
 
+    /// Boolean Part
     pub fn new_boolean() -> Self {
         FormatPart::new(FormatPartType::Boolean)
     }
 
+    /// Number format part.
     pub fn new_number(decimal: u8, grouping: bool) -> Self {
         let mut p = FormatPart::new(FormatPartType::Number);
         p.set_attr("number:min-integer-digits", 1.to_string());
@@ -461,6 +485,7 @@ impl FormatPart {
         p
     }
 
+    /// Number format part with fixed decimal places.
     pub fn new_number_fix(decimal: u8, grouping: bool) -> Self {
         let mut p = Self::new(FormatPartType::Number);
         p.set_attr("number:min-integer-digits", 1.to_string());
@@ -472,6 +497,7 @@ impl FormatPart {
         p
     }
 
+    /// Format as a fraction.
     pub fn new_fraction(denominator: u32,
                         min_den_digits: u8,
                         min_int_digits: u8,
@@ -488,12 +514,14 @@ impl FormatPart {
         p
     }
 
+    /// Format with scientific notation.
     pub fn new_scientific(dec_places: u8) -> Self {
         let mut p = Self::new(FormatPartType::Fraction);
         p.set_attr("number:decimal-places", dec_places.to_string());
         p
     }
 
+    /// Currency symbol.
     pub fn new_currency<S1, S2, S3>(country: S1, language: S2, symbol: S3) -> Self
         where S1: Into<String>,
               S2: Into<String>,
@@ -575,16 +603,19 @@ impl FormatPart {
         Self::new(FormatPartType::AmPm)
     }
 
+    /// Whatever this is for ...
     pub fn new_embedded_text(position: u8) -> Self {
         let mut p = Self::new(FormatPartType::EmbeddedText);
         p.set_attr("number:position", position.to_string());
         p
     }
 
+    /// Part with fixed text.
     pub fn new_text<S: Into<String>>(text: S) -> Self {
         Self::new_content(FormatPartType::Text, text)
     }
 
+    /// Whatever this is for ...
     pub fn new_text_content() -> Self {
         Self::new(FormatPartType::TextContent)
     }

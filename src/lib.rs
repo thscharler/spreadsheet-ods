@@ -10,7 +10,7 @@
 //! use spreadsheet_ods::formula;
 //! use spreadsheet_ods::style::Style;
 //!
-//! let mut wb = spreadsheet_ods::io::read_ods("tests/example.ods").unwrap();
+//! let mut wb = spreadsheet_ods::read_ods("tests/example.ods").unwrap();
 //!
 //! let mut sheet = wb.sheet_mut(0);
 //! sheet.set_value(0, 0, 21.4f32);
@@ -24,7 +24,7 @@
 //! let nice_date_style = Style::cell_style("nice_date_style", "nice_date_format");
 //! wb.add_style(nice_date_style);
 //!
-//! spreadsheet_ods::io::write_ods(&wb, "test_out/tryout.ods");
+//! spreadsheet_ods::write_ods(&wb, "test_out/tryout.ods");
 //!
 //! ```
 //!
@@ -51,17 +51,17 @@ use rust_decimal::prelude::*;
 use time::Duration;
 
 pub use error::OdsError;
+pub use io::{read_ods, write_ods, write_ods_flags};
 pub use format::ValueFormat;
-pub use io::{read_ods, write_ods};
-pub use refs::{CellRange, CellRef, ColRange, RowRange};
 pub use style::{Style, Length, Angle};
+pub use refs::{CellRange, CellRef, ColRange, RowRange};
 
 use crate::attrmap::{AttrTableCol, AttrTableRow};
 use crate::style::{FontFaceDecl, PageLayout};
 use crate::text::TextVec;
 
 pub mod error;
-pub mod io;
+mod io;
 mod attrmap;
 pub mod text;
 pub mod refs;
@@ -93,7 +93,7 @@ pub struct WorkBook {
 
     /// Default-styles per Type.
     /// This is only used when writing the ods file.
-    def_styles: Option<HashMap<ValueType, String>>,
+    def_styles: HashMap<ValueType, String>,
 
     /// Page-layout data.
     page_layouts: HashMap<String, PageLayout>,
@@ -118,10 +118,8 @@ impl fmt::Debug for WorkBook {
         for s in self.formats.values() {
             writeln!(f, "{:?}", s)?;
         }
-        if let Some(def_styles) = &self.def_styles {
-            for (t, s) in def_styles {
-                writeln!(f, "{:?} -> {:?}", t, s)?;
-            }
+        for (t, s) in &self.def_styles {
+            writeln!(f, "{:?} -> {:?}", t, s)?;
         }
         for s in self.page_layouts.values() {
             writeln!(f, "{:?}", s)?;
@@ -134,11 +132,11 @@ impl fmt::Debug for WorkBook {
 impl WorkBook {
     pub fn new() -> Self {
         WorkBook {
-            sheets: Vec::new(),
-            fonts: HashMap::new(),
-            styles: HashMap::new(),
-            formats: HashMap::new(),
-            def_styles: None,
+            sheets: Default::default(),
+            fonts: Default::default(),
+            styles: Default::default(),
+            formats: Default::default(),
+            def_styles: Default::default(),
             page_layouts: Default::default(),
             file: None,
         }
@@ -179,18 +177,12 @@ impl WorkBook {
     /// Adds a default-style for all new values.
     /// This information is only used when writing the data to the ODS file.
     pub fn add_def_style(&mut self, value_type: ValueType, style: &str) {
-        self.def_styles
-            .get_or_insert_with(HashMap::new)
-            .insert(value_type, style.to_string());
+        self.def_styles.insert(value_type, style.to_string());
     }
 
     /// Returns the default style name.
     pub fn def_style(&self, value_type: ValueType) -> Option<&String> {
-        if let Some(def_styles) = &self.def_styles {
-            def_styles.get(&value_type)
-        } else {
-            None
-        }
+        self.def_styles.get(&value_type)
     }
 
     /// Finds a ValueFormat starting with the stylename attached to a cell.
@@ -480,19 +472,19 @@ impl Sheet {
         (max.0 + 1, max.1 + 1)
     }
 
+    /// Returns true if there is no SCell at the given position.
+    pub fn is_empty(&self, row: ucell, col: ucell) -> bool {
+        self.data.get(&(row, col)).is_none()
+    }
+
     /// Returns the cell if available.
     pub fn cell(&self, row: ucell, col: ucell) -> Option<&SCell> {
         self.data.get(&(row, col))
     }
 
-    /// Returns a mutable reference to the cell.
-    pub fn cell_mut(&mut self, row: ucell, col: ucell) -> Option<&mut SCell> {
-        self.data.get_mut(&(row, col))
-    }
-
-    /// Creates an empty cell if the position is currently empty and returns
-    /// a reference.
-    pub fn create_cell(&mut self, row: ucell, col: ucell) -> &mut SCell {
+    /// Ensures that there is a SCell at the given position and returns
+    /// a reference to it.
+    pub fn cell_mut(&mut self, row: ucell, col: ucell) -> &mut SCell {
         self.data.entry((row, col)).or_insert_with(SCell::new)
     }
 
@@ -501,7 +493,7 @@ impl Sheet {
         self.data.insert((row, col), cell)
     }
 
-    // Removes a value.
+    /// Removes a cell.
     pub fn remove_cell(&mut self, row: ucell, col: ucell) -> Option<SCell> {
         self.data.remove(&(row, col))
     }
@@ -564,7 +556,7 @@ impl Sheet {
         cell.span.0 = span;
     }
 
-    // Rowspan of the cell.
+    /// Rowspan of the cell.
     pub fn row_span(&self, row: ucell, col: ucell) -> ucell {
         if let Some(c) = self.data.get(&(row, col)) {
             c.span.0
@@ -654,16 +646,6 @@ impl SCell {
     pub fn new() -> Self {
         SCell {
             value: Value::Empty,
-            formula: None,
-            style: None,
-            span: (1, 1),
-        }
-    }
-
-    /// New, with a value.
-    pub fn with_value<V: Into<Value>>(value: V) -> Self {
-        SCell {
-            value: value.into(),
             formula: None,
             style: None,
             span: (1, 1),
@@ -938,6 +920,18 @@ impl From<i32> for Value {
     }
 }
 
+impl From<i16> for Value {
+    fn from(i: i16) -> Self {
+        Value::Number(i as f64)
+    }
+}
+
+impl From<i8> for Value {
+    fn from(i: i8) -> Self {
+        Value::Number(i as f64)
+    }
+}
+
 impl From<u64> for Value {
     fn from(u: u64) -> Self {
         Value::Number(u as f64)
@@ -946,6 +940,18 @@ impl From<u64> for Value {
 
 impl From<u32> for Value {
     fn from(u: u32) -> Self {
+        Value::Number(u as f64)
+    }
+}
+
+impl From<u16> for Value {
+    fn from(u: u16) -> Self {
+        Value::Number(u as f64)
+    }
+}
+
+impl From<u8> for Value {
+    fn from(u: u8) -> Self {
         Value::Number(u as f64)
     }
 }
@@ -989,5 +995,15 @@ impl From<Option<NaiveDate>> for Value {
 impl From<Duration> for Value {
     fn from(d: Duration) -> Self {
         Value::TimeDuration(d)
+    }
+}
+
+impl From<Option<Duration>> for Value {
+    fn from(d: Option<Duration>) -> Self {
+        if let Some(d) = d {
+            Value::TimeDuration(d)
+        } else {
+            Value::Empty
+        }
     }
 }

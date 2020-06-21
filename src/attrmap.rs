@@ -1,8 +1,8 @@
-///
-/// Defines the type AttrMap as container for different attribute-sets.
-/// And there are a number of traits working with AttrMap to set
-/// related families of attributes.
-///
+//!
+//! Defines the type AttrMap as container for different attribute-sets.
+//! And there are a number of traits working with AttrMap to set
+//! related families of attributes.
+//!
 
 use std::collections::{hash_map, HashMap};
 use std::fmt::{Display, Formatter};
@@ -10,6 +10,7 @@ use std::fmt::{Display, Formatter};
 use color::Rgb;
 use string_cache::DefaultAtom;
 
+/// Container type for attributes.
 pub type AttrMapType = Box<HashMap<DefaultAtom, String>>;
 
 /// Container trait for attributes.
@@ -91,11 +92,12 @@ impl<'a> Iterator for AttrMapIter<'a> {
     }
 }
 
+/// Value type for angles.
 #[derive(Debug, Clone, Copy)]
 pub enum Angle {
-    Deg(f32),
-    Grad(f32),
-    Rad(f32),
+    Deg(f64),
+    Grad(f64),
+    Rad(f64),
 }
 
 impl Display for Angle {
@@ -109,31 +111,33 @@ impl Display for Angle {
 }
 
 
+/// deg angles. 360°
 #[macro_export]
 macro_rules! deg {
-    ($l:expr) => { Angle::Deg($l as f32) }
+    ($l:expr) => { Angle::Deg($l as f64) }
 }
 
-
+/// grad angles. 400°
 #[macro_export]
 macro_rules! grad {
-    ($l:expr) => { Length::Grad($l as f32) }
+    ($l:expr) => { Length::Grad($l as f64) }
 }
 
-
+/// radians angle.
 #[macro_export]
 macro_rules! rad {
-    ($l:expr) => { Length::Rad($l as f32) }
+    ($l:expr) => { Length::Rad($l as f64) }
 }
 
+/// Value type for lengths.
 #[derive(Debug, Clone, Copy)]
 pub enum Length {
-    Cm(f32),
-    Mm(f32),
-    In(f32),
-    Pt(f32),
-    Pc(f32),
-    Em(f32),
+    Cm(f64),
+    Mm(f64),
+    In(f64),
+    Pt(f64),
+    Pc(f64),
+    Em(f64),
 }
 
 impl Display for Length {
@@ -149,34 +153,40 @@ impl Display for Length {
     }
 }
 
+/// Centimeters.
 #[macro_export]
 macro_rules! cm {
-    ($l:expr) => { Length::Cm($l as f32) }
+    ($l:expr) => { Length::Cm($l as f64) }
 }
 
+/// Millimeters.
 #[macro_export]
 macro_rules! mm {
-    ($l:expr) => { Length::Mm($l as f32) }
+    ($l:expr) => { Length::Mm($l as f64) }
 }
 
+/// Inches.
 #[macro_export]
 macro_rules! inch {
-    ($l:expr) => { Length::In($l as f32) }
+    ($l:expr) => { Length::In($l as f64) }
 }
 
+/// Point. 1/72"
 #[macro_export]
 macro_rules! pt {
-    ($l:expr) => { Length::Pt($l as f32) }
+    ($l:expr) => { Length::Pt($l as f64) }
 }
 
+/// Pica. 12/72"
 #[macro_export]
 macro_rules! pc {
-    ($l:expr) => { Length::Pc($l as f32) }
+    ($l:expr) => { Length::Pc($l as f64) }
 }
 
+/// Length depending on font size.
 #[macro_export]
 macro_rules! em {
-    ($l:expr) => { Length::Em($l as f32) }
+    ($l:expr) => { Length::Em($l as f64) }
 }
 
 /// Font pitch.
@@ -283,7 +293,7 @@ pub trait AttrFoMinHeight
         self.set_attr("fo:min-height", height.to_string());
     }
 
-    fn set_min_height_percent(&mut self, height: f32) {
+    fn set_min_height_percent(&mut self, height: f64) {
         self.set_attr("fo:min-height", percent_string(height));
     }
 }
@@ -522,7 +532,7 @@ pub trait AttrTableRow
 pub trait AttrTableCol
     where Self: AttrMap {
     /// Relative weights for the column width
-    fn set_rel_col_width(&mut self, rel: f32) {
+    fn set_rel_col_width(&mut self, rel: f64) {
         self.set_attr("style:rel-column-width", rel_width_string(rel));
     }
 
@@ -738,6 +748,7 @@ pub trait AttrParagraph
     }
 }
 
+/// Text style values.
 #[derive(Debug, Clone, Copy)]
 pub enum TextStyle {
     Normal,
@@ -755,6 +766,7 @@ impl Display for TextStyle {
     }
 }
 
+/// Text weight values.
 #[derive(Debug, Clone, Copy)]
 pub enum TextWeight {
     Normal,
@@ -953,7 +965,7 @@ pub trait AttrText
         self.set_attr("fo:font-size", size.to_string());
     }
 
-    fn set_font_size_percent(&mut self, size: f32) {
+    fn set_font_size_percent(&mut self, size: f64) {
         self.set_attr("fo:font-size", percent_string(size));
     }
 
@@ -1078,11 +1090,11 @@ fn border_string(width: Length, border: Border, color: Rgb<u8>) -> String {
     format!("{} {} #{:02x}{:02x}{:02x}", width, border, color.r, color.g, color.b)
 }
 
-fn percent_string(value: f32) -> String {
+fn percent_string(value: f64) -> String {
     format!("{}%", value)
 }
 
-fn rel_width_string(value: f32) -> String {
+fn rel_width_string(value: f64) -> String {
     format!("{}*", value)
 }
 

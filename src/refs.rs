@@ -1,7 +1,6 @@
-///
-/// Defines types for cell references.
-///
-
+//!
+//! Defines types for cell references.
+//!
 
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};

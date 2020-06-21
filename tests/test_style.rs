@@ -1,7 +1,7 @@
 use color::Rgb;
 
-use spreadsheet_ods::{CellRef, OdsError, Sheet, WorkBook, write_ods};
-use spreadsheet_ods::style::{AttrText, Style, StyleMap, StyleOrigin, StyleUse};
+use spreadsheet_ods::{CellRef, OdsError, Sheet, Style, WorkBook, write_ods};
+use spreadsheet_ods::style::{AttrText, StyleMap, StyleOrigin, StyleUse};
 
 #[test]
 fn teststyles() -> Result<(), OdsError> {

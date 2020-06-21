@@ -1,5 +1,7 @@
 use spreadsheet_ods::OdsError;
-use spreadsheet_ods::refs::{CellRange, CellRef, colname, parse_cellrange, parse_cellranges, parse_cellref, parse_colname, parse_rowname, push_cellrange, push_cellref, push_colname, push_rowname, push_tablename, rowname};
+use spreadsheet_ods::refs::{CellRange, CellRef, colname, parse_cellrange, parse_cellranges,
+                            parse_cellref, parse_colname, parse_rowname, push_cellrange,
+                            push_cellref, push_colname, push_rowname, push_tablename, rowname};
 
 #[test]
 fn test_names() {

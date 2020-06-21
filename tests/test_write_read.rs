@@ -1,5 +1,4 @@
-use spreadsheet_ods::{Sheet, WorkBook};
-use spreadsheet_ods::io::{OdsError, read_ods, write_ods};
+use spreadsheet_ods::{OdsError, read_ods, Sheet, WorkBook, write_ods};
 use spreadsheet_ods::refs::{CellRange, CellRef, ColRange, RowRange};
 
 #[test]
@@ -46,9 +45,7 @@ fn test_span() -> Result<(), OdsError> {
     sh.set_value(1, 0, "bomb");
     sh.set_value(1, 1, "bomb");
     sh.set_value(1, 2, "bomb");
-    if let Some(c) = sh.cell_mut(0, 0) {
-        c.set_col_span(2);
-    }
+    sh.set_col_span(0, 0, 2);
     wb.push_sheet(sh);
 
     let mut sh = Sheet::new();
@@ -58,9 +55,7 @@ fn test_span() -> Result<(), OdsError> {
     sh.set_value(2, 1, "bomb");
     sh.set_value(3, 0, "bomb");
     sh.set_value(3, 1, "bomb");
-    if let Some(c) = sh.cell_mut(1, 0) {
-        c.set_row_span(2);
-    }
+    sh.set_row_span(1, 0, 2);
     wb.push_sheet(sh);
 
     let mut sh = Sheet::new();

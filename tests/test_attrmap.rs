@@ -1,6 +1,6 @@
 use color::Rgb;
 
-use spreadsheet_ods::{Angle, cm, deg, Length, mm, pt};
+use spreadsheet_ods::{Angle, cm, deg, Length, mm, pt, Style};
 use spreadsheet_ods::style::{AttrFoBackgroundColor, AttrFoBorder, AttrFoMargin,
                              AttrFoMinHeight, AttrFoPadding, AttrMap, AttrStyleDynamicSpacing,
                              AttrStyleShadow, AttrSvgHeight, PageLayout};
@@ -9,7 +9,6 @@ use spreadsheet_ods::style::{AttrFoBreak, AttrFoKeepWithNext, AttrFontDecl, Attr
                              Border, CellAlignVertical, FontFaceDecl, FontPitch, PageBreak, ParaAlignVertical,
                              RotationAlign, TextAlignSource, TextKeep, TextPosition,
                              TextRelief, TextTransform, TextWeight, WrapOption, WritingMode};
-use spreadsheet_ods::Style;
 
 #[test]
 fn test_attr1() {
@@ -83,7 +82,7 @@ fn test_attr3() {
     st.col_mut().set_use_optimal_col_width(true);
     assert_eq!(st.col().attr("style:use-optimal-column-width"), Some(&"true".to_string()));
 
-    st.col_mut().set_rel_col_width(33f32);
+    st.col_mut().set_rel_col_width(33.0);
     assert_eq!(st.col().attr("style:rel-column-width"), Some(&"33*".to_string()));
 
     st.col_mut().set_col_width(cm!(17));
