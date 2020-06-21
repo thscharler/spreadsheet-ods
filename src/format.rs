@@ -7,10 +7,9 @@ use std::fmt::{Display, Formatter};
 use chrono::NaiveDateTime;
 use time::Duration;
 
-use crate::attrmap::{AttrMap, AttrMapType, AttrText};
+use crate::attrmap::{AttrMap, AttrMapType};
 use crate::style::{StyleMap, StyleOrigin, StyleUse, TextAttr};
-use crate::{ValueType, CellRef};
-use color::Rgb;
+use crate::{ValueType};
 
 #[derive(Debug)]
 pub enum ValueFormatError {
@@ -143,6 +142,95 @@ impl ValueFormat {
     /// Text style attributes.
     pub fn text_mut(&mut self) -> &mut TextAttr {
         &mut self.text_attr
+    }
+
+    /// Appends a format part.
+    pub fn push_boolean(&mut self) {
+        self.push_part(FormatPart::new_boolean());
+    }
+
+    pub fn push_number(&mut self, decimal: u8, grouping: bool) {
+        self.push_part(FormatPart::new_number(decimal, grouping));
+    }
+
+    pub fn push_number_fix(&mut self, decimal: u8, grouping: bool) {
+        self.push_part(FormatPart::new_number_fix(decimal, grouping));
+    }
+
+    pub fn push_fraction(&mut self, denominator: u32,
+                         min_den_digits: u8,
+                         min_int_digits: u8,
+                         min_num_digits: u8,
+                         grouping: bool) {
+        self.push_part(FormatPart::new_fraction(denominator, min_den_digits, min_int_digits, min_num_digits, grouping));
+    }
+
+    pub fn push_scientific(&mut self, dec_places: u8) {
+        self.push_part(FormatPart::new_scientific(dec_places));
+    }
+
+    pub fn push_currency<S1, S2, S3>(&mut self, country: S1, language: S2, symbol: S3)
+        where S1: Into<String>,
+              S2: Into<String>,
+              S3: Into<String>,
+    {
+        self.push_part(FormatPart::new_currency(country, language, symbol));
+    }
+
+    pub fn push_day(&mut self, number: FormatNumberStyle) {
+        self.push_part(FormatPart::new_day(number));
+    }
+
+    pub fn push_month(&mut self, number: FormatNumberStyle) {
+        self.push_part(FormatPart::new_month(number));
+    }
+
+    pub fn push_year(&mut self, number: FormatNumberStyle) {
+        self.push_part(FormatPart::new_year(number));
+    }
+
+    pub fn push_era(&mut self, number: FormatNumberStyle, calendar: FormatCalendar) {
+        self.push_part(FormatPart::new_era(number, calendar));
+    }
+
+    pub fn push_day_of_week(&mut self, number: FormatNumberStyle, calendar: FormatCalendar) {
+        self.push_part(FormatPart::new_day_of_week(number, calendar));
+    }
+
+    pub fn push_week_of_year(&mut self, calendar: FormatCalendar) {
+        self.push_part(FormatPart::new_week_of_year(calendar));
+    }
+
+    pub fn push_quarter(&mut self, number: FormatNumberStyle, calendar: FormatCalendar) {
+        self.push_part(FormatPart::new_quarter(number, calendar));
+    }
+
+    pub fn push_hours(&mut self, number: FormatNumberStyle) {
+        self.push_part(FormatPart::new_hours(number));
+    }
+
+    pub fn push_minutes(&mut self, number: FormatNumberStyle) {
+        self.push_part(FormatPart::new_minutes(number));
+    }
+
+    pub fn push_seconds(&mut self, number: FormatNumberStyle) {
+        self.push_part(FormatPart::new_seconds(number));
+    }
+
+    pub fn push_am_pm(&mut self) {
+        self.push_part(FormatPart::new_am_pm());
+    }
+
+    pub fn push_embedded_text(&mut self, position: u8) {
+        self.push_part(FormatPart::new_embedded_text(position));
+    }
+
+    pub fn push_text<S: Into<String>>(&mut self, text: S) {
+        self.push_part(FormatPart::new_text(text));
+    }
+
+    pub fn push_text_content(&mut self) {
+        self.push_part(FormatPart::new_text_content());
     }
 
     /// Adds a format part.
@@ -299,6 +387,46 @@ impl AttrMap for FormatPart {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum FormatNumberStyle {
+    Short,
+    Long,
+}
+
+impl Display for FormatNumberStyle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            FormatNumberStyle::Short => write!(f, "short"),
+            FormatNumberStyle::Long => write!(f, "long"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum FormatCalendar {
+    Gregorian,
+    Gengou,
+    ROC,
+    Hanja,
+    Hijri,
+    Jewish,
+    Buddhist,
+}
+
+impl Display for FormatCalendar {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            FormatCalendar::Gregorian => write!(f, "gregorian"),
+            FormatCalendar::Gengou => write!(f, "gengou"),
+            FormatCalendar::ROC => write!(f, "ROC"),
+            FormatCalendar::Hanja => write!(f, "hanja"),
+            FormatCalendar::Hijri => write!(f, "hijri"),
+            FormatCalendar::Jewish => write!(f, "jewish"),
+            FormatCalendar::Buddhist => write!(f, "buddhist"),
+        }
+    }
+}
+
 impl FormatPart {
     /// New, empty
     pub fn new(ftype: FormatPartType) -> Self {
@@ -310,12 +438,155 @@ impl FormatPart {
     }
 
     /// New, with string content.
-    pub fn new_content(ftype: FormatPartType, content: &str) -> Self {
+    pub fn new_content<S: Into<String>>(ftype: FormatPartType, content: S) -> Self {
         FormatPart {
             part_type: ftype,
             attr: None,
-            content: Some(content.to_string()),
+            content: Some(content.into()),
         }
+    }
+
+    pub fn new_boolean() -> Self {
+        FormatPart::new(FormatPartType::Boolean)
+    }
+
+    pub fn new_number(decimal: u8, grouping: bool) -> Self {
+        let mut p = FormatPart::new(FormatPartType::Number);
+        p.set_attr("number:min-integer-digits", 1.to_string());
+        p.set_attr("number:decimal-places", decimal.to_string());
+        p.set_attr("loext:min-decimal-places", 0.to_string());
+        if grouping {
+            p.set_attr("number:grouping", String::from("true"));
+        }
+        p
+    }
+
+    pub fn new_number_fix(decimal: u8, grouping: bool) -> Self {
+        let mut p = Self::new(FormatPartType::Number);
+        p.set_attr("number:min-integer-digits", 1.to_string());
+        p.set_attr("number:decimal-places", decimal.to_string());
+        p.set_attr("loext:min-decimal-places", decimal.to_string());
+        if grouping {
+            p.set_attr("number:grouping", String::from("true"));
+        }
+        p
+    }
+
+    pub fn new_fraction(denominator: u32,
+                        min_den_digits: u8,
+                        min_int_digits: u8,
+                        min_num_digits: u8,
+                        grouping: bool) -> Self {
+        let mut p = Self::new(FormatPartType::Fraction);
+        p.set_attr("number:denominator-value", denominator.to_string());
+        p.set_attr("number:min-denominator-digits", min_den_digits.to_string());
+        p.set_attr("number:min-integer-digits", min_int_digits.to_string());
+        p.set_attr("number:min-numerator-digits", min_num_digits.to_string());
+        if grouping {
+            p.set_attr("number:grouping", String::from("true"));
+        }
+        p
+    }
+
+    pub fn new_scientific(dec_places: u8) -> Self {
+        let mut p = Self::new(FormatPartType::Fraction);
+        p.set_attr("number:decimal-places", dec_places.to_string());
+        p
+    }
+
+    pub fn new_currency<S1, S2, S3>(country: S1, language: S2, symbol: S3) -> Self
+        where S1: Into<String>,
+              S2: Into<String>,
+              S3: Into<String>,
+    {
+        let mut p = Self::new_content(
+            FormatPartType::CurrencySymbol,
+            symbol,
+        );
+        p.set_attr("number:country", country.into());
+        p.set_attr("number:language", language.into());
+        p
+    }
+
+    pub fn new_day(number: FormatNumberStyle) -> Self {
+        let mut p = Self::new(FormatPartType::Day);
+        p.set_attr("number:style", number.to_string());
+        p
+    }
+
+    pub fn new_month(number: FormatNumberStyle) -> Self {
+        let mut p = Self::new(FormatPartType::Month);
+        p.set_attr("number:style", number.to_string());
+        p
+    }
+
+    pub fn new_year(number: FormatNumberStyle) -> Self {
+        let mut p = Self::new(FormatPartType::Year);
+        p.set_attr("number:style", number.to_string());
+        p
+    }
+
+    pub fn new_era(number: FormatNumberStyle, calendar: FormatCalendar) -> Self {
+        let mut p = Self::new(FormatPartType::Era);
+        p.set_attr("number:style", number.to_string());
+        p.set_attr("number:calendar", calendar.to_string());
+        p
+    }
+
+    pub fn new_day_of_week(number: FormatNumberStyle, calendar: FormatCalendar) -> Self {
+        let mut p = Self::new(FormatPartType::DayOfWeek);
+        p.set_attr("number:style", number.to_string());
+        p.set_attr("number:calendar", calendar.to_string());
+        p
+    }
+
+    pub fn new_week_of_year(calendar: FormatCalendar) -> Self {
+        let mut p = Self::new(FormatPartType::WeekOfYear);
+        p.set_attr("number:calendar", calendar.to_string());
+        p
+    }
+
+    pub fn new_quarter(number: FormatNumberStyle, calendar: FormatCalendar) -> Self {
+        let mut p = Self::new(FormatPartType::Quarter);
+        p.set_attr("number:style", number.to_string());
+        p.set_attr("number:calendar", calendar.to_string());
+        p
+    }
+
+    pub fn new_hours(number: FormatNumberStyle) -> Self {
+        let mut p = Self::new(FormatPartType::Hours);
+        p.set_attr("number:style", number.to_string());
+        p
+    }
+
+    pub fn new_minutes(number: FormatNumberStyle) -> Self {
+        let mut p = Self::new(FormatPartType::Minutes);
+        p.set_attr("number:style", number.to_string());
+        p
+    }
+
+    pub fn new_seconds(number: FormatNumberStyle) -> Self {
+        let mut p = Self::new(FormatPartType::Seconds);
+        p.set_attr("number:style", number.to_string());
+        p
+    }
+
+    pub fn new_am_pm() -> Self {
+        Self::new(FormatPartType::AmPm)
+    }
+
+    pub fn new_embedded_text(position: u8) -> Self {
+        let mut p = Self::new(FormatPartType::EmbeddedText);
+        p.set_attr("number:position", position.to_string());
+        p
+    }
+
+    pub fn new_text<S: Into<String>>(text: S) -> Self {
+        Self::new_content(FormatPartType::Text, text)
+    }
+
+    pub fn new_text_content() -> Self {
+        Self::new(FormatPartType::TextContent)
     }
 
     /// New with properties.
@@ -543,212 +814,116 @@ impl FormatPart {
 /// Creates a new number format.
 pub fn create_boolean_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Boolean);
-
-    v.push_part(FormatPart::new(FormatPartType::Boolean));
-
+    v.push_boolean();
     v
 }
 
 /// Creates a new number format.
 pub fn create_number_format<S: Into<String>>(name: S, decimal: u8, grouping: bool) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
-
-    let mut p = FormatPart::new(FormatPartType::Number);
-    p.set_attr("number:min-integer-digits", 1.to_string());
-    p.set_attr("number:decimal-places", decimal.to_string());
-    p.set_attr("loext:min-decimal-places", 0.to_string());
-    if grouping {
-        p.set_attr("number:grouping", String::from("true"));
-    }
-
-    v.push_part(p);
-
+    v.push_number(decimal, grouping);
     v
 }
 
 /// Creates a new number format with a fixed number of decimal places.
 pub fn create_number_format_fixed<S: Into<String>>(name: S, decimal: u8, grouping: bool) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
-
-    let mut p = FormatPart::new(FormatPartType::Number);
-    p.set_attr("number:min-integer-digits", 1.to_string());
-    p.set_attr("number:decimal-places", decimal.to_string());
-    p.set_attr("loext:min-decimal-places", decimal.to_string());
-    if grouping {
-        p.set_attr("number:grouping", String::from("true"));
-    }
-
-    v.push_part(p);
-
+    v.push_number_fix(decimal, grouping);
     v
 }
 
 /// Creates a new percantage format.<
 pub fn create_percentage_format<S: Into<String>>(name: S, decimal: u8) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Percentage);
-
-    let mut p = FormatPart::new(FormatPartType::Number);
-    p.set_attr("number:min-integer-digits", 1.to_string());
-    p.set_attr("number:decimal-places", decimal.to_string());
-    p.set_attr("loext:min-decimal-places", decimal.to_string());
-    v.push_part(p);
-
-    let mut p2 = FormatPart::new(FormatPartType::Text);
-    p2.set_content("&#160;%");
-    v.push_part(p2);
-
+    v.push_number_fix(decimal, false);
+    v.push_text("%");
     v
 }
 
 /// Creates a new currency format.
-pub fn create_currency_prefix<S: Into<String>, T: Into<String>>(name: S, symbol: T) -> ValueFormat {
+pub fn create_currency_prefix<S1, S2, S3, S4>(name: S1,
+                                              country: S2,
+                                              language: S3,
+                                              symbol: S4) -> ValueFormat
+    where S1: Into<String>,
+          S2: Into<String>,
+          S3: Into<String>,
+          S4: Into<String>,
+{
     let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
-
-    let mut p0 = FormatPart::new(FormatPartType::CurrencySymbol);
-    p0.set_content(symbol.into());
-    v.push_part(p0);
-
-    let mut p1 = FormatPart::new(FormatPartType::Text);
-    p1.set_content(" ");
-    v.push_part(p1);
-
-    let mut p2 = FormatPart::new(FormatPartType::Number);
-    p2.set_attr("number:min-integer-digits", 1.to_string());
-    p2.set_attr("number:decimal-places", 2.to_string());
-    p2.set_attr("loext:min-decimal-places", 2.to_string());
-    p2.set_attr("number:grouping", String::from("true"));
-    v.push_part(p2);
-
+    v.push_currency(country.into(), language.into(), symbol.into());
+    v.push_text(" ");
+    v.push_number_fix(2, true);
     v
 }
 
 /// Creates a new currency format.
-pub fn create_currency_suffix<S: Into<String>, T: Into<String>>(name: S, symbol: T) -> ValueFormat {
+pub fn create_currency_suffix<S1, S2, S3, S4>(name: S1,
+                                              country: S2,
+                                              language: S3,
+                                              symbol: S4) -> ValueFormat
+    where S1: Into<String>,
+          S2: Into<String>,
+          S3: Into<String>,
+          S4: Into<String>,
+{
     let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
-
-    let mut p2 = FormatPart::new(FormatPartType::Number);
-    p2.set_attr("number:min-integer-digits", 1.to_string());
-    p2.set_attr("number:decimal-places", 2.to_string());
-    p2.set_attr("loext:min-decimal-places", 2.to_string());
-    p2.set_attr("number:grouping", String::from("true"));
-    v.push_part(p2);
-
-    let mut p1 = FormatPart::new(FormatPartType::Text);
-    p1.set_content(" ");
-    v.push_part(p1);
-
-    let mut p0 = FormatPart::new(FormatPartType::CurrencySymbol);
-    p0.set_content(symbol.into());
-    v.push_part(p0);
-
-    v
-}
-
-
-/// Creates a new currency format for EURO.
-pub fn create_euro_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
-
-    let mut p0 = FormatPart::new(FormatPartType::CurrencySymbol);
-    // p0.set_attr("number:language", String::from("de"));
-    // p0.set_attr("number:country", String::from("AT"));
-    p0.set_content("€");
-    v.push_part(p0);
-
-    let mut p1 = FormatPart::new(FormatPartType::Text);
-    p1.set_content(" ");
-    v.push_part(p1);
-
-    let mut p2 = FormatPart::new(FormatPartType::Number);
-    p2.set_attr("number:min-integer-digits", 1.to_string());
-    p2.set_attr("number:decimal-places", 2.to_string());
-    p2.set_attr("loext:min-decimal-places", 2.to_string());
-    p2.set_attr("number:grouping", String::from("true"));
-    v.push_part(p2);
-
-    v
-}
-
-/// Creates a new currency format for EURO with negative values in red.
-/// Needs the name of the positive format.
-pub fn create_euro_red_format<S: Into<String>>(name: S, positive_style: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
-
-    v.text_mut().set_color(Rgb::new(255, 0, 0));
-
-    let mut p1 = FormatPart::new(FormatPartType::Text);
-    p1.set_content("-");
-    v.push_part(p1);
-
-    let mut p2 = FormatPart::new(FormatPartType::CurrencySymbol);
-    // p2.set_attr("number:language", String::from("de"));
-    // p2.set_attr("number:country", String::from("AT"));
-    p2.set_content("€");
-    v.push_part(p2);
-
-    let mut p3 = FormatPart::new(FormatPartType::Text);
-    p3.set_content(" ");
-    v.push_part(p3);
-
-    let mut p4 = FormatPart::new(FormatPartType::Number);
-    p4.set_attr("number:min-integer-digits", 1.to_string());
-    p4.set_attr("number:decimal-places", 2.to_string());
-    p4.set_attr("loext:min-decimal-places", 2.to_string());
-    p4.set_attr("number:grouping", String::from("true"));
-    v.push_part(p4);
-
-    v.push_stylemap(StyleMap::new("value()>=0", positive_style.into(), CellRef::simple(0, 0)));
-
+    v.push_number_fix(2, true);
+    v.push_text(" ");
+    v.push_currency(country.into(), language.into(), symbol.into());
     v
 }
 
 /// Creates a new date format D.M.Y
 pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::DateTime);
+    v.push_day(FormatNumberStyle::Long);
+    v.push_text(".");
+    v.push_month(FormatNumberStyle::Long);
+    v.push_text(".");
+    v.push_year(FormatNumberStyle::Long);
+    v
+}
 
-    v.push_parts(vec![
-        FormatPart::new_vec(FormatPartType::Day, vec![("number:style", String::from("long"))]),
-        FormatPart::new_content(FormatPartType::Text, "."),
-        FormatPart::new_vec(FormatPartType::Month, vec![("number:style", String::from("long"))]),
-        FormatPart::new_content(FormatPartType::Text, "."),
-        FormatPart::new_vec(FormatPartType::Year, vec![("number:style", String::from("long"))]),
-    ]);
-
+/// Creates a new date format M/D/Y
+pub fn create_date_mdy_format<S: Into<String>>(name: S) -> ValueFormat {
+    let mut v = ValueFormat::with_name(name.into(), ValueType::DateTime);
+    v.push_month(FormatNumberStyle::Long);
+    v.push_text("/");
+    v.push_day(FormatNumberStyle::Long);
+    v.push_text("/");
+    v.push_year(FormatNumberStyle::Long);
     v
 }
 
 /// Creates a datetime format Y-M-D H:M:S
 pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::DateTime);
-
-    v.push_parts(vec![
-        FormatPart::new_vec(FormatPartType::Year, vec![("number:style", String::from("long"))]),
-        FormatPart::new_content(FormatPartType::Text, "-"),
-        FormatPart::new_vec(FormatPartType::Month, vec![("number:style", String::from("long"))]),
-        FormatPart::new_content(FormatPartType::Text, "-"),
-        FormatPart::new_vec(FormatPartType::Day, vec![("number:style", String::from("long"))]),
-        FormatPart::new_content(FormatPartType::Text, " "),
-        FormatPart::new(FormatPartType::Hours),
-        FormatPart::new_content(FormatPartType::Text, ":"),
-        FormatPart::new(FormatPartType::Minutes),
-        FormatPart::new_content(FormatPartType::Text, ":"),
-        FormatPart::new(FormatPartType::Seconds),
-    ]);
-
+    v.push_day(FormatNumberStyle::Long);
+    v.push_text(".");
+    v.push_month(FormatNumberStyle::Long);
+    v.push_text(".");
+    v.push_year(FormatNumberStyle::Long);
+    v.push_text(" ");
+    v.push_hours(FormatNumberStyle::Long);
+    v.push_text(":");
+    v.push_minutes(FormatNumberStyle::Long);
+    v.push_text(":");
+    v.push_seconds(FormatNumberStyle::Long);
     v
 }
 
 /// Creates a new time-Duration format H:M:S
 pub fn create_time_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::TimeDuration);
-
-    v.push_parts(vec![
-        FormatPart::new(FormatPartType::Hours),
-        FormatPart::new_content(FormatPartType::Text, " "),
-        FormatPart::new(FormatPartType::Minutes),
-        FormatPart::new_content(FormatPartType::Text, " "),
-        FormatPart::new(FormatPartType::Seconds),
-    ]);
-
+    v.push_hours(FormatNumberStyle::Long);
+    v.push_text(":");
+    v.push_minutes(FormatNumberStyle::Long);
+    v.push_text(":");
+    v.push_seconds(FormatNumberStyle::Long);
     v
 }
+
+
+
+

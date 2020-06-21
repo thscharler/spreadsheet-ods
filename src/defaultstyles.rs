@@ -13,7 +13,7 @@ pub fn create_default_styles(book: &mut WorkBook) {
     book.add_format(format::create_boolean_format("bool1"));
     book.add_format(format::create_number_format("num1", 2, false));
     book.add_format(format::create_percentage_format("percent1", 2));
-    book.add_format(format::create_euro_format("currency1"));
+    book.add_format(format::create_currency_prefix("currency1", "de", "AT", "€"));
     book.add_format(format::create_date_dmy_format("date1"));
     book.add_format(format::create_datetime_format("datetime1"));
     book.add_format(format::create_time_format("time1"));
