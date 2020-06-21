@@ -111,19 +111,19 @@ impl Display for Angle {
 
 #[macro_export]
 macro_rules! deg {
-    ($l:expr) => { Angle::Deg($l) }
+    ($l:expr) => { Angle::Deg($l as f32) }
 }
 
 
 #[macro_export]
 macro_rules! grad {
-    ($l:expr) => { Length::Grad($l) }
+    ($l:expr) => { Length::Grad($l as f32) }
 }
 
 
 #[macro_export]
 macro_rules! rad {
-    ($l:expr) => { Length::Rad($l) }
+    ($l:expr) => { Length::Rad($l as f32) }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -398,12 +398,12 @@ pub trait AttrFoBreak
     where Self: AttrMap {
     /// page-break
     fn set_break_before(&mut self, pagebreak: PageBreak) {
-        self.set_attr("fo:break-before", format!("{}", pagebreak));
+        self.set_attr("fo:break-before", pagebreak.to_string());
     }
 
     // page-break
     fn set_break_after(&mut self, pagebreak: PageBreak) {
-        self.set_attr("fo:break-after", format!("{}", pagebreak));
+        self.set_attr("fo:break-after", pagebreak.to_string());
     }
 }
 
@@ -429,7 +429,7 @@ pub trait AttrFoKeepWithNext
     where Self: AttrMap {
     /// page-break
     fn set_keep_with_next(&mut self, keep_with_next: TextKeep) {
-        self.set_attr("fo:keep-with-next", format!("{}", keep_with_next));
+        self.set_attr("fo:keep-with-next", keep_with_next.to_string());
     }
 }
 
@@ -437,8 +437,8 @@ pub trait AttrFoKeepWithNext
 pub trait AttrFoKeepTogether
     where Self: AttrMap {
     /// page-break
-    fn set_keep_together(&mut self, keep_with_next: TextKeep) {
-        self.set_attr("fo:keep-together", format!("{}", keep_with_next));
+    fn set_keep_together(&mut self, keep_together: TextKeep) {
+        self.set_attr("fo:keep-together", keep_together.to_string());
     }
 }
 
@@ -498,7 +498,7 @@ impl Display for WritingMode {
 pub trait AttrStyleWritingMode
     where Self: AttrMap {
     fn set_writing_mode(&mut self, writing_mode: WritingMode) {
-        self.set_attr("style:writing-mode", format!("{}", writing_mode));
+        self.set_attr("style:writing-mode", writing_mode.to_string());
     }
 }
 
@@ -523,7 +523,7 @@ pub trait AttrTableCol
     where Self: AttrMap {
     /// Relative weights for the column width
     fn set_rel_col_width(&mut self, rel: f32) {
-        self.set_attr("style:rel-column-width", format!("{}*", rel));
+        self.set_attr("style:rel-column-width", rel_width_string(rel));
     }
 
     /// Column width
@@ -597,7 +597,7 @@ impl Display for CellAlignVertical {
 pub trait AttrTableCell
     where Self: AttrMap {
     fn set_wrap_option(&mut self, wrap: WrapOption) {
-        self.set_attr("fo:wrap-option", format!("{}*", wrap));
+        self.set_attr("fo:wrap-option", wrap.to_string());
     }
 
     fn set_print_content(&mut self, print: bool) {
@@ -609,7 +609,7 @@ pub trait AttrTableCell
     }
 
     fn set_rotation_align(&mut self, align: RotationAlign) {
-        self.set_attr("style:rotation-align", format!("{}", align));
+        self.set_attr("style:rotation-align", align.to_string());
     }
 
     fn set_rotation_angle(&mut self, angle: Angle) {
@@ -621,7 +621,7 @@ pub trait AttrTableCell
     }
 
     fn set_vertical_align(&mut self, align: CellAlignVertical) {
-        self.set_attr("style:vertical-align", format!("{}", align));
+        self.set_attr("style:vertical-align", align.to_string());
     }
 
     /// Diagonal style.
@@ -714,11 +714,11 @@ impl Display for ParaAlignVertical {
 pub trait AttrParagraph
     where Self: AttrMap {
     fn set_text_align_source(&mut self, align: TextAlignSource) {
-        self.set_attr("style:text-align-source", format!("{}", align));
+        self.set_attr("style:text-align-source", align.to_string());
     }
 
     fn set_text_align(&mut self, align: TextAlign) {
-        self.set_attr("fo:text-align", format!("{}", align));
+        self.set_attr("fo:text-align", align.to_string());
     }
 
     fn set_text_indent(&mut self, indent: Length) {
@@ -734,7 +734,7 @@ pub trait AttrParagraph
     }
 
     fn set_vertical_align(&mut self, align: ParaAlignVertical) {
-        self.set_attr("style:vertical-align", format!("{}", align));
+        self.set_attr("style:vertical-align", align.to_string());
     }
 }
 
@@ -986,15 +986,15 @@ pub trait AttrText
     }
 
     fn set_text_position(&mut self, pos: TextPosition) {
-        self.set_attr("style:text-position", format!("{}", pos));
+        self.set_attr("style:text-position", pos.to_string());
     }
 
     fn set_text_transform(&mut self, trans: TextTransform) {
-        self.set_attr("fo:text-transform", format!("{}", trans));
+        self.set_attr("fo:text-transform", trans.to_string());
     }
 
     fn set_font_relief(&mut self, relief: TextRelief) {
-        self.set_attr("style:font-relief", format!("{}", relief));
+        self.set_attr("style:font-relief", relief.to_string());
     }
 
     fn font_line_through_color(&mut self, color: Rgb<u8>) {
@@ -1080,6 +1080,10 @@ fn border_string(width: Length, border: Border, color: Rgb<u8>) -> String {
 
 fn percent_string(value: f32) -> String {
     format!("{}%", value)
+}
+
+fn rel_width_string(value: f32) -> String {
+    format!("{}*", value)
 }
 
 fn border_line_width_string(inner: Length, space: Length, outer: Length) -> String {
