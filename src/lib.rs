@@ -54,7 +54,7 @@ pub use error::OdsError;
 pub use format::ValueFormat;
 pub use io::{read_ods, write_ods};
 pub use refs::{CellRange, CellRef, ColRange, RowRange};
-pub use style::Style;
+pub use style::{Style, Length, Angle};
 
 use crate::attrmap::{AttrTableCol, AttrTableRow};
 use crate::style::{FontFaceDecl, PageLayout};
@@ -62,7 +62,7 @@ use crate::text::TextVec;
 
 pub mod error;
 pub mod io;
-pub mod attrmap;
+mod attrmap;
 pub mod text;
 pub mod refs;
 pub mod style;
@@ -422,7 +422,7 @@ impl Sheet {
     }
 
     /// Creates a col style and sets the col width.
-    pub fn set_col_width(&mut self, workbook: &mut WorkBook, col: ucell, width: &str) {
+    pub fn set_col_width(&mut self, workbook: &mut WorkBook, col: ucell, width: Length) {
         let style_name = format!("co{}", col);
 
         let mut col_style = if let Some(style) = workbook.remove_style(&style_name) {
@@ -454,7 +454,7 @@ impl Sheet {
     }
 
     /// Creates a row-style and sets the row height.
-    pub fn set_row_height(&mut self, workbook: &mut WorkBook, row: ucell, height: &str) {
+    pub fn set_row_height(&mut self, workbook: &mut WorkBook, row: ucell, height: Length) {
         let style_name = format!("ro{}", row);
 
         let mut row_style = if let Some(style) = workbook.remove_style(&style_name) {

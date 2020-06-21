@@ -91,6 +91,94 @@ impl<'a> Iterator for AttrMapIter<'a> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Angle {
+    Deg(f32),
+    Grad(f32),
+    Rad(f32),
+}
+
+impl Display for Angle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Angle::Deg(v) => write!(f, "{}deg", v),
+            Angle::Grad(v) => write!(f, "{}grad", v),
+            Angle::Rad(v) => write!(f, "{}rad", v),
+        }
+    }
+}
+
+
+#[macro_export]
+macro_rules! deg {
+    ($l:expr) => { Angle::Deg($l) }
+}
+
+
+#[macro_export]
+macro_rules! grad {
+    ($l:expr) => { Length::Grad($l) }
+}
+
+
+#[macro_export]
+macro_rules! rad {
+    ($l:expr) => { Length::Rad($l) }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Length {
+    Cm(f32),
+    Mm(f32),
+    In(f32),
+    Pt(f32),
+    Pc(f32),
+    Em(f32),
+}
+
+impl Display for Length {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Length::Cm(v) => write!(f, "{}cm", v),
+            Length::Mm(v) => write!(f, "{}mm", v),
+            Length::In(v) => write!(f, "{}in", v),
+            Length::Pt(v) => write!(f, "{}pt", v),
+            Length::Pc(v) => write!(f, "{}pc", v),
+            Length::Em(v) => write!(f, "{}em", v),
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! cm {
+    ($l:expr) => { Length::Cm($l as f32) }
+}
+
+#[macro_export]
+macro_rules! mm {
+    ($l:expr) => { Length::Mm($l as f32) }
+}
+
+#[macro_export]
+macro_rules! inch {
+    ($l:expr) => { Length::In($l as f32) }
+}
+
+#[macro_export]
+macro_rules! pt {
+    ($l:expr) => { Length::Pt($l as f32) }
+}
+
+#[macro_export]
+macro_rules! pc {
+    ($l:expr) => { Length::Pc($l as f32) }
+}
+
+#[macro_export]
+macro_rules! em {
+    ($l:expr) => { Length::Em($l as f32) }
+}
+
 /// Font pitch.
 #[derive(Debug, Clone, Copy)]
 pub enum FontPitch {
@@ -126,7 +214,7 @@ pub trait AttrFontDecl
     }
 
     /// Font pitch.
-    fn set_font_pitch(&mut self, pitch: &str) {
+    fn set_font_pitch(&mut self, pitch: FontPitch) {
         self.set_attr("style:font-pitch", pitch.to_string());
     }
 }
@@ -134,23 +222,23 @@ pub trait AttrFontDecl
 /// Margin attributes.
 pub trait AttrFoMargin
     where Self: AttrMap {
-    fn set_margin(&mut self, margin: &str) {
+    fn set_margin(&mut self, margin: Length) {
         self.set_attr("fo:margin", margin.to_string());
     }
 
-    fn set_margin_bottom(&mut self, margin: &str) {
+    fn set_margin_bottom(&mut self, margin: Length) {
         self.set_attr("fo:margin-bottom", margin.to_string());
     }
 
-    fn set_margin_left(&mut self, margin: &str) {
+    fn set_margin_left(&mut self, margin: Length) {
         self.set_attr("fo:margin-left", margin.to_string());
     }
 
-    fn set_margin_right(&mut self, margin: &str) {
+    fn set_margin_right(&mut self, margin: Length) {
         self.set_attr("fo:margin-right", margin.to_string());
     }
 
-    fn set_margin_top(&mut self, margin: &str) {
+    fn set_margin_top(&mut self, margin: Length) {
         self.set_attr("fo:margin-top", margin.to_string());
     }
 }
@@ -158,23 +246,23 @@ pub trait AttrFoMargin
 /// Padding attributes.
 pub trait AttrFoPadding
     where Self: AttrMap {
-    fn set_padding(&mut self, padding: &str) {
+    fn set_padding(&mut self, padding: Length) {
         self.set_attr("fo:padding", padding.to_string());
     }
 
-    fn set_padding_bottom(&mut self, padding: &str) {
+    fn set_padding_bottom(&mut self, padding: Length) {
         self.set_attr("fo:padding-bottom", padding.to_string());
     }
 
-    fn set_padding_left(&mut self, padding: &str) {
+    fn set_padding_left(&mut self, padding: Length) {
         self.set_attr("fo:padding-left", padding.to_string());
     }
 
-    fn set_padding_right(&mut self, padding: &str) {
+    fn set_padding_right(&mut self, padding: Length) {
         self.set_attr("fo:padding-right", padding.to_string());
     }
 
-    fn set_padding_top(&mut self, padding: &str) {
+    fn set_padding_top(&mut self, padding: Length) {
         self.set_attr("fo:padding-top", padding.to_string());
     }
 }
@@ -191,8 +279,12 @@ pub trait AttrFoBackgroundColor
 /// Minimum height.
 pub trait AttrFoMinHeight
     where Self: AttrMap {
-    fn set_min_height(&mut self, height: &str) {
+    fn set_min_height(&mut self, height: Length) {
         self.set_attr("fo:min-height", height.to_string());
+    }
+
+    fn set_min_height_percent(&mut self, height: f32) {
+        self.set_attr("fo:min-height", percent_string(height));
     }
 }
 
@@ -232,52 +324,52 @@ impl Display for Border {
 pub trait AttrFoBorder
     where Self: AttrMap {
     /// Border style all four sides.
-    fn set_border(&mut self, width: &str, border: Border, color: Rgb<u8>) {
+    fn set_border(&mut self, width: Length, border: Border, color: Rgb<u8>) {
         self.set_attr("fo:border", border_string(width, border, color));
     }
 
     /// Border style.
-    fn set_border_bottom(&mut self, width: &str, border: Border, color: Rgb<u8>) {
+    fn set_border_bottom(&mut self, width: Length, border: Border, color: Rgb<u8>) {
         self.set_attr("fo:border-bottom", border_string(width, border, color));
     }
 
     /// Border style.
-    fn set_border_top(&mut self, width: &str, border: Border, color: Rgb<u8>) {
+    fn set_border_top(&mut self, width: Length, border: Border, color: Rgb<u8>) {
         self.set_attr("fo:border-top", border_string(width, border, color));
     }
 
     /// Border style.
-    fn set_border_left(&mut self, width: &str, border: Border, color: Rgb<u8>) {
+    fn set_border_left(&mut self, width: Length, border: Border, color: Rgb<u8>) {
         self.set_attr("fo:border-left", border_string(width, border, color));
     }
 
     /// Border style.
-    fn set_border_right(&mut self, width: &str, border: Border, color: Rgb<u8>) {
+    fn set_border_right(&mut self, width: Length, border: Border, color: Rgb<u8>) {
         self.set_attr("fo:border-right", border_string(width, border, color));
     }
 
     /// Widths for double borders.
-    fn set_border_line_width(&mut self, inner: &str, spacing: &str, outer: &str) {
+    fn set_border_line_width(&mut self, inner: Length, spacing: Length, outer: Length) {
         self.set_attr("style:border-line-width", border_line_width_string(inner, spacing, outer));
     }
 
     /// Widths for double borders.
-    fn set_border_line_width_bottom(&mut self, inner: &str, spacing: &str, outer: &str) {
+    fn set_border_line_width_bottom(&mut self, inner: Length, spacing: Length, outer: Length) {
         self.set_attr("style:border-line-width-bottom", border_line_width_string(inner, spacing, outer));
     }
 
     /// Widths for double borders.
-    fn set_border_line_width_left(&mut self, inner: &str, spacing: &str, outer: &str) {
+    fn set_border_line_width_left(&mut self, inner: Length, spacing: Length, outer: Length) {
         self.set_attr("style:border-line-width-left", border_line_width_string(inner, spacing, outer));
     }
 
     /// Widths for double borders.
-    fn set_border_line_width_right(&mut self, inner: &str, spacing: &str, outer: &str) {
+    fn set_border_line_width_right(&mut self, inner: Length, spacing: Length, outer: Length) {
         self.set_attr("style:border-line-width-right", border_line_width_string(inner, spacing, outer));
     }
 
     /// Widths for double borders.
-    fn set_border_line_width_top(&mut self, inner: &str, spacing: &str, outer: &str) {
+    fn set_border_line_width_top(&mut self, inner: Length, spacing: Length, outer: Length) {
         self.set_attr("style:border-line-width-top", border_line_width_string(inner, spacing, outer));
     }
 }
@@ -353,7 +445,7 @@ pub trait AttrFoKeepTogether
 /// Height attribute.
 pub trait AttrSvgHeight
     where Self: AttrMap {
-    fn set_height(&mut self, height: &str) {
+    fn set_height(&mut self, height: Length) {
         self.set_attr("svg:height", height.to_string());
     }
 }
@@ -369,7 +461,7 @@ pub trait AttrStyleDynamicSpacing
 /// Shadows. Only a single shadow supported here.
 pub trait AttrStyleShadow
     where Self: AttrMap {
-    fn set_shadow(&mut self, x_offset: &str, y_offset: &str, blur: Option<&str>, color: Rgb<u8>) {
+    fn set_shadow(&mut self, x_offset: Length, y_offset: Length, blur: Option<Length>, color: Rgb<u8>) {
         self.set_attr("style:shadow", shadow_string(x_offset, y_offset, blur, color));
     }
 }
@@ -413,11 +505,11 @@ pub trait AttrStyleWritingMode
 /// Table row specific attributes.
 pub trait AttrTableRow
     where Self: AttrMap {
-    fn set_min_row_height(&mut self, min_height: &str) {
+    fn set_min_row_height(&mut self, min_height: Length) {
         self.set_attr("style:min-row-height", min_height.to_string());
     }
 
-    fn set_row_height(&mut self, height: &str) {
+    fn set_row_height(&mut self, height: Length) {
         self.set_attr("style:row-height", height.to_string());
     }
 
@@ -435,7 +527,7 @@ pub trait AttrTableCol
     }
 
     /// Column width
-    fn set_col_width(&mut self, width: &str) {
+    fn set_col_width(&mut self, width: Length) {
         self.set_attr("style:column-width", width.to_string());
     }
 
@@ -520,7 +612,7 @@ pub trait AttrTableCell
         self.set_attr("style:rotation-align", format!("{}", align));
     }
 
-    fn set_rotation_angle(&mut self, angle: &str) {
+    fn set_rotation_angle(&mut self, angle: Angle) {
         self.set_attr("style:rotation-angle", angle.to_string());
     }
 
@@ -533,22 +625,22 @@ pub trait AttrTableCell
     }
 
     /// Diagonal style.
-    fn set_diagonal_bl_tr(&mut self, width: &str, border: Border, color: Rgb<u8>) {
+    fn set_diagonal_bl_tr(&mut self, width: Length, border: Border, color: Rgb<u8>) {
         self.set_attr("style:diagonal-bl-tr", border_string(width, border, color));
     }
 
     /// Widths for double borders.
-    fn set_diagonal_bl_tr_widths(&mut self, inner: &str, spacing: &str, outer: &str) {
+    fn set_diagonal_bl_tr_widths(&mut self, inner: Length, spacing: Length, outer: Length) {
         self.set_attr("style:diagonal-bl-tr-widths", border_line_width_string(inner, spacing, outer));
     }
 
     /// Diagonal style.
-    fn set_diagonal_tl_br(&mut self, width: &str, border: Border, color: Rgb<u8>) {
+    fn set_diagonal_tl_br(&mut self, width: Length, border: Border, color: Rgb<u8>) {
         self.set_attr("style:diagonal-tl-br", border_string(width, border, color));
     }
 
     /// Widths for double borders.
-    fn set_diagonal_tl_br_widths(&mut self, inner: &str, spacing: &str, outer: &str) {
+    fn set_diagonal_tl_br_widths(&mut self, inner: Length, spacing: Length, outer: Length) {
         self.set_attr("style:diagonal-tl-br-widths", border_line_width_string(inner, spacing, outer));
     }
 }
@@ -629,12 +721,12 @@ pub trait AttrParagraph
         self.set_attr("fo:text-align", format!("{}", align));
     }
 
-    fn set_text_indent(&mut self, indent: &str) {
+    fn set_text_indent(&mut self, indent: Length) {
         self.set_attr("fo:text-indent", indent.to_string());
     }
 
-    fn set_line_spacing(&mut self, spacing: &str) {
-        self.set_attr("fo:text-indent", spacing.to_string());
+    fn set_line_spacing(&mut self, spacing: Length) {
+        self.set_attr("style:line-spacing", spacing.to_string());
     }
 
     fn set_number_lines(&mut self, number: bool) {
@@ -646,7 +738,58 @@ pub trait AttrParagraph
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum TextStyle {
+    Normal,
+    Italic,
+    Oblique,
+}
+
+impl Display for TextStyle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            TextStyle::Normal => write!(f, "normal"),
+            TextStyle::Italic => write!(f, "italic"),
+            TextStyle::Oblique => write!(f, "oblique"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum TextWeight {
+    Normal,
+    Bold,
+    W100,
+    W200,
+    W300,
+    W400,
+    W500,
+    W600,
+    W700,
+    W800,
+    W900,
+}
+
+impl Display for TextWeight {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            TextWeight::Normal => write!(f, "normal"),
+            TextWeight::Bold => write!(f, "bold"),
+            TextWeight::W100 => write!(f, "100"),
+            TextWeight::W200 => write!(f, "200"),
+            TextWeight::W300 => write!(f, "300"),
+            TextWeight::W400 => write!(f, "400"),
+            TextWeight::W500 => write!(f, "500"),
+            TextWeight::W600 => write!(f, "600"),
+            TextWeight::W700 => write!(f, "700"),
+            TextWeight::W800 => write!(f, "800"),
+            TextWeight::W900 => write!(f, "900"),
+        }
+    }
+}
+
 /// Text case transformations.
+#[derive(Debug, Clone, Copy)]
 pub enum TextTransform {
     None,
     Lowercase,
@@ -666,6 +809,7 @@ impl Display for TextTransform {
 }
 
 /// Text style engraved and embossed.
+#[derive(Debug, Clone, Copy)]
 pub enum TextRelief {
     None,
     Embossed,
@@ -683,6 +827,7 @@ impl Display for TextRelief {
 }
 
 /// Text style subscript or superscript.
+#[derive(Debug, Clone, Copy)]
 pub enum TextPosition {
     Sub,
     Super,
@@ -794,8 +939,8 @@ pub trait AttrText
         self.set_attr("style:font-name", name.to_string());
     }
 
-    fn set_font_style(&mut self, size: &str, bold: bool, italic: bool) {
-        self.set_attr("fo:font-size", size.to_string());
+    fn set_font_attr(&mut self, size: Length, bold: bool, italic: bool) {
+        self.set_font_size(size);
         if bold {
             self.set_font_italic();
         }
@@ -804,23 +949,39 @@ pub trait AttrText
         }
     }
 
-    fn set_font_size(&mut self, size: &str) {
+    fn set_font_size(&mut self, size: Length) {
         self.set_attr("fo:font-size", size.to_string());
+    }
+
+    fn set_font_size_percent(&mut self, size: f32) {
+        self.set_attr("fo:font-size", percent_string(size));
     }
 
     fn set_font_italic(&mut self) {
         self.set_attr("fo:font-style", "italic".to_string());
     }
 
-    fn set_font_bold(&mut self) {
-        self.set_attr("fo:font-weight", "bold".to_string());
+    fn set_font_style(&mut self, style: TextStyle) {
+        self.set_attr("fo:font-style", style.to_string());
     }
 
-    fn set_letter_spacing(&mut self, spacing: &str) {
+    fn set_font_bold(&mut self) {
+        self.set_attr("fo:font-weight", TextWeight::Bold.to_string());
+    }
+
+    fn set_font_weight(&mut self, weight: TextWeight) {
+        self.set_attr("fo:font-weight", weight.to_string());
+    }
+
+    fn set_letter_spacing(&mut self, spacing: Length) {
         self.set_attr("fo:letter-spacing", spacing.to_string());
     }
 
-    fn set_text_shadow(&mut self, x_offset: &str, y_offset: &str, blur: Option<&str>, color: Rgb<u8>) {
+    fn set_letter_spacing_normal(&mut self) {
+        self.set_attr("fo:letter-spacing", "normal".to_string());
+    }
+
+    fn set_text_shadow(&mut self, x_offset: Length, y_offset: Length, blur: Option<Length>, color: Rgb<u8>) {
         self.set_attr("fo:text-shadow", shadow_string(x_offset, y_offset, blur, color));
     }
 
@@ -910,18 +1071,22 @@ pub trait AttrText
 }
 
 fn color_string(color: Rgb<u8>) -> String {
-    format!(" #{:02x}{:02x}{:02x}", color.r, color.g, color.b)
+    format!("#{:02x}{:02x}{:02x}", color.r, color.g, color.b)
 }
 
-fn border_string(width: &str, border: Border, color: Rgb<u8>) -> String {
-    format!("{}pt {} #{:02x}{:02x}{:02x}", width, border, color.r, color.g, color.b)
+fn border_string(width: Length, border: Border, color: Rgb<u8>) -> String {
+    format!("{} {} #{:02x}{:02x}{:02x}", width, border, color.r, color.g, color.b)
 }
 
-fn border_line_width_string(inner: &str, space: &str, outer: &str) -> String {
-    format!("{}pt {}pt {}pt", inner, space, outer)
+fn percent_string(value: f32) -> String {
+    format!("{}%", value)
 }
 
-fn shadow_string(x_offset: &str, y_offset: &str, blur: Option<&str>, color: Rgb<u8>) -> String {
+fn border_line_width_string(inner: Length, space: Length, outer: Length) -> String {
+    format!("{} {} {}", inner, space, outer)
+}
+
+fn shadow_string(x_offset: Length, y_offset: Length, blur: Option<Length>, color: Rgb<u8>) -> String {
     if let Some(blur) = blur {
         format!("{} {} {} {}", color_string(color), x_offset, y_offset, blur)
     } else {

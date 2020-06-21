@@ -4,9 +4,11 @@
 
 use string_cache::DefaultAtom;
 
-use crate::attrmap::{AttrFoBackgroundColor, AttrFoBorder, AttrFoBreak, AttrFoKeepTogether, AttrFoKeepWithNext, AttrFoMargin, AttrFoMinHeight, AttrFontDecl, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, AttrParagraph, AttrStyleDynamicSpacing, AttrStyleShadow, AttrStyleWritingMode, AttrSvgHeight, AttrTableCell, AttrTableCol, AttrTableRow, AttrText};
+// use crate::attrmap::{AttrFoBackgroundColor, AttrFoBorder, AttrFoBreak, AttrFoKeepTogether, AttrFoKeepWithNext, AttrFoMargin, AttrFoMinHeight, AttrFontDecl, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, AttrParagraph, AttrStyleDynamicSpacing, AttrStyleShadow, AttrStyleWritingMode, AttrSvgHeight, AttrTableCell, AttrTableCol, AttrTableRow, AttrText};
 use crate::CellRef;
 use crate::text::TextVec;
+
+pub use crate::attrmap::*;
 
 /// Origin of a style. Content.xml or Styles.xml.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -57,10 +59,11 @@ impl Default for StyleFor {
 ///
 /// ```
 /// use spreadsheet_ods::{write_ods, WorkBook};
+/// use spreadsheet_ods::{cm};
 /// use spreadsheet_ods::text::TextVec;
-/// use spreadsheet_ods::style::{HeaderFooter, PageLayout};
+/// use spreadsheet_ods::style::{HeaderFooter, PageLayout, Length};
 /// use color::Rgb;
-/// use spreadsheet_ods::attrmap::{AttrFoBackgroundColor, AttrFoMinHeight, AttrFoMargin};
+/// use spreadsheet_ods::style::{AttrFoBackgroundColor, AttrFoMinHeight, AttrFoMargin};
 ///
 /// let mut wb = WorkBook::new();
 ///
@@ -68,10 +71,10 @@ impl Default for StyleFor {
 ///
 /// pl.set_background_color(Rgb::new(12, 129, 252));
 ///
-/// pl.header_attr_mut().set_min_height("0.75cm");
-/// pl.header_attr_mut().set_margin_left("0.15cm");
-/// pl.header_attr_mut().set_margin_right("0.15cm");
-/// pl.header_attr_mut().set_margin_bottom("0.15cm");
+/// pl.header_attr_mut().set_min_height(cm!(0.75));
+/// pl.header_attr_mut().set_margin_left(cm!(0.15));
+/// pl.header_attr_mut().set_margin_right(cm!(0.15));
+/// pl.header_attr_mut().set_margin_bottom(Length::Cm(0.75));
 ///
 /// pl.header_mut().center_mut().text("middle ground");
 /// pl.header_mut().left_mut().text("left wing");
