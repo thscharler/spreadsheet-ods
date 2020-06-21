@@ -4,5 +4,7 @@ Cargo.lock
 /sample
 /test_out
 /tests/example.ods
+/tests/example
+/tests/orders
 /tryout.ods
 /test_spreadsheet/target
