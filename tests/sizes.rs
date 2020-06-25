@@ -6,7 +6,8 @@ use chrono::NaiveDateTime;
 use spreadsheet_ods::{CellRange, CellRef, SCell, Sheet, Style, ucell, Value, ValueFormat, ValueType, WorkBook};
 use spreadsheet_ods::format::FormatPart;
 use spreadsheet_ods::style::{AttrMapType, HeaderFooter, PageLayout};
-use spreadsheet_ods::text::{TextElem, TextTag, TextVec};
+use spreadsheet_ods::text::TextTag;
+use spreadsheet_ods::xmltree::XmlContent;
 
 #[test]
 pub fn sizes() {
@@ -24,10 +25,9 @@ pub fn sizes() {
     println!("(String, f64) {}", size_of::<(String, f64)>());
     println!("String {}", size_of::<String>());
     println!("(String) {}", size_of::<String>());
-    println!("TextVec {}", size_of::<TextVec>());
     println!("TextTag {}", size_of::<TextTag>());
-    println!("Option<Vec<TextElem>> {}", size_of::<Option<Vec<TextElem>>>());
-    println!("Vec<TextElem> {}", size_of::<Vec<TextElem>>());
+    println!("XmlContent {}", size_of::<XmlContent>());
+    println!("Vec<XmlContent> {}", size_of::<Vec<XmlContent>>());
     println!("Option<AttrMapType> {}", size_of::<Option<AttrMapType>>());
     println!("AttrMapType {}", size_of::<AttrMapType>());
     println!("NaiveDateTime {}", size_of::<NaiveDateTime>());

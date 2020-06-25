@@ -26,9 +26,9 @@ fn crpagelayout() -> Result<(), OdsError> {
     pl.header_attr_mut().set_margin_right(cm!(0.15));
     pl.header_attr_mut().set_margin_bottom(cm!(0.15));
 
-    pl.header_mut().center_mut().text("middle ground");
-    pl.header_mut().left_mut().text("left wing");
-    pl.header_mut().right_mut().text("right wing");
+    pl.header_mut().center_mut().add_text("middle ground");
+    pl.header_mut().left_mut().add_text("left wing");
+    pl.header_mut().right_mut().add_text("right wing");
 
     wb.add_pagelayout(pl);
 

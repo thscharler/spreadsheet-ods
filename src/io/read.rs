@@ -13,7 +13,7 @@ use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{CellRef, parse_cellranges, parse_cellref};
 use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style, StyleFor, StyleMap, StyleOrigin, StyleUse, TabStop};
-use crate::text::{TextTag, TextVec};
+use crate::text::{TextTag};
 use crate::xmltree::XmlTag;
 
 /// Reads an ODS-file.
@@ -97,8 +97,7 @@ fn read_content(book: &mut WorkBook,
                 xml_tag.name() == b"text:sequence-decls" ||
                 xml_tag.name() == b"text:user-field-decls" ||
                 xml_tag.name() == b"text:variable-decls" => {
-                let v = read_xml(xml_tag.name(), &mut xml, empty_tag, &xml_tag)?;
-                println!("read extra {:?}", v);
+                let v = read_xml(empty_tag, &xml_tag, xml_tag.name(), &mut xml)?;
                 book.extra.push(v);
             }
 
@@ -169,7 +168,7 @@ fn read_table(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
 
             Event::Start(xml_tag)
             if xml_tag.name() == b"table:shapes" => {
-                sheet.table_shapes = Some(read_xml(b"table:shapes", xml, empty_tag, &xml_tag)?);
+                sheet.table_shapes = Some(read_xml(empty_tag, &xml_tag, b"table:shapes", xml)?);
             }
 
             Event::End(xml_tag)
@@ -378,7 +377,7 @@ fn read_table_cell(sheet: &mut Sheet,
     // Content of the table-cell tag.
     let mut cell_content: Option<String> = None;
     // Content of the table-cell tag.
-    let mut cell_content_txt: Option<TextVec> = None;
+    let mut cell_content_txt: Option<TextTag> = None;
     // Currency
     let mut cell_currency: Option<String> = None;
 
@@ -437,11 +436,12 @@ fn read_table_cell(sheet: &mut Sheet,
         match evt {
             Event::Start(xml_tag)
             if xml_tag.name() == b"text:p" => {
-                read_textvec2(&mut cell_content_txt,
-                              &mut cell_content,
-                              b"text:p",
-                              xml,
-                )?;
+                read_text_or_tag(&mut cell_content_txt,
+                                 &mut cell_content,
+                                 false,
+                                 &xml_tag,
+                                 b"text:p",
+                                 xml)?;
             }
 
             Event::Empty(xml_tag)
@@ -557,7 +557,7 @@ fn read_empty_table_cell(sheet: &mut Sheet,
 fn parse_value(value_type: Option<ValueType>,
                cell_value: Option<String>,
                cell_content: Option<String>,
-               cell_content_txt: Option<TextVec>,
+               cell_content_txt: Option<TextTag>,
                cell_currency: Option<String>,
                row: ucell,
                col: ucell) -> Result<Value, OdsError> {
@@ -568,14 +568,14 @@ fn parse_value(value_type: Option<ValueType>,
             }
             ValueType::Text => {
                 if let Some(cell_content_txt) = cell_content_txt {
-                    Ok(Value::TextM(cell_content_txt))
+                    Ok(Value::TextXml(cell_content_txt))
                 } else if let Some(cell_content) = cell_content {
                     Ok(Value::Text(cell_content))
                 } else {
                     Ok(Value::Text("".to_string()))
                 }
             }
-            ValueType::TextM => {
+            ValueType::TextXml => {
                 unreachable!()
             }
             ValueType::Number => {
@@ -980,25 +980,26 @@ fn read_headerfooter(end_tag: &[u8],
 
     loop {
         let evt = xml.read_event(&mut buf)?;
+        let empty_tag = if let Event::Empty(_) = evt { true } else { false };
         if cfg!(feature = "dump_xml") { println!(" read_headerfooter {:?}", evt); }
         match evt {
             Event::Start(ref xml_tag) |
             Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
                     b"style:region-left" => {
-                        let cm = read_textvec(b"style:region-left", xml)?;
+                        let cm = read_xml(empty_tag, &xml_tag, b"style:region-left", xml)?;
                         hf.set_left(cm);
                     }
                     b"style:region-center" => {
-                        let cm = read_textvec(b"style:region-left", xml)?;
+                        let cm = read_xml(empty_tag, &xml_tag, b"style:region-center", xml)?;
                         hf.set_center(cm);
                     }
                     b"style:region-right" => {
-                        let cm = read_textvec(b"style:region-left", xml)?;
+                        let cm = read_xml(empty_tag, &xml_tag, b"style:region-right", xml)?;
                         hf.set_right(cm);
                     }
                     b"text:p" => {
-                        let cm = read_textvec(b"text:p", xml)?;
+                        let cm = read_xml(empty_tag, &xml_tag, b"text:p", xml)?;
                         hf.set_content(cm);
                     }
                     // no other tags supported for now.
@@ -1023,140 +1024,6 @@ fn read_headerfooter(end_tag: &[u8],
     }
 
     Ok(hf)
-}
-
-
-// reads all the tags up to end_tag and creates a TextVec.
-// if there are no tags the result is a plain String.
-fn read_textvec2(vec: &mut Option<TextVec>,
-                 str: &mut Option<String>,
-                 end_tag: &[u8],
-                 xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>) -> Result<(), OdsError> {
-    let mut buf = Vec::new();
-
-    loop {
-        let evt = xml.read_event(&mut buf)?;
-        if cfg!(feature = "dump_xml") { println!(" read_textvec2 {:?}", evt); }
-        match evt {
-            Event::Text(ref txt) => {
-                let t = txt.unescape_and_decode(xml)?;
-                if let Some(vec) = vec {
-                    vec.text(t);
-                } else if let Some(s) = str {
-                    let tmp = s.clone() + t.as_str();
-                    str.replace(tmp);
-                } else {
-                    str.replace(t);
-                }
-            }
-
-            Event::Start(ref xml_tag) => {
-                if vec.is_none() {
-                    let mut txtvec = TextVec::new();
-                    if let Some(s) = str {
-                        txtvec.text(s.as_str());
-                        *str = None;
-                    }
-                    vec.replace(txtvec);
-                }
-
-                let mut c = TextTag::new(xml.decode(xml_tag.name())?);
-                copy_attr(&mut c, xml, xml_tag)?;
-
-                if let Some(vec) = vec {
-                    vec.startc(c);
-                }
-            }
-
-            Event::Empty(ref xml_tag) => {
-                if vec.is_none() {
-                    let mut txtvec = TextVec::new();
-                    if let Some(s) = str {
-                        txtvec.text(s.as_str());
-                        *str = None;
-                    }
-                    vec.replace(txtvec);
-                }
-
-                let mut c = TextTag::new(xml.decode(xml_tag.name())?);
-                copy_attr(&mut c, xml, xml_tag)?;
-
-                if let Some(vec) = vec {
-                    vec.emptyc(c);
-                }
-            }
-
-            Event::End(ref xml_tag) => {
-                if xml_tag.name() == end_tag {
-                    break;
-                } else {
-                    if vec.is_none() {
-                        let mut txtvec = TextVec::new();
-                        if let Some(s) = str {
-                            txtvec.text(s.as_str());
-                            *str = None;
-                        }
-                        vec.replace(txtvec);
-                    }
-
-                    if let Some(vec) = vec {
-                        vec.end(xml.decode(xml_tag.name())?);
-                    }
-                }
-            }
-
-            Event::Eof => break,
-            _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_textvec2 unused {:?}", evt); }
-            }
-        }
-
-        buf.clear();
-    }
-
-    Ok(())
-}
-
-// reads all the tags up to end_tag and creates a TextVec
-fn read_textvec(end_tag: &[u8],
-                xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>) -> Result<TextVec, OdsError> {
-    let mut buf = Vec::new();
-
-    let mut cv = TextVec::new();
-    loop {
-        let evt = xml.read_event(&mut buf)?;
-        if cfg!(feature = "dump_xml") { println!(" read_textvec {:?}", evt); }
-        match evt {
-            Event::Start(ref xml_tag) => {
-                let mut c = TextTag::new(xml.decode(xml_tag.name())?);
-                copy_attr(&mut c, xml, xml_tag)?;
-                cv.startc(c);
-            }
-            Event::Empty(ref xml_tag) => {
-                let mut c = TextTag::new(xml.decode(xml_tag.name())?);
-                copy_attr(&mut c, xml, xml_tag)?;
-                cv.emptyc(c);
-            }
-            Event::Text(ref txt) => {
-                cv.text(txt.unescape_and_decode(xml)?);
-            }
-            Event::End(ref xml_tag) => {
-                if xml_tag.name() == end_tag {
-                    break;
-                } else {
-                    cv.end(xml.decode(xml_tag.name())?);
-                }
-            }
-            Event::Eof => break,
-            _ => {
-                if cfg!(feature = "dump_unused") { println!(" read_textvec unused {:?}", evt); }
-            }
-        }
-
-        buf.clear();
-    }
-
-    Ok(cv)
 }
 
 // reads the office-styles tag
@@ -1669,60 +1536,57 @@ fn read_styles(book: &mut WorkBook,
     Ok(())
 }
 
-fn read_xml(end_tag: &[u8],
-            xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-            empty_tag: bool,
-            xml_tag: &BytesStart) -> Result<XmlTag, OdsError> {
-    let mut st = Vec::new();
+fn read_xml(empty_tag: bool,
+            xml_tag: &BytesStart,
+            end_tag: &[u8],
+            xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>) -> Result<XmlTag, OdsError> {
+    let mut stack = Vec::new();
 
-    {
-        let mut tag = XmlTag::new(xml.decode(xml_tag.name())?, empty_tag);
-        copy_attr(&mut tag, xml, xml_tag)?;
-        st.push(tag);
-    }
+    let mut tag = XmlTag::new(xml.decode(xml_tag.name())?);
+    copy_attr(&mut tag, xml, xml_tag)?;
+    stack.push(tag);
 
     if !empty_tag {
         let mut buf = Vec::new();
-
         loop {
             let evt = xml.read_event(&mut buf)?;
             if cfg!(feature = "dump_xml") { println!(" read_xml {:?}", evt); }
             match evt {
-                Event::Start(xml_tag) => {
-                    let mut tag = XmlTag::new(xml.decode(xml_tag.name())?, false);
-                    copy_attr(&mut tag, xml, &xml_tag)?;
-                    st.push(tag);
+                Event::Start(xmlbytes) => {
+                    let mut tag = XmlTag::new(xml.decode(xmlbytes.name())?);
+                    copy_attr(&mut tag, xml, &xmlbytes)?;
+                    stack.push(tag);
                 }
 
-                Event::End(xml_tag) => {
-                    if xml_tag.name() == end_tag {
+                Event::End(xmlbytes) => {
+                    if xmlbytes.name() == end_tag {
                         break;
                     } else {
-                        let tag = st.pop().unwrap();
-                        if let Some(par) = st.last_mut() {
-                            par.add_tag(tag);
+                        let tag = stack.pop().unwrap();
+                        if let Some(parent) = stack.last_mut() {
+                            parent.add_tag(tag);
                         } else {
-                            panic!();
+                            assert!(false);
                         }
                     }
                 }
 
-                Event::Empty(xml_tag) => {
-                    let mut ex = XmlTag::new(xml.decode(xml_tag.name())?, true);
-                    copy_attr(&mut ex, xml, &xml_tag)?;
+                Event::Empty(xmlbytes) => {
+                    let mut emptytag = XmlTag::new(xml.decode(xmlbytes.name())?);
+                    copy_attr(&mut emptytag, xml, &xmlbytes)?;
 
-                    if let Some(par) = st.last_mut() {
-                        par.add_tag(ex);
+                    if let Some(parent) = stack.last_mut() {
+                        parent.add_tag(emptytag);
                     } else {
-                        panic!();
+                        assert!(false);
                     }
                 }
 
-                Event::Text(xml_tag) => {
-                    if let Some(par) = st.last_mut() {
-                        par.add_text(xml_tag.unescape_and_decode(xml).unwrap());
+                Event::Text(xmlbytes) => {
+                    if let Some(parent) = stack.last_mut() {
+                        parent.add_text(xmlbytes.unescape_and_decode(xml).unwrap());
                     } else {
-                        panic!();
+                        assert!(false);
                     }
                 }
 
@@ -1731,11 +1595,125 @@ fn read_xml(end_tag: &[u8],
                 }
 
                 _ => {
-                    if cfg!(feature = "dump_unused") { println!(" read_xml unused {:?}", evt); }
+                    if cfg!(feature = "dump_unused") { println!(" read_styles unused {:?}", evt); }
                 }
             }
         }
     }
 
-    Ok(st.pop().unwrap())
+    assert_eq!(stack.len(), 1);
+    Ok(stack.pop().unwrap())
 }
+
+// reads all the tags up to end_tag and creates a TextVec.
+// if there are no tags the result is a plain String.
+fn read_text_or_tag(text: &mut Option<TextTag>,
+                    str: &mut Option<String>,
+                    empty_tag: bool,
+                    xml_tag: &BytesStart,
+                    end_tag: &[u8],
+                    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>) -> Result<(), OdsError> {
+    let mut stack = Vec::<XmlTag>::new();
+
+    if !empty_tag {
+        let mut buf = Vec::new();
+        loop {
+            let evt = xml.read_event(&mut buf)?;
+            if cfg!(feature = "dump_xml") { println!(" read_xml {:?}", evt); }
+            match evt {
+                Event::Text(xmlbytes) => {
+                    let text = xmlbytes.unescape_and_decode(xml)?;
+                    if !stack.is_empty() {
+                        // There is already a tag. Append the text to its children.
+                        if let Some(parent_tag) = stack.last_mut() {
+                            parent_tag.add_text(text);
+                        }
+                    } else if let Some(tmp_str) = str {
+                        // We have a previous plain text string. Append to it.
+                        let tmp_str = tmp_str.clone() + text.as_str();
+                        str.replace(tmp_str);
+                    } else {
+                        // Fresh plain text string.
+                        str.replace(text);
+                    }
+                }
+
+                Event::Start(xmlbytes) => {
+                    if stack.is_empty() {
+                        // No parent tag on the stack. Create the parent.
+                        let mut toplevel = XmlTag::new(xml.decode(xml_tag.name())?);
+                        copy_attr(&mut toplevel, xml, xml_tag)?;
+                        // Previous plain text strings are added.
+                        if let Some(s) = str {
+                            toplevel.add_text(s.as_str());
+                            *str = None;
+                        }
+                        // Push to the stack.
+                        stack.push(toplevel);
+                    }
+
+                    // Set the new tag.
+                    let mut tag = XmlTag::new(xml.decode(xmlbytes.name())?);
+                    copy_attr(&mut tag, xml, &xmlbytes)?;
+                    stack.push(tag);
+                }
+
+                Event::End(xmlbytes) => {
+                    // End tag.
+                    if xmlbytes.name() == end_tag {
+                        if !stack.is_empty() {
+                            assert_eq!(stack.len(), 1);
+                            let tag = stack.pop().unwrap();
+                            text.replace(tag);
+                        }
+                        break;
+                    } else {
+                        // Get the tag from the stack and add it to it's parent.
+                        let tag = stack.pop().unwrap();
+                        if let Some(parent) = stack.last_mut() {
+                            parent.add_tag(tag);
+                        } else {
+                            assert!(false);
+                        }
+                    }
+                }
+
+                Event::Empty(xmlbytes) => {
+                    if stack.is_empty() {
+                        // No parent tag on the stack. Create the parent.
+                        let mut toplevel = XmlTag::new(xml.decode(xml_tag.name())?);
+                        copy_attr(&mut toplevel, xml, xml_tag)?;
+                        // Previous plain text strings are added.
+                        if let Some(s) = str {
+                            toplevel.add_text(s.as_str());
+                            *str = None;
+                        }
+                        // Push to the stack.
+                        stack.push(toplevel);
+                    }
+
+                    // Create the tag and append it immediately to the parent.
+                    let mut emptytag = XmlTag::new(xml.decode(xmlbytes.name())?);
+                    copy_attr(&mut emptytag, xml, &xmlbytes)?;
+
+                    if let Some(parent) = stack.last_mut() {
+                        parent.add_tag(emptytag);
+                    } else {
+                        assert!(false);
+                    }
+                }
+
+                Event::Eof => {
+                    break;
+                }
+
+                _ => {
+                    if cfg!(feature = "dump_unused") { println!(" read_styles unused {:?}", evt); }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+

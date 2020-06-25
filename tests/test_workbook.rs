@@ -3,9 +3,6 @@ use spreadsheet_ods::{SCell, Sheet, ValueType, WorkBook};
 #[test]
 fn test_workbook() {
     let mut wb = WorkBook::new();
-    // println!("sizeof usize {}", size_of::<usize>());
-    // println!("sizeof ucell {}", size_of::<ucell>());
-    // println!("sizeof WorkBook {}", size_of_val(&wb));
 
     let sh = Sheet::new();
     // println!("sizeof Sheet {}", size_of_val(&sh));

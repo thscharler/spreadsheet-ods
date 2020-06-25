@@ -10,7 +10,6 @@ use string_cache::DefaultAtom;
 #[derive(Debug, Clone, Default)]
 pub struct XmlTag {
     name: String,
-    empty: bool,
     attr: AttrMapType,
     content: Vec<XmlContent>,
 }
@@ -26,28 +25,9 @@ impl AttrMap for XmlTag {
 }
 
 impl XmlTag {
-    pub fn new<S: Into<String>>(name: S, empty: bool) -> Self {
+    pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            empty,
-            attr: None,
-            content: vec![],
-        }
-    }
-
-    pub fn tag<S: Into<String>>(name: S) -> Self {
-        Self {
-            name: name.into(),
-            empty: false,
-            attr: None,
-            content: vec![],
-        }
-    }
-
-    pub fn empty<S: Into<String>>(name: S) -> Self {
-        Self {
-            name: name.into(),
-            empty: true,
             attr: None,
             content: vec![],
         }
@@ -61,12 +41,8 @@ impl XmlTag {
         &self.name
     }
 
-    pub fn set_empty(&mut self, empty: bool) {
-        self.empty = empty;
-    }
-
     pub fn is_empty(&self) -> bool {
-        self.empty
+        self.content.is_empty()
     }
 
     pub fn attr_iter(&self) -> AttrMapIter {
@@ -81,7 +57,7 @@ impl XmlTag {
         self.content.push(XmlContent::Text(text.into()));
     }
 
-    pub fn attr_con<'a, S0, S1>(mut self, name: S0, value: S1) -> Self
+    pub fn con_attr<'a, S0, S1>(mut self, name: S0, value: S1) -> Self
         where S0: Into<&'a str>,
               S1: Into<String>
     {
@@ -91,12 +67,12 @@ impl XmlTag {
         self
     }
 
-    pub fn tag_con(mut self, xmltag: XmlTag) -> Self {
+    pub fn con_tag(mut self, xmltag: XmlTag) -> Self {
         self.content.push(XmlContent::Tag(xmltag));
         self
     }
 
-    pub fn text_con<S: Into<String>>(mut self, text: S) -> Self {
+    pub fn con_text<S: Into<String>>(mut self, text: S) -> Self {
         self.content.push(XmlContent::Text(text.into()));
         self
     }

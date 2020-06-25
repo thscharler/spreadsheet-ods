@@ -6,7 +6,7 @@ use string_cache::DefaultAtom;
 
 // use crate::attrmap::{AttrFoBackgroundColor, AttrFoBorder, AttrFoBreak, AttrFoKeepTogether, AttrFoKeepWithNext, AttrFoMargin, AttrFoMinHeight, AttrFontDecl, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, AttrParagraph, AttrStyleDynamicSpacing, AttrStyleShadow, AttrStyleWritingMode, AttrSvgHeight, AttrTableCell, AttrTableCol, AttrTableRow, AttrText};
 use crate::CellRef;
-use crate::text::TextVec;
+use crate::text::TextTag;
 
 pub use crate::attrmap::*;
 use std::fmt::{Display, Formatter};
@@ -65,7 +65,6 @@ impl Default for StyleFor {
 /// ```
 /// use spreadsheet_ods::{write_ods, WorkBook};
 /// use spreadsheet_ods::{cm};
-/// use spreadsheet_ods::text::TextVec;
 /// use spreadsheet_ods::style::{HeaderFooter, PageLayout, Length};
 /// use color::Rgb;
 /// use spreadsheet_ods::style::{AttrFoBackgroundColor, AttrFoMinHeight, AttrFoMargin};
@@ -81,9 +80,9 @@ impl Default for StyleFor {
 /// pl.header_attr_mut().set_margin_right(cm!(0.15));
 /// pl.header_attr_mut().set_margin_bottom(Length::Cm(0.75));
 ///
-/// pl.header_mut().center_mut().text("middle ground");
-/// pl.header_mut().left_mut().text("left wing");
-/// pl.header_mut().right_mut().text("right wing");
+/// pl.header_mut().center_mut().add_text("middle ground");
+/// pl.header_mut().left_mut().add_text("left wing");
+/// pl.header_mut().right_mut().add_text("right wing");
 ///
 /// wb.add_pagelayout(pl);
 ///
@@ -312,16 +311,16 @@ impl<'a> IntoIterator for &'a HeaderFooterAttr {
 /// Header/Footer data.
 /// Can be seen as three regions left/center/right or as one region.
 /// In the first case region* contains the data, in the second it's content.
-/// Each is a CompositVec of parsed XML-tags.
+/// Each is a TextTag of parsed XML-tags.
 #[derive(Clone, Debug, Default)]
 pub struct HeaderFooter {
     display: bool,
 
-    region_left: TextVec,
-    region_center: TextVec,
-    region_right: TextVec,
+    region_left: Option<TextTag>,
+    region_center: Option<TextTag>,
+    region_right: Option<TextTag>,
 
-    content: TextVec,
+    content: Option<TextTag>,
 }
 
 impl HeaderFooter {
@@ -329,10 +328,10 @@ impl HeaderFooter {
     pub fn new() -> Self {
         Self {
             display: true,
-            region_left: TextVec::new(),
-            region_center: TextVec::new(),
-            region_right: TextVec::new(),
-            content: TextVec::new(),
+            region_left: None,
+            region_center: None,
+            region_right: None,
+            content: None,
         }
     }
 
@@ -347,63 +346,91 @@ impl HeaderFooter {
     }
 
     /// Left region.
-    pub fn set_left(&mut self, txt: TextVec) {
-        self.region_left = txt;
+    pub fn set_left(&mut self, txt: TextTag) {
+        self.region_left = Some(txt);
     }
 
     /// Left region.
-    pub fn left(&self) -> &TextVec {
-        &self.region_left
+    pub fn left(&self) -> Option<&TextTag> {
+        self.region_left.as_ref()
     }
 
     /// Left region.
-    pub fn left_mut(&mut self) -> &mut TextVec {
-        &mut self.region_left
+    pub fn left_mut(&mut self) -> &mut TextTag {
+        if self.region_left.is_none() {
+            self.region_left = Some(TextTag::new("text:p"));
+        }
+        if let Some(center) = &mut self.region_left {
+            center
+        } else {
+            unreachable!()
+        }
     }
 
     /// Center region.
-    pub fn set_center(&mut self, txt: TextVec) {
-        self.region_center = txt;
+    pub fn set_center(&mut self, txt: TextTag) {
+        self.region_center = Some(txt);
     }
 
     /// Center region.
-    pub fn center(&self) -> &TextVec {
-        &self.region_center
+    pub fn center(&self) -> Option<&TextTag> {
+        self.region_center.as_ref()
     }
 
     /// Center region.
-    pub fn center_mut(&mut self) -> &mut TextVec {
-        &mut self.region_center
+    pub fn center_mut(&mut self) -> &mut TextTag {
+        if self.region_center.is_none() {
+            self.region_center = Some(TextTag::new("text:p"));
+        }
+        if let Some(center) = &mut self.region_center {
+            center
+        } else {
+            unreachable!()
+        }
     }
 
     /// Right region.
-    pub fn set_right(&mut self, txt: TextVec) {
-        self.region_right = txt;
+    pub fn set_right(&mut self, txt: TextTag) {
+        self.region_right = Some(txt);
     }
 
     /// Right region.
-    pub fn right(&self) -> &TextVec {
-        &self.region_right
+    pub fn right(&self) -> Option<&TextTag> {
+        self.region_right.as_ref()
     }
 
     /// Right region.
-    pub fn right_mut(&mut self) -> &mut TextVec {
-        &mut self.region_right
+    pub fn right_mut(&mut self) -> &mut TextTag {
+        if self.region_right.is_none() {
+            self.region_right = Some(TextTag::new("text:p"));
+        }
+        if let Some(center) = &mut self.region_right {
+            center
+        } else {
+            unreachable!()
+        }
     }
 
     /// Header content, if there are no regions.
-    pub fn set_content(&mut self, txt: TextVec) {
-        self.content = txt;
+    pub fn set_content(&mut self, txt: TextTag) {
+        self.content = Some(txt);
     }
 
     /// Header content, if there are no regions.
-    pub fn content(&self) -> &TextVec {
-        &self.content
+    pub fn content(&self) -> Option<&TextTag> {
+        self.content.as_ref()
     }
 
     /// Header content, if there are no regions.
-    pub fn content_mut(&mut self) -> &mut TextVec {
-        &mut self.content
+    pub fn content_mut(&mut self) -> &mut TextTag {
+        if self.content.is_none() {
+            self.content = Some(TextTag::new("text:p"));
+        }
+        if let Some(center) = &mut self.content {
+            center
+        } else {
+            unreachable!()
+        }
     }
 }
 

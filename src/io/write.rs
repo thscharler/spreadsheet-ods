@@ -15,7 +15,6 @@ use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{CellRange, cellranges_string};
 use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style, StyleFor, StyleOrigin, StyleUse};
-use crate::text::{TextElem, TextVec};
 use crate::xmltree::{XmlTag, XmlContent};
 
 // this did not work out as expected ...
@@ -879,10 +878,8 @@ fn write_cell(book: &WorkBook,
                 xml_out.end_elem("text:p")?;
             }
         }
-        Value::TextM(t) => {
-            xml_out.elem("text:p")?;
-            write_textvec(t, xml_out)?;
-            xml_out.end_elem("text:p")?;
+        Value::TextXml(t) => {
+            write_xmltag(t, xml_out)?;
         }
         Value::DateTime(d) => {
             xml_out.attr("office:value-type", "date")?;
@@ -1114,7 +1111,7 @@ fn write_value_styles(value_formats: &HashMap<String, ValueFormat>,
             ValueType::Boolean => "number:boolean-style",
             ValueType::Number => "number:number-style",
             ValueType::Text => "number:text-style",
-            ValueType::TextM => "number:text-style",
+            ValueType::TextXml => "number:text-style",
             ValueType::TimeDuration => "number:time-style",
             ValueType::Percentage => "number:percentage-style",
             ValueType::Currency => "number:currency-style",
@@ -1275,66 +1272,27 @@ fn write_masterpage<'a>(styles: &'a HashMap<String, PageLayout>,
 
 fn write_regions<'a>(hf: &'a HeaderFooter,
                      xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
-    if !hf.left().is_empty() {
+    if let Some(left) = hf.left() {
         xml_out.elem("style:region-left")?;
-        xml_out.elem("text:p")?;
-        write_textvec(&hf.left(), xml_out)?;
-        xml_out.end_elem("text:p")?;
+        write_xmltag(left, xml_out)?;
         xml_out.end_elem("style:region-left")?;
     }
-    if !hf.center().is_empty() {
+    if let Some(center) = hf.center() {
         xml_out.elem("style:region-center")?;
-        xml_out.elem("text:p")?;
-        write_textvec(&hf.center(), xml_out)?;
-        xml_out.end_elem("text:p")?;
+        write_xmltag(center, xml_out)?;
         xml_out.end_elem("style:region-center")?;
     }
-    if !hf.right().is_empty() {
+    if let Some(right) = hf.right() {
         xml_out.elem("style:region-right")?;
-        xml_out.elem("text:p")?;
-        write_textvec(&hf.right(), xml_out)?;
-        xml_out.end_elem("text:p")?;
+        write_xmltag(right, xml_out)?;
         xml_out.end_elem("style:region-right")?;
     }
-    if !hf.content().is_empty() {
-        xml_out.elem("text:p")?;
-        write_textvec(&hf.content(), xml_out)?;
-        xml_out.end_elem("text:p")?;
+    if let Some(content) = hf.content() {
+        write_xmltag(content, xml_out)?;
     }
 
     Ok(())
 }
 
-fn write_textvec(region: &TextVec,
-                 xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    for c in region.vec() {
-        match c {
-            TextElem::Start(ref t) => {
-                xml_out.elem(&t.tag())?;
-                if let Some(attr) = t.attr_map() {
-                    for (k, v) in attr.iter() {
-                        xml_out.attr_esc(k.as_ref(), v.as_ref())?;
-                    }
-                }
-            }
-            TextElem::Empty(t) => {
-                xml_out.empty(t.tag().as_str())?;
-                if let Some(attr) = t.attr_map() {
-                    for (k, v) in attr.iter() {
-                        xml_out.attr_esc(k.as_ref(), v.as_ref())?;
-                    }
-                }
-            }
-            TextElem::Text(t) => {
-                xml_out.text_esc(t.as_str())?;
-            }
-            TextElem::End(t) => {
-                xml_out.end_elem(t.as_str())?;
-            }
-        }
-    }
-
-    Ok(())
-}
 
 

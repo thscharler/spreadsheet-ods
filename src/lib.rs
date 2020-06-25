@@ -58,8 +58,8 @@ pub use refs::{CellRange, CellRef, ColRange, RowRange};
 
 use crate::attrmap::{AttrTableCol, AttrTableRow};
 use crate::style::{FontFaceDecl, PageLayout};
-use crate::text::TextVec;
 use crate::xmltree::XmlTag;
+use crate::text::TextTag;
 
 pub mod error;
 mod io;
@@ -702,7 +702,7 @@ pub enum ValueType {
     Percentage,
     Currency,
     Text,
-    TextM,
+    TextXml,
     DateTime,
     TimeDuration,
 }
@@ -722,8 +722,7 @@ pub enum Value {
     Percentage(f64),
     Currency(String, f64),
     Text(String),
-    TextM(TextVec),
-    // TODO: Frame(Image)
+    TextXml(TextTag),
     DateTime(NaiveDateTime),
     TimeDuration(Duration),
 }
@@ -738,7 +737,7 @@ impl Value {
             Value::Percentage(_) => ValueType::Percentage,
             Value::Currency(_, _) => ValueType::Currency,
             Value::Text(_) => ValueType::Text,
-            Value::TextM(_) => ValueType::TextM,
+            Value::TextXml(_) => ValueType::TextXml,
             Value::TimeDuration(_) => ValueType::TimeDuration,
             Value::DateTime(_) => ValueType::DateTime,
         }

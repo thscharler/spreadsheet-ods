@@ -1,4 +1,4 @@
-use spreadsheet_ods::{OdsError, read_ods, Sheet, WorkBook, write_ods};
+use spreadsheet_ods::{OdsError, read_ods, Sheet, ValueType, WorkBook, write_ods};
 use spreadsheet_ods::refs::{CellRange, CellRef, ColRange, RowRange};
 
 #[test]
@@ -198,19 +198,21 @@ fn test_print_range() -> Result<(), OdsError> {
     Ok(())
 }
 
-// #[test]
-// fn read_text() -> Result<(), OdsError> {
-//     println!("read_text");
-//
-//     let wb = read_ods("tests/text.ods")?;
-//     let sh = wb.sheet(0);
-//
-//     let v = sh.value(1, 1);
-//
-//     assert_eq!(v.value_type(), ValueType::TextM);
-//
-//     Ok(())
-// }
+#[test]
+fn read_text() -> Result<(), OdsError> {
+    println!("read_text");
+
+    let wb = read_ods("tests/text.ods")?;
+    let sh = wb.sheet(0);
+
+    let v = sh.value(0, 0);
+
+    assert_eq!(v.value_type(), ValueType::TextXml);
+
+    println!("text value {:?}", v);
+
+    Ok(())
+}
 
 #[test]
 fn read_orders() -> Result<(), OdsError> {
