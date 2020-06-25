@@ -1,42 +1,122 @@
 //! Implements reading and writing of ODS Files.
 //!
-//! Warning ahead: This does'nt cover the full specification, just a
-//! useable subset to read + modify + write back an ODS file.
-//!
 //! ```
-//! use spreadsheet_ods::{WorkBook, Sheet};
+//! use spreadsheet_ods::{WorkBook, Sheet, Value};
 //! use chrono::NaiveDate;
 //! use spreadsheet_ods::format;
 //! use spreadsheet_ods::formula;
-//! use spreadsheet_ods::style::Style;
+//! use spreadsheet_ods::style::{Style, AttrText, TextRelief, AttrFoBorder, Border};
+//! use color::Rgb;
 //!
 //! let mut wb = spreadsheet_ods::read_ods("tests/example.ods").unwrap();
 //!
-//! let mut sheet = wb.sheet_mut(0);
+//! let sheet = wb.sheet(0);
+//! let n = sheet.value(0,0).as_f64_or(0f64);
+//! if let Value::Boolean(v) = sheet.value(1,1) {
+//!     if v {
+//!         println!("was true");
+//!     }
+//! }
+//!
+//! let mut sheet = wb.sheet_mut(1);
 //! sheet.set_value(0, 0, 21.4f32);
 //! sheet.set_value(0, 1, "foo");
 //! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), "nice_date_style");
 //! sheet.set_formula(0, 3, format!("of:={}+1", formula::fcellref(0,0)));
 //!
+//! let mut sheet = Sheet::with_name("sample");
+//! sheet.set_value(5,5, "sample");
+//! wb.push_sheet(sheet);
+//!
 //! let nice_date_format = format::create_date_dmy_format("nice_date_format");
 //! wb.add_format(nice_date_format);
 //!
-//! let nice_date_style = Style::cell_style("nice_date_style", "nice_date_format");
+//! let mut nice_date_style = Style::cell_style("nice_date_style", "nice_date_format");
+//! nice_date_style.text_mut().set_font_bold();
+//! nice_date_style.text_mut().set_font_relief(TextRelief::Engraved);
+//! nice_date_style.cell_mut().set_border(mm!(0.2), Border::Dashed, Rgb::new(192, 72, 72));
 //! wb.add_style(nice_date_style);
 //!
 //! spreadsheet_ods::write_ods(&wb, "test_out/tryout.ods");
 //!
 //! ```
+//! This does not cover the entire ODS spec.
 //!
-//! When saving all the extra content is copied from the original file,
-//! except for content.xml which is rewritten.
+//! What is supported:
+//! * Spread-sheets
+//! ** Handles all datatypes
+//! *** Uses time::Duration
+//! *** Uses chrono::NaiveDate and NaiveDateTime
+//! *** Supports rust_decimal::Decimal
+//! ** Column/Row/Cell styles
+//! ** Formulas
+//! *** Only as strings, but support functions for cell/range references.
+//! ** Row/Column spans
+//! ** Header rows/columns, print ranges
+//! ** Formatted text as xml text.
 //!
-//! For content.xml the following information is read and written:
-//! TODO: more detailed description
+//! * Formulas
+//! ** Only as strings.
+//! ** Utilities for cell/range references.
 //!
-//! The following things are ignored for now
-//! TODO: more detailed description
+//! * Styles
+//! ** Default styles per data type.
+//! ** Preserves all style attributes.
+//! ** Table, row, column, cell, paragraph and text styles.
+//! ** Stylemaps (basic support)
+//! ** Support for *setting* most style attributes.
 //!
+//! * Value formatting
+//! ** The whole set is available.
+//! ** Utility functions for common formats.
+//!
+//! * Fonts
+//! ** Preserves all font attributes.
+//! ** Basic support for setting this stuff.
+//!
+//! * Page layouts
+//! ** Style attributes
+//! ** Header/footer content as XML text.
+//!
+//! * Cell/range references
+//! ** Parsing and formatting
+//!
+//! What is not supported:
+//! * Spreadsheets
+//! ** Row and column grouping
+//! * ...
+//!
+//! There are a number of features that are not parsed completely,
+//! but which are stored as a XML structure. This might work as long as
+//! these features don't refer to data that is no longer valid after
+//! some modification. But they are written back to the ods.
+//!
+//! Anyway those are:
+//! * tracked-changes
+//! * variable-decls
+//! * sequence-decls
+//! * user-field-decls
+//! * dde-connection-decls
+//! * calculation-settings
+//! * content-validations
+//! * label-ranges
+//! * named-expressions
+//! * database-ranges
+//! * data-pilot-tables
+//! * consolidation
+//! * dde-links
+//! * table:desc
+//! * table-source
+//! * dde-source
+//! * scenario
+//! * forms
+//! * shapes
+//!
+//! When storing a previously read ODS file, all the contained files
+//! are copied to the new file, except styles.xml and content.xml.
+//! For a new ODS file mimetype, manifest, manifest.rdf, meta.xml
+//! are filled with minimal defaults. There is no way to set these
+//! for now.
 //!
 
 use std::collections::{BTreeMap, HashMap};
@@ -147,7 +227,7 @@ impl WorkBook {
             def_styles: Default::default(),
             page_layouts: Default::default(),
             file: None,
-            extra: vec![]
+            extra: vec![],
         }
     }
 
@@ -351,7 +431,7 @@ impl Sheet {
             header_rows: None,
             header_cols: None,
             print_ranges: None,
-            extra: vec![]
+            extra: vec![],
         }
     }
 
@@ -367,7 +447,7 @@ impl Sheet {
             header_rows: None,
             header_cols: None,
             print_ranges: None,
-            extra: vec![]
+            extra: vec![],
         }
     }
 
@@ -768,6 +848,17 @@ impl Value {
         }
     }
 
+    /// Return the content as i32 if the value is a number, percentage or
+    /// currency.
+    pub fn as_i32_opt(&self, d: i32) -> Option<i32> {
+        match self {
+            Value::Number(n) => Some(*n as i32),
+            Value::Percentage(p) => Some(*p as i32),
+            Value::Currency(_, v) => Some(*v as i32),
+            _ => None,
+        }
+    }
+
     /// Return the content as u32 if the value is a number, percentage or
     /// currency. Default otherwise.
     pub fn as_u32_or(&self, d: u32) -> u32 {
@@ -776,6 +867,17 @@ impl Value {
             Value::Percentage(p) => *p as u32,
             Value::Currency(_, v) => *v as u32,
             _ => d,
+        }
+    }
+
+    /// Return the content as u32 if the value is a number, percentage or
+    /// currency.
+    pub fn as_u32_opt(&self, d: u32) -> Option<u32> {
+        match self {
+            Value::Number(n) => Some(*n as u32),
+            Value::Percentage(p) => Some(*p as u32),
+            Value::Currency(_, v) => Some(*v as u32),
+            _ => None,
         }
     }
 
@@ -791,6 +893,18 @@ impl Value {
         }
     }
 
+    /// Return the content as decimal if the value is a number, percentage or
+    /// currency. Default otherwise.
+    #[cfg(feature = "use_decimal")]
+    pub fn as_decimal_opt(&self) -> Option<Decimal> {
+        match self {
+            Value::Number(n) => Some(Decimal::from_f64(*n).unwrap()),
+            Value::Currency(_, v) => Some(Decimal::from_f64(*v).unwrap()),
+            Value::Percentage(p) => Some(Decimal::from_f64(*p).unwrap()),
+            _ => None,
+        }
+    }
+
     /// Return the content as f64 if the value is a number, percentage or
     /// currency. Default otherwise.
     pub fn as_f64_or(&self, d: f64) -> f64 {
@@ -802,11 +916,30 @@ impl Value {
         }
     }
 
+    /// Return the content as f64 if the value is a number, percentage or
+    /// currency.
+    pub fn as_f64_opt(&self) -> Option<f64> {
+        match self {
+            Value::Number(n) => Some(*n),
+            Value::Currency(_, v) => Some(*v),
+            Value::Percentage(p) => Some(*p),
+            _ => None,
+        }
+    }
+
     /// Return the content as str if the value is text.
     pub fn as_str_or<'a>(&'a self, d: &'a str) -> &'a str {
         match self {
             Value::Text(s) => s.as_ref(),
             _ => d,
+        }
+    }
+
+    /// Return the content as str if the value is text.
+    pub fn as_str_opt<'a>(&'a self) -> Option<&'a str> {
+        match self {
+            Value::Text(s) => Some(s.as_ref()),
+            _ => None,
         }
     }
 
@@ -816,6 +949,15 @@ impl Value {
         match self {
             Value::TimeDuration(td) => *td,
             _ => d,
+        }
+    }
+
+    /// Return the content as Duration if the value is a TimeDuration.
+    /// Default otherwise.
+    pub fn as_timeduration_opt(&self) -> Option<Duration> {
+        match self {
+            Value::TimeDuration(td) => Some(*td),
+            _ => None,
         }
     }
 

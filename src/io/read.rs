@@ -427,6 +427,8 @@ fn read_table_cell(sheet: &mut Sheet,
                 cell_value = Some(attr.unescape_and_decode_value(&xml)?),
             attr if attr.key == b"office:boolean-value" =>
                 cell_value = Some(attr.unescape_and_decode_value(&xml)?),
+            attr if attr.key == b"office:string-value" =>
+                cell_value = Some(attr.unescape_and_decode_value(&xml)?),
 
             attr if attr.key == b"office:currency" =>
                 cell_currency = Some(attr.unescape_and_decode_value(&xml)?),
@@ -585,7 +587,9 @@ fn parse_value(value_type: Option<ValueType>,
                 Ok(Value::Empty)
             }
             ValueType::Text => {
-                if let Some(cell_content_txt) = cell_content_txt {
+                if let Some(cell_value) = cell_value {
+                    Ok(Value::Text(cell_value))
+                } else if let Some(cell_content_txt) = cell_content_txt {
                     Ok(Value::TextXml(cell_content_txt))
                 } else if let Some(cell_content) = cell_content {
                     Ok(Value::Text(cell_content))

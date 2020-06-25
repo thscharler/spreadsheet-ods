@@ -1009,75 +1009,75 @@ pub trait AttrText
         self.set_attr("style:font-relief", relief.to_string());
     }
 
-    fn font_line_through_color(&mut self, color: Rgb<u8>) {
+    fn set_font_line_through_color(&mut self, color: Rgb<u8>) {
         self.set_attr("style:text-line-through-color", color_string(color));
     }
 
-    fn font_line_through_style(&mut self, lstyle: LineStyle) {
+    fn set_font_line_through_style(&mut self, lstyle: LineStyle) {
         self.set_attr("style:text-line-through-style", lstyle.to_string());
     }
 
-    fn font_line_through_mode(&mut self, lmode: LineMode) {
+    fn set_font_line_through_mode(&mut self, lmode: LineMode) {
         self.set_attr("style:text-line-through-mode", lmode.to_string());
     }
 
-    fn font_line_through_type(&mut self, ltype: LineType) {
+    fn set_font_line_through_type(&mut self, ltype: LineType) {
         self.set_attr("style:text-line-through-type", ltype.to_string());
     }
 
-    fn font_line_through_text(&mut self, text: &str) {
+    fn set_font_line_through_text(&mut self, text: &str) {
         self.set_attr("style:text-line-through-text", text.to_string());
     }
 
-    fn font_line_through_text_style(&mut self, style_ref: &str) {
+    fn set_font_line_through_text_style(&mut self, style_ref: &str) {
         self.set_attr("style:text-line-through-text-style", style_ref.to_string());
     }
 
-    fn font_line_through_width(&mut self, lwidth: LineWidth) {
+    fn set_font_line_through_width(&mut self, lwidth: LineWidth) {
         self.set_attr("style:text-line-through-width", lwidth.to_string());
     }
 
-    fn font_text_outline(&mut self, outline: bool) {
+    fn set_font_text_outline(&mut self, outline: bool) {
         self.set_attr("style:text-outline", outline.to_string());
     }
 
-    fn font_underline_color(&mut self, color: Rgb<u8>) {
+    fn set_font_underline_color(&mut self, color: Rgb<u8>) {
         self.set_attr("style:text-underline-color", color_string(color));
     }
 
-    fn font_underline_style(&mut self, lstyle: LineStyle) {
+    fn set_font_underline_style(&mut self, lstyle: LineStyle) {
         self.set_attr("style:text-underline-style", lstyle.to_string());
     }
 
-    fn font_underline_type(&mut self, ltype: LineType) {
+    fn set_font_underline_type(&mut self, ltype: LineType) {
         self.set_attr("style:text-underline-type", ltype.to_string());
     }
 
-    fn font_underline_mode(&mut self, lmode: LineMode) {
+    fn set_font_underline_mode(&mut self, lmode: LineMode) {
         self.set_attr("style:text-underline-mode", lmode.to_string());
     }
 
-    fn font_underline_width(&mut self, lwidth: LineWidth) {
+    fn set_font_underline_width(&mut self, lwidth: LineWidth) {
         self.set_attr("style:text-underline-width", lwidth.to_string());
     }
 
-    fn font_overline_color(&mut self, color: Rgb<u8>) {
+    fn set_font_overline_color(&mut self, color: Rgb<u8>) {
         self.set_attr("style:text-overline-color", color_string(color));
     }
 
-    fn font_overline_style(&mut self, lstyle: LineStyle) {
+    fn set_font_overline_style(&mut self, lstyle: LineStyle) {
         self.set_attr("style:text-overline-style", lstyle.to_string());
     }
 
-    fn font_overline_type(&mut self, ltype: LineType) {
+    fn set_font_overline_type(&mut self, ltype: LineType) {
         self.set_attr("style:text-overline-type", ltype.to_string());
     }
 
-    fn font_overline_mode(&mut self, lmode: LineMode) {
+    fn set_font_overline_mode(&mut self, lmode: LineMode) {
         self.set_attr("style:text-overline-mode", lmode.to_string());
     }
 
-    fn font_overline_width(&mut self, lwidth: LineWidth) {
+    fn set_font_overline_width(&mut self, lwidth: LineWidth) {
         self.set_attr("style:text-overline-width", lwidth.to_string());
     }
 }
