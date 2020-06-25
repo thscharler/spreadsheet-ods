@@ -1674,58 +1674,68 @@ fn read_xml(end_tag: &[u8],
             empty_tag: bool,
             xml_tag: &BytesStart) -> Result<XmlTag, OdsError> {
     let mut st = Vec::new();
-    let mut x = read_xmltag(xml, xml_tag, empty_tag)?;
+
+    {
+        let mut tag = XmlTag::new(xml.decode(xml_tag.name())?, empty_tag);
+        copy_attr(&mut tag, xml, xml_tag)?;
+        st.push(tag);
+    }
 
     if !empty_tag {
         let mut buf = Vec::new();
+
         loop {
             let evt = xml.read_event(&mut buf)?;
-            if cfg!(feature = "dump_xml") { println!(" read_styles {:?}", evt); }
+            if cfg!(feature = "dump_xml") { println!(" read_xml {:?}", evt); }
             match evt {
-                Event::Start(e) => {
-                    st.push(x);
-                    x = read_xmltag(xml, &e, false)?;
+                Event::Start(xml_tag) => {
+                    let mut tag = XmlTag::new(xml.decode(xml_tag.name())?, false);
+                    copy_attr(&mut tag, xml, &xml_tag)?;
+                    st.push(tag);
                 }
-                Event::End(e) => {
-                    if e.name() == end_tag {
+
+                Event::End(xml_tag) => {
+                    if xml_tag.name() == end_tag {
                         break;
                     } else {
-                        let ex = x;
-                        x = st.pop().unwrap();
-                        x.add_tag(ex);
+                        let tag = st.pop().unwrap();
+                        if let Some(par) = st.last_mut() {
+                            par.add_tag(tag);
+                        } else {
+                            panic!();
+                        }
                     }
                 }
-                Event::Empty(e) => {
-                    let ex = read_xmltag(xml, &e, true)?;
-                    x.add_tag(ex);
+
+                Event::Empty(xml_tag) => {
+                    let mut ex = XmlTag::new(xml.decode(xml_tag.name())?, true);
+                    copy_attr(&mut ex, xml, &xml_tag)?;
+
+                    if let Some(par) = st.last_mut() {
+                        par.add_tag(ex);
+                    } else {
+                        panic!();
+                    }
                 }
-                Event::Text(e) => {
-                    x.add_text(e.unescape_and_decode(xml).unwrap());
+
+                Event::Text(xml_tag) => {
+                    if let Some(par) = st.last_mut() {
+                        par.add_text(xml_tag.unescape_and_decode(xml).unwrap());
+                    } else {
+                        panic!();
+                    }
                 }
+
                 Event::Eof => {
                     break;
                 }
+
                 _ => {
-                    if cfg!(feature = "dump_unused") { println!(" read_styles unused {:?}", evt); }
+                    if cfg!(feature = "dump_unused") { println!(" read_xml unused {:?}", evt); }
                 }
             }
         }
     }
 
-    Ok(x)
+    Ok(st.pop().unwrap())
 }
-
-fn read_xmltag(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-               xml_tag: &BytesStart,
-               empty_tag: bool) -> Result<XmlTag, OdsError> {
-    let mut x = XmlTag::new(xml.decode(xml_tag.name())?, empty_tag);
-    for attr in xml_tag.attributes().with_checks(false) {
-        if let Ok(attr) = attr {
-            let k = xml.decode(&attr.key)?;
-            let v = attr.unescape_and_decode_value(&xml)?;
-            x.set_attr(k, v);
-        }
-    }
-    Ok(x)
-}
-
