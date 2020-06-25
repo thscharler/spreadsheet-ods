@@ -26,6 +26,7 @@ pub fn sizes() {
     println!("String {}", size_of::<String>());
     println!("(String) {}", size_of::<String>());
     println!("TextTag {}", size_of::<TextTag>());
+    println!("Box<TextTag> {}", size_of::<Box<TextTag>>());
     println!("XmlContent {}", size_of::<XmlContent>());
     println!("Vec<XmlContent> {}", size_of::<Vec<XmlContent>>());
     println!("Option<AttrMapType> {}", size_of::<Option<AttrMapType>>());

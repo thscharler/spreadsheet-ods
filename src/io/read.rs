@@ -592,7 +592,7 @@ fn parse_value(value_type: Option<ValueType>,
                 if let Some(cell_value) = cell_value {
                     Ok(Value::Text(cell_value))
                 } else if let Some(cell_content_txt) = cell_content_txt {
-                    Ok(Value::TextXml(cell_content_txt))
+                    Ok(Value::TextXml(Box::new(cell_content_txt)))
                 } else if let Some(cell_content) = cell_content {
                     Ok(Value::Text(cell_content))
                 } else {

@@ -810,7 +810,7 @@ pub enum Value {
     Percentage(f64),
     Currency(String, f64),
     Text(String),
-    TextXml(TextTag),
+    TextXml(Box<TextTag>),
     DateTime(NaiveDateTime),
     TimeDuration(Duration),
 }
@@ -1014,6 +1014,10 @@ impl From<&String> for Value {
     fn from(s: &String) -> Self {
         Value::Text(s.to_string())
     }
+}
+
+impl From<TextTag> for Value {
+    fn from(t: TextTag) -> Self { Value::TextXml(Box::new(t)) }
 }
 
 impl From<Option<String>> for Value {
