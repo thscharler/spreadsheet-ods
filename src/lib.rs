@@ -5,6 +5,7 @@
 //! use chrono::NaiveDate;
 //! use spreadsheet_ods::format;
 //! use spreadsheet_ods::formula;
+//! use spreadsheet_ods::{Length, cm, mm};
 //! use spreadsheet_ods::style::{Style, AttrText, TextRelief, AttrFoBorder, Border};
 //! use color::Rgb;
 //!
@@ -13,7 +14,7 @@
 //! let sheet = wb.sheet(0);
 //! let n = sheet.value(0,0).as_f64_or(0f64);
 //! if let Value::Boolean(v) = sheet.value(1,1) {
-//!     if v {
+//!     if *v {
 //!         println!("was true");
 //!     }
 //! }
@@ -44,46 +45,46 @@
 //!
 //! What is supported:
 //! * Spread-sheets
-//! ** Handles all datatypes
-//! *** Uses time::Duration
-//! *** Uses chrono::NaiveDate and NaiveDateTime
-//! *** Supports rust_decimal::Decimal
-//! ** Column/Row/Cell styles
-//! ** Formulas
-//! *** Only as strings, but support functions for cell/range references.
-//! ** Row/Column spans
-//! ** Header rows/columns, print ranges
-//! ** Formatted text as xml text.
+//!   * Handles all datatypes
+//!     * Uses time::Duration
+//!     * Uses chrono::NaiveDate and NaiveDateTime
+//!     * Supports rust_decimal::Decimal
+//!   * Column/Row/Cell styles
+//!   * Formulas
+//!     * Only as strings, but support functions for cell/range references.
+//!   * Row/Column spans
+//!   * Header rows/columns, print ranges
+//!   * Formatted text as xml text.
 //!
 //! * Formulas
-//! ** Only as strings.
-//! ** Utilities for cell/range references.
+//!   * Only as strings.
+//!   * Utilities for cell/range references.
 //!
 //! * Styles
-//! ** Default styles per data type.
-//! ** Preserves all style attributes.
-//! ** Table, row, column, cell, paragraph and text styles.
-//! ** Stylemaps (basic support)
-//! ** Support for *setting* most style attributes.
+//!   * Default styles per data type.
+//!   * Preserves all style attributes.
+//!   * Table, row, column, cell, paragraph and text styles.
+//!   * Stylemaps (basic support)
+//!   * Support for *setting* most style attributes.
 //!
 //! * Value formatting
-//! ** The whole set is available.
-//! ** Utility functions for common formats.
+//!   * The whole set is available.
+//!   * Utility functions for common formats.
 //!
 //! * Fonts
-//! ** Preserves all font attributes.
-//! ** Basic support for setting this stuff.
+//!   * Preserves all font attributes.
+//!   * Basic support for setting this stuff.
 //!
 //! * Page layouts
-//! ** Style attributes
-//! ** Header/footer content as XML text.
+//!   * Style attributes
+//!   * Header/footer content as XML text.
 //!
 //! * Cell/range references
-//! ** Parsing and formatting
+//!   * Parsing and formatting
 //!
 //! What is not supported:
 //! * Spreadsheets
-//! ** Row and column grouping
+//!   * Row and column grouping
 //! * ...
 //!
 //! There are a number of features that are not parsed completely,
@@ -111,6 +112,7 @@
 //! * scenario
 //! * forms
 //! * shapes
+//! * calcext:conditional-formats
 //!
 //! When storing a previously read ODS file, all the contained files
 //! are copied to the new file, except styles.xml and content.xml.
@@ -850,7 +852,7 @@ impl Value {
 
     /// Return the content as i32 if the value is a number, percentage or
     /// currency.
-    pub fn as_i32_opt(&self, d: i32) -> Option<i32> {
+    pub fn as_i32_opt(&self) -> Option<i32> {
         match self {
             Value::Number(n) => Some(*n as i32),
             Value::Percentage(p) => Some(*p as i32),
@@ -872,7 +874,7 @@ impl Value {
 
     /// Return the content as u32 if the value is a number, percentage or
     /// currency.
-    pub fn as_u32_opt(&self, d: u32) -> Option<u32> {
+    pub fn as_u32_opt(&self) -> Option<u32> {
         match self {
             Value::Number(n) => Some(*n as u32),
             Value::Percentage(p) => Some(*p as u32),

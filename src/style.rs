@@ -1,10 +1,11 @@
 //!
-//! Defines the basic structures for table styling, PageLayout and Style
+//! Defines the basic structures for table styling,
+//! [PageLayout](struct.PageLayout.html)
+//! and [Style](struct.Style.html)
 //!
 
 use string_cache::DefaultAtom;
 
-// use crate::attrmap::{AttrFoBackgroundColor, AttrFoBorder, AttrFoBreak, AttrFoKeepTogether, AttrFoKeepWithNext, AttrFoMargin, AttrFoMinHeight, AttrFontDecl, AttrFoPadding, AttrMap, AttrMapIter, AttrMapType, AttrParagraph, AttrStyleDynamicSpacing, AttrStyleShadow, AttrStyleWritingMode, AttrSvgHeight, AttrTableCell, AttrTableCol, AttrTableRow, AttrText};
 use crate::CellRef;
 use crate::text::TextTag;
 
@@ -80,9 +81,9 @@ impl Default for StyleFor {
 /// pl.header_attr_mut().set_margin_right(cm!(0.15));
 /// pl.header_attr_mut().set_margin_bottom(Length::Cm(0.75));
 ///
-/// pl.header_mut().center_mut().add_text("middle ground");
-/// pl.header_mut().left_mut().add_text("left wing");
-/// pl.header_mut().right_mut().add_text("right wing");
+/// pl.header_mut().center_mut().push_text("middle ground");
+/// pl.header_mut().left_mut().push_text("left wing");
+/// pl.header_mut().right_mut().push_text("right wing");
 ///
 /// wb.add_pagelayout(pl);
 ///
@@ -506,7 +507,40 @@ impl FontFaceDecl {
     }
 }
 
-/// Style data.
+/// Styles define a large number of attributes. These are grouped together
+/// as table, row, column, cell, paragraph and text attributes.
+///
+/// ```
+/// use spreadsheet_ods::{Style, CellRef, WorkBook};
+/// use spreadsheet_ods::style::{StyleOrigin, StyleUse, AttrText, StyleMap};
+/// use color::Rgb;
+///
+/// let mut wb = WorkBook::new();
+///
+/// let mut st = Style::cell_style("ce12", "num2");
+/// st.text_mut().set_color(Rgb::new(192, 128, 0));
+/// st.text_mut().set_font_bold();
+/// wb.add_style(st);
+///
+/// let mut st = Style::cell_style("ce11", "num2");
+/// st.text_mut().set_color(Rgb::new(0, 192, 128));
+/// st.text_mut().set_font_bold();
+/// wb.add_style(st);
+///
+/// let mut st = Style::cell_style("ce13", "num4");
+/// st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::table("sheet0", 4, 3)));
+/// st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::table("sheet0", 4, 3)));
+/// wb.add_style(st);
+/// ```
+/// Styles can be defined in content.xml or as global styles in styles.xml. This
+/// is reflected as the StyleOrigin. The StyleUse differentiates between automatic
+/// and user visible, named styles. And third StyleFor defines for which part of
+/// the document the style can be used.
+///
+/// Cell styles usually reference a value format for text formatting purposes.
+///
+/// Styles can also link to a parent style and to a pagelayout.
+///
 #[derive(Debug, Clone, Default)]
 pub struct Style {
     /// Style name.
@@ -787,13 +821,15 @@ impl Style {
 }
 
 /// One style mapping.
+///
 /// The rules for this are not very clear. It writes the necessary data fine,
-/// but the interpretation by LO is not very accessible.
-/// * The cellref must include a table-name.
-/// * ???
-/// * LO always adds calcext:conditional-formats which I can't handle.
-///   I didn't find a spec for that.
+/// but the interpretation by LibreOffice is not very intelligable.
+///
+/// * The base-cell must include a table-name.
+/// * LibreOffice always adds calcext:conditional-formats which I can't handle.
+///
 /// TODO: clarify all of this.
+///
 #[derive(Clone, Debug, Default)]
 pub struct StyleMap {
     condition: String,

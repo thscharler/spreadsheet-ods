@@ -626,7 +626,8 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     xml_out.end_elem("table:table")?;
 
     for tag in &sheet.extra {
-        if tag.name() == "table:named-expressions" {
+        if tag.name() == "table:named-expressions" ||
+            tag.name() == "calcext:conditional-formats" {
             write_xmltag(tag, xml_out)?;
         }
     }

@@ -1,6 +1,23 @@
 //!
 //! Defines ValueFormat for formatting related issues
 //!
+//! ```
+//! use spreadsheet_ods::{ValueFormat, ValueType};
+//! use spreadsheet_ods::format::FormatNumberStyle;
+//!
+//! let mut v = ValueFormat::with_name("dt0", ValueType::DateTime);
+//! v.push_day(FormatNumberStyle::Long);
+//! v.push_text(".");
+//! v.push_month(FormatNumberStyle::Long);
+//! v.push_text(".");
+//! v.push_year(FormatNumberStyle::Long);
+//! v.push_text(" ");
+//! v.push_hours(FormatNumberStyle::Long);
+//! v.push_text(":");
+//! v.push_minutes(FormatNumberStyle::Long);
+//! v.push_text(":");
+//! v.push_seconds(FormatNumberStyle::Long);
+//! ```
 
 use std::fmt::{Display, Formatter};
 

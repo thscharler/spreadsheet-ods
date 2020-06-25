@@ -177,8 +177,9 @@ fn read_table(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                 xml_tag.name() == b"office:forms" ||
                 xml_tag.name() == b"table:shapes" ||
                 /* epilogue */
-                xml_tag.name() == b"table:named-expressions" => {
-                sheet.extra.push(read_xml(empty_tag, &xml_tag, b"table:shapes", xml)?);
+                xml_tag.name() == b"table:named-expressions" ||
+                xml_tag.name() == b"calcext:conditional-formats" => {
+                sheet.extra.push(read_xml(empty_tag, &xml_tag, xml_tag.name(), xml)?);
             }
 
             Event::End(xml_tag)
@@ -190,7 +191,8 @@ fn read_table(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
                 xml_tag.name() == b"office:forms" ||
                 xml_tag.name() == b"table:shapes" ||
                 /* epilogue */
-                xml_tag.name() == b"table:named-expressions" => {}
+                xml_tag.name() == b"table:named-expressions" ||
+                xml_tag.name() == b"calcext:conditional-formats" => {}
 
             Event::Start(xml_tag)
             if xml_tag.name() == b"table:table-header-columns" => {
@@ -1586,7 +1588,7 @@ fn read_xml(empty_tag: bool,
                     } else {
                         let tag = stack.pop().unwrap();
                         if let Some(parent) = stack.last_mut() {
-                            parent.add_tag(tag);
+                            parent.push_tag(tag);
                         } else {
                             assert!(false);
                         }
@@ -1598,7 +1600,7 @@ fn read_xml(empty_tag: bool,
                     copy_attr(&mut emptytag, xml, &xmlbytes)?;
 
                     if let Some(parent) = stack.last_mut() {
-                        parent.add_tag(emptytag);
+                        parent.push_tag(emptytag);
                     } else {
                         assert!(false);
                     }
@@ -1606,7 +1608,7 @@ fn read_xml(empty_tag: bool,
 
                 Event::Text(xmlbytes) => {
                     if let Some(parent) = stack.last_mut() {
-                        parent.add_text(xmlbytes.unescape_and_decode(xml).unwrap());
+                        parent.push_text(xmlbytes.unescape_and_decode(xml).unwrap());
                     } else {
                         assert!(false);
                     }
@@ -1648,7 +1650,7 @@ fn read_text_or_tag(text: &mut Option<TextTag>,
                     if !stack.is_empty() {
                         // There is already a tag. Append the text to its children.
                         if let Some(parent_tag) = stack.last_mut() {
-                            parent_tag.add_text(text);
+                            parent_tag.push_text(text);
                         }
                     } else if let Some(tmp_str) = str {
                         // We have a previous plain text string. Append to it.
@@ -1667,7 +1669,7 @@ fn read_text_or_tag(text: &mut Option<TextTag>,
                         copy_attr(&mut toplevel, xml, xml_tag)?;
                         // Previous plain text strings are added.
                         if let Some(s) = str {
-                            toplevel.add_text(s.as_str());
+                            toplevel.push_text(s.as_str());
                             *str = None;
                         }
                         // Push to the stack.
@@ -1693,7 +1695,7 @@ fn read_text_or_tag(text: &mut Option<TextTag>,
                         // Get the tag from the stack and add it to it's parent.
                         let tag = stack.pop().unwrap();
                         if let Some(parent) = stack.last_mut() {
-                            parent.add_tag(tag);
+                            parent.push_tag(tag);
                         } else {
                             assert!(false);
                         }
@@ -1707,7 +1709,7 @@ fn read_text_or_tag(text: &mut Option<TextTag>,
                         copy_attr(&mut toplevel, xml, xml_tag)?;
                         // Previous plain text strings are added.
                         if let Some(s) = str {
-                            toplevel.add_text(s.as_str());
+                            toplevel.push_text(s.as_str());
                             *str = None;
                         }
                         // Push to the stack.
@@ -1719,7 +1721,7 @@ fn read_text_or_tag(text: &mut Option<TextTag>,
                     copy_attr(&mut emptytag, xml, &xmlbytes)?;
 
                     if let Some(parent) = stack.last_mut() {
-                        parent.add_tag(emptytag);
+                        parent.push_tag(emptytag);
                     } else {
                         assert!(false);
                     }

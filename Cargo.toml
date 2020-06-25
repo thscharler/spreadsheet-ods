@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["dump_unused"]
+default = ["dump_unused", "dump_xml"]
 # Dump XML while reading.
 dump_xml = [ ]
 # Dump unused XML tags and attributes
