@@ -6,5 +6,6 @@ Cargo.lock
 /tests/example.ods
 /tests/example
 /tests/orders
+/tests/missing
 /tryout.ods
 /test_spreadsheet/target

@@ -59,6 +59,7 @@ pub use refs::{CellRange, CellRef, ColRange, RowRange};
 use crate::attrmap::{AttrTableCol, AttrTableRow};
 use crate::style::{FontFaceDecl, PageLayout};
 use crate::text::TextVec;
+use crate::xmltree::XmlTag;
 
 pub mod error;
 mod io;
@@ -69,6 +70,7 @@ pub mod style;
 pub mod format;
 pub mod defaultstyles;
 pub mod formula;
+pub mod xmltree;
 
 /// Cell index type for row/column indexes.
 #[allow(non_camel_case_types)]
@@ -102,6 +104,9 @@ pub struct WorkBook {
     /// This is used when writing to copy all additional
     /// files except content.xml
     file: Option<PathBuf>,
+
+    /// other stuff ...
+    extra: Vec<XmlTag>,
 }
 
 impl fmt::Debug for WorkBook {
@@ -139,6 +144,7 @@ impl WorkBook {
             def_styles: Default::default(),
             page_layouts: Default::default(),
             file: None,
+            extra: vec![]
         }
     }
 
@@ -297,6 +303,8 @@ pub struct Sheet {
     header_rows: Option<RowRange>,
     header_cols: Option<ColRange>,
     print_ranges: Option<Vec<CellRange>>,
+
+    table_shapes: Option<XmlTag>,
 }
 
 impl fmt::Debug for Sheet {
@@ -337,6 +345,7 @@ impl Sheet {
             header_rows: None,
             header_cols: None,
             print_ranges: None,
+            table_shapes: None,
         }
     }
 
@@ -352,6 +361,7 @@ impl Sheet {
             header_rows: None,
             header_cols: None,
             print_ranges: None,
+            table_shapes: None,
         }
     }
 

@@ -21,7 +21,7 @@ pub trait AttrMap {
     fn attr_map_mut(&mut self) -> &mut AttrMapType;
 
     /// Are there any attributes?
-    fn is_empty(&self) -> bool {
+    fn has_attr(&self) -> bool {
         self.attr_map().is_none()
     }
 
@@ -857,7 +857,7 @@ impl Display for TextPosition {
 /// Line style for underline, overline, line-through.
 #[derive(Debug, Clone, Copy)]
 pub enum LineStyle {
-    Dashed,
+    Dash,
     DotDash,
     DotDotDash,
     Dotted,
@@ -870,7 +870,7 @@ pub enum LineStyle {
 impl Display for LineStyle {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            LineStyle::Dashed => write!(f, "dashed"),
+            LineStyle::Dash => write!(f, "dash"),
             LineStyle::DotDash => write!(f, "dot-dash"),
             LineStyle::DotDotDash => write!(f, "dot-dot-dash"),
             LineStyle::Dotted => write!(f, "dotted"),
@@ -1082,7 +1082,7 @@ pub trait AttrText
     }
 }
 
-fn color_string(color: Rgb<u8>) -> String {
+pub(crate) fn color_string(color: Rgb<u8>) -> String {
     format!("#{:02x}{:02x}{:02x}", color.r, color.g, color.b)
 }
 

@@ -9,6 +9,9 @@ use crate::CellRef;
 use crate::text::TextVec;
 
 pub use crate::attrmap::*;
+use std::fmt::{Display, Formatter};
+use crate::style::color_string;
+use color::Rgb;
 
 /// Origin of a style. Content.xml or Styles.xml.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -45,6 +48,8 @@ pub enum StyleFor {
     TableRow,
     TableColumn,
     TableCell,
+    Graphic,
+    Paragraph,
     None,
 }
 
@@ -88,7 +93,7 @@ impl Default for StyleFor {
 #[derive(Clone, Debug, Default)]
 pub struct PageLayout {
     name: String,
-    masterpage_name: String,
+    master_page_name: String,
 
     attr: AttrMapType,
 
@@ -131,7 +136,7 @@ impl PageLayout {
     pub fn default() -> Self {
         Self {
             name: "Mpm1".to_string(),
-            masterpage_name: "Default".to_string(),
+            master_page_name: "Default".to_string(),
             attr: None,
             header: Default::default(),
             header_left: Default::default(),
@@ -146,7 +151,7 @@ impl PageLayout {
     pub fn report() -> Self {
         Self {
             name: "Mpm2".to_string(),
-            masterpage_name: "Report".to_string(),
+            master_page_name: "Report".to_string(),
             attr: None,
             header: Default::default(),
             header_left: Default::default(),
@@ -168,13 +173,13 @@ impl PageLayout {
     }
 
     /// In the xml pagelayout is split in two pieces. Each has a name.
-    pub fn set_masterpage_name(&mut self, name: String) {
-        self.masterpage_name = name;
+    pub fn set_master_page_name(&mut self, name: String) {
+        self.master_page_name = name;
     }
 
     /// In the xml pagelayout is split in two pieces. Each has a name.
-    pub fn masterpage_name(&self) -> &String {
-        &self.masterpage_name
+    pub fn master_page_name(&self) -> &String {
+        &self.master_page_name
     }
 
     /// Iterator over the attributes of this pagelayout.
@@ -491,6 +496,8 @@ pub struct Style {
     parent: Option<String>,
     /// References the actual formatting instructions in the value-styles.
     value_format: Option<String>,
+    /// References a page format. Only valid for table styles.
+    master_page_name: Option<String>,
     /// Table styling
     table_attr: TableAttr,
     /// Column styling
@@ -499,10 +506,12 @@ pub struct Style {
     table_row_attr: TableRowAttr,
     /// Cell styles
     table_cell_attr: TableCellAttr,
-    /// Cell paragraph styles
+    /// Text paragraph styles
     paragraph_attr: ParagraphAttr,
-    /// Cell text styles
+    /// Text styles
     text_attr: TextAttr,
+    /// Graphic styles
+    graphic_attr: GraphicAttr,
     /// Style maps
     stylemaps: Option<Vec<StyleMap>>,
 }
@@ -523,12 +532,14 @@ impl Style {
             family: Default::default(),
             parent: None,
             value_format: None,
+            master_page_name: None,
             table_attr: Default::default(),
             table_col_attr: Default::default(),
             table_row_attr: Default::default(),
             table_cell_attr: Default::default(),
             paragraph_attr: Default::default(),
             text_attr: Default::default(),
+            graphic_attr: Default::default(),
             stylemaps: None,
         }
     }
@@ -568,12 +579,14 @@ impl Style {
             family,
             parent: Some(String::from("Default")),
             value_format: Some(value_style.into()),
+            master_page_name: None,
             table_attr: Default::default(),
             table_col_attr: Default::default(),
             table_row_attr: Default::default(),
             table_cell_attr: Default::default(),
             paragraph_attr: Default::default(),
             text_attr: Default::default(),
+            graphic_attr: Default::default(),
             stylemaps: None,
         }
     }
@@ -648,6 +661,16 @@ impl Style {
         self.value_format.as_ref()
     }
 
+    /// Sets the value format.
+    pub fn set_master_page_name<S: Into<String>>(&mut self, value_format: S) {
+        self.master_page_name = Some(value_format.into());
+    }
+
+    /// Returns the value format.
+    pub fn master_page_name(&self) -> Option<&String> {
+        self.master_page_name.as_ref()
+    }
+
     /// Table style attributes.
     pub fn table(&self) -> &TableAttr {
         &self.table_attr
@@ -696,6 +719,16 @@ impl Style {
     /// Paragraph style attributes.
     pub fn paragraph_mut(&mut self) -> &mut ParagraphAttr {
         &mut self.paragraph_attr
+    }
+
+    /// Graphic style attributes.
+    pub fn graphic(&self) -> &GraphicAttr {
+        &self.graphic_attr
+    }
+
+    /// Graphic style attributes.
+    pub fn graphic_mut(&mut self) -> &mut GraphicAttr {
+        &mut self.graphic_attr
     }
 
     /// Text style attributes.
@@ -911,10 +944,150 @@ impl AttrStyleWritingMode for TableCellAttr {}
 
 impl AttrTableCell for TableCellAttr {}
 
+#[derive(Clone, Copy, Debug)]
+pub enum TabStopType {
+    Center,
+    Left,
+    Right,
+    Char,
+}
+
+impl Display for TabStopType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            TabStopType::Center => write!(f, "center"),
+            TabStopType::Left => write!(f, "left"),
+            TabStopType::Right => write!(f, "right"),
+            TabStopType::Char => write!(f, "char"),
+        }
+    }
+}
+
+impl Default for TabStopType {
+    fn default() -> Self {
+        Self::Left
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct TabStop {
+    attr: AttrMapType,
+}
+
+impl TabStop {
+    pub fn new() -> Self {
+        Self {
+            attr: Default::default(),
+        }
+    }
+    pub fn set_tabstop_char(&mut self, c: char) {
+        self.set_attr("style:char", c.to_string());
+    }
+
+    pub fn tabstop_char(&self) -> Option<&String> {
+        self.attr("style:char")
+    }
+
+    pub fn set_leader_color(&mut self, color: Rgb<u8>) {
+        self.set_attr("style:leader-color", color_string(color));
+    }
+
+    pub fn leader_color(&self) -> Option<&String> {
+        self.attr("style:leader-color")
+    }
+
+    pub fn set_leader_style(&mut self, style: LineStyle) {
+        self.set_attr("style:leader-style", style.to_string());
+    }
+
+    pub fn leader_style(&self) -> Option<&String> {
+        self.attr("style:leader-style")
+    }
+
+    pub fn set_leader_text(&mut self, text: char) {
+        self.set_attr("style:leader-text", text.to_string());
+    }
+
+    pub fn leader_text(&self) -> Option<&String> {
+        self.attr("style:leader-text")
+    }
+
+    pub fn set_leader_text_style(&mut self, styleref: String) {
+        self.set_attr("style:leader-text-style", styleref);
+    }
+
+    pub fn leader_text_style(&self) -> Option<&String> {
+        self.attr("style:leader-text-style")
+    }
+
+    pub fn set_leader_type(&mut self, t: LineType) {
+        self.set_attr("style:leader-type", t.to_string());
+    }
+
+    pub fn leader_type(&self) -> Option<&String> {
+        self.attr("style:leader-type")
+    }
+
+
+    pub fn set_leader_width(&mut self, w: LineWidth) {
+        self.set_attr("style:leader-width", w.to_string());
+    }
+
+    pub fn leader_width(&self) -> Option<&String> {
+        self.attr("style:leader-width")
+    }
+
+    pub fn set_position(&mut self, pos: Length) {
+        self.set_attr("style:position", pos.to_string());
+    }
+
+    pub fn position(&self) -> Option<&String> {
+        self.attr("style:position")
+    }
+
+    pub fn set_tabstop_type(&mut self, t: TabStopType) {
+        self.set_attr("style:type", t.to_string());
+    }
+
+    pub fn tabstop_type(&self) -> Option<&String> {
+        self.attr("style:type")
+    }
+}
+
+impl AttrMap for TabStop {
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
+    }
+
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
+        &mut self.attr
+    }
+}
+
+impl<'a> IntoIterator for &'a TabStop {
+    type Item = (&'a DefaultAtom, &'a String);
+    type IntoIter = AttrMapIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        AttrMapIter::from(self.attr_map())
+    }
+}
+
 /// Paragraph style.
 #[derive(Clone, Debug, Default)]
 pub struct ParagraphAttr {
     attr: AttrMapType,
+    tabstops: Vec<TabStop>,
+}
+
+impl ParagraphAttr {
+    pub fn add_tabstop(&mut self, ts: TabStop) {
+        self.tabstops.push(ts);
+    }
+
+    pub fn tabstops(&self) -> &Vec<TabStop> {
+        &self.tabstops
+    }
 }
 
 impl AttrMap for ParagraphAttr {
@@ -984,3 +1157,27 @@ impl<'a> IntoIterator for &'a TextAttr {
 impl AttrFoBackgroundColor for TextAttr {}
 
 impl AttrText for TextAttr {}
+
+#[derive(Clone, Debug, Default)]
+pub struct GraphicAttr {
+    attr: AttrMapType,
+}
+
+impl AttrMap for GraphicAttr {
+    fn attr_map(&self) -> &AttrMapType {
+        &self.attr
+    }
+
+    fn attr_map_mut(&mut self) -> &mut AttrMapType {
+        &mut self.attr
+    }
+}
+
+impl<'a> IntoIterator for &'a GraphicAttr {
+    type Item = (&'a DefaultAtom, &'a String);
+    type IntoIter = AttrMapIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        AttrMapIter::from(self.attr_map())
+    }
+}

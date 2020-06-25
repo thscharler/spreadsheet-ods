@@ -16,6 +16,7 @@ use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{CellRange, cellranges_string};
 use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style, StyleFor, StyleOrigin, StyleUse};
 use crate::text::{TextElem, TextVec};
+use crate::xmltree::{XmlTag, XmlContent};
 
 // this did not work out as expected ...
 // TODO: find out why this breaks content.xml
@@ -86,7 +87,9 @@ pub fn write_ods_flags<P: AsRef<Path>>(book: &WorkBook,
     Ok(())
 }
 
-fn copy_workbook(ods_orig_name: &PathBuf, file_set: &mut HashSet<String>, zip_writer: &mut OdsWriter) -> Result<(), OdsError> {
+fn copy_workbook(ods_orig_name: &PathBuf,
+                 file_set: &mut HashSet<String>,
+                 zip_writer: &mut OdsWriter) -> Result<(), OdsError> {
     let ods_orig = File::open(ods_orig_name)?;
     let mut zip_orig = zip::ZipArchive::new(ods_orig)?;
 
@@ -116,7 +119,8 @@ fn copy_workbook(ods_orig_name: &PathBuf, file_set: &mut HashSet<String>, zip_wr
     Ok(())
 }
 
-fn write_mimetype(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), io::Error> {
+fn write_mimetype(zip_out: &mut OdsWriter,
+                  file_set: &mut HashSet<String>) -> Result<(), io::Error> {
     if !file_set.contains("mimetype") {
         file_set.insert(String::from("mimetype"));
 
@@ -129,7 +133,8 @@ fn write_mimetype(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Re
     Ok(())
 }
 
-fn write_manifest(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+fn write_manifest(zip_out: &mut OdsWriter,
+                  file_set: &mut HashSet<String>) -> Result<(), OdsError> {
     if !file_set.contains("META-INF/manifest.xml") {
         file_set.insert(String::from("META-INF/manifest.xml"));
 
@@ -183,7 +188,8 @@ fn write_manifest(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Re
     Ok(())
 }
 
-fn write_manifest_rdf(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+fn write_manifest_rdf(zip_out: &mut OdsWriter,
+                      file_set: &mut HashSet<String>) -> Result<(), OdsError> {
     if !file_set.contains("manifest.rdf") {
         file_set.insert(String::from("manifest.rdf"));
 
@@ -229,7 +235,8 @@ fn write_manifest_rdf(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -
     Ok(())
 }
 
-fn write_meta(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+fn write_meta(zip_out: &mut OdsWriter,
+              file_set: &mut HashSet<String>) -> Result<(), OdsError> {
     if !file_set.contains("meta.xml") {
         file_set.insert(String::from("meta.xml"));
 
@@ -447,6 +454,11 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
         write_sheet(&book, &sheet, &mut xml_out)?;
     }
 
+    // extra tags. pass through only
+    for tag in &book.extra {
+        write_xmltag(tag, &mut xml_out)?;
+    }
+
     xml_out.end_elem("office:spreadsheet")?;
     xml_out.end_elem("office:body")?;
     xml_out.end_elem("office:document-content")?;
@@ -481,6 +493,8 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     }
 
     let max_cell = sheet.used_grid_size();
+
+    write_table_shapes(&sheet, xml_out)?;
 
     write_table_columns(&sheet, max_cell, xml_out)?;
 
@@ -741,6 +755,43 @@ fn write_empty_row(empty_count: u32,
     Ok(())
 }
 
+fn write_table_shapes(sheet: &Sheet,
+                      xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    if let Some(x) = &sheet.table_shapes {
+        write_xmltag(&x, xml_out)?;
+    }
+    Ok(())
+}
+
+fn write_xmltag(x: &XmlTag,
+                xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    if x.is_empty() {
+        xml_out.empty(x.name())?;
+    } else {
+        xml_out.elem(x.name())?;
+    }
+    for (k, v) in x.attr_iter() {
+        xml_out.attr_esc(k.as_ref(), v.as_str())?;
+    }
+
+    for c in x.content() {
+        match c {
+            XmlContent::Text(t) => {
+                xml_out.text_esc(t)?;
+            }
+            XmlContent::Tag(t) => {
+                write_xmltag(t, xml_out)?;
+            }
+        }
+    }
+
+    if !x.is_empty() {
+        xml_out.end_elem(x.name())?;
+    }
+
+    Ok(())
+}
+
 fn write_table_columns(sheet: &Sheet,
                        max_cell: (ucell, ucell),
                        xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
@@ -960,6 +1011,8 @@ fn write_styles(styles: &HashMap<String, Style>,
             StyleFor::TableColumn => "table-column",
             StyleFor::TableRow => "table-row",
             StyleFor::TableCell => "table-cell",
+            StyleFor::Paragraph => "paragraph",
+            StyleFor::Graphic => "graphic",
             StyleFor::None => "",
         };
         xml_out.attr("style:family", family)?;
@@ -973,39 +1026,61 @@ fn write_styles(styles: &HashMap<String, Style>,
             xml_out.attr_esc("style:data-style-name", value_format.as_str())?;
         }
 
-        if !style.cell().is_empty() {
+        if !style.cell().has_attr() {
             xml_out.empty("style:table-cell-properties")?;
             for (a, v) in style.cell() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !style.col().is_empty() {
+        if !style.col().has_attr() {
             xml_out.empty("style:table-column-properties")?;
             for (a, v) in style.col() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !style.row().is_empty() {
+        if !style.row().has_attr() {
             xml_out.empty("style:table-row-properties")?;
             for (a, v) in style.row() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !style.table().is_empty() {
+        if !style.table().has_attr() {
             xml_out.empty("style:table-properties")?;
             for (a, v) in style.table() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !&style.paragraph().is_empty() {
-            xml_out.empty("style:paragraph-properties")?;
-            for (a, v) in style.paragraph() {
+        if !&style.paragraph().has_attr() {
+            if style.paragraph().tabstops().is_empty() {
+                xml_out.empty("style:paragraph-properties")?;
+                for (a, v) in style.paragraph() {
+                    xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                }
+            } else {
+                xml_out.elem("style:paragraph-properties")?;
+                for (a, v) in style.paragraph() {
+                    xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                }
+                xml_out.elem("style:tab-stops")?;
+                for ts in style.paragraph().tabstops() {
+                    xml_out.empty("style:tab-stop")?;
+                    for (a, v) in ts {
+                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                    }
+                }
+                xml_out.end_elem("style:tab-stops")?;
+                xml_out.end_elem("style:paragraph-properties")?;
+            }
+        }
+        if !style.text().has_attr() {
+            xml_out.empty("style:text-properties")?;
+            for (a, v) in style.text() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !style.text().is_empty() {
-            xml_out.empty("style:text-properties")?;
-            for (a, v) in style.text() {
+        if !style.graphic().has_attr() {
+            xml_out.empty("style:graphic-properties")?;
+            for (a, v) in style.graphic() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
@@ -1054,7 +1129,7 @@ fn write_value_styles(value_formats: &HashMap<String, ValueFormat>,
             }
         }
 
-        if !value_format.text().is_empty() {
+        if !value_format.text().has_attr() {
             xml_out.empty("style:text-properties")?;
             for (a, v) in value_format.text() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
@@ -1135,7 +1210,7 @@ fn write_pagelayout(styles: &HashMap<String, PageLayout>,
 
         xml_out.elem("style:header-style")?;
         xml_out.empty("style:header-footer-properties")?;
-        if !style.header_attr().is_empty() {
+        if !style.header_attr().has_attr() {
             for (k, v) in style.header_attr() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
@@ -1144,7 +1219,7 @@ fn write_pagelayout(styles: &HashMap<String, PageLayout>,
 
         xml_out.elem("style:footer-style")?;
         xml_out.empty("style:header-footer-properties")?;
-        if !style.header_attr().is_empty() {
+        if !style.header_attr().has_attr() {
             for (k, v) in style.footer_attr() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
@@ -1161,7 +1236,7 @@ fn write_masterpage<'a>(styles: &'a HashMap<String, PageLayout>,
                         xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:master-page")?;
-        xml_out.attr("style:name", &style.masterpage_name())?;
+        xml_out.attr("style:name", &style.master_page_name())?;
         xml_out.attr("style:page-layout-name", &style.name())?;
 
         xml_out.elem("style:header")?;
