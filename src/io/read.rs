@@ -83,39 +83,41 @@ fn read_content(book: &mut WorkBook,
 
             Event::Empty(xml_tag) |
             Event::Start(xml_tag)
-            if xml_tag.name() == b"table:named-expressions" ||
-                xml_tag.name() == b"table:calculation-settings" ||
-                xml_tag.name() == b"table:consolidation" ||
-                xml_tag.name() == b"table:content-validations" ||
-                xml_tag.name() == b"table:database-ranges" ||
-                xml_tag.name() == b"table:data-pilot-tables" ||
-                xml_tag.name() == b"table:dde-links" ||
-                xml_tag.name() == b"table:label-ranges" ||
-                xml_tag.name() == b"table:tracked-changes" ||
-                // xml_tag.name() == b"text:alphabetical-index-auto-mark-file" ||
-                xml_tag.name() == b"text:dde-connection-decls" ||
+            if /* prelude */ xml_tag.name() == b"table:tracked-changes" ||
+                xml_tag.name() == b"text:variable-decls" ||
                 xml_tag.name() == b"text:sequence-decls" ||
                 xml_tag.name() == b"text:user-field-decls" ||
-                xml_tag.name() == b"text:variable-decls" => {
+                xml_tag.name() == b"text:dde-connection-decls" ||
+                // xml_tag.name() == b"text:alphabetical-index-auto-mark-file" ||
+                xml_tag.name() == b"table:calculation-settings" ||
+                xml_tag.name() == b"table:content-validations" ||
+                xml_tag.name() == b"table:label-ranges" ||
+                /* epilogue */
+                xml_tag.name() == b"table:named-expressions" ||
+                xml_tag.name() == b"table:database-ranges" ||
+                xml_tag.name() == b"table:data-pilot-tables" ||
+                xml_tag.name() == b"table:consolidation" ||
+                xml_tag.name() == b"table:dde-links" => {
                 let v = read_xml(empty_tag, &xml_tag, xml_tag.name(), &mut xml)?;
                 book.extra.push(v);
             }
 
             Event::End(xml_tag)
-            if xml_tag.name() == b"table:named-expressions" ||
-                xml_tag.name() == b"table:calculation-settings" ||
-                xml_tag.name() == b"table:consolidation" ||
-                xml_tag.name() == b"table:content-validations" ||
-                xml_tag.name() == b"table:database-ranges" ||
-                xml_tag.name() == b"table:data-pilot-tables" ||
-                xml_tag.name() == b"table:dde-links" ||
-                xml_tag.name() == b"table:label-ranges" ||
-                xml_tag.name() == b"table:tracked-changes" ||
-                //xml_tag.name()[0..32] == b"text:alphabetical-index-auto-mark-file"[0..32] ||
-                xml_tag.name() == b"text:dde-connection-decls" ||
+            if /* prelude */ xml_tag.name() == b"table:tracked-changes" ||
+                xml_tag.name() == b"text:variable-decls" ||
                 xml_tag.name() == b"text:sequence-decls" ||
                 xml_tag.name() == b"text:user-field-decls" ||
-                xml_tag.name() == b"text:variable-decls" => {
+                xml_tag.name() == b"text:dde-connection-decls" ||
+                // xml_tag.name() == b"text:alphabetical-index-auto-mark-file" ||
+                xml_tag.name() == b"table:calculation-settings" ||
+                xml_tag.name() == b"table:content-validations" ||
+                xml_tag.name() == b"table:label-ranges" ||
+                /* epilogue */
+                xml_tag.name() == b"table:named-expressions" ||
+                xml_tag.name() == b"table:database-ranges" ||
+                xml_tag.name() == b"table:data-pilot-tables" ||
+                xml_tag.name() == b"table:consolidation" ||
+                xml_tag.name() == b"table:dde-links" => {
                 // noop
             }
 
@@ -167,12 +169,28 @@ fn read_table(xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
             }
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"table:shapes" => {
-                sheet.table_shapes = Some(read_xml(empty_tag, &xml_tag, b"table:shapes", xml)?);
+            if /* prelude */ xml_tag.name() == b"table:title" ||
+                xml_tag.name() == b"table:desc" ||
+                xml_tag.name() == b"table:table-source" ||
+                xml_tag.name() == b"office:dde-source" ||
+                xml_tag.name() == b"table:scenario" ||
+                xml_tag.name() == b"office:forms" ||
+                xml_tag.name() == b"table:shapes" ||
+                /* epilogue */
+                xml_tag.name() == b"table:named-expressions" => {
+                sheet.extra.push(read_xml(empty_tag, &xml_tag, b"table:shapes", xml)?);
             }
 
             Event::End(xml_tag)
-            if xml_tag.name() == b"table:shapes" => {}
+            if /* prelude */ xml_tag.name() == b"table:title" ||
+                xml_tag.name() == b"table:desc" ||
+                xml_tag.name() == b"table:table-source" ||
+                xml_tag.name() == b"office:dde-source" ||
+                xml_tag.name() == b"table:scenario" ||
+                xml_tag.name() == b"office:forms" ||
+                xml_tag.name() == b"table:shapes" ||
+                /* epilogue */
+                xml_tag.name() == b"table:named-expressions" => {}
 
             Event::Start(xml_tag)
             if xml_tag.name() == b"table:table-header-columns" => {

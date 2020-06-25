@@ -5,9 +5,8 @@ use crate::style::Style;
 /// styles for the respective types. By calling this function for a new workbook,
 /// the basic formatting is done.
 ///
-/// Beware
-/// There is no i18n yet, so currency is set to euro for now.
-/// And dates are european DMY style.
+/// This function is best seen as an example, as there is currently now
+/// I18N support. So I set this up as it suited me.
 ///
 pub fn create_default_styles(book: &mut WorkBook) {
     book.add_format(format::create_boolean_format("bool1"));

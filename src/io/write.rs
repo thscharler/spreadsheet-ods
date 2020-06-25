@@ -449,13 +449,34 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
     xml_out.elem("office:body")?;
     xml_out.elem("office:spreadsheet")?;
 
+    // extra tags. pass through only
+    for tag in &book.extra {
+        if tag.name() == "table:tracked-changes" ||
+            tag.name() == "text:variable-decls" ||
+            tag.name() == "text:sequence-decls" ||
+            tag.name() == "text:user-field-decls" ||
+            tag.name() == "text:dde-connection-decls" ||
+            // tag.name() == "text:alphabetical-index-auto-mark-file" ||
+            tag.name() == "table:calculation-settings" ||
+            tag.name() == "table:content-validations" ||
+            tag.name() == "table:label-ranges" {
+            write_xmltag(tag, &mut xml_out)?;
+        }
+    }
+
     for sheet in &book.sheets {
         write_sheet(&book, &sheet, &mut xml_out)?;
     }
 
     // extra tags. pass through only
     for tag in &book.extra {
-        write_xmltag(tag, &mut xml_out)?;
+        if tag.name() == "table:named-expressions" ||
+            tag.name() == "table:database-ranges" ||
+            tag.name() == "table:data-pilot-tables" ||
+            tag.name() == "table:consolidation" ||
+            tag.name() == "table:dde-links" {
+            write_xmltag(tag, &mut xml_out)?;
+        }
     }
 
     xml_out.end_elem("office:spreadsheet")?;
@@ -493,7 +514,17 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
 
     let max_cell = sheet.used_grid_size();
 
-    write_table_shapes(&sheet, xml_out)?;
+    for tag in &sheet.extra {
+        if tag.name() == "table:title" ||
+            tag.name() == "table:desc" ||
+            tag.name() == "table:table-source" ||
+            tag.name() == "office:dde-source" ||
+            tag.name() == "table:scenario" ||
+            tag.name() == "office:forms" ||
+            tag.name() == "table:shapes" {
+            write_xmltag(tag, xml_out)?;
+        }
+    }
 
     write_table_columns(&sheet, max_cell, xml_out)?;
 
@@ -593,6 +624,12 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     }
 
     xml_out.end_elem("table:table")?;
+
+    for tag in &sheet.extra {
+        if tag.name() == "table:named-expressions" {
+            write_xmltag(tag, xml_out)?;
+        }
+    }
 
     Ok(())
 }
@@ -751,14 +788,6 @@ fn write_empty_row(empty_count: u32,
 
     xml_out.end_elem("table:table-row")?;
 
-    Ok(())
-}
-
-fn write_table_shapes(sheet: &Sheet,
-                      xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    if let Some(x) = &sheet.table_shapes {
-        write_xmltag(&x, xml_out)?;
-    }
     Ok(())
 }
 

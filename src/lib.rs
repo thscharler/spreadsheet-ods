@@ -129,6 +129,9 @@ impl fmt::Debug for WorkBook {
         for s in self.page_layouts.values() {
             writeln!(f, "{:?}", s)?;
         }
+        for xtr in &self.extra {
+            writeln!(f, "extras {:?}", xtr)?;
+        }
         writeln!(f, "{:?}", self.file)?;
         Ok(())
     }
@@ -304,7 +307,7 @@ pub struct Sheet {
     header_cols: Option<ColRange>,
     print_ranges: Option<Vec<CellRange>>,
 
-    table_shapes: Option<XmlTag>,
+    extra: Vec<XmlTag>,
 }
 
 impl fmt::Debug for Sheet {
@@ -328,6 +331,9 @@ impl fmt::Debug for Sheet {
         if let Some(header_cols) = &self.header_cols {
             writeln!(f, "header cols {:?}", header_cols)?;
         }
+        for xtr in &self.extra {
+            writeln!(f, "extras {:?}", xtr)?;
+        }
         Ok(())
     }
 }
@@ -345,7 +351,7 @@ impl Sheet {
             header_rows: None,
             header_cols: None,
             print_ranges: None,
-            table_shapes: None,
+            extra: vec![]
         }
     }
 
@@ -361,7 +367,7 @@ impl Sheet {
             header_rows: None,
             header_cols: None,
             print_ranges: None,
-            table_shapes: None,
+            extra: vec![]
         }
     }
 
