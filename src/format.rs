@@ -363,7 +363,7 @@ impl ValueFormat {
 }
 
 /// Identifies the structural parts of a value format.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum FormatPartType {
     Boolean,
     Number,
@@ -408,7 +408,7 @@ impl AttrMap for FormatPart {
 }
 
 /// Flag for several PartTypes.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum FormatNumberStyle {
     Short,
     Long,
@@ -424,7 +424,7 @@ impl Display for FormatNumberStyle {
 }
 
 /// Calendar types.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum FormatCalendar {
     Gregorian,
     Gengou,
