@@ -135,7 +135,7 @@ use rust_decimal::prelude::*;
 use time::Duration;
 
 pub use error::OdsError;
-pub use io::{read_ods, write_ods, write_ods_flags};
+pub use io::{read_ods, write_ods};
 pub use format::ValueFormat;
 pub use style::{Style, Length, Angle};
 pub use refs::{CellRange, CellRef, ColRange, RowRange};
@@ -241,13 +241,19 @@ impl WorkBook {
     }
 
     /// Returns a certain sheet.
-    /// panics if n does not exist.
+    ///
+    /// Panics
+    ///
+    /// Panics if n does not exist.
     pub fn sheet(&self, n: usize) -> &Sheet {
         &self.sheets[n]
     }
 
     /// Returns a certain sheet.
-    /// panics if n does not exist.
+    ///
+    /// Panic
+    ///
+    /// Panics if n does not exist.
     pub fn sheet_mut(&mut self, n: usize) -> &mut Sheet {
         &mut self.sheets[n]
     }

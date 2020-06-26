@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::fs::{File, rename};
+use std::fs::{File};
 use std::io;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -17,53 +17,19 @@ use crate::refs::{CellRange, cellranges_string};
 use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style, StyleFor, StyleOrigin, StyleUse};
 use crate::xmltree::{XmlTag, XmlContent};
 
-// this did not work out as expected ...
-// TODO: find out why this breaks content.xml
-// type OdsWriter = zip::ZipWriter<BufWriter<File>>;
-// type XmlOdsWriter<'a> = quick_xml::Writer<&'a mut zip::ZipWriter<BufWriter<File>>>;
-
 type OdsWriter = TempZip;
 type XmlOdsWriter<'a> = XmlWriter<TempWrite<'a>>;
 
 /// Writes the ODS file.
+///
+/// All the parts are written to a temp directory and then zipped together.
+///
 pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
-    write_ods_flags(book, ods_path, false, true, true)?;
-    Ok(())
-}
-
-/// Writes the ODS file. The parameter clean indicates the cleanup of the
-/// temp files at the end.
-pub fn write_ods_flags<P: AsRef<Path>>(book: &WorkBook,
-                                       ods_path: P,
-                                       bak: bool,
-                                       zip: bool,
-                                       clean: bool) -> Result<(), OdsError> {
-    if bak && ods_path.as_ref().exists() {
-        let mut ods_bak = ods_path.as_ref().to_path_buf();
-        ods_bak.set_extension("bak");
-        rename(&ods_path, &ods_bak)?;
-    }
-
-    // Origin File if any
-    let orig = if let Some(file) = &book.file {
-        if !file.exists() {
-            let mut ods_bak = ods_path.as_ref().to_path_buf();
-            ods_bak.set_extension("bak");
-            Some(ods_bak)
-        } else {
-            Some(file.clone())
-        }
-    } else {
-        None
-    };
-
-    // let zip_file = File::create(ods_path)?;
-    // let mut zip_writer = zip::ZipWriter::new(io::BufWriter::new(zip_file));
-    let mut zip_writer = TempZip::new(ods_path.as_ref());
+    let mut zip_writer = TempZip::new(ods_path.as_ref())?;
 
     let mut file_set = HashSet::<String>::new();
-    //
-    if let Some(orig) = orig {
+
+    if let Some(orig) = &book.file {
         copy_workbook(&orig, &mut file_set, &mut zip_writer)?;
     }
 
@@ -76,12 +42,7 @@ pub fn write_ods_flags<P: AsRef<Path>>(book: &WorkBook,
     write_ods_styles(&book, &mut zip_writer, &mut file_set)?;
     write_ods_content(&book, &mut zip_writer, &mut file_set)?;
 
-    if zip {
-        zip_writer.zip()?;
-    }
-    if clean {
-        zip_writer.clean()?;
-    }
+    zip_writer.zip()?;
 
     Ok(())
 }
@@ -332,59 +293,57 @@ fn write_meta(zip_out: &mut OdsWriter,
 fn write_ods_styles(book: &WorkBook,
                     zip_out: &mut OdsWriter,
                     file_set: &mut HashSet<String>) -> Result<(), OdsError> {
-    if !file_set.contains("styles.xml") {
-        file_set.insert(String::from("styles.xml"));
+    file_set.insert(String::from("styles.xml"));
 
-        let w = zip_out.start_file("styles.xml", FileOptions::default())?;
+    let w = zip_out.start_file("styles.xml", FileOptions::default())?;
 
-        let mut xml_out = XmlWriter::new(w);
+    let mut xml_out = XmlWriter::new(w);
 
-        xml_out.dtd("UTF-8")?;
+    xml_out.dtd("UTF-8")?;
 
-        xml_out.elem("office:document-styles")?;
-        xml_out.attr("xmlns:meta", "urn:oasis:names:tc:opendocument:xmlns:meta:1.0")?;
-        xml_out.attr("xmlns:office", "urn:oasis:names:tc:opendocument:xmlns:office:1.0")?;
-        xml_out.attr("xmlns:fo", "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0")?;
-        xml_out.attr("xmlns:style", "urn:oasis:names:tc:opendocument:xmlns:style:1.0")?;
-        xml_out.attr("xmlns:text", "urn:oasis:names:tc:opendocument:xmlns:text:1.0")?;
-        xml_out.attr("xmlns:dr3d", "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0")?;
-        xml_out.attr("xmlns:svg", "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0")?;
-        xml_out.attr("xmlns:chart", "urn:oasis:names:tc:opendocument:xmlns:chart:1.0")?;
-        xml_out.attr("xmlns:table", "urn:oasis:names:tc:opendocument:xmlns:table:1.0")?;
-        xml_out.attr("xmlns:number", "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0")?;
-        xml_out.attr("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
-        xml_out.attr("xmlns:calcext", "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0")?;
-        xml_out.attr("xmlns:loext", "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0")?;
-        xml_out.attr("xmlns:field", "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0")?;
-        xml_out.attr("xmlns:form", "urn:oasis:names:tc:opendocument:xmlns:form:1.0")?;
-        xml_out.attr("xmlns:script", "urn:oasis:names:tc:opendocument:xmlns:script:1.0")?;
-        xml_out.attr("xmlns:presentation", "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0")?;
-        xml_out.attr("office:version", "1.2")?;
+    xml_out.elem("office:document-styles")?;
+    xml_out.attr("xmlns:meta", "urn:oasis:names:tc:opendocument:xmlns:meta:1.0")?;
+    xml_out.attr("xmlns:office", "urn:oasis:names:tc:opendocument:xmlns:office:1.0")?;
+    xml_out.attr("xmlns:fo", "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0")?;
+    xml_out.attr("xmlns:style", "urn:oasis:names:tc:opendocument:xmlns:style:1.0")?;
+    xml_out.attr("xmlns:text", "urn:oasis:names:tc:opendocument:xmlns:text:1.0")?;
+    xml_out.attr("xmlns:dr3d", "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0")?;
+    xml_out.attr("xmlns:svg", "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0")?;
+    xml_out.attr("xmlns:chart", "urn:oasis:names:tc:opendocument:xmlns:chart:1.0")?;
+    xml_out.attr("xmlns:table", "urn:oasis:names:tc:opendocument:xmlns:table:1.0")?;
+    xml_out.attr("xmlns:number", "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0")?;
+    xml_out.attr("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
+    xml_out.attr("xmlns:calcext", "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0")?;
+    xml_out.attr("xmlns:loext", "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0")?;
+    xml_out.attr("xmlns:field", "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0")?;
+    xml_out.attr("xmlns:form", "urn:oasis:names:tc:opendocument:xmlns:form:1.0")?;
+    xml_out.attr("xmlns:script", "urn:oasis:names:tc:opendocument:xmlns:script:1.0")?;
+    xml_out.attr("xmlns:presentation", "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0")?;
+    xml_out.attr("office:version", "1.2")?;
 
-        xml_out.elem("office:font-face-decls")?;
-        write_font_decl(&book.fonts, StyleOrigin::Styles, &mut xml_out)?;
-        xml_out.end_elem("office:font-face-decls")?;
+    xml_out.elem("office:font-face-decls")?;
+    write_font_decl(&book.fonts, StyleOrigin::Styles, &mut xml_out)?;
+    xml_out.end_elem("office:font-face-decls")?;
 
-        xml_out.elem("office:styles")?;
-        write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Default, &mut xml_out)?;
-        write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
-        write_value_styles(&book.formats, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
-        xml_out.end_elem("office:styles")?;
+    xml_out.elem("office:styles")?;
+    write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Default, &mut xml_out)?;
+    write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
+    write_value_styles(&book.formats, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
+    xml_out.end_elem("office:styles")?;
 
-        xml_out.elem("office:automatic-styles")?;
-        write_pagelayout(&book.page_layouts, &mut xml_out)?;
-        write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
-        write_value_styles(&book.formats, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
-        xml_out.end_elem("office:automatic-styles")?;
+    xml_out.elem("office:automatic-styles")?;
+    write_pagelayout(&book.page_layouts, &mut xml_out)?;
+    write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
+    write_value_styles(&book.formats, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
+    xml_out.end_elem("office:automatic-styles")?;
 
-        xml_out.elem("office:master-styles")?;
-        write_masterpage(&book.page_layouts, &mut xml_out)?;
-        xml_out.end_elem("office:master-styles")?;
+    xml_out.elem("office:master-styles")?;
+    write_masterpage(&book.page_layouts, &mut xml_out)?;
+    xml_out.end_elem("office:master-styles")?;
 
-        xml_out.end_elem("office:document-styles")?;
+    xml_out.end_elem("office:document-styles")?;
 
-        xml_out.close()?;
-    }
+    xml_out.close()?;
 
     Ok(())
 }

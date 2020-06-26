@@ -10,13 +10,14 @@ use std::collections::HashSet;
 /// zip_clean() cleans up afterwards.
 ///
 
-use std::fs::{create_dir_all, File, remove_dir_all};
+use std::fs::{create_dir_all, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
+use mktemp::Temp;
 
 pub struct TempZip {
     zipped: PathBuf,
-    temp_path: PathBuf,
+    temp_path: Temp,
     entries: Vec<TempZipEntry>,
 }
 
@@ -34,19 +35,12 @@ struct TempZipEntry {
 impl TempZip {
     /// Final ZIP is this file. The temporaries are written at the
     /// same location, in a new directory with the same basename.
-    pub fn new(zip_file: &Path) -> Self {
-        let mut path: PathBuf = zip_file.parent().unwrap().to_path_buf();
-        path.push(zip_file.file_stem().unwrap());
-
-        if path.exists() {
-            panic!("ZIP temp directory {:?} already exists!", path);
-        }
-
-        TempZip {
+    pub fn new(zip_file: &Path) -> Result<Self, std::io::Error> {
+        Ok(TempZip {
             zipped: zip_file.to_path_buf(),
-            temp_path: path,
+            temp_path: mktemp::Temp::new_dir_in(zip_file.parent().unwrap())?,
             entries: Vec::new(),
-        }
+        })
     }
 
     /// Adds this directory.
@@ -108,12 +102,6 @@ impl TempZip {
             names.insert(entry.name.clone());
         }
 
-        Ok(())
-    }
-
-    // Cleanup
-    pub fn clean(&mut self) -> Result<(), std::io::Error> {
-        remove_dir_all(&self.temp_path)?;
         Ok(())
     }
 }
