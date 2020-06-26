@@ -121,6 +121,8 @@
 //! for now.
 //!
 
+#![doc(html_root_url = "https://docs.rs/spreadsheet-ods/0.4.0")]
+
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::path::PathBuf;
