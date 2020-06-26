@@ -38,7 +38,9 @@ impl TryFrom<&str> for CellRef {
 
 impl Display for CellRef {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
-        write!(f, "{}", cellref_string(self))
+        let mut buf = String::new();
+        push_cellref(&mut buf, self);
+        write!(f, "{}", buf)
     }
 }
 
@@ -336,11 +338,12 @@ impl TryFrom<&str> for CellRange {
 
 impl Display for CellRange {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
-        write!(f, "{}", cellrange_string(self))
+        let mut buf = String::new();
+        push_cellrange(&mut buf, self);
+        write!(f, "{}", buf)
     }
 }
 
-/// CellRanges
 
 /// A range over columns.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -777,36 +780,6 @@ pub(crate) fn push_cellrange(buf: &mut String,
     push_rowname(buf, cellrange.to_row);
 }
 
-/// Returns the spreadsheet column name.
-#[allow(dead_code)]
-fn colname(col: ucell) -> String {
-    let mut col_str = String::new();
-    push_colname(&mut col_str, col);
-    col_str
-}
-
-/// Returns the spreadsheet row name
-#[allow(dead_code)]
-fn rowname(row: ucell) -> String {
-    let mut row_str = String::new();
-    push_rowname(&mut row_str, row);
-    row_str
-}
-
-/// Returns a cellref
-pub(crate) fn cellref_string(cellref: &CellRef) -> String {
-    let mut buf = String::new();
-    push_cellref(&mut buf, cellref);
-    buf
-}
-
-/// Returns a rangeref
-pub(crate) fn cellrange_string(cellrange: &CellRange) -> String {
-    let mut buf = String::new();
-    push_cellrange(&mut buf, cellrange);
-    buf
-}
-
 /// Returns a list of ranges as string.
 pub(crate) fn cellranges_string(v: &[CellRange]) -> String {
     let mut buf = String::new();
@@ -887,6 +860,17 @@ fn test_names() {
 
 #[test]
 fn test_parse() -> Result<(), OdsError> {
+    fn rowname(row: ucell) -> String {
+        let mut row_str = String::new();
+        push_rowname(&mut row_str, row);
+        row_str
+    }
+    fn colname(col: ucell) -> String {
+        let mut col_str = String::new();
+        push_colname(&mut col_str, col);
+        col_str
+    }
+
     for i in 0..704 {
         let mut pos = 0usize;
         let cn = colname(i);
