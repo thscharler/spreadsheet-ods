@@ -15,7 +15,7 @@ use crate::style::color_string;
 use color::Rgb;
 
 /// Origin of a style. Content.xml or Styles.xml.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StyleOrigin {
     Content,
     Styles,
@@ -29,7 +29,7 @@ impl Default for StyleOrigin {
 
 /// Placement of a style. office:styles or office:automatic-styles
 /// Defines the usage pattern for the style.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StyleUse {
     Default,
     Named,
@@ -43,7 +43,7 @@ impl Default for StyleUse {
 }
 
 /// Applicability of this style.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StyleFor {
     Table,
     TableRow,
@@ -528,8 +528,8 @@ impl FontFaceDecl {
 /// wb.add_style(st);
 ///
 /// let mut st = Style::cell_style("ce13", "num4");
-/// st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::table("sheet0", 4, 3)));
-/// st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::table("sheet0", 4, 3)));
+/// st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::remote("sheet0", 4, 3)));
+/// st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::remote("sheet0", 4, 3)));
 /// wb.add_style(st);
 /// ```
 /// Styles can be defined in content.xml or as global styles in styles.xml. This
