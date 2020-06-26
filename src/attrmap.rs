@@ -66,8 +66,8 @@ pub struct AttrMapIter<'a> {
     it: Option<hash_map::Iter<'a, DefaultAtom, String>>,
 }
 
-impl<'a> AttrMapIter<'a> {
-    pub fn from(attrmap: &'a AttrMapType) -> AttrMapIter<'a> {
+impl<'a> From<&'a AttrMapType> for AttrMapIter<'a> {
+    fn from(attrmap: &'a AttrMapType) -> Self {
         if let Some(attrmap) = attrmap {
             Self {
                 it: Some(attrmap.iter()),
@@ -93,7 +93,7 @@ impl<'a> Iterator for AttrMapIter<'a> {
 }
 
 /// Value type for angles.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Angle {
     Deg(f64),
     Grad(f64),
@@ -130,7 +130,7 @@ macro_rules! rad {
 }
 
 /// Value type for lengths.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Length {
     Cm(f64),
     Mm(f64),
@@ -190,7 +190,7 @@ macro_rules! em {
 }
 
 /// Font pitch.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum FontPitch {
     Variable,
     Fixed,
@@ -299,7 +299,7 @@ pub trait AttrFoMinHeight
 }
 
 /// Various border styles.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Border {
     None,
     Hidden,
@@ -385,7 +385,7 @@ pub trait AttrFoBorder
 }
 
 /// Page breaks.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum PageBreak {
     Auto,
     Column,
@@ -418,7 +418,7 @@ pub trait AttrFoBreak
 }
 
 /// Text keep together.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TextKeep {
     Auto,
     Always,
@@ -477,7 +477,7 @@ pub trait AttrStyleShadow
 }
 
 /// Writing modes.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum WritingMode {
     LrTb,
     RlTb,
@@ -548,7 +548,7 @@ pub trait AttrTableCol
 }
 
 /// Text wrapping.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum WrapOption {
     NoWrap,
     Wrap,
@@ -564,7 +564,7 @@ impl Display for WrapOption {
 }
 
 /// Rotation.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum RotationAlign {
     None,
     Bottom,
@@ -584,7 +584,7 @@ impl Display for RotationAlign {
 }
 
 /// Vertical alignment.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum CellAlignVertical {
     Top,
     Middle,
@@ -656,7 +656,7 @@ pub trait AttrTableCell
 }
 
 /// Fix uses the text-align attribute, value-type bases alignment on content.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TextAlignSource {
     Fix,
     ValueType,
@@ -672,6 +672,7 @@ impl Display for TextAlignSource {
 }
 
 /// Horizontal alignment.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TextAlign {
     Start,
     Center,
@@ -699,7 +700,7 @@ impl Display for TextAlign {
 }
 
 /// Vertical alignment.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ParaAlignVertical {
     Top,
     Middle,
@@ -749,7 +750,7 @@ pub trait AttrParagraph
 }
 
 /// Text style values.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TextStyle {
     Normal,
     Italic,
@@ -767,7 +768,7 @@ impl Display for TextStyle {
 }
 
 /// Text weight values.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TextWeight {
     Normal,
     Bold,
@@ -801,7 +802,7 @@ impl Display for TextWeight {
 }
 
 /// Text case transformations.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TextTransform {
     None,
     Lowercase,
@@ -821,7 +822,7 @@ impl Display for TextTransform {
 }
 
 /// Text style engraved and embossed.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TextRelief {
     None,
     Embossed,
@@ -839,7 +840,7 @@ impl Display for TextRelief {
 }
 
 /// Text style subscript or superscript.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TextPosition {
     Sub,
     Super,
@@ -855,7 +856,7 @@ impl Display for TextPosition {
 }
 
 /// Line style for underline, overline, line-through.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum LineStyle {
     Dash,
     DotDash,
@@ -883,7 +884,7 @@ impl Display for LineStyle {
 }
 
 /// Line types for underline, overline, line-through.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum LineType {
     None,
     Single,
@@ -901,7 +902,7 @@ impl Display for LineType {
 }
 
 /// Line modes for underline, overline, line-through.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum LineMode {
     Continuous,
     SkipWhiteSpace,
@@ -917,7 +918,7 @@ impl Display for LineMode {
 }
 
 /// Line width for underline, overline, line-through.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum LineWidth {
     Auto,
     Normal,
