@@ -607,7 +607,7 @@ fn parse_value(value_type: Option<ValueType>,
                     let f = cell_value.parse::<f64>()?;
                     Ok(Value::Number(f))
                 } else {
-                    Err(OdsError::Ods(format!("{} has type number, but no value!", CellRef::simple(row, col))))
+                    Err(OdsError::Ods(format!("{} has type number, but no value!", CellRef::local(row, col))))
                 }
             }
             ValueType::DateTime => {
@@ -621,7 +621,7 @@ fn parse_value(value_type: Option<ValueType>,
 
                     Ok(Value::DateTime(dt))
                 } else {
-                    Err(OdsError::Ods(format!("{} has type datetime, but no value!", CellRef::simple(row, col))))
+                    Err(OdsError::Ods(format!("{} has type datetime, but no value!", CellRef::local(row, col))))
                 }
             }
             ValueType::TimeDuration => {
@@ -668,14 +668,14 @@ fn parse_value(value_type: Option<ValueType>,
 
                     Ok(Value::TimeDuration(dur))
                 } else {
-                    Err(OdsError::Ods(format!("{} has type time-duration, but no value!", CellRef::simple(row, col))))
+                    Err(OdsError::Ods(format!("{} has type time-duration, but no value!", CellRef::local(row, col))))
                 }
             }
             ValueType::Boolean => {
                 if let Some(cell_value) = cell_value {
                     Ok(Value::Boolean(&cell_value == "true"))
                 } else {
-                    Err(OdsError::Ods(format!("{} has type boolean, but no value!", CellRef::simple(row, col))))
+                    Err(OdsError::Ods(format!("{} has type boolean, but no value!", CellRef::local(row, col))))
                 }
             }
             ValueType::Currency => {
@@ -684,10 +684,10 @@ fn parse_value(value_type: Option<ValueType>,
                     if let Some(cell_currency) = cell_currency {
                         Ok(Value::Currency(cell_currency, f))
                     } else {
-                        Err(OdsError::Ods(format!("{} has type currency, but no value!", CellRef::simple(row, col))))
+                        Err(OdsError::Ods(format!("{} has type currency, but no value!", CellRef::local(row, col))))
                     }
                 } else {
-                    Err(OdsError::Ods(format!("{} has type currency, but no value!", CellRef::simple(row, col))))
+                    Err(OdsError::Ods(format!("{} has type currency, but no value!", CellRef::local(row, col))))
                 }
             }
             ValueType::Percentage => {
@@ -695,7 +695,7 @@ fn parse_value(value_type: Option<ValueType>,
                     let f = cell_value.parse::<f64>()?;
                     Ok(Value::Percentage(f))
                 } else {
-                    Err(OdsError::Ods(format!("{} has type percentage, but no value!", CellRef::simple(row, col))))
+                    Err(OdsError::Ods(format!("{} has type percentage, but no value!", CellRef::local(row, col))))
                 }
             }
         }

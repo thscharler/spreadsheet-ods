@@ -22,8 +22,8 @@ fn teststyles() -> Result<(), OdsError> {
     wb.add_style(st);
 
     let mut st = Style::cell_style("ce13", "num4");
-    st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::table("s0", 4, 3)));
-    st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::table("s0", 4, 3)));
+    st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::remote("s0", 4, 3)));
+    st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::remote("s0", 4, 3)));
     wb.add_style(st);
 
     let mut sh = Sheet::with_name("s0");

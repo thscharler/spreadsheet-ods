@@ -491,7 +491,7 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
 /// Is the cell hidden, and if yes how many more columns are hit.
 fn check_hidden(ranges: &[CellRange], row: ucell, col: ucell) -> (bool, ucell) {
     if let Some(found) = ranges.iter().find(|s| s.contains(row, col)) {
-        (true, found.to.col - col)
+        (true, found.to_col() - col)
     } else {
         (false, 0)
     }
@@ -670,7 +670,7 @@ fn write_start_current_row(sheet: &Sheet,
 
     // Start of headers
     if let Some(header_rows) = &sheet.header_rows {
-        if header_rows.from == cur_row {
+        if header_rows.row == cur_row {
             xml_out.elem("table:table-header-rows")?;
         }
     }
@@ -699,7 +699,7 @@ fn write_end_last_row(sheet: &Sheet,
     // This row was the end of the header.
     if let Some(header_rows) = &sheet.header_rows {
         let last_row = cur_row - backward_dr;
-        if header_rows.to == last_row {
+        if header_rows.to_row == last_row {
             xml_out.end_elem("table:table-header-rows")?;
         }
     }
@@ -715,7 +715,7 @@ fn write_end_current_row(sheet: &Sheet,
 
     // This row was the end of the header.
     if let Some(header_rows) = &sheet.header_rows {
-        if header_rows.to == cur_row {
+        if header_rows.to_row == cur_row {
             xml_out.end_elem("table:table-header-rows")?;
         }
     }
@@ -745,27 +745,27 @@ fn write_empty_rows_before(sheet: &Sheet,
 
             // What was the last_row? Was there a header start since?
             let last_row = cur_row - backward_dr;
-            if header_rows.from < cur_row && header_rows.from > last_row {
-                write_empty_row(header_rows.from - last_row - corr, max_cell, xml_out)?;
+            if header_rows.row < cur_row && header_rows.row > last_row {
+                write_empty_row(header_rows.row - last_row - corr, max_cell, xml_out)?;
                 xml_out.elem("table:table-header-rows")?;
                 // Don't write the empty line for the first header-row, we can
                 // collapse it with the rest. corr suits fine for this.
                 corr = 0;
                 // We correct the empty line count.
-                backward_dr = cur_row - header_rows.from;
+                backward_dr = cur_row - header_rows.row;
             }
 
             // What was the last row here? Was there a header end since?
             let last_row = cur_row - backward_dr;
-            if header_rows.to < cur_row && header_rows.to > cur_row - backward_dr {
+            if header_rows.to_row < cur_row && header_rows.to_row > cur_row - backward_dr {
                 // Empty lines, including the current line that marks
                 // the end of the header.
-                write_empty_row(header_rows.to - last_row - corr + 1, max_cell, xml_out)?;
+                write_empty_row(header_rows.to_row - last_row - corr + 1, max_cell, xml_out)?;
                 xml_out.end_elem("table:table-header-rows")?;
                 // Correction for table start is no longer needed.
                 corr = 1;
                 // We correct the empty line count.
-                backward_dr = cur_row - header_rows.to;
+                backward_dr = cur_row - header_rows.to_row;
             }
         }
 
@@ -832,7 +832,7 @@ fn write_table_columns(sheet: &Sheet,
 
         // markup header columns
         if let Some(header_cols) = &sheet.header_cols {
-            if header_cols.from == c {
+            if header_cols.col() == c {
                 xml_out.elem("table:table-header-columns")?;
             }
         }
@@ -851,7 +851,7 @@ fn write_table_columns(sheet: &Sheet,
 
         // markup header columns
         if let Some(header_cols) = &sheet.header_cols {
-            if header_cols.to == c {
+            if header_cols.to_col() == c {
                 xml_out.end_elem("table:table-header-columns")?;
             }
         }
