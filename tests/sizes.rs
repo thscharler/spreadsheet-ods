@@ -3,7 +3,9 @@ use std::time::Duration;
 
 use chrono::NaiveDateTime;
 
-use spreadsheet_ods::{CellRange, CellRef, SCell, Sheet, Style, ucell, Value, ValueFormat, ValueType, WorkBook};
+use spreadsheet_ods::{
+    CellRange, CellRef, SCell, Sheet, Style, ucell, Value, ValueFormat, ValueType, WorkBook,
+};
 use spreadsheet_ods::format::FormatPart;
 use spreadsheet_ods::style::{AttrMapType, HeaderFooter, PageLayout};
 use spreadsheet_ods::text::TextTag;
@@ -19,7 +21,6 @@ pub fn sizes() {
     println!("Option<String> {}", size_of::<Option<String>>());
     println!("(ucell,ucell) {}", size_of::<(ucell, ucell)>());
 
-
     println!("bool {}", size_of::<bool>());
     println!("f64 {}", size_of::<f64>());
     println!("(String, f64) {}", size_of::<(String, f64)>());
@@ -34,7 +35,6 @@ pub fn sizes() {
     println!("NaiveDateTime {}", size_of::<NaiveDateTime>());
     println!("Duration {}", size_of::<Duration>());
     println!("Box<(String, f64)> {}", size_of::<Box<(String, f64)>>());
-
 
     println!("Value {}", size_of::<Value>());
     println!("ValueType {}", size_of::<ValueType>());

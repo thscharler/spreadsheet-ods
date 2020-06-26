@@ -43,7 +43,7 @@
 //!
 //! ```
 
-use crate::attrmap::{AttrMapType, AttrMap, AttrMapIter};
+use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType};
 use std::collections::HashMap;
 use string_cache::DefaultAtom;
 
@@ -106,8 +106,9 @@ impl XmlTag {
 
     /// Sets an attribute. Allows for cascading.
     pub fn con_attr<'a, S0, S1>(mut self, name: S0, value: S1) -> Self
-        where S0: Into<&'a str>,
-              S1: Into<String>
+    where
+        S0: Into<&'a str>,
+        S1: Into<String>,
     {
         self.attr_map_mut()
             .get_or_insert_with(|| Box::new(HashMap::new()))
@@ -139,25 +140,3 @@ pub enum XmlContent {
     Text(String),
     Tag(XmlTag),
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

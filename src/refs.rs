@@ -5,7 +5,7 @@
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
 
-use crate::{OdsError, ucell};
+use crate::{ucell, OdsError};
 
 /// Reference to a cell.
 ///
@@ -21,9 +21,9 @@ use crate::{OdsError, ucell};
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct CellRef {
     table: Option<String>,
-    row_abs: bool /* Absolute ($) reference */,
+    row_abs: bool, /* Absolute ($) reference */
     row: ucell,
-    col_abs: bool /* Absolute ($) reference */,
+    col_abs: bool, /* Absolute ($) reference */
     col: ucell,
 }
 
@@ -147,13 +147,13 @@ impl CellRef {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct CellRange {
     table: Option<String>,
-    row_abs: bool /* Absolute ($) reference */,
+    row_abs: bool, /* Absolute ($) reference */
     row: ucell,
-    col_abs: bool /* Absolute ($) reference */,
+    col_abs: bool, /* Absolute ($) reference */
     col: ucell,
-    to_row_abs: bool /* Absolute ($) reference */,
+    to_row_abs: bool, /* Absolute ($) reference */
     to_row: ucell,
-    to_col_abs: bool /* Absolute ($) reference */,
+    to_col_abs: bool, /* Absolute ($) reference */
     to_col: ucell,
 }
 
@@ -190,7 +190,13 @@ impl CellRange {
     }
 
     /// Creates the cell range from from + to data.
-    pub fn remote<S: Into<String>>(table: S, row: ucell, col: ucell, to_row: ucell, to_col: ucell) -> Self {
+    pub fn remote<S: Into<String>>(
+        table: S,
+        row: ucell,
+        col: ucell,
+        to_row: ucell,
+        to_col: ucell,
+    ) -> Self {
         assert!(row <= to_row);
         assert!(col <= to_col);
         Self {
@@ -316,14 +322,12 @@ impl CellRange {
     /// Does the range contain the cell.
     /// This is inclusive for to_row and to_col!
     pub fn contains(&self, row: ucell, col: ucell) -> bool {
-        row >= self.row && row <= self.to_row
-            && col >= self.col && col <= self.to_col
+        row >= self.row && row <= self.to_row && col >= self.col && col <= self.to_col
     }
 
     /// Is this range any longer relevant, when looping rows first, then columns?
     pub fn out_looped(&self, row: ucell, col: ucell) -> bool {
-        row > self.to_row
-            || row == self.to_row && col > self.to_col
+        row > self.to_row || row == self.to_row && col > self.to_col
     }
 }
 
@@ -344,7 +348,6 @@ impl Display for CellRange {
     }
 }
 
-
 /// A range over columns.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ColRange {
@@ -361,10 +364,7 @@ impl Display for ColRange {
 impl ColRange {
     pub fn new(col: ucell, to_col: ucell) -> Self {
         assert!(col <= to_col);
-        Self {
-            col,
-            to_col,
-        }
+        Self { col, to_col }
     }
 
     pub fn set_col(&mut self, col: ucell) {
@@ -406,10 +406,7 @@ impl Display for RowRange {
 impl RowRange {
     pub fn new(row: ucell, to_row: ucell) -> Self {
         assert!(row <= to_row);
-        Self {
-            row,
-            to_row,
-        }
+        Self { row, to_row }
     }
 
     /// Is the row in this range.
@@ -507,7 +504,10 @@ pub(crate) fn parse_tablename(buf: &str, pos: &mut usize) -> Result<Option<Strin
         }
     }
     if dot_idx.is_none() {
-        return Err(OdsError::Ods(format!("No '.' in the cell reference {}", &buf[*pos..])));
+        return Err(OdsError::Ods(format!(
+            "No '.' in the cell reference {}",
+            &buf[*pos..]
+        )));
     }
     let dot_idx = dot_idx.unwrap();
 
@@ -544,7 +544,10 @@ pub(crate) fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, OdsEr
 
     let col = parse_colname(buf, pos);
     if col.is_none() {
-        return Err(OdsError::Ods(format!("No colname in the cell reference {}", &buf[*pos..])));
+        return Err(OdsError::Ods(format!(
+            "No colname in the cell reference {}",
+            &buf[*pos..]
+        )));
     }
 
     let abs_row = buf[*pos..].starts_with('$');
@@ -554,7 +557,10 @@ pub(crate) fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, OdsEr
 
     let row = parse_rowname(buf, pos);
     if row.is_none() {
-        return Err(OdsError::Ods(format!("No rowname in the cell reference {}", &buf[*pos..])));
+        return Err(OdsError::Ods(format!(
+            "No rowname in the cell reference {}",
+            &buf[*pos..]
+        )));
     }
 
     Ok(CellRef {
@@ -582,7 +588,12 @@ pub(crate) fn parse_cellrange(buf: &str, pos: &mut usize) -> Result<CellRange, O
         }
 
         let col = match parse_colname(buf, pos) {
-            None => return Err(OdsError::Ods(format!("No colname in the cell reference {}", &buf[*pos..]))),
+            None => {
+                return Err(OdsError::Ods(format!(
+                    "No colname in the cell reference {}",
+                    &buf[*pos..]
+                )))
+            }
             Some(col) => col,
         };
 
@@ -592,7 +603,12 @@ pub(crate) fn parse_cellrange(buf: &str, pos: &mut usize) -> Result<CellRange, O
         }
 
         let row = match parse_rowname(buf, pos) {
-            None => return Err(OdsError::Ods(format!("No rowname in the cell reference {}", &buf[*pos..]))),
+            None => {
+                return Err(OdsError::Ods(format!(
+                    "No rowname in the cell reference {}",
+                    &buf[*pos..]
+                )))
+            }
             Some(row) => row,
         };
 
@@ -617,7 +633,12 @@ pub(crate) fn parse_cellrange(buf: &str, pos: &mut usize) -> Result<CellRange, O
         }
 
         let to_col = match parse_colname(buf, pos) {
-            None => return Err(OdsError::Ods(format!("No colname in the cell reference {}", &buf[*pos..]))),
+            None => {
+                return Err(OdsError::Ods(format!(
+                    "No colname in the cell reference {}",
+                    &buf[*pos..]
+                )))
+            }
             Some(col) => col,
         };
 
@@ -627,7 +648,12 @@ pub(crate) fn parse_cellrange(buf: &str, pos: &mut usize) -> Result<CellRange, O
         }
 
         let to_row = match parse_rowname(buf, pos) {
-            None => return Err(OdsError::Ods(format!("No rowname in the cell reference {}", &buf[*pos..]))),
+            None => {
+                return Err(OdsError::Ods(format!(
+                    "No rowname in the cell reference {}",
+                    &buf[*pos..]
+                )))
+            }
             Some(row) => row,
         };
 
@@ -651,7 +677,10 @@ pub(crate) fn parse_cellrange(buf: &str, pos: &mut usize) -> Result<CellRange, O
 }
 
 /// Parse a list of range refs
-pub(crate) fn parse_cellranges(buf: &str, pos: &mut usize) -> Result<Option<Vec<CellRange>>, OdsError> {
+pub(crate) fn parse_cellranges(
+    buf: &str,
+    pos: &mut usize,
+) -> Result<Option<Vec<CellRange>>, OdsError> {
     let mut v = None;
 
     loop {
@@ -669,7 +698,10 @@ pub(crate) fn parse_cellranges(buf: &str, pos: &mut usize) -> Result<Option<Vec<
         }
 
         if !buf[*pos..].starts_with(' ') {
-            return Err(OdsError::Ods(format!("No blank between cellranges {}", &buf[*pos..])));
+            return Err(OdsError::Ods(format!(
+                "No blank between cellranges {}",
+                &buf[*pos..]
+            )));
         } else {
             *pos += 1;
         }
@@ -743,8 +775,7 @@ pub(crate) fn push_tablename(buf: &mut String, table: Option<&String>) {
 }
 
 /// Appends the cell reference
-pub(crate) fn push_cellref(buf: &mut String,
-                           cellref: &CellRef) {
+pub(crate) fn push_cellref(buf: &mut String, cellref: &CellRef) {
     push_tablename(buf, cellref.table.as_ref());
     if cellref.col_abs {
         buf.push('$');
@@ -757,8 +788,7 @@ pub(crate) fn push_cellref(buf: &mut String,
 }
 
 /// Appends the range reference
-pub(crate) fn push_cellrange(buf: &mut String,
-                             cellrange: &CellRange) {
+pub(crate) fn push_cellrange(buf: &mut String, cellrange: &CellRange) {
     push_tablename(buf, cellrange.table.as_ref());
     if cellrange.col_abs {
         buf.push('$');
@@ -902,7 +932,6 @@ fn test_parse() -> Result<(), OdsError> {
     assert_eq!(Some(31), cr);
     assert_eq!(6, pos);
 
-
     let mut pos = 0usize;
     let cn = ".A3";
     let cr = parse_cellref(cn, &mut pos)?;
@@ -911,124 +940,151 @@ fn test_parse() -> Result<(), OdsError> {
     let mut pos = 0usize;
     let cn = ".$A3";
     let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(cr, CellRef {
-        table: None,
-        row: 2,
-        row_abs: false,
-        col: 0,
-        col_abs: true,
-    });
+    assert_eq!(
+        cr,
+        CellRef {
+            table: None,
+            row: 2,
+            row_abs: false,
+            col: 0,
+            col_abs: true,
+        }
+    );
 
     let mut pos = 0usize;
     let cn = ".A$3";
     let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(cr, CellRef {
-        table: None,
-        row: 2,
-        row_abs: true,
-        col: 0,
-        col_abs: false,
-    });
+    assert_eq!(
+        cr,
+        CellRef {
+            table: None,
+            row: 2,
+            row_abs: true,
+            col: 0,
+            col_abs: false,
+        }
+    );
 
     let mut pos = 0usize;
     let cn = "fufufu.A3";
     let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(cr, CellRef {
-        table: Some("fufufu".to_string()),
-        row: 2,
-        row_abs: false,
-        col: 0,
-        col_abs: false,
-    });
+    assert_eq!(
+        cr,
+        CellRef {
+            table: Some("fufufu".to_string()),
+            row: 2,
+            row_abs: false,
+            col: 0,
+            col_abs: false,
+        }
+    );
 
     let mut pos = 0usize;
     let cn = "'lak.moi'.A3";
     let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(cr, CellRef {
-        table: Some("lak.moi".to_string()),
-        row: 2,
-        row_abs: false,
-        col: 0,
-        col_abs: false,
-    });
+    assert_eq!(
+        cr,
+        CellRef {
+            table: Some("lak.moi".to_string()),
+            row: 2,
+            row_abs: false,
+            col: 0,
+            col_abs: false,
+        }
+    );
 
     let mut pos = 0usize;
     let cn = "'lak''moi'.A3";
     let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(cr, CellRef {
-        table: Some("lak'moi".to_string()),
-        row: 2,
-        row_abs: false,
-        col: 0,
-        col_abs: false,
-    });
+    assert_eq!(
+        cr,
+        CellRef {
+            table: Some("lak'moi".to_string()),
+            row: 2,
+            row_abs: false,
+            col: 0,
+            col_abs: false,
+        }
+    );
 
     let mut pos = 4usize;
     let cn = "****.B4";
     let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(cr, CellRef {
-        table: None,
-        row: 3,
-        row_abs: false,
-        col: 1,
-        col_abs: false,
-    });
-
+    assert_eq!(
+        cr,
+        CellRef {
+            table: None,
+            row: 3,
+            row_abs: false,
+            col: 1,
+            col_abs: false,
+        }
+    );
 
     let mut pos = 0usize;
     let cn = ".A3:.F9";
     let cr = parse_cellrange(cn, &mut pos)?;
-    assert_eq!(cr, CellRange {
-        table: None,
-        row_abs: false,
-        row: 2,
-        col_abs: false,
-        col: 0,
-        to_row_abs: false,
-        to_row: 8,
-        to_col_abs: false,
-        to_col: 5,
-    });
+    assert_eq!(
+        cr,
+        CellRange {
+            table: None,
+            row_abs: false,
+            row: 2,
+            col_abs: false,
+            col: 0,
+            to_row_abs: false,
+            to_row: 8,
+            to_col_abs: false,
+            to_col: 5,
+        }
+    );
 
     let mut pos = 0usize;
     let cn = "table.A3:.F9";
     let cr = parse_cellrange(cn, &mut pos)?;
-    assert_eq!(cr, CellRange {
-        table: Some("table".to_string()),
-        row_abs: false,
-        row: 2,
-        col_abs: false,
-        col: 0,
-        to_row_abs: false,
-        to_row: 8,
-        to_col_abs: false,
-        to_col: 5,
-    });
+    assert_eq!(
+        cr,
+        CellRange {
+            table: Some("table".to_string()),
+            row_abs: false,
+            row: 2,
+            col_abs: false,
+            col: 0,
+            to_row_abs: false,
+            to_row: 8,
+            to_col_abs: false,
+            to_col: 5,
+        }
+    );
 
     let mut pos = 0usize;
     let cn = "table.A3:.F9";
     let cr = parse_cellrange(cn, &mut pos)?;
-    assert_eq!(cr, CellRange {
-        table: Some("table".to_string()),
-        row_abs: false,
-        row: 2,
-        col_abs: false,
-        col: 0,
-        to_row_abs: false,
-        to_row: 8,
-        to_col_abs: false,
-        to_col: 5,
-    });
+    assert_eq!(
+        cr,
+        CellRange {
+            table: Some("table".to_string()),
+            row_abs: false,
+            row: 2,
+            col_abs: false,
+            col: 0,
+            to_row_abs: false,
+            to_row: 8,
+            to_col_abs: false,
+            to_col: 5,
+        }
+    );
 
     let mut pos = 0usize;
     let cn = "table.A3:.F9 table.A4:.F10";
     let cr = parse_cellranges(cn, &mut pos)?;
-    assert_eq!(cr, Some(vec![
-        CellRange::remote("table", 2, 0, 8, 5),
-        CellRange::remote("table", 3, 0, 9, 5),
-    ])
+    assert_eq!(
+        cr,
+        Some(vec![
+            CellRange::remote("table", 2, 0, 8, 5),
+            CellRange::remote("table", 3, 0, 9, 5),
+        ])
     );
-
 
     Ok(())
 }

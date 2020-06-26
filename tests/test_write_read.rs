@@ -10,7 +10,6 @@ fn test_0() -> Result<(), OdsError> {
         println!("no dump_xml!");
     }
 
-
     println!("test_0");
     let mut wb = WorkBook::new();
     let mut sh = Sheet::new();
@@ -25,7 +24,6 @@ fn test_0() -> Result<(), OdsError> {
     let si = wi.sheet(0);
 
     println!("{:?}", si);
-
 
     assert_eq!(si.value(0, 0).as_str_or(""), "A");
 
@@ -151,7 +149,6 @@ fn test_print_range() -> Result<(), OdsError> {
     sh.add_print_range(CellRange::local(1, 1, 9, 9));
     sh.add_print_range(CellRange::local(11, 11, 19, 19));
     wb.push_sheet(sh);
-
 
     write_ods(&wb, "test_out/test_print_range.ods")?;
 

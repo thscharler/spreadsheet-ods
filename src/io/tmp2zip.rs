@@ -1,3 +1,4 @@
+use mktemp::Temp;
 use std::collections::HashSet;
 /// Writing to the zip directly strangely broke my content.xml
 /// Could'nt really find the source of this, so for now I use
@@ -9,11 +10,9 @@ use std::collections::HashSet;
 ///
 /// zip_clean() cleans up afterwards.
 ///
-
 use std::fs::{create_dir_all, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
-use mktemp::Temp;
 
 pub struct TempZip {
     zipped: PathBuf,
@@ -44,7 +43,11 @@ impl TempZip {
     }
 
     /// Adds this directory.
-    pub fn add_directory(&mut self, name: &str, fopt: zip::write::FileOptions) -> Result<(), std::io::Error> {
+    pub fn add_directory(
+        &mut self,
+        name: &str,
+        fopt: zip::write::FileOptions,
+    ) -> Result<(), std::io::Error> {
         let add = self.temp_path.join(name);
 
         create_dir_all(&add)?;
@@ -59,7 +62,11 @@ impl TempZip {
     }
 
     /// Starts a new file inside the zip. Returns a Write for the file.
-    pub fn start_file<'a>(&'a mut self, name: &'_ str, fopt: zip::write::FileOptions) -> Result<TempWrite<'a>, std::io::Error> {
+    pub fn start_file<'a>(
+        &'a mut self,
+        name: &'_ str,
+        fopt: zip::write::FileOptions,
+    ) -> Result<TempWrite<'a>, std::io::Error> {
         let file = self.temp_path.join(name);
         let path = file.parent().unwrap();
 

@@ -26,7 +26,7 @@ use time::Duration;
 
 use crate::attrmap::{AttrMap, AttrMapType};
 use crate::style::{StyleMap, StyleOrigin, StyleUse, TextAttr};
-use crate::{ValueType};
+use crate::ValueType;
 
 #[derive(Debug)]
 pub enum ValueFormatError {
@@ -177,12 +177,21 @@ impl ValueFormat {
     }
 
     /// Appends a format part.
-    pub fn push_fraction(&mut self, denominator: u32,
-                         min_den_digits: u8,
-                         min_int_digits: u8,
-                         min_num_digits: u8,
-                         grouping: bool) {
-        self.push_part(FormatPart::new_fraction(denominator, min_den_digits, min_int_digits, min_num_digits, grouping));
+    pub fn push_fraction(
+        &mut self,
+        denominator: u32,
+        min_den_digits: u8,
+        min_int_digits: u8,
+        min_num_digits: u8,
+        grouping: bool,
+    ) {
+        self.push_part(FormatPart::new_fraction(
+            denominator,
+            min_den_digits,
+            min_int_digits,
+            min_num_digits,
+            grouping,
+        ));
     }
 
     /// Appends a format part.
@@ -192,9 +201,10 @@ impl ValueFormat {
 
     /// Appends a format part.
     pub fn push_currency<S1, S2, S3>(&mut self, country: S1, language: S2, symbol: S3)
-        where S1: Into<String>,
-              S2: Into<String>,
-              S3: Into<String>,
+    where
+        S1: Into<String>,
+        S2: Into<String>,
+        S3: Into<String>,
     {
         self.push_part(FormatPart::new_currency(country, language, symbol));
     }
@@ -292,9 +302,7 @@ impl ValueFormat {
 
     /// Adds a stylemap.
     pub fn push_stylemap(&mut self, stylemap: StyleMap) {
-        self.stylemaps
-            .get_or_insert_with(Vec::new)
-            .push(stylemap);
+        self.stylemaps.get_or_insert_with(Vec::new).push(stylemap);
     }
 
     /// Returns the stylemaps
@@ -343,7 +351,10 @@ impl ValueFormat {
     pub fn format_datetime(&self, d: &NaiveDateTime) -> String {
         let mut buf = String::new();
 
-        let h12 = self.parts.iter().any(|v| v.part_type == FormatPartType::AmPm);
+        let h12 = self
+            .parts
+            .iter()
+            .any(|v| v.part_type == FormatPartType::AmPm);
 
         for p in &self.parts {
             p.format_datetime(&mut buf, d, h12);
@@ -498,11 +509,13 @@ impl FormatPart {
     }
 
     /// Format as a fraction.
-    pub fn new_fraction(denominator: u32,
-                        min_den_digits: u8,
-                        min_int_digits: u8,
-                        min_num_digits: u8,
-                        grouping: bool) -> Self {
+    pub fn new_fraction(
+        denominator: u32,
+        min_den_digits: u8,
+        min_int_digits: u8,
+        min_num_digits: u8,
+        grouping: bool,
+    ) -> Self {
         let mut p = Self::new(FormatPartType::Fraction);
         p.set_attr("number:denominator-value", denominator.to_string());
         p.set_attr("number:min-denominator-digits", min_den_digits.to_string());
@@ -523,14 +536,12 @@ impl FormatPart {
 
     /// Currency symbol.
     pub fn new_currency<S1, S2, S3>(country: S1, language: S2, symbol: S3) -> Self
-        where S1: Into<String>,
-              S2: Into<String>,
-              S3: Into<String>,
+    where
+        S1: Into<String>,
+        S2: Into<String>,
+        S3: Into<String>,
     {
-        let mut p = Self::new_content(
-            FormatPartType::CurrencySymbol,
-            symbol,
-        );
+        let mut p = Self::new_content(FormatPartType::CurrencySymbol, symbol);
         p.set_attr("number:country", country.into());
         p.set_attr("number:language", language.into());
         p
@@ -857,7 +868,11 @@ pub fn create_number_format<S: Into<String>>(name: S, decimal: u8, grouping: boo
 }
 
 /// Creates a new number format with a fixed number of decimal places.
-pub fn create_number_format_fixed<S: Into<String>>(name: S, decimal: u8, grouping: bool) -> ValueFormat {
+pub fn create_number_format_fixed<S: Into<String>>(
+    name: S,
+    decimal: u8,
+    grouping: bool,
+) -> ValueFormat {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
     v.push_number_fix(decimal, grouping);
     v
@@ -872,14 +887,17 @@ pub fn create_percentage_format<S: Into<String>>(name: S, decimal: u8) -> ValueF
 }
 
 /// Creates a new currency format.
-pub fn create_currency_prefix<S1, S2, S3, S4>(name: S1,
-                                              country: S2,
-                                              language: S3,
-                                              symbol: S4) -> ValueFormat
-    where S1: Into<String>,
-          S2: Into<String>,
-          S3: Into<String>,
-          S4: Into<String>,
+pub fn create_currency_prefix<S1, S2, S3, S4>(
+    name: S1,
+    country: S2,
+    language: S3,
+    symbol: S4,
+) -> ValueFormat
+where
+    S1: Into<String>,
+    S2: Into<String>,
+    S3: Into<String>,
+    S4: Into<String>,
 {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
     v.push_currency(country.into(), language.into(), symbol.into());
@@ -889,14 +907,17 @@ pub fn create_currency_prefix<S1, S2, S3, S4>(name: S1,
 }
 
 /// Creates a new currency format.
-pub fn create_currency_suffix<S1, S2, S3, S4>(name: S1,
-                                              country: S2,
-                                              language: S3,
-                                              symbol: S4) -> ValueFormat
-    where S1: Into<String>,
-          S2: Into<String>,
-          S3: Into<String>,
-          S4: Into<String>,
+pub fn create_currency_suffix<S1, S2, S3, S4>(
+    name: S1,
+    country: S2,
+    language: S3,
+    symbol: S4,
+) -> ValueFormat
+where
+    S1: Into<String>,
+    S2: Into<String>,
+    S3: Into<String>,
+    S4: Into<String>,
 {
     let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
     v.push_number_fix(2, true);
@@ -954,7 +975,3 @@ pub fn create_time_format<S: Into<String>>(name: S) -> ValueFormat {
     v.push_seconds(FormatNumberStyle::Long);
     v
 }
-
-
-
-

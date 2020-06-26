@@ -73,9 +73,7 @@ impl<'a> From<&'a AttrMapType> for AttrMapIter<'a> {
                 it: Some(attrmap.iter()),
             }
         } else {
-            Self {
-                it: None,
-            }
+            Self { it: None }
         }
     }
 }
@@ -110,23 +108,28 @@ impl Display for Angle {
     }
 }
 
-
 /// deg angles. 360°
 #[macro_export]
 macro_rules! deg {
-    ($l:expr) => { Angle::Deg($l as f64) }
+    ($l:expr) => {
+        Angle::Deg($l as f64)
+    };
 }
 
 /// grad angles. 400°
 #[macro_export]
 macro_rules! grad {
-    ($l:expr) => { Length::Grad($l as f64) }
+    ($l:expr) => {
+        Length::Grad($l as f64)
+    };
 }
 
 /// radians angle.
 #[macro_export]
 macro_rules! rad {
-    ($l:expr) => { Length::Rad($l as f64) }
+    ($l:expr) => {
+        Length::Rad($l as f64)
+    };
 }
 
 /// Value type for lengths.
@@ -156,37 +159,49 @@ impl Display for Length {
 /// Centimeters.
 #[macro_export]
 macro_rules! cm {
-    ($l:expr) => { Length::Cm($l as f64) }
+    ($l:expr) => {
+        Length::Cm($l as f64)
+    };
 }
 
 /// Millimeters.
 #[macro_export]
 macro_rules! mm {
-    ($l:expr) => { Length::Mm($l as f64) }
+    ($l:expr) => {
+        Length::Mm($l as f64)
+    };
 }
 
 /// Inches.
 #[macro_export]
 macro_rules! inch {
-    ($l:expr) => { Length::In($l as f64) }
+    ($l:expr) => {
+        Length::In($l as f64)
+    };
 }
 
 /// Point. 1/72"
 #[macro_export]
 macro_rules! pt {
-    ($l:expr) => { Length::Pt($l as f64) }
+    ($l:expr) => {
+        Length::Pt($l as f64)
+    };
 }
 
 /// Pica. 12/72"
 #[macro_export]
 macro_rules! pc {
-    ($l:expr) => { Length::Pc($l as f64) }
+    ($l:expr) => {
+        Length::Pc($l as f64)
+    };
 }
 
 /// Length depending on font size.
 #[macro_export]
 macro_rules! em {
-    ($l:expr) => { Length::Em($l as f64) }
+    ($l:expr) => {
+        Length::Em($l as f64)
+    };
 }
 
 /// Font pitch.
@@ -207,7 +222,9 @@ impl Display for FontPitch {
 
 /// Attributes for a FontFaceDecl
 pub trait AttrFontDecl
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     /// Font-name
     fn set_name(&mut self, name: &str) {
         self.set_attr("style:name", name.to_string());
@@ -231,7 +248,9 @@ pub trait AttrFontDecl
 
 /// Margin attributes.
 pub trait AttrFoMargin
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     fn set_margin(&mut self, margin: Length) {
         self.set_attr("fo:margin", margin.to_string());
     }
@@ -255,7 +274,9 @@ pub trait AttrFoMargin
 
 /// Padding attributes.
 pub trait AttrFoPadding
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     fn set_padding(&mut self, padding: Length) {
         self.set_attr("fo:padding", padding.to_string());
     }
@@ -279,7 +300,9 @@ pub trait AttrFoPadding
 
 /// Background color.
 pub trait AttrFoBackgroundColor
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     /// Border style.
     fn set_background_color(&mut self, color: Rgb<u8>) {
         self.set_attr("fo:background-color", color_string(color));
@@ -288,7 +311,9 @@ pub trait AttrFoBackgroundColor
 
 /// Minimum height.
 pub trait AttrFoMinHeight
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     fn set_min_height(&mut self, height: Length) {
         self.set_attr("fo:min-height", height.to_string());
     }
@@ -332,7 +357,9 @@ impl Display for Border {
 
 /// Border attributes.
 pub trait AttrFoBorder
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     /// Border style all four sides.
     fn set_border(&mut self, width: Length, border: Border, color: Rgb<u8>) {
         self.set_attr("fo:border", border_string(width, border, color));
@@ -360,27 +387,42 @@ pub trait AttrFoBorder
 
     /// Widths for double borders.
     fn set_border_line_width(&mut self, inner: Length, spacing: Length, outer: Length) {
-        self.set_attr("style:border-line-width", border_line_width_string(inner, spacing, outer));
+        self.set_attr(
+            "style:border-line-width",
+            border_line_width_string(inner, spacing, outer),
+        );
     }
 
     /// Widths for double borders.
     fn set_border_line_width_bottom(&mut self, inner: Length, spacing: Length, outer: Length) {
-        self.set_attr("style:border-line-width-bottom", border_line_width_string(inner, spacing, outer));
+        self.set_attr(
+            "style:border-line-width-bottom",
+            border_line_width_string(inner, spacing, outer),
+        );
     }
 
     /// Widths for double borders.
     fn set_border_line_width_left(&mut self, inner: Length, spacing: Length, outer: Length) {
-        self.set_attr("style:border-line-width-left", border_line_width_string(inner, spacing, outer));
+        self.set_attr(
+            "style:border-line-width-left",
+            border_line_width_string(inner, spacing, outer),
+        );
     }
 
     /// Widths for double borders.
     fn set_border_line_width_right(&mut self, inner: Length, spacing: Length, outer: Length) {
-        self.set_attr("style:border-line-width-right", border_line_width_string(inner, spacing, outer));
+        self.set_attr(
+            "style:border-line-width-right",
+            border_line_width_string(inner, spacing, outer),
+        );
     }
 
     /// Widths for double borders.
     fn set_border_line_width_top(&mut self, inner: Length, spacing: Length, outer: Length) {
-        self.set_attr("style:border-line-width-top", border_line_width_string(inner, spacing, outer));
+        self.set_attr(
+            "style:border-line-width-top",
+            border_line_width_string(inner, spacing, outer),
+        );
     }
 }
 
@@ -405,7 +447,9 @@ impl Display for PageBreak {
 
 /// Page breaks.
 pub trait AttrFoBreak
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     /// page-break
     fn set_break_before(&mut self, pagebreak: PageBreak) {
         self.set_attr("fo:break-before", pagebreak.to_string());
@@ -436,7 +480,9 @@ impl Display for TextKeep {
 
 /// Keep with next.
 pub trait AttrFoKeepWithNext
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     /// page-break
     fn set_keep_with_next(&mut self, keep_with_next: TextKeep) {
         self.set_attr("fo:keep-with-next", keep_with_next.to_string());
@@ -445,7 +491,9 @@ pub trait AttrFoKeepWithNext
 
 /// Keep together.
 pub trait AttrFoKeepTogether
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     /// page-break
     fn set_keep_together(&mut self, keep_together: TextKeep) {
         self.set_attr("fo:keep-together", keep_together.to_string());
@@ -454,7 +502,9 @@ pub trait AttrFoKeepTogether
 
 /// Height attribute.
 pub trait AttrSvgHeight
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     fn set_height(&mut self, height: Length) {
         self.set_attr("svg:height", height.to_string());
     }
@@ -462,7 +512,9 @@ pub trait AttrSvgHeight
 
 /// Spacing for header/footer.
 pub trait AttrStyleDynamicSpacing
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     fn set_dynamic_spacing(&mut self, dynamic: bool) {
         self.set_attr("style:dynamic-spacing", dynamic.to_string());
     }
@@ -470,9 +522,20 @@ pub trait AttrStyleDynamicSpacing
 
 /// Shadows. Only a single shadow supported here.
 pub trait AttrStyleShadow
-    where Self: AttrMap {
-    fn set_shadow(&mut self, x_offset: Length, y_offset: Length, blur: Option<Length>, color: Rgb<u8>) {
-        self.set_attr("style:shadow", shadow_string(x_offset, y_offset, blur, color));
+where
+    Self: AttrMap,
+{
+    fn set_shadow(
+        &mut self,
+        x_offset: Length,
+        y_offset: Length,
+        blur: Option<Length>,
+        color: Rgb<u8>,
+    ) {
+        self.set_attr(
+            "style:shadow",
+            shadow_string(x_offset, y_offset, blur, color),
+        );
     }
 }
 
@@ -506,7 +569,9 @@ impl Display for WritingMode {
 
 /// Writing mode.
 pub trait AttrStyleWritingMode
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     fn set_writing_mode(&mut self, writing_mode: WritingMode) {
         self.set_attr("style:writing-mode", writing_mode.to_string());
     }
@@ -514,7 +579,9 @@ pub trait AttrStyleWritingMode
 
 /// Table row specific attributes.
 pub trait AttrTableRow
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     fn set_min_row_height(&mut self, min_height: Length) {
         self.set_attr("style:min-row-height", min_height.to_string());
     }
@@ -530,7 +597,9 @@ pub trait AttrTableRow
 
 /// Table columns specific attributes.
 pub trait AttrTableCol
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     /// Relative weights for the column width
     fn set_rel_col_width(&mut self, rel: f64) {
         self.set_attr("style:rel-column-width", rel_width_string(rel));
@@ -605,7 +674,9 @@ impl Display for CellAlignVertical {
 
 /// Table cell specific styles.
 pub trait AttrTableCell
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     fn set_wrap_option(&mut self, wrap: WrapOption) {
         self.set_attr("fo:wrap-option", wrap.to_string());
     }
@@ -641,7 +712,10 @@ pub trait AttrTableCell
 
     /// Widths for double borders.
     fn set_diagonal_bl_tr_widths(&mut self, inner: Length, spacing: Length, outer: Length) {
-        self.set_attr("style:diagonal-bl-tr-widths", border_line_width_string(inner, spacing, outer));
+        self.set_attr(
+            "style:diagonal-bl-tr-widths",
+            border_line_width_string(inner, spacing, outer),
+        );
     }
 
     /// Diagonal style.
@@ -651,7 +725,10 @@ pub trait AttrTableCell
 
     /// Widths for double borders.
     fn set_diagonal_tl_br_widths(&mut self, inner: Length, spacing: Length, outer: Length) {
-        self.set_attr("style:diagonal-tl-br-widths", border_line_width_string(inner, spacing, outer));
+        self.set_attr(
+            "style:diagonal-tl-br-widths",
+            border_line_width_string(inner, spacing, outer),
+        );
     }
 }
 
@@ -723,7 +800,9 @@ impl Display for ParaAlignVertical {
 
 /// Paragraph specific styles.
 pub trait AttrParagraph
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     fn set_text_align_source(&mut self, align: TextAlignSource) {
         self.set_attr("style:text-align-source", align.to_string());
     }
@@ -943,7 +1022,9 @@ impl Display for LineWidth {
 
 /// Text style attributes.
 pub trait AttrText
-    where Self: AttrMap {
+where
+    Self: AttrMap,
+{
     fn set_color(&mut self, color: Rgb<u8>) {
         self.set_attr("fo:color", color_string(color));
     }
@@ -994,8 +1075,17 @@ pub trait AttrText
         self.set_attr("fo:letter-spacing", "normal".to_string());
     }
 
-    fn set_text_shadow(&mut self, x_offset: Length, y_offset: Length, blur: Option<Length>, color: Rgb<u8>) {
-        self.set_attr("fo:text-shadow", shadow_string(x_offset, y_offset, blur, color));
+    fn set_text_shadow(
+        &mut self,
+        x_offset: Length,
+        y_offset: Length,
+        blur: Option<Length>,
+        color: Rgb<u8>,
+    ) {
+        self.set_attr(
+            "fo:text-shadow",
+            shadow_string(x_offset, y_offset, blur, color),
+        );
     }
 
     fn set_text_position(&mut self, pos: TextPosition) {
@@ -1088,7 +1178,10 @@ pub(crate) fn color_string(color: Rgb<u8>) -> String {
 }
 
 fn border_string(width: Length, border: Border, color: Rgb<u8>) -> String {
-    format!("{} {} #{:02x}{:02x}{:02x}", width, border, color.r, color.g, color.b)
+    format!(
+        "{} {} #{:02x}{:02x}{:02x}",
+        width, border, color.r, color.g, color.b
+    )
 }
 
 fn percent_string(value: f64) -> String {
@@ -1103,14 +1196,15 @@ fn border_line_width_string(inner: Length, space: Length, outer: Length) -> Stri
     format!("{} {} {}", inner, space, outer)
 }
 
-fn shadow_string(x_offset: Length, y_offset: Length, blur: Option<Length>, color: Rgb<u8>) -> String {
+fn shadow_string(
+    x_offset: Length,
+    y_offset: Length,
+    blur: Option<Length>,
+    color: Rgb<u8>,
+) -> String {
     if let Some(blur) = blur {
         format!("{} {} {} {}", color_string(color), x_offset, y_offset, blur)
     } else {
         format!("{} {} {}", color_string(color), x_offset, y_offset)
     }
 }
-
-
-
-

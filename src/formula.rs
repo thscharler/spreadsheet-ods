@@ -18,18 +18,17 @@ pub fn fcellref_table<S: Into<String>>(table: S, row: ucell, col: ucell) -> Stri
 }
 
 /// Creates a cellrange-reference for use in formulas.
-pub fn frangeref(row: ucell,
-                 col: ucell,
-                 row_to: ucell,
-                 col_to: ucell) -> String {
+pub fn frangeref(row: ucell, col: ucell, row_to: ucell, col_to: ucell) -> String {
     CellRange::local(row, col, row_to, col_to).to_formula()
 }
 
 /// Creates a cellrange-reference for use in formulas.
-pub fn frangeref_table<S: Into<String>>(table: S,
-                                        row: ucell,
-                                        col: ucell,
-                                        row_to: ucell,
-                                        col_to: ucell) -> String {
+pub fn frangeref_table<S: Into<String>>(
+    table: S,
+    row: ucell,
+    col: ucell,
+    row_to: ucell,
+    col_to: ucell,
+) -> String {
     CellRange::remote(table, row, col, row_to, col_to).to_formula()
 }

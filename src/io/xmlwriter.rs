@@ -35,9 +35,7 @@ struct Stack {
 #[cfg(feature = "check_xml")]
 impl Stack {
     fn new() -> Self {
-        Self {
-            stack: Vec::new()
-        }
+        Self { stack: Vec::new() }
     }
 
     fn len(&self) -> usize {
@@ -61,7 +59,7 @@ impl Stack {
 impl Stack {
     fn new() -> Self {
         Self {
-            stack: PhantomData {}
+            stack: PhantomData {},
         }
     }
 
@@ -92,7 +90,11 @@ pub struct XmlWriter<W: Write> {
 
 impl<W: Write> fmt::Debug for XmlWriter<W> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        Ok(write!(f, "XmlWriter {{ stack: {:?}, opened: {} }}", self.stack, self.open)?)
+        Ok(write!(
+            f,
+            "XmlWriter {{ stack: {:?}, opened: {} }}",
+            self.stack, self.open
+        )?)
     }
 }
 
@@ -124,7 +126,7 @@ impl<W: Write> XmlWriter<W> {
             let indent = self.stack.len() * 2;
             for _ in 0..indent {
                 self.buf.push(' ');
-            };
+            }
         }
     }
 
@@ -216,7 +218,10 @@ impl<W: Write> XmlWriter<W> {
     /// For an escaping version use `attr_esc`
     pub fn attr(&mut self, name: &str, value: &str) -> Result {
         if cfg!(feature = "check_xml") && self.open == Open::None {
-            panic!("Attempted to write attr to elem, when no elem was opened, stack {:?}", self.stack);
+            panic!(
+                "Attempted to write attr to elem, when no elem was opened, stack {:?}",
+                self.stack
+            );
         }
         self.buf.push(' ');
         self.buf.push_str(name);
@@ -228,10 +233,12 @@ impl<W: Write> XmlWriter<W> {
     }
 
     /// Write an attr, make sure name contains only allowed chars
-    pub fn attr_esc(&mut self, name: &str, value: &str) -> Result
-    {
+    pub fn attr_esc(&mut self, name: &str, value: &str) -> Result {
         if cfg!(feature = "check_xml") && self.open == Open::None {
-            panic!("Attempted to write attr to elem, when no elem was opened, stack {:?}", self.stack);
+            panic!(
+                "Attempted to write attr to elem, when no elem was opened, stack {:?}",
+                self.stack
+            );
         }
         self.buf.push(' ');
         self.escape(name, true);
@@ -284,10 +291,16 @@ impl<W: Write> XmlWriter<W> {
             match self.stack.pop() {
                 Some(test) => {
                     if name != test {
-                        panic!("Attempted to close elem {} but the open was {}, stack {:?}", name, test, self.stack)
+                        panic!(
+                            "Attempted to close elem {} but the open was {}, stack {:?}",
+                            name, test, self.stack
+                        )
                     }
                 }
-                None => panic!("Attempted to close an elem, when none was open, stack {:?}", self.stack)
+                None => panic!(
+                    "Attempted to close an elem, when none was open, stack {:?}",
+                    self.stack
+                ),
             }
         }
 
@@ -310,7 +323,10 @@ impl<W: Write> XmlWriter<W> {
         self.write_buf()?;
 
         if cfg!(feature = "check_xml") && !self.stack.is_empty() {
-            panic!("Attempted to close the xml, but there are open elements on the stack {:?}", self.stack)
+            panic!(
+                "Attempted to close the xml, but there are open elements on the stack {:?}",
+                self.stack
+            )
         }
         Ok(())
     }

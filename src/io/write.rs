@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::fs::{File};
+use std::fs::File;
 use std::io;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -7,15 +7,17 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
-use crate::{SCell, Sheet, ucell, Value, ValueFormat, ValueType, WorkBook};
 use crate::attrmap::AttrMap;
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
-use crate::refs::{CellRange, cellranges_string};
-use crate::style::{FontFaceDecl, HeaderFooter, PageLayout, Style, StyleFor, StyleOrigin, StyleUse};
-use crate::xmltree::{XmlTag, XmlContent};
+use crate::refs::{cellranges_string, CellRange};
+use crate::style::{
+    FontFaceDecl, HeaderFooter, PageLayout, Style, StyleFor, StyleOrigin, StyleUse,
+};
+use crate::xmltree::{XmlContent, XmlTag};
+use crate::{ucell, SCell, Sheet, Value, ValueFormat, ValueType, WorkBook};
 
 type OdsWriter = TempZip;
 type XmlOdsWriter<'a> = XmlWriter<TempWrite<'a>>;
@@ -47,9 +49,11 @@ pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), Ods
     Ok(())
 }
 
-fn copy_workbook(ods_orig_name: &PathBuf,
-                 file_set: &mut HashSet<String>,
-                 zip_writer: &mut OdsWriter) -> Result<(), OdsError> {
+fn copy_workbook(
+    ods_orig_name: &PathBuf,
+    file_set: &mut HashSet<String>,
+    zip_writer: &mut OdsWriter,
+) -> Result<(), OdsError> {
     let ods_orig = File::open(ods_orig_name)?;
     let mut zip_orig = zip::ZipArchive::new(ods_orig)?;
 
@@ -79,12 +83,17 @@ fn copy_workbook(ods_orig_name: &PathBuf,
     Ok(())
 }
 
-fn write_mimetype(zip_out: &mut OdsWriter,
-                  file_set: &mut HashSet<String>) -> Result<(), io::Error> {
+fn write_mimetype(
+    zip_out: &mut OdsWriter,
+    file_set: &mut HashSet<String>,
+) -> Result<(), io::Error> {
     if !file_set.contains("mimetype") {
         file_set.insert(String::from("mimetype"));
 
-        let mut w = zip_out.start_file("mimetype", FileOptions::default().compression_method(zip::CompressionMethod::Stored))?;
+        let mut w = zip_out.start_file(
+            "mimetype",
+            FileOptions::default().compression_method(zip::CompressionMethod::Stored),
+        )?;
 
         let mime = "application/vnd.oasis.opendocument.spreadsheet";
         w.write_all(mime.as_bytes())?;
@@ -93,8 +102,7 @@ fn write_mimetype(zip_out: &mut OdsWriter,
     Ok(())
 }
 
-fn write_manifest(zip_out: &mut OdsWriter,
-                  file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+fn write_manifest(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
     if !file_set.contains("META-INF/manifest.xml") {
         file_set.insert(String::from("META-INF/manifest.xml"));
 
@@ -106,18 +114,24 @@ fn write_manifest(zip_out: &mut OdsWriter,
         xml_out.dtd("UTF-8")?;
 
         xml_out.elem("manifest:manifest")?;
-        xml_out.attr("xmlns:manifest", "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0")?;
+        xml_out.attr(
+            "xmlns:manifest",
+            "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0",
+        )?;
         xml_out.attr("manifest:version", "1.2")?;
 
         xml_out.empty("manifest:file-entry")?;
         xml_out.attr("manifest:full-path", "/")?;
         xml_out.attr("manifest:version", "1.2")?;
-        xml_out.attr("manifest:media-type", "application/vnd.oasis.opendocument.spreadsheet")?;
+        xml_out.attr(
+            "manifest:media-type",
+            "application/vnd.oasis.opendocument.spreadsheet",
+        )?;
 
-//        xml_out.write_event(xml_empty_a("manifest:file-entry", vec![
-//            ("manifest:full-path", String::from("Configurations2/")),
-//            ("manifest:media-type", String::from("application/vnd.sun.xml.ui.configuration")),
-//        ]))?;
+        //        xml_out.write_event(xml_empty_a("manifest:file-entry", vec![
+        //            ("manifest:full-path", String::from("Configurations2/")),
+        //            ("manifest:media-type", String::from("application/vnd.sun.xml.ui.configuration")),
+        //        ]))?;
 
         xml_out.empty("manifest:file-entry")?;
         xml_out.attr("manifest:full-path", "manifest.rdf")?;
@@ -135,10 +149,10 @@ fn write_manifest(zip_out: &mut OdsWriter,
         xml_out.attr("manifest:full-path", "content.xml")?;
         xml_out.attr("manifest:media-type", "text/xml")?;
 
-//        xml_out.write_event(xml::xml_empty_a("manifest:file-entry", vec![
-//            ("manifest:full-path", String::from("settings.xml")),
-//            ("manifest:media-type", String::from("text/xml")),
-//        ]))?;
+        //        xml_out.write_event(xml::xml_empty_a("manifest:file-entry", vec![
+        //            ("manifest:full-path", String::from("settings.xml")),
+        //            ("manifest:media-type", String::from("text/xml")),
+        //        ]))?;
 
         xml_out.end_elem("manifest:manifest")?;
 
@@ -148,8 +162,10 @@ fn write_manifest(zip_out: &mut OdsWriter,
     Ok(())
 }
 
-fn write_manifest_rdf(zip_out: &mut OdsWriter,
-                      file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+fn write_manifest_rdf(
+    zip_out: &mut OdsWriter,
+    file_set: &mut HashSet<String>,
+) -> Result<(), OdsError> {
     if !file_set.contains("manifest.rdf") {
         file_set.insert(String::from("manifest.rdf"));
 
@@ -166,7 +182,10 @@ fn write_manifest_rdf(zip_out: &mut OdsWriter,
         xml_out.attr("rdf:about", "content.xml")?;
 
         xml_out.empty("rdf:type")?;
-        xml_out.attr("rdf:resource", "http://docs.oasis-open.org/ns/office/1.2/meta/odf#ContentFile")?;
+        xml_out.attr(
+            "rdf:resource",
+            "http://docs.oasis-open.org/ns/office/1.2/meta/odf#ContentFile",
+        )?;
 
         xml_out.end_elem("rdf:Description")?;
 
@@ -174,7 +193,10 @@ fn write_manifest_rdf(zip_out: &mut OdsWriter,
         xml_out.attr("rdf:about", "")?;
 
         xml_out.empty("ns0:hasPart")?;
-        xml_out.attr("xmlns:ns0", "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#")?;
+        xml_out.attr(
+            "xmlns:ns0",
+            "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#",
+        )?;
         xml_out.attr("rdf:resource", "content.xml")?;
 
         xml_out.end_elem("rdf:Description")?;
@@ -183,7 +205,10 @@ fn write_manifest_rdf(zip_out: &mut OdsWriter,
         xml_out.attr("rdf:about", "")?;
 
         xml_out.empty("rdf:type")?;
-        xml_out.attr("rdf:resource", "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#Document")?;
+        xml_out.attr(
+            "rdf:resource",
+            "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#Document",
+        )?;
 
         xml_out.end_elem("rdf:Description")?;
 
@@ -195,8 +220,7 @@ fn write_manifest_rdf(zip_out: &mut OdsWriter,
     Ok(())
 }
 
-fn write_meta(zip_out: &mut OdsWriter,
-              file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+fn write_meta(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
     if !file_set.contains("meta.xml") {
         file_set.insert(String::from("meta.xml"));
 
@@ -207,8 +231,14 @@ fn write_meta(zip_out: &mut OdsWriter,
         xml_out.dtd("UTF-8")?;
 
         xml_out.elem("office:document-meta")?;
-        xml_out.attr("xmlns:meta", "urn:oasis:names:tc:opendocument:xmlns:meta:1.0")?;
-        xml_out.attr("xmlns:office", "urn:oasis:names:tc:opendocument:xmlns:office:1.0")?;
+        xml_out.attr(
+            "xmlns:meta",
+            "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+        )?;
+        xml_out.attr(
+            "xmlns:office",
+            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        )?;
         xml_out.attr("office:version", "1.2")?;
 
         xml_out.elem("office:meta")?;
@@ -216,7 +246,10 @@ fn write_meta(zip_out: &mut OdsWriter,
         xml_out.elem_text("meta:generator", "spreadsheet-ods 0.1.0")?;
         let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
         let d = NaiveDateTime::from_timestamp(s.as_secs() as i64, 0);
-        xml_out.elem_text("meta:creation-date", &d.format("%Y-%m-%dT%H:%M:%S%.f").to_string())?;
+        xml_out.elem_text(
+            "meta:creation-date",
+            &d.format("%Y-%m-%dT%H:%M:%S%.f").to_string(),
+        )?;
         xml_out.elem_text("meta:editing-duration", "P0D")?;
         xml_out.elem_text("meta:editing-cycles", "1")?;
         // xml_out.elem_text_esc("meta:initial-creator", &username::get_user_name().unwrap())?;
@@ -290,9 +323,11 @@ fn write_meta(zip_out: &mut OdsWriter,
 //    Ok(())
 //}
 
-fn write_ods_styles(book: &WorkBook,
-                    zip_out: &mut OdsWriter,
-                    file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+fn write_ods_styles(
+    book: &WorkBook,
+    zip_out: &mut OdsWriter,
+    file_set: &mut HashSet<String>,
+) -> Result<(), OdsError> {
     file_set.insert(String::from("styles.xml"));
 
     let w = zip_out.start_file("styles.xml", FileOptions::default())?;
@@ -302,23 +337,71 @@ fn write_ods_styles(book: &WorkBook,
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-styles")?;
-    xml_out.attr("xmlns:meta", "urn:oasis:names:tc:opendocument:xmlns:meta:1.0")?;
-    xml_out.attr("xmlns:office", "urn:oasis:names:tc:opendocument:xmlns:office:1.0")?;
-    xml_out.attr("xmlns:fo", "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0")?;
-    xml_out.attr("xmlns:style", "urn:oasis:names:tc:opendocument:xmlns:style:1.0")?;
-    xml_out.attr("xmlns:text", "urn:oasis:names:tc:opendocument:xmlns:text:1.0")?;
-    xml_out.attr("xmlns:dr3d", "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0")?;
-    xml_out.attr("xmlns:svg", "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0")?;
-    xml_out.attr("xmlns:chart", "urn:oasis:names:tc:opendocument:xmlns:chart:1.0")?;
-    xml_out.attr("xmlns:table", "urn:oasis:names:tc:opendocument:xmlns:table:1.0")?;
-    xml_out.attr("xmlns:number", "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0")?;
+    xml_out.attr(
+        "xmlns:meta",
+        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:office",
+        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:fo",
+        "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:style",
+        "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:text",
+        "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:dr3d",
+        "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:svg",
+        "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:chart",
+        "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:table",
+        "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:number",
+        "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
+    )?;
     xml_out.attr("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
-    xml_out.attr("xmlns:calcext", "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0")?;
-    xml_out.attr("xmlns:loext", "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0")?;
-    xml_out.attr("xmlns:field", "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0")?;
-    xml_out.attr("xmlns:form", "urn:oasis:names:tc:opendocument:xmlns:form:1.0")?;
-    xml_out.attr("xmlns:script", "urn:oasis:names:tc:opendocument:xmlns:script:1.0")?;
-    xml_out.attr("xmlns:presentation", "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0")?;
+    xml_out.attr(
+        "xmlns:calcext",
+        "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:loext",
+        "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:field",
+        "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:form",
+        "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:script",
+        "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:presentation",
+        "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
+    )?;
     xml_out.attr("office:version", "1.2")?;
 
     xml_out.elem("office:font-face-decls")?;
@@ -326,15 +409,40 @@ fn write_ods_styles(book: &WorkBook,
     xml_out.end_elem("office:font-face-decls")?;
 
     xml_out.elem("office:styles")?;
-    write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Default, &mut xml_out)?;
-    write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
-    write_value_styles(&book.formats, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
+    write_styles(
+        &book.styles,
+        StyleOrigin::Styles,
+        StyleUse::Default,
+        &mut xml_out,
+    )?;
+    write_styles(
+        &book.styles,
+        StyleOrigin::Styles,
+        StyleUse::Named,
+        &mut xml_out,
+    )?;
+    write_value_styles(
+        &book.formats,
+        StyleOrigin::Styles,
+        StyleUse::Named,
+        &mut xml_out,
+    )?;
     xml_out.end_elem("office:styles")?;
 
     xml_out.elem("office:automatic-styles")?;
     write_pagelayout(&book.page_layouts, &mut xml_out)?;
-    write_styles(&book.styles, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
-    write_value_styles(&book.formats, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
+    write_styles(
+        &book.styles,
+        StyleOrigin::Styles,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_value_styles(
+        &book.formats,
+        StyleOrigin::Styles,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
     xml_out.end_elem("office:automatic-styles")?;
 
     xml_out.elem("office:master-styles")?;
@@ -348,7 +456,11 @@ fn write_ods_styles(book: &WorkBook,
     Ok(())
 }
 
-fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+fn write_ods_content(
+    book: &WorkBook,
+    zip_out: &mut OdsWriter,
+    file_set: &mut HashSet<String>,
+) -> Result<(), OdsError> {
     file_set.insert(String::from("content.xml"));
 
     let w = zip_out.start_file("content.xml", FileOptions::default())?;
@@ -357,40 +469,94 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-content")?;
-    xml_out.attr("xmlns:presentation", "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0")?;
+    xml_out.attr(
+        "xmlns:presentation",
+        "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
+    )?;
     xml_out.attr("xmlns:grddl", "http://www.w3.org/2003/g/data-view#")?;
     xml_out.attr("xmlns:xhtml", "http://www.w3.org/1999/xhtml")?;
     xml_out.attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")?;
     xml_out.attr("xmlns:xsd", "http://www.w3.org/2001/XMLSchema")?;
     xml_out.attr("xmlns:xforms", "http://www.w3.org/2002/xforms")?;
     xml_out.attr("xmlns:dom", "http://www.w3.org/2001/xml-events")?;
-    xml_out.attr("xmlns:script", "urn:oasis:names:tc:opendocument:xmlns:script:1.0")?;
-    xml_out.attr("xmlns:form", "urn:oasis:names:tc:opendocument:xmlns:form:1.0")?;
+    xml_out.attr(
+        "xmlns:script",
+        "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:form",
+        "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
+    )?;
     xml_out.attr("xmlns:math", "http://www.w3.org/1998/Math/MathML")?;
-    xml_out.attr("xmlns:draw", "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0")?;
-    xml_out.attr("xmlns:dr3d", "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0")?;
-    xml_out.attr("xmlns:text", "urn:oasis:names:tc:opendocument:xmlns:text:1.0")?;
-    xml_out.attr("xmlns:style", "urn:oasis:names:tc:opendocument:xmlns:style:1.0")?;
-    xml_out.attr("xmlns:meta", "urn:oasis:names:tc:opendocument:xmlns:meta:1.0")?;
+    xml_out.attr(
+        "xmlns:draw",
+        "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:dr3d",
+        "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:text",
+        "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:style",
+        "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:meta",
+        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+    )?;
     xml_out.attr("xmlns:ooo", "http://openoffice.org/2004/office")?;
-    xml_out.attr("xmlns:loext", "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0")?;
-    xml_out.attr("xmlns:svg", "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0")?;
+    xml_out.attr(
+        "xmlns:loext",
+        "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:svg",
+        "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
+    )?;
     xml_out.attr("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
-    xml_out.attr("xmlns:office", "urn:oasis:names:tc:opendocument:xmlns:office:1.0")?;
-    xml_out.attr("xmlns:fo", "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0")?;
-    xml_out.attr("xmlns:field", "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0")?;
+    xml_out.attr(
+        "xmlns:office",
+        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:fo",
+        "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:field",
+        "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
+    )?;
     xml_out.attr("xmlns:xlink", "http://www.w3.org/1999/xlink")?;
-    xml_out.attr("xmlns:formx", "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0")?;
+    xml_out.attr(
+        "xmlns:formx",
+        "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0",
+    )?;
     xml_out.attr("xmlns:dc", "http://purl.org/dc/elements/1.1/")?;
-    xml_out.attr("xmlns:chart", "urn:oasis:names:tc:opendocument:xmlns:chart:1.0")?;
+    xml_out.attr(
+        "xmlns:chart",
+        "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
+    )?;
     xml_out.attr("xmlns:rpt", "http://openoffice.org/2005/report")?;
-    xml_out.attr("xmlns:table", "urn:oasis:names:tc:opendocument:xmlns:table:1.0")?;
+    xml_out.attr(
+        "xmlns:table",
+        "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+    )?;
     xml_out.attr("xmlns:css3t", "http://www.w3.org/TR/css3-text/")?;
-    xml_out.attr("xmlns:number", "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0")?;
+    xml_out.attr(
+        "xmlns:number",
+        "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
+    )?;
     xml_out.attr("xmlns:ooow", "http://openoffice.org/2004/writer")?;
     xml_out.attr("xmlns:oooc", "http://openoffice.org/2004/calc")?;
     xml_out.attr("xmlns:tableooo", "http://openoffice.org/2009/table")?;
-    xml_out.attr("xmlns:calcext", "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0")?;
+    xml_out.attr(
+        "xmlns:calcext",
+        "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
+    )?;
     xml_out.attr("xmlns:drawooo", "http://openoffice.org/2010/draw")?;
     xml_out.attr("office:version", "1.2")?;
 
@@ -401,8 +567,18 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
     xml_out.end_elem("office:font-face-decls")?;
 
     xml_out.elem("office:automatic-styles")?;
-    write_styles(&book.styles, StyleOrigin::Content, StyleUse::Automatic, &mut xml_out)?;
-    write_value_styles(&book.formats, StyleOrigin::Content, StyleUse::Automatic, &mut xml_out)?;
+    write_styles(
+        &book.styles,
+        StyleOrigin::Content,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_value_styles(
+        &book.formats,
+        StyleOrigin::Content,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
     xml_out.end_elem("office:automatic-styles")?;
 
     xml_out.elem("office:body")?;
@@ -418,7 +594,8 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
             // tag.name() == "text:alphabetical-index-auto-mark-file" ||
             tag.name() == "table:calculation-settings" ||
             tag.name() == "table:content-validations" ||
-            tag.name() == "table:label-ranges" {
+            tag.name() == "table:label-ranges"
+        {
             write_xmltag(tag, &mut xml_out)?;
         }
     }
@@ -429,11 +606,12 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter, file_set: &mut Ha
 
     // extra tags. pass through only
     for tag in &book.extra {
-        if tag.name() == "table:named-expressions" ||
-            tag.name() == "table:database-ranges" ||
-            tag.name() == "table:data-pilot-tables" ||
-            tag.name() == "table:consolidation" ||
-            tag.name() == "table:dde-links" {
+        if tag.name() == "table:named-expressions"
+            || tag.name() == "table:database-ranges"
+            || tag.name() == "table:data-pilot-tables"
+            || tag.name() == "table:consolidation"
+            || tag.name() == "table:dde-links"
+        {
             write_xmltag(tag, &mut xml_out)?;
         }
     }
@@ -458,7 +636,10 @@ fn check_hidden(ranges: &[CellRange], row: ucell, col: ucell) -> (bool, ucell) {
 
 /// Removes any outlived Ranges from the vector.
 pub(crate) fn remove_outlooped(ranges: &mut Vec<CellRange>, row: ucell, col: ucell) {
-    *ranges = ranges.drain(..).filter(|s| !s.out_looped(row, col)).collect();
+    *ranges = ranges
+        .drain(..)
+        .filter(|s| !s.out_looped(row, col))
+        .collect();
 }
 
 fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
@@ -474,13 +655,14 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     let max_cell = sheet.used_grid_size();
 
     for tag in &sheet.extra {
-        if tag.name() == "table:title" ||
-            tag.name() == "table:desc" ||
-            tag.name() == "table:table-source" ||
-            tag.name() == "office:dde-source" ||
-            tag.name() == "table:scenario" ||
-            tag.name() == "office:forms" ||
-            tag.name() == "table:shapes" {
+        if tag.name() == "table:title"
+            || tag.name() == "table:desc"
+            || tag.name() == "table:table-source"
+            || tag.name() == "office:dde-source"
+            || tag.name() == "table:scenario"
+            || tag.name() == "office:forms"
+            || tag.name() == "table:shapes"
+        {
             write_xmltag(tag, xml_out)?;
         }
     }
@@ -496,7 +678,6 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     let mut last_c: ucell = 0;
 
     for ((cur_row, cur_col), cell) in sheet.data.iter() {
-
         // There may be a lot of gaps of any kind in our data.
         // In the XML format there is no cell identification, every gap
         // must be filled with empty rows/columns. For this we need some
@@ -504,12 +685,13 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
 
         // For the repeat-counter we need to look forward.
         // Works nicely with the range operator :-)
-        let (next_r, next_c, is_last_cell) =
-            if let Some(((next_r, next_c), _)) = sheet.data.range((*cur_row, cur_col + 1)..).next() {
-                (*next_r, *next_c, false)
-            } else {
-                (max_cell.0, max_cell.1, true)
-            };
+        let (next_r, next_c, is_last_cell) = if let Some(((next_r, next_c), _)) =
+            sheet.data.range((*cur_row, cur_col + 1)..).next()
+        {
+            (*next_r, *next_c, false)
+        } else {
+            (max_cell.0, max_cell.1, true)
+        };
 
         // Looking forward row-wise.
         let forward_dr = next_r - *cur_row;
@@ -585,8 +767,7 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     xml_out.end_elem("table:table")?;
 
     for tag in &sheet.extra {
-        if tag.name() == "table:named-expressions" ||
-            tag.name() == "calcext:conditional-formats" {
+        if tag.name() == "table:named-expressions" || tag.name() == "calcext:conditional-formats" {
             write_xmltag(tag, xml_out)?;
         }
     }
@@ -594,10 +775,11 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     Ok(())
 }
 
-fn write_empty_cells(mut forward_dc: u32,
-                     hidden_cols: u32,
-                     xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-
+fn write_empty_cells(
+    mut forward_dc: u32,
+    hidden_cols: u32,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
     // split between hidden and regular cells.
     if hidden_cols >= forward_dc {
         xml_out.empty("covered-table-cell")?;
@@ -622,11 +804,12 @@ fn write_empty_cells(mut forward_dc: u32,
     Ok(())
 }
 
-fn write_start_current_row(sheet: &Sheet,
-                           cur_row: ucell,
-                           backward_dc: u32,
-                           xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-
+fn write_start_current_row(
+    sheet: &Sheet,
+    cur_row: ucell,
+    backward_dc: u32,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
     // Start of headers
     if let Some(header_rows) = &sheet.header_rows {
         if header_rows.row == cur_row {
@@ -649,10 +832,12 @@ fn write_start_current_row(sheet: &Sheet,
     Ok(())
 }
 
-fn write_end_last_row(sheet: &Sheet,
-                      cur_row: u32,
-                      backward_dr: u32,
-                      xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_end_last_row(
+    sheet: &Sheet,
+    cur_row: u32,
+    backward_dr: u32,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
     xml_out.end_elem("table:table-row")?;
 
     // This row was the end of the header.
@@ -666,11 +851,12 @@ fn write_end_last_row(sheet: &Sheet,
     Ok(())
 }
 
-fn write_end_current_row(sheet: &Sheet,
-                         cur_row: u32,
-                         xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_end_current_row(
+    sheet: &Sheet,
+    cur_row: u32,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
     xml_out.end_elem("table:table-row")?;
-
 
     // This row was the end of the header.
     if let Some(header_rows) = &sheet.header_rows {
@@ -682,26 +868,22 @@ fn write_end_current_row(sheet: &Sheet,
     Ok(())
 }
 
-fn write_empty_rows_before(sheet: &Sheet,
-                           cur_row: ucell,
-                           first_cell: bool,
-                           mut backward_dr: u32,
-                           max_cell: (ucell, ucell),
-                           xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_empty_rows_before(
+    sheet: &Sheet,
+    cur_row: ucell,
+    first_cell: bool,
+    mut backward_dr: u32,
+    max_cell: (ucell, ucell),
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
     // Empty rows in between are 1 less than the delta, except at the very start.
-    let mut corr = if first_cell {
-        0u32
-    } else {
-        1u32
-    };
+    let mut corr = if first_cell { 0u32 } else { 1u32 };
 
     // Only deltas greater 1 are relevant.
     // Or if this is the very start.
     if backward_dr > 1 || first_cell && backward_dr > 0 {
-
         // split up the empty rows, if there is some header stuff.
         if let Some(header_rows) = &sheet.header_rows {
-
             // What was the last_row? Was there a header start since?
             let last_row = cur_row - backward_dr;
             if header_rows.row < cur_row && header_rows.row > last_row {
@@ -735,9 +917,11 @@ fn write_empty_rows_before(sheet: &Sheet,
     Ok(())
 }
 
-fn write_empty_row(empty_count: u32,
-                   max_cell: (u32, u32),
-                   xml_out: &mut XmlWriter<TempWrite>) -> Result<(), OdsError> {
+fn write_empty_row(
+    empty_count: u32,
+    max_cell: (u32, u32),
+    xml_out: &mut XmlWriter<TempWrite>,
+) -> Result<(), OdsError> {
     xml_out.elem("table:table-row")?;
     xml_out.attr("table:number-rows-repeated", &empty_count.to_string())?;
 
@@ -751,8 +935,7 @@ fn write_empty_row(empty_count: u32,
     Ok(())
 }
 
-fn write_xmltag(x: &XmlTag,
-                xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_xmltag(x: &XmlTag, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     if x.is_empty() {
         xml_out.empty(x.name())?;
     } else {
@@ -780,10 +963,11 @@ fn write_xmltag(x: &XmlTag,
     Ok(())
 }
 
-fn write_table_columns(sheet: &Sheet,
-                       max_cell: (ucell, ucell),
-                       xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-
+fn write_table_columns(
+    sheet: &Sheet,
+    max_cell: (ucell, ucell),
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
     // table:table-column
     for c in 0..max_cell.1 {
         let style = sheet.column_style(c);
@@ -819,11 +1003,17 @@ fn write_table_columns(sheet: &Sheet,
     Ok(())
 }
 
-fn write_cell(book: &WorkBook,
-              cell: &SCell,
-              is_hidden: bool,
-              xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    let tag = if is_hidden { "table:covered-table-cell" } else { "table:table-cell" };
+fn write_cell(
+    book: &WorkBook,
+    cell: &SCell,
+    is_hidden: bool,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
+    let tag = if is_hidden {
+        "table:covered-table-cell"
+    } else {
+        "table:table-cell"
+    };
 
     match cell.value {
         Value::Empty => xml_out.empty(tag)?,
@@ -843,10 +1033,16 @@ fn write_cell(book: &WorkBook,
 
     // Spans
     if cell.span.0 > 1 {
-        xml_out.attr_esc("table:number-rows-spanned", cell.span.0.to_string().as_str())?;
+        xml_out.attr_esc(
+            "table:number-rows-spanned",
+            cell.span.0.to_string().as_str(),
+        )?;
     }
     if cell.span.1 > 1 {
-        xml_out.attr_esc("table:number-columns-spanned", cell.span.1.to_string().as_str())?;
+        xml_out.attr_esc(
+            "table:number-columns-spanned",
+            cell.span.1.to_string().as_str(),
+        )?;
     }
 
     // Might not yield a useful result. Could not exist, or be in styles.xml
@@ -964,13 +1160,17 @@ fn write_cell(book: &WorkBook,
 
     match cell.value {
         Value::Empty => {}
-        _ => xml_out.end_elem(tag)?
+        _ => xml_out.end_elem(tag)?,
     }
 
     Ok(())
 }
 
-fn write_font_decl(fonts: &HashMap<String, FontFaceDecl>, origin: StyleOrigin, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_font_decl(
+    fonts: &HashMap<String, FontFaceDecl>,
+    origin: StyleOrigin,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
     for font in fonts.values().filter(|s| s.origin() == origin) {
         xml_out.empty("style:font-face")?;
         xml_out.attr_esc("style:name", font.name().as_str())?;
@@ -981,11 +1181,16 @@ fn write_font_decl(fonts: &HashMap<String, FontFaceDecl>, origin: StyleOrigin, x
     Ok(())
 }
 
-fn write_styles(styles: &HashMap<String, Style>,
-                origin: StyleOrigin,
-                styleuse: StyleUse,
-                xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    for style in styles.values().filter(|s| s.origin() == origin && s.styleuse() == styleuse) {
+fn write_styles(
+    styles: &HashMap<String, Style>,
+    origin: StyleOrigin,
+    styleuse: StyleUse,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
+    for style in styles
+        .values()
+        .filter(|s| s.origin() == origin && s.styleuse() == styleuse)
+    {
         if styleuse == StyleUse::Default {
             xml_out.elem("style:default-style")?;
         } else {
@@ -1090,11 +1295,16 @@ fn write_styles(styles: &HashMap<String, Style>,
     Ok(())
 }
 
-fn write_value_styles(value_formats: &HashMap<String, ValueFormat>,
-                      origin: StyleOrigin,
-                      styleuse: StyleUse,
-                      xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
-    for value_format in value_formats.values().filter(|s| s.origin() == origin && s.styleuse() == styleuse) {
+fn write_value_styles(
+    value_formats: &HashMap<String, ValueFormat>,
+    origin: StyleOrigin,
+    styleuse: StyleUse,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
+    for value_format in value_formats
+        .values()
+        .filter(|s| s.origin() == origin && s.styleuse() == styleuse)
+    {
         let tag = match value_format.value_type() {
             ValueType::Empty => "number:empty_style", // ???
             ValueType::Boolean => "number:boolean-style",
@@ -1145,7 +1355,9 @@ fn write_value_styles(value_formats: &HashMap<String, ValueFormat>,
                 FormatPartType::TextContent => "number:text-content",
             };
 
-            if part.part_type() == FormatPartType::Text || part.part_type() == FormatPartType::CurrencySymbol {
+            if part.part_type() == FormatPartType::Text
+                || part.part_type() == FormatPartType::CurrencySymbol
+            {
                 xml_out.elem(part_tag)?;
                 if let Some(prp) = part.attr_map() {
                     for (a, v) in prp.iter() {
@@ -1181,8 +1393,10 @@ fn write_value_styles(value_formats: &HashMap<String, ValueFormat>,
     Ok(())
 }
 
-fn write_pagelayout(styles: &HashMap<String, PageLayout>,
-                    xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_pagelayout(
+    styles: &HashMap<String, PageLayout>,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:page-layout")?;
         xml_out.attr_esc("style:name", &style.name())?;
@@ -1218,8 +1432,10 @@ fn write_pagelayout(styles: &HashMap<String, PageLayout>,
     Ok(())
 }
 
-fn write_masterpage<'a>(styles: &'a HashMap<String, PageLayout>,
-                        xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
+fn write_masterpage<'a>(
+    styles: &'a HashMap<String, PageLayout>,
+    xml_out: &mut XmlOdsWriter<'a>,
+) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:master-page")?;
         xml_out.attr("style:name", &style.master_page_name())?;
@@ -1259,8 +1475,7 @@ fn write_masterpage<'a>(styles: &'a HashMap<String, PageLayout>,
     Ok(())
 }
 
-fn write_regions<'a>(hf: &'a HeaderFooter,
-                     xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
+fn write_regions<'a>(hf: &'a HeaderFooter, xml_out: &mut XmlOdsWriter<'a>) -> Result<(), OdsError> {
     if let Some(left) = hf.left() {
         xml_out.elem("style:region-left")?;
         write_xmltag(left, xml_out)?;
@@ -1282,6 +1497,3 @@ fn write_regions<'a>(hf: &'a HeaderFooter,
 
     Ok(())
 }
-
-
-

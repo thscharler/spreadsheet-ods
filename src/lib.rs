@@ -129,31 +129,31 @@ use std::path::PathBuf;
 
 use chrono::{NaiveDate, NaiveDateTime};
 #[cfg(feature = "use_decimal")]
-use rust_decimal::Decimal;
-#[cfg(feature = "use_decimal")]
 use rust_decimal::prelude::*;
+#[cfg(feature = "use_decimal")]
+use rust_decimal::Decimal;
 use time::Duration;
 
 pub use error::OdsError;
-pub use io::{read_ods, write_ods};
 pub use format::ValueFormat;
-pub use style::{Style, Length, Angle};
+pub use io::{read_ods, write_ods};
 pub use refs::{CellRange, CellRef, ColRange, RowRange};
+pub use style::{Angle, Length, Style};
 
 use crate::attrmap::{AttrTableCol, AttrTableRow};
 use crate::style::{FontFaceDecl, PageLayout};
-use crate::xmltree::XmlTag;
 use crate::text::TextTag;
+use crate::xmltree::XmlTag;
 
-pub mod error;
-mod io;
 mod attrmap;
-pub mod text;
+pub mod defaultstyles;
+pub mod error;
+pub mod format;
+pub mod formula;
+mod io;
 pub mod refs;
 pub mod style;
-pub mod format;
-pub mod defaultstyles;
-pub mod formula;
+pub mod text;
 pub mod xmltree;
 
 /// Cell index type for row/column indexes.
@@ -359,7 +359,8 @@ impl WorkBook {
 
     /// Pagelayout
     pub fn add_pagelayout(&mut self, pagelayout: PageLayout) {
-        self.page_layouts.insert(pagelayout.name().to_string(), pagelayout);
+        self.page_layouts
+            .insert(pagelayout.name().to_string(), pagelayout);
     }
 
     pub fn remove_pagelayout(&mut self, name: &str) -> Option<PageLayout> {
@@ -581,7 +582,13 @@ impl Sheet {
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
-    pub fn set_styled_value<V: Into<Value>, W: Into<String>>(&mut self, row: ucell, col: ucell, value: V, style: W) {
+    pub fn set_styled_value<V: Into<Value>, W: Into<String>>(
+        &mut self,
+        row: ucell,
+        col: ucell,
+        value: V,
+        style: W,
+    ) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
         cell.value = value.into();
         cell.style = Some(style.into());
@@ -695,9 +702,7 @@ impl Sheet {
 
     /// Print ranges.
     pub fn add_print_range(&mut self, range: CellRange) {
-        self.print_ranges
-            .get_or_insert_with(Vec::new)
-            .push(range);
+        self.print_ranges.get_or_insert_with(Vec::new).push(range);
     }
 
     /// Remove print ranges.
@@ -1025,7 +1030,9 @@ impl From<&String> for Value {
 }
 
 impl From<TextTag> for Value {
-    fn from(t: TextTag) -> Self { Value::TextXml(Box::new(t)) }
+    fn from(t: TextTag) -> Self {
+        Value::TextXml(Box::new(t))
+    }
 }
 
 impl From<Option<String>> for Value {
@@ -1052,7 +1059,9 @@ impl From<f64> for Value {
 }
 
 impl From<f32> for Value {
-    fn from(f: f32) -> Self { Value::Number(f as f64) }
+    fn from(f: f32) -> Self {
+        Value::Number(f as f64)
+    }
 }
 
 impl From<i64> for Value {
@@ -1126,7 +1135,9 @@ impl From<Option<NaiveDateTime>> for Value {
 }
 
 impl From<NaiveDate> for Value {
-    fn from(dt: NaiveDate) -> Self { Value::DateTime(dt.and_hms(0, 0, 0)) }
+    fn from(dt: NaiveDate) -> Self {
+        Value::DateTime(dt.and_hms(0, 0, 0))
+    }
 }
 
 impl From<Option<NaiveDate>> for Value {

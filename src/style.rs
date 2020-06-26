@@ -6,13 +6,13 @@
 
 use string_cache::DefaultAtom;
 
-use crate::CellRef;
 use crate::text::TextTag;
+use crate::CellRef;
 
 pub use crate::attrmap::*;
-use std::fmt::{Display, Formatter};
 use crate::style::color_string;
 use color::Rgb;
+use std::fmt::{Display, Formatter};
 
 /// Origin of a style. Content.xml or Styles.xml.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -129,7 +129,6 @@ impl AttrStyleDynamicSpacing for PageLayout {}
 impl AttrStyleShadow for PageLayout {}
 
 impl AttrSvgHeight for PageLayout {}
-
 
 impl PageLayout {
     /// Create with name "Mpm1" and masterpage-name "Default".
@@ -307,7 +306,6 @@ impl<'a> IntoIterator for &'a HeaderFooterAttr {
         AttrMapIter::from(self.attr_map())
     }
 }
-
 
 /// Header/Footer data.
 /// Can be seen as three regions left/center/right or as one region.
@@ -631,7 +629,11 @@ impl Style {
 
     /// New, with name.
     /// value_style references a ValueFormat.
-    pub fn with_name<S: Into<String>, T: Into<String>>(family: StyleFor, name: S, value_style: T) -> Self {
+    pub fn with_name<S: Into<String>, T: Into<String>>(
+        family: StyleFor,
+        name: S,
+        value_style: T,
+    ) -> Self {
         Style {
             name: name.into(),
             display_name: None,
@@ -804,9 +806,7 @@ impl Style {
 
     /// Adds a stylemap.
     pub fn push_stylemap(&mut self, stylemap: StyleMap) {
-        self.stylemaps
-            .get_or_insert_with(Vec::new)
-            .push(stylemap);
+        self.stylemaps.get_or_insert_with(Vec::new).push(stylemap);
     }
 
     /// Returns the stylemaps
@@ -838,7 +838,11 @@ pub struct StyleMap {
 }
 
 impl StyleMap {
-    pub fn new<S: Into<String>, T: Into<String>>(condition: S, apply_style: T, cellref: CellRef) -> Self {
+    pub fn new<S: Into<String>, T: Into<String>>(
+        condition: S,
+        apply_style: T,
+        cellref: CellRef,
+    ) -> Self {
         Self {
             condition: condition.into(),
             applied_style: apply_style.into(),
@@ -1090,7 +1094,6 @@ impl TabStop {
     pub fn leader_type(&self) -> Option<&String> {
         self.attr("style:leader-type")
     }
-
 
     pub fn set_leader_width(&mut self, w: LineWidth) {
         self.set_attr("style:leader-width", w.to_string());
