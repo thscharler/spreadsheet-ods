@@ -1,4 +1,4 @@
-use spreadsheet_ods::{SCell, Sheet, ValueType, WorkBook};
+use spreadsheet_ods::{currency, percent, SCell, Sheet, Value, ValueType, WorkBook};
 
 #[test]
 fn test_workbook() {
@@ -43,4 +43,12 @@ fn test_cell() {
     let mut x = SCell::new();
     std::mem::swap(c, &mut x);
     assert_eq!(x.value().as_f64_or(0.0), 3.0);
+}
+
+#[test]
+fn test_macros() {
+    let mut sh = Sheet::new();
+
+    sh.set_value(0, 0, currency!("€", 20));
+    sh.set_value(0, 0, percent!(17.22));
 }

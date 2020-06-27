@@ -951,7 +951,7 @@ impl Value {
     }
 
     /// Return the content as str if the value is text.
-    pub fn as_str_opt<'a>(&'a self) -> Option<&'a str> {
+    pub fn as_str_opt(&self) -> Option<&str> {
         match self {
             Value::Text(s) => Some(s.as_ref()),
             _ => None,
@@ -993,22 +993,28 @@ impl Value {
             _ => None,
         }
     }
-
-    /// Create a currency value.
-    pub fn new_currency(currency: &str, value: f64) -> Self {
-        Value::Currency(currency.to_string(), value)
-    }
-
-    /// Create a percentage value.
-    pub fn new_percentage(percent: f64) -> Self {
-        Value::Percentage(percent)
-    }
 }
 
 impl Default for Value {
     fn default() -> Self {
         Value::Empty
     }
+}
+
+/// currency value
+#[macro_export]
+macro_rules! currency {
+    ($c:expr, $v:expr) => {
+        Value::Currency($c.to_string(), $v as f64)
+    };
+}
+
+/// currency value
+#[macro_export]
+macro_rules! percent {
+    ($v:expr) => {
+        Value::Percentage($v)
+    };
 }
 
 impl From<&str> for Value {

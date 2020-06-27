@@ -2,6 +2,7 @@
   <dictionary name="stommy">
     <words>
       <w>iter</w>
+      <w>timeduration</w>
     </words>
   </dictionary>
 </component>
