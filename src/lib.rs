@@ -995,12 +995,12 @@ impl Value {
     }
 
     /// Create a currency value.
-    pub fn currency(currency: &str, value: f64) -> Self {
+    pub fn new_currency(currency: &str, value: f64) -> Self {
         Value::Currency(currency.to_string(), value)
     }
 
     /// Create a percentage value.
-    pub fn percentage(percent: f64) -> Self {
+    pub fn new_percentage(percent: f64) -> Self {
         Value::Percentage(percent)
     }
 }

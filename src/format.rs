@@ -332,8 +332,9 @@ impl ValueFormat {
 
     /// Tries to format.
     /// If there are no matching parts, does nothing.
-    pub fn format_str(&self, s: &str) -> String {
+    pub fn format_str<'a, S: Into<&'a str>>(&self, s: S) -> String {
         let mut buf = String::new();
+        let s = s.into();
         for p in &self.parts {
             p.format_str(&mut buf, s);
         }
@@ -637,11 +638,15 @@ impl FormatPart {
     }
 
     /// Returns a property or a default.
-    pub fn attr_def<'a>(&'a self, name: &str, default: &'a str) -> &'a str {
-        if let Some(v) = self.attr(name) {
+    pub fn attr_def<'a0, 'a1, S0, S1>(&'a1 self, name: S0, default: S1) -> &'a1 str
+    where
+        S0: Into<&'a0 str>,
+        S1: Into<&'a1 str>,
+    {
+        if let Some(v) = self.attr(name.into()) {
             v
         } else {
-            default
+            default.into()
         }
     }
 

@@ -80,7 +80,7 @@ impl TempZip {
     }
 
     /// Packs all created files into a zip.
-    pub fn zip(&mut self) -> Result<(), std::io::Error> {
+    pub fn zip(self) -> Result<(), std::io::Error> {
         let zip_file = File::create(&self.zipped)?;
 
         let mut zip_writer = zip::ZipWriter::new(BufWriter::new(zip_file));
@@ -88,7 +88,7 @@ impl TempZip {
         // deduplizieren.
         let mut names = HashSet::new();
 
-        for entry in &self.entries {
+        for entry in self.entries.into_iter() {
             if names.contains(&entry.name) {
                 // noop
             } else if !entry.is_dir {
@@ -101,7 +101,7 @@ impl TempZip {
                 zip_writer.add_directory(&entry.name, entry.fopt)?;
             }
 
-            names.insert(entry.name.clone());
+            names.insert(entry.name);
         }
 
         Ok(())

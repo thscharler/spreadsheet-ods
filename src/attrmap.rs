@@ -226,18 +226,18 @@ where
     Self: AttrMap,
 {
     /// Font-name
-    fn set_name(&mut self, name: &str) {
-        self.set_attr("style:name", name.to_string());
+    fn set_name<S: Into<String>>(&mut self, name: S) {
+        self.set_attr("style:name", name.into());
     }
 
     /// External font family name.
-    fn set_font_family(&mut self, name: &str) {
-        self.set_attr("svg:font-family", name.to_string());
+    fn set_font_family<S: Into<String>>(&mut self, name: S) {
+        self.set_attr("svg:font-family", name.into());
     }
 
     /// System generic name.
-    fn set_font_family_generic(&mut self, name: &str) {
-        self.set_attr("style:font-family-generic", name.to_string());
+    fn set_font_family_generic<S: Into<String>>(&mut self, name: S) {
+        self.set_attr("style:font-family-generic", name.into());
     }
 
     /// Font pitch.
@@ -1029,8 +1029,8 @@ where
         self.set_attr("fo:color", color_string(color));
     }
 
-    fn set_font_name(&mut self, name: &str) {
-        self.set_attr("style:font-name", name.to_string());
+    fn set_font_name<S: Into<String>>(&mut self, name: S) {
+        self.set_attr("style:font-name", name.into());
     }
 
     fn set_font_attr(&mut self, size: Length, bold: bool, italic: bool) {
@@ -1116,12 +1116,12 @@ where
         self.set_attr("style:text-line-through-type", ltype.to_string());
     }
 
-    fn set_font_line_through_text(&mut self, text: &str) {
-        self.set_attr("style:text-line-through-text", text.to_string());
+    fn set_font_line_through_text<S: Into<String>>(&mut self, text: S) {
+        self.set_attr("style:text-line-through-text", text.into());
     }
 
-    fn set_font_line_through_text_style(&mut self, style_ref: &str) {
-        self.set_attr("style:text-line-through-text-style", style_ref.to_string());
+    fn set_font_line_through_text_style<S: Into<String>>(&mut self, style_ref: S) {
+        self.set_attr("style:text-line-through-text-style", style_ref.into());
     }
 
     fn set_font_line_through_width(&mut self, lwidth: LineWidth) {
