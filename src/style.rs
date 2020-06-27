@@ -10,6 +10,7 @@ use crate::text::TextTag;
 use crate::CellRef;
 
 pub use crate::attrmap::*;
+use crate::sealed::Sealed;
 use crate::style::color_string;
 use color::Rgb;
 use std::fmt::{Display, Formatter};
@@ -105,6 +106,8 @@ pub struct PageLayout {
     footer: HeaderFooter,
     footer_left: HeaderFooter,
 }
+
+impl Sealed for PageLayout {}
 
 impl AttrMap for PageLayout {
     fn attr_map(&self) -> &AttrMapType {
@@ -271,6 +274,8 @@ impl PageLayout {
 pub struct HeaderFooterAttr {
     attr: AttrMapType,
 }
+
+impl Sealed for HeaderFooterAttr {}
 
 impl AttrMap for HeaderFooterAttr {
     fn attr_map(&self) -> &AttrMapType {
@@ -442,6 +447,8 @@ pub struct FontFaceDecl {
     /// All other attributes.
     attr: AttrMapType,
 }
+
+impl Sealed for FontFaceDecl {}
 
 impl AttrFontDecl for FontFaceDecl {}
 
@@ -871,6 +878,8 @@ pub struct TableAttr {
     attr: AttrMapType,
 }
 
+impl Sealed for TableAttr {}
+
 impl AttrMap for TableAttr {
     fn attr_map(&self) -> &AttrMapType {
         &self.attr
@@ -908,6 +917,8 @@ pub struct TableRowAttr {
     attr: AttrMapType,
 }
 
+impl Sealed for TableRowAttr {}
+
 impl AttrMap for TableRowAttr {
     fn attr_map(&self) -> &AttrMapType {
         &self.attr
@@ -941,6 +952,8 @@ pub struct TableColAttr {
     attr: AttrMapType,
 }
 
+impl Sealed for TableColAttr {}
+
 impl AttrMap for TableColAttr {
     fn attr_map(&self) -> &AttrMapType {
         &self.attr
@@ -969,6 +982,8 @@ impl AttrTableCol for TableColAttr {}
 pub struct TableCellAttr {
     attr: AttrMapType,
 }
+
+impl Sealed for TableCellAttr {}
 
 impl AttrMap for TableCellAttr {
     fn attr_map(&self) -> &AttrMapType {
@@ -1085,6 +1100,8 @@ impl TabStop {
     }
 }
 
+impl Sealed for TabStop {}
+
 impl AttrMap for TabStop {
     fn attr_map(&self) -> &AttrMapType {
         &self.attr
@@ -1122,6 +1139,8 @@ impl ParagraphAttr {
         &self.tabstops
     }
 }
+
+impl Sealed for ParagraphAttr {}
 
 impl AttrMap for ParagraphAttr {
     fn attr_map(&self) -> &AttrMapType {
@@ -1168,6 +1187,8 @@ pub struct TextAttr {
     attr: AttrMapType,
 }
 
+impl Sealed for TextAttr {}
+
 impl AttrMap for TextAttr {
     fn attr_map(&self) -> &AttrMapType {
         &self.attr
@@ -1195,6 +1216,8 @@ impl AttrText for TextAttr {}
 pub struct GraphicAttr {
     attr: AttrMapType,
 }
+
+impl Sealed for GraphicAttr {}
 
 impl AttrMap for GraphicAttr {
     fn attr_map(&self) -> &AttrMapType {

@@ -156,6 +156,10 @@ pub mod style;
 pub mod text;
 pub mod xmltree;
 
+pub(crate) mod sealed {
+    pub trait Sealed {}
+}
+
 /// Cell index type for row/column indexes.
 #[allow(non_camel_case_types)]
 pub type ucell = u32;

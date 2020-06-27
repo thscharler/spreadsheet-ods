@@ -4,17 +4,21 @@
 //! related families of attributes.
 //!
 
+use crate::sealed;
+use color::Rgb;
 use std::collections::{hash_map, HashMap};
 use std::fmt::{Display, Formatter};
-
-use color::Rgb;
 use string_cache::DefaultAtom;
 
 /// Container type for attributes.
 pub type AttrMapType = Option<Box<HashMap<DefaultAtom, String>>>;
 
 /// Container trait for attributes.
-pub trait AttrMap {
+///
+/// Sealed
+///
+/// This trait is only to be used internally.
+pub trait AttrMap: sealed::Sealed {
     /// Reference to the map of actual attributes.
     fn attr_map(&self) -> &AttrMapType;
     /// Reference to the map of actual attributes.

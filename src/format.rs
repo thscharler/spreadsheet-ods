@@ -27,6 +27,7 @@ use time::Duration;
 use crate::attrmap::{AttrMap, AttrMapType};
 use crate::style::{StyleMap, StyleOrigin, StyleUse, TextAttr};
 use crate::ValueType;
+use crate::sealed::Sealed;
 
 #[derive(Debug)]
 pub enum ValueFormatError {
@@ -66,6 +67,8 @@ pub struct ValueFormat {
     /// Style map data.
     stylemaps: Option<Vec<StyleMap>>,
 }
+
+impl Sealed for ValueFormat {}
 
 impl AttrMap for ValueFormat {
     fn attr_map(&self) -> &AttrMapType {
@@ -403,6 +406,8 @@ pub struct FormatPart {
     /// Some content.
     content: Option<String>,
 }
+
+impl Sealed for FormatPart {}
 
 impl AttrMap for FormatPart {
     fn attr_map(&self) -> &AttrMapType {

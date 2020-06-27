@@ -46,6 +46,7 @@
 use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType};
 use std::collections::HashMap;
 use string_cache::DefaultAtom;
+use crate::sealed::Sealed;
 
 /// Defines a XML tag and it's children.
 #[derive(Debug, Clone, Default)]
@@ -54,6 +55,8 @@ pub struct XmlTag {
     attr: AttrMapType,
     content: Vec<XmlContent>,
 }
+
+impl Sealed for XmlTag {}
 
 impl AttrMap for XmlTag {
     fn attr_map(&self) -> &AttrMapType {
