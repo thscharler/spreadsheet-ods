@@ -1,6 +1,5 @@
 use color::Rgb;
 
-use spreadsheet_ods::{Angle, cm, deg, Length, mm, pt, Style};
 use spreadsheet_ods::style::{
     AttrFoBackgroundColor, AttrFoBorder, AttrFoMargin, AttrFoMinHeight, AttrFoPadding, AttrMap,
     AttrStyleDynamicSpacing, AttrStyleShadow, AttrSvgHeight, PageLayout,
@@ -11,6 +10,7 @@ use spreadsheet_ods::style::{
     FontPitch, PageBreak, ParaAlignVertical, RotationAlign, TextAlignSource, TextKeep,
     TextPosition, TextRelief, TextTransform, TextWeight, WrapOption, WritingMode,
 };
+use spreadsheet_ods::{cm, deg, mm, pt, Angle, Length, Style};
 
 #[test]
 fn test_attr1() {

@@ -3,13 +3,13 @@ use std::time::Duration;
 
 use chrono::NaiveDateTime;
 
-use spreadsheet_ods::{
-    CellRange, CellRef, SCell, Sheet, Style, ucell, Value, ValueFormat, ValueType, WorkBook,
-};
 use spreadsheet_ods::format::FormatPart;
 use spreadsheet_ods::style::{AttrMapType, HeaderFooter, PageLayout};
 use spreadsheet_ods::text::TextTag;
 use spreadsheet_ods::xmltree::XmlContent;
+use spreadsheet_ods::{
+    ucell, CellRange, CellRef, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook,
+};
 
 #[test]
 pub fn sizes() {

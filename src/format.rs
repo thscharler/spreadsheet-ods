@@ -25,9 +25,9 @@ use chrono::NaiveDateTime;
 use time::Duration;
 
 use crate::attrmap::{AttrMap, AttrMapType};
+use crate::sealed::Sealed;
 use crate::style::{StyleMap, StyleOrigin, StyleUse, TextAttr};
 use crate::ValueType;
-use crate::sealed::Sealed;
 
 #[derive(Debug)]
 pub enum ValueFormatError {

@@ -44,9 +44,9 @@
 //! ```
 
 use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType};
+use crate::sealed::Sealed;
 use std::collections::HashMap;
 use string_cache::DefaultAtom;
-use crate::sealed::Sealed;
 
 /// Defines a XML tag and it's children.
 #[derive(Debug, Clone, Default)]

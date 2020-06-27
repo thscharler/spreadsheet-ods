@@ -1,7 +1,7 @@
 use color::Rgb;
 
-use spreadsheet_ods::{cm, Length, OdsError, read_ods, WorkBook, write_ods};
 use spreadsheet_ods::style::{AttrFoBackgroundColor, AttrFoMargin, AttrFoMinHeight, PageLayout};
+use spreadsheet_ods::{cm, read_ods, write_ods, Length, OdsError, WorkBook};
 
 #[test]
 fn pagelayout() -> Result<(), OdsError> {
