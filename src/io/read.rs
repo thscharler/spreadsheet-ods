@@ -235,12 +235,9 @@ fn read_table(
 
             Event::Start(xml_tag)
             if xml_tag.name() == b"table:table-row" => {
-                match read_table_row_attr(xml, xml_tag)? {
-                    (repeat, style) => {
-                        row_repeat = repeat;
-                        row_style = style;
-                    }
-                }
+                let (repeat, style) = read_table_row_attr(xml, xml_tag)?;
+                row_repeat = repeat;
+                row_style = style;
             }
 
             Event::End(xml_tag)
@@ -504,12 +501,9 @@ fn read_table_cell(
         }
         match evt {
             Event::Start(xml_tag) if xml_tag.name() == b"text:p" => {
-                match read_text_or_tag(b"text:p", xml, &xml_tag, false)? {
-                    (str, txt) => {
-                        cell_content = str;
-                        cell_content_txt = txt;
-                    }
-                }
+                let (str, txt) = read_text_or_tag(b"text:p", xml, &xml_tag, false)?;
+                cell_content = str;
+                cell_content_txt = txt;
             }
 
             Event::Empty(xml_tag) if xml_tag.name() == b"text:p" => {
@@ -1768,7 +1762,7 @@ fn read_xml(
                         if let Some(parent) = stack.last_mut() {
                             parent.push_tag(tag);
                         } else {
-                            assert!(false);
+                            unreachable!()
                         }
                     }
                 }
@@ -1780,7 +1774,7 @@ fn read_xml(
                     if let Some(parent) = stack.last_mut() {
                         parent.push_tag(emptytag);
                     } else {
-                        assert!(false);
+                        unreachable!()
                     }
                 }
 
@@ -1788,7 +1782,7 @@ fn read_xml(
                     if let Some(parent) = stack.last_mut() {
                         parent.push_text(xmlbytes.unescape_and_decode(xml).unwrap());
                     } else {
-                        assert!(false);
+                        unreachable!()
                     }
                 }
 
@@ -1881,7 +1875,7 @@ fn read_text_or_tag(
                         if let Some(parent) = stack.last_mut() {
                             parent.push_tag(tag);
                         } else {
-                            assert!(false);
+                            unreachable!()
                         }
                     }
                 }
@@ -1907,7 +1901,7 @@ fn read_text_or_tag(
                     if let Some(parent) = stack.last_mut() {
                         parent.push_tag(emptytag);
                     } else {
-                        assert!(false);
+                        unreachable!()
                     }
                 }
 
