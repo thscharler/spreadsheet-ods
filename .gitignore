@@ -9,3 +9,4 @@ Cargo.lock
 /tests/missing
 /tryout.ods
 /test_spreadsheet/target
+.gradle
