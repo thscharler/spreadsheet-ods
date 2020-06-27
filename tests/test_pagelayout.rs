@@ -16,7 +16,7 @@ fn pagelayout() -> Result<(), OdsError> {
 fn crpagelayout() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
 
-    let mut pl = PageLayout::default();
+    let mut pl = PageLayout::new_default();
 
     pl.set_background_color(Rgb::new(12, 129, 252));
 

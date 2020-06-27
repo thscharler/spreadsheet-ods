@@ -1,19 +1,14 @@
+//! Writing to the zip directly strangely broke my content.xml
+//! Could'nt really find the source of this, so for now I use
+//! this replacer.
+
 use mktemp::Temp;
 use std::collections::HashSet;
-/// Writing to the zip directly strangely broke my content.xml
-/// Could'nt really find the source of this, so for now I use
-/// this replacer. Simulates the same API but writes to a
-/// temp-directory.
-///
-/// I zip all the stuff afterwards, and it's not to uncomfortable
-/// to have the unzipped files around für debugging. z
-///
-/// zip_clean() cleans up afterwards.
-///
 use std::fs::{create_dir_all, File};
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 
+/// Data for the ZIP archive.
 pub struct TempZip {
     zipped: PathBuf,
     temp_path: Temp,
@@ -32,8 +27,8 @@ struct TempZipEntry {
 }
 
 impl TempZip {
-    /// Final ZIP is this file. The temporaries are written at the
-    /// same location, in a new directory with the same basename.
+    /// Final ZIP is this file. The temporary files are written to a
+    /// new random subdirectory.
     pub fn new(zip_file: &Path) -> Result<Self, std::io::Error> {
         Ok(TempZip {
             zipped: zip_file.to_path_buf(),

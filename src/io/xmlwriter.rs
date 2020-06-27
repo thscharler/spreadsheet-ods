@@ -84,8 +84,6 @@ pub struct XmlWriter<W: Write> {
     buf: String,
     stack: Stack,
     open: Open,
-    /// if `true` it will indent all opening elements
-    pub indent: bool,
 }
 
 impl<W: Write> fmt::Debug for XmlWriter<W> {
@@ -106,7 +104,6 @@ impl<W: Write> XmlWriter<W> {
             buf: String::new(),
             writer: Box::new(writer),
             open: Open::None,
-            indent: true,
         }
     }
 
@@ -121,7 +118,7 @@ impl<W: Write> XmlWriter<W> {
     }
 
     fn indent(&mut self) {
-        if cfg!(feature = "indent_xml") && self.indent && !self.stack.is_empty() {
+        if cfg!(feature = "indent_xml") && !self.stack.is_empty() {
             self.buf.push('\n');
             let indent = self.stack.len() * 2;
             for _ in 0..indent {

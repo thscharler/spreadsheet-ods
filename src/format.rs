@@ -5,7 +5,7 @@
 //! use spreadsheet_ods::{ValueFormat, ValueType};
 //! use spreadsheet_ods::format::FormatNumberStyle;
 //!
-//! let mut v = ValueFormat::with_name("dt0", ValueType::DateTime);
+//! let mut v = ValueFormat::new_with_name("dt0", ValueType::DateTime);
 //! v.push_day(FormatNumberStyle::Long);
 //! v.push_text(".");
 //! v.push_month(FormatNumberStyle::Long);
@@ -80,16 +80,11 @@ impl AttrMap for ValueFormat {
 impl ValueFormat {
     /// New, empty.
     pub fn new() -> Self {
-        ValueFormat::new_origin(Default::default(), Default::default())
-    }
-
-    /// New, with origin.
-    pub fn new_origin(origin: StyleOrigin, styleuse: StyleUse) -> Self {
         ValueFormat {
             name: String::from(""),
             v_type: ValueType::Text,
-            origin,
-            styleuse,
+            origin: Default::default(),
+            styleuse: Default::default(),
             attr: None,
             text_attr: Default::default(),
             parts: Default::default(),
@@ -98,7 +93,7 @@ impl ValueFormat {
     }
 
     /// New, with name.
-    pub fn with_name<S: Into<String>>(name: S, value_type: ValueType) -> Self {
+    pub fn new_with_name<S: Into<String>>(name: S, value_type: ValueType) -> Self {
         ValueFormat {
             name: name.into(),
             v_type: value_type,
@@ -471,7 +466,7 @@ impl FormatPart {
     }
 
     /// New, with string content.
-    pub fn new_content<S: Into<String>>(ftype: FormatPartType, content: S) -> Self {
+    pub fn new_with_content<S: Into<String>>(ftype: FormatPartType, content: S) -> Self {
         FormatPart {
             part_type: ftype,
             attr: None,
@@ -541,7 +536,7 @@ impl FormatPart {
         S2: Into<String>,
         S3: Into<String>,
     {
-        let mut p = Self::new_content(FormatPartType::CurrencySymbol, symbol);
+        let mut p = Self::new_with_content(FormatPartType::CurrencySymbol, symbol);
         p.set_attr("number:country", country.into());
         p.set_attr("number:language", language.into());
         p
@@ -623,23 +618,12 @@ impl FormatPart {
 
     /// Part with fixed text.
     pub fn new_text<S: Into<String>>(text: S) -> Self {
-        Self::new_content(FormatPartType::Text, text)
+        Self::new_with_content(FormatPartType::Text, text)
     }
 
     /// Whatever this is for ...
     pub fn new_text_content() -> Self {
         Self::new(FormatPartType::TextContent)
-    }
-
-    /// New with properties.
-    pub fn new_vec(ftype: FormatPartType, prp_vec: Vec<(&str, String)>) -> Self {
-        let mut part = FormatPart {
-            part_type: ftype,
-            attr: None,
-            content: None,
-        };
-        part.add_all(prp_vec);
-        part
     }
 
     /// Sets the kind of the part.
@@ -855,14 +839,14 @@ impl FormatPart {
 
 /// Creates a new number format.
 pub fn create_boolean_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Boolean);
+    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Boolean);
     v.push_boolean();
     v
 }
 
 /// Creates a new number format.
 pub fn create_number_format<S: Into<String>>(name: S, decimal: u8, grouping: bool) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
+    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Number);
     v.push_number(decimal, grouping);
     v
 }
@@ -873,14 +857,14 @@ pub fn create_number_format_fixed<S: Into<String>>(
     decimal: u8,
     grouping: bool,
 ) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Number);
+    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Number);
     v.push_number_fix(decimal, grouping);
     v
 }
 
 /// Creates a new percantage format.<
 pub fn create_percentage_format<S: Into<String>>(name: S, decimal: u8) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Percentage);
+    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Percentage);
     v.push_number_fix(decimal, false);
     v.push_text("%");
     v
@@ -899,7 +883,7 @@ where
     S3: Into<String>,
     S4: Into<String>,
 {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
+    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Currency);
     v.push_currency(country.into(), language.into(), symbol.into());
     v.push_text(" ");
     v.push_number_fix(2, true);
@@ -919,7 +903,7 @@ where
     S3: Into<String>,
     S4: Into<String>,
 {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::Currency);
+    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Currency);
     v.push_number_fix(2, true);
     v.push_text(" ");
     v.push_currency(country.into(), language.into(), symbol.into());
@@ -928,7 +912,7 @@ where
 
 /// Creates a new date format D.M.Y
 pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::DateTime);
+    let mut v = ValueFormat::new_with_name(name.into(), ValueType::DateTime);
     v.push_day(FormatNumberStyle::Long);
     v.push_text(".");
     v.push_month(FormatNumberStyle::Long);
@@ -939,7 +923,7 @@ pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormat {
 
 /// Creates a new date format M/D/Y
 pub fn create_date_mdy_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::DateTime);
+    let mut v = ValueFormat::new_with_name(name.into(), ValueType::DateTime);
     v.push_month(FormatNumberStyle::Long);
     v.push_text("/");
     v.push_day(FormatNumberStyle::Long);
@@ -950,7 +934,7 @@ pub fn create_date_mdy_format<S: Into<String>>(name: S) -> ValueFormat {
 
 /// Creates a datetime format Y-M-D H:M:S
 pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::DateTime);
+    let mut v = ValueFormat::new_with_name(name.into(), ValueType::DateTime);
     v.push_day(FormatNumberStyle::Long);
     v.push_text(".");
     v.push_month(FormatNumberStyle::Long);
@@ -967,7 +951,7 @@ pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
 
 /// Creates a new time-Duration format H:M:S
 pub fn create_time_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::with_name(name.into(), ValueType::TimeDuration);
+    let mut v = ValueFormat::new_with_name(name.into(), ValueType::TimeDuration);
     v.push_hours(FormatNumberStyle::Long);
     v.push_text(":");
     v.push_minutes(FormatNumberStyle::Long);

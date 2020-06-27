@@ -72,7 +72,7 @@ impl Default for StyleFor {
 ///
 /// let mut wb = WorkBook::new();
 ///
-/// let mut pl = PageLayout::default();
+/// let mut pl = PageLayout::new_default();
 ///
 /// pl.set_background_color(Rgb::new(12, 129, 252));
 ///
@@ -132,7 +132,7 @@ impl AttrSvgHeight for PageLayout {}
 
 impl PageLayout {
     /// Create with name "Mpm1" and masterpage-name "Default".
-    pub fn default() -> Self {
+    pub fn new_default() -> Self {
         Self {
             name: "Mpm1".to_string(),
             master_page_name: "Default".to_string(),
@@ -147,7 +147,7 @@ impl PageLayout {
     }
 
     /// Create with name "Mpm2" and masterpage-name "Report".
-    pub fn report() -> Self {
+    pub fn new_report() -> Self {
         Self {
             name: "Mpm2".to_string(),
             master_page_name: "Report".to_string(),
@@ -458,20 +458,15 @@ impl AttrMap for FontFaceDecl {
 impl FontFaceDecl {
     /// New, empty.
     pub fn new() -> Self {
-        FontFaceDecl::new_origin(StyleOrigin::Content)
-    }
-
-    /// New, with origination.
-    pub fn new_origin(origin: StyleOrigin) -> Self {
         Self {
             name: "".to_string(),
-            origin,
+            origin: Default::default(),
             attr: None,
         }
     }
 
     /// New, with a name.
-    pub fn with_name<S: Into<String>>(name: S) -> Self {
+    pub fn new_with_name<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
             origin: StyleOrigin::Content,
@@ -515,17 +510,17 @@ impl FontFaceDecl {
 ///
 /// let mut wb = WorkBook::new();
 ///
-/// let mut st = Style::cell_style("ce12", "num2");
+/// let mut st = Style::new_cell_style("ce12", "num2");
 /// st.text_mut().set_color(Rgb::new(192, 128, 0));
 /// st.text_mut().set_font_bold();
 /// wb.add_style(st);
 ///
-/// let mut st = Style::cell_style("ce11", "num2");
+/// let mut st = Style::new_cell_style("ce11", "num2");
 /// st.text_mut().set_color(Rgb::new(0, 192, 128));
 /// st.text_mut().set_font_bold();
 /// wb.add_style(st);
 ///
-/// let mut st = Style::cell_style("ce13", "num4");
+/// let mut st = Style::new_cell_style("ce13", "num4");
 /// st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::remote("sheet0", 4, 3)));
 /// st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::remote("sheet0", 4, 3)));
 /// wb.add_style(st);
@@ -578,16 +573,11 @@ pub struct Style {
 impl Style {
     /// New, empty.
     pub fn new() -> Self {
-        Style::new_origin(Default::default(), Default::default())
-    }
-
-    /// New, with origination.
-    pub fn new_origin(origin: StyleOrigin, styleuse: StyleUse) -> Self {
         Style {
             name: String::from(""),
             display_name: None,
-            origin,
-            styleuse,
+            origin: Default::default(),
+            styleuse: Default::default(),
             family: Default::default(),
             parent: None,
             value_format: None,
@@ -605,31 +595,31 @@ impl Style {
 
     /// Creates a new cell style.
     /// value_style references a ValueFormat.
-    pub fn cell_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
-        Style::with_name(StyleFor::TableCell, name, value_style)
+    pub fn new_cell_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::new_with_name(StyleFor::TableCell, name, value_style)
     }
 
     /// Creates a new column style.
     /// value_style references a ValueFormat.
-    pub fn col_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
-        Style::with_name(StyleFor::TableColumn, name, value_style)
+    pub fn new_col_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::new_with_name(StyleFor::TableColumn, name, value_style)
     }
 
     /// Creates a new row style.
     /// value_style references a ValueFormat.
-    pub fn row_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
-        Style::with_name(StyleFor::TableRow, name, value_style)
+    pub fn new_row_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::new_with_name(StyleFor::TableRow, name, value_style)
     }
 
     /// Creates a new table style.
     /// value_style references a ValueFormat.
-    pub fn table_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
-        Style::with_name(StyleFor::Table, name, value_style)
+    pub fn new_table_style<S: Into<String>, T: Into<String>>(name: S, value_style: T) -> Self {
+        Style::new_with_name(StyleFor::Table, name, value_style)
     }
 
     /// New, with name.
     /// value_style references a ValueFormat.
-    pub fn with_name<S: Into<String>, T: Into<String>>(
+    pub fn new_with_name<S: Into<String>, T: Into<String>>(
         family: StyleFor,
         name: S,
         value_style: T,
@@ -1036,6 +1026,7 @@ impl Default for TabStopType {
     }
 }
 
+/// Tabstops are part of a paragraph style.
 #[derive(Clone, Debug, Default)]
 pub struct TabStop {
     attr: AttrMapType,
@@ -1047,76 +1038,50 @@ impl TabStop {
             attr: Default::default(),
         }
     }
+
+    /// Delimiter character for tabs of type Char.
     pub fn set_tabstop_char(&mut self, c: char) {
         self.set_attr("style:char", c.to_string());
     }
 
-    pub fn tabstop_char(&self) -> Option<&String> {
-        self.attr("style:char")
-    }
-
+    /// Color
     pub fn set_leader_color(&mut self, color: Rgb<u8>) {
         self.set_attr("style:leader-color", color_string(color));
     }
 
-    pub fn leader_color(&self) -> Option<&String> {
-        self.attr("style:leader-color")
-    }
-
+    /// Linestyle for the leader line.
     pub fn set_leader_style(&mut self, style: LineStyle) {
         self.set_attr("style:leader-style", style.to_string());
     }
 
-    pub fn leader_style(&self) -> Option<&String> {
-        self.attr("style:leader-style")
-    }
-
+    /// Fill character for the leader line.
     pub fn set_leader_text(&mut self, text: char) {
         self.set_attr("style:leader-text", text.to_string());
     }
 
-    pub fn leader_text(&self) -> Option<&String> {
-        self.attr("style:leader-text")
-    }
-
+    /// Textstyle for the leader line.
     pub fn set_leader_text_style(&mut self, styleref: String) {
         self.set_attr("style:leader-text-style", styleref);
     }
 
-    pub fn leader_text_style(&self) -> Option<&String> {
-        self.attr("style:leader-text-style")
-    }
-
+    /// LineType for the leader line.
     pub fn set_leader_type(&mut self, t: LineType) {
         self.set_attr("style:leader-type", t.to_string());
     }
 
-    pub fn leader_type(&self) -> Option<&String> {
-        self.attr("style:leader-type")
-    }
-
+    /// Width of the leader line.
     pub fn set_leader_width(&mut self, w: LineWidth) {
         self.set_attr("style:leader-width", w.to_string());
     }
 
-    pub fn leader_width(&self) -> Option<&String> {
-        self.attr("style:leader-width")
-    }
-
+    /// Position of the tab stop.
     pub fn set_position(&mut self, pos: Length) {
         self.set_attr("style:position", pos.to_string());
     }
 
-    pub fn position(&self) -> Option<&String> {
-        self.attr("style:position")
-    }
-
+    /// Type of the tab stop.
     pub fn set_tabstop_type(&mut self, t: TabStopType) {
         self.set_attr("style:type", t.to_string());
-    }
-
-    pub fn tabstop_type(&self) -> Option<&String> {
-        self.attr("style:type")
     }
 }
 
@@ -1144,6 +1109,8 @@ impl<'a> IntoIterator for &'a TabStop {
 pub struct ParagraphAttr {
     attr: AttrMapType,
     tabstops: Vec<TabStop>,
+    // todo: drop-cap
+    // todo: background-image
 }
 
 impl ParagraphAttr {

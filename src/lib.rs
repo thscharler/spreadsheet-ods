@@ -25,14 +25,14 @@
 //! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), "nice_date_style");
 //! sheet.set_formula(0, 3, format!("of:={}+1", formula::fcellref(0,0)));
 //!
-//! let mut sheet = Sheet::with_name("sample");
+//! let mut sheet = Sheet::new_with_name("sample");
 //! sheet.set_value(5,5, "sample");
 //! wb.push_sheet(sheet);
 //!
 //! let nice_date_format = format::create_date_dmy_format("nice_date_format");
 //! wb.add_format(nice_date_format);
 //!
-//! let mut nice_date_style = Style::cell_style("nice_date_style", "nice_date_format");
+//! let mut nice_date_style = Style::new_cell_style("nice_date_style", "nice_date_format");
 //! nice_date_style.text_mut().set_font_bold();
 //! nice_date_style.text_mut().set_font_relief(TextRelief::Engraved);
 //! nice_date_style.cell_mut().set_border(mm!(0.2), Border::Dashed, Rgb::new(192, 72, 72));
@@ -447,7 +447,7 @@ impl Sheet {
     }
 
     // New, empty, but with a name.
-    pub fn with_name<S: Into<String>>(name: S) -> Self {
+    pub fn new_with_name<S: Into<String>>(name: S) -> Self {
         Sheet {
             name: name.into(),
             data: BTreeMap::new(),
@@ -509,7 +509,7 @@ impl Sheet {
         let mut col_style = if let Some(style) = workbook.remove_style(&style_name) {
             style
         } else {
-            Style::col_style(&style_name, "")
+            Style::new_col_style(&style_name, "")
         };
         col_style.col_mut().set_col_width(width);
         col_style.col_mut().set_use_optimal_col_width(false);
@@ -535,7 +535,7 @@ impl Sheet {
         let mut row_style = if let Some(style) = workbook.remove_style(&style_name) {
             style
         } else {
-            Style::row_style(&style_name, "")
+            Style::new_row_style(&style_name, "")
         };
         row_style.row_mut().set_row_height(height);
         row_style.row_mut().set_use_optimal_row_height(false);

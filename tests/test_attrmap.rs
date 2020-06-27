@@ -14,7 +14,7 @@ use spreadsheet_ods::style::{
 
 #[test]
 fn test_attr1() {
-    let mut p0 = PageLayout::default();
+    let mut p0 = PageLayout::new_default();
 
     p0.set_background_color(Rgb::new(12, 33, 46));
     assert_eq!(p0.attr("fo:background-color"), Some(&"#0c212e".to_string()));
@@ -84,7 +84,7 @@ fn test_attr2() {
 
 #[test]
 fn test_attr3() {
-    let mut st = Style::cell_style("c00", "f00");
+    let mut st = Style::new_cell_style("c00", "f00");
 
     st.table_mut().set_break_before(PageBreak::Page);
     assert_eq!(
@@ -143,7 +143,7 @@ fn test_attr3() {
 
 #[test]
 fn test_attr4() {
-    let mut st = Style::cell_style("c00", "f00");
+    let mut st = Style::new_cell_style("c00", "f00");
 
     st.cell_mut()
         .set_diagonal_bl_tr(pt!(0.2), Border::Ridge, Rgb::new(0, 127, 0));
@@ -201,7 +201,7 @@ fn test_attr4() {
 
 #[test]
 fn test_attr5() {
-    let mut st = Style::cell_style("c00", "f00");
+    let mut st = Style::new_cell_style("c00", "f00");
 
     st.paragraph_mut()
         .set_vertical_align(ParaAlignVertical::Baseline);
@@ -238,7 +238,7 @@ fn test_attr5() {
 
 #[test]
 fn test_attr6() {
-    let mut st = Style::cell_style("c00", "f00");
+    let mut st = Style::new_cell_style("c00", "f00");
 
     st.text_mut().set_font_bold();
     assert_eq!(st.text().attr("fo:font-weight"), Some(&"bold".to_string()));

@@ -8,10 +8,10 @@ fn test_workbook() {
     // println!("sizeof Sheet {}", size_of_val(&sh));
     wb.push_sheet(sh);
     assert_eq!(wb.num_sheets(), 1);
-    wb.push_sheet(Sheet::with_name("b"));
-    wb.push_sheet(Sheet::with_name("c"));
+    wb.push_sheet(Sheet::new_with_name("b"));
+    wb.push_sheet(Sheet::new_with_name("c"));
     assert_eq!(wb.sheet(1).name(), "b");
-    wb.insert_sheet(1, Sheet::with_name("x"));
+    wb.insert_sheet(1, Sheet::new_with_name("x"));
     assert_eq!(wb.sheet(1).name(), "x");
     let sh = wb.remove_sheet(1);
     assert_eq!(sh.name(), "x");
