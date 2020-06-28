@@ -827,7 +827,10 @@ fn write_start_current_row(
             xml_out.attr_esc("table:default-cell-style-name", cell_style.as_str())?;
         }
         if row_header.visible() != Visibility::Visible {
-            xml_out.attr_esc("table:visibility", row_header.visible().to_string().as_str())?;
+            xml_out.attr_esc(
+                "table:visibility",
+                row_header.visible().to_string().as_str(),
+            )?;
         }
     }
 
@@ -955,7 +958,10 @@ fn write_empty_row(
             xml_out.attr_esc("table:default-cell-style-name", cell_style.as_str())?;
         }
         if row_header.visible() != Visibility::Visible {
-            xml_out.attr_esc("table:visibility", row_header.visible().to_string().as_str())?;
+            xml_out.attr_esc(
+                "table:visibility",
+                row_header.visible().to_string().as_str(),
+            )?;
         }
     }
 
@@ -1020,7 +1026,10 @@ fn write_table_columns(
                 xml_out.attr_esc("table:default-cell-style-name", cell_style.as_str())?;
             }
             if col_header.visible() != Visibility::Visible {
-                xml_out.attr_esc("table:visibility", col_header.visible().to_string().as_str())?;
+                xml_out.attr_esc(
+                    "table:visibility",
+                    col_header.visible().to_string().as_str(),
+                )?;
             }
         }
 
@@ -1274,7 +1283,7 @@ fn write_styles(
             }
         }
         if !&style.paragraph().has_attr() {
-            if style.paragraph().tabstops().is_empty() {
+            if style.paragraph().tabstops().is_none() {
                 xml_out.empty("style:paragraph-properties")?;
                 for (a, v) in style.paragraph() {
                     xml_out.attr_esc(a.as_ref(), v.as_str())?;
@@ -1285,10 +1294,12 @@ fn write_styles(
                     xml_out.attr_esc(a.as_ref(), v.as_str())?;
                 }
                 xml_out.elem("style:tab-stops")?;
-                for ts in style.paragraph().tabstops() {
-                    xml_out.empty("style:tab-stop")?;
-                    for (a, v) in ts {
-                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                if let Some(tabstops) = style.paragraph().tabstops() {
+                    for ts in tabstops.as_ref() {
+                        xml_out.empty("style:tab-stop")?;
+                        for (a, v) in ts {
+                            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                        }
                     }
                 }
                 xml_out.end_elem("style:tab-stops")?;
@@ -1309,7 +1320,7 @@ fn write_styles(
         }
 
         if let Some(stylemaps) = style.stylemaps() {
-            for sm in stylemaps {
+            for sm in stylemaps.as_ref() {
                 xml_out.empty("style:map")?;
                 xml_out.attr_esc("style:condition", sm.condition())?;
                 xml_out.attr_esc("style:apply-style-name", sm.applied_style())?;
@@ -1411,7 +1422,7 @@ fn write_value_styles(
         }
 
         if let Some(stylemaps) = value_format.stylemaps() {
-            for sm in stylemaps {
+            for sm in stylemaps.as_ref() {
                 xml_out.empty("style:map")?;
                 xml_out.attr_esc("style:condition", sm.condition())?;
                 xml_out.attr_esc("style:apply-style-name", sm.applied_style())?;

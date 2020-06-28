@@ -3,13 +3,13 @@ use std::time::Duration;
 
 use chrono::NaiveDateTime;
 
+use spreadsheet_ods::{
+    CellRange, CellRef, SCell, Sheet, Style, ucell, Value, ValueFormat, ValueType, WorkBook,
+};
 use spreadsheet_ods::format::FormatPart;
-use spreadsheet_ods::style::{AttrMapType, HeaderFooter, PageLayout};
+use spreadsheet_ods::style::{AttrMapType, HeaderFooter, PageLayout, ParagraphAttr, StyleMap, TableAttr};
 use spreadsheet_ods::text::TextTag;
 use spreadsheet_ods::xmltree::XmlContent;
-use spreadsheet_ods::{
-    ucell, CellRange, CellRef, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook,
-};
 
 #[test]
 pub fn sizes() {
@@ -43,6 +43,9 @@ pub fn sizes() {
     println!("PageLayout {}", size_of::<PageLayout>());
     println!("HeaderFooter {}", size_of::<HeaderFooter>());
     println!("Style {}", size_of::<Style>());
+    println!("TableAttr {}", size_of::<TableAttr>());
+    println!("ParagraphAttr {}", size_of::<ParagraphAttr>());
+    println!("Vec<StyleMap> {}", size_of::<Vec<StyleMap>>());
     println!("CellRange {}", size_of::<CellRange>());
     println!("CellRef {}", size_of::<CellRef>());
 }

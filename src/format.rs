@@ -65,7 +65,7 @@ pub struct ValueFormat {
     /// Parts of the format.
     parts: Vec<FormatPart>,
     /// Style map data.
-    stylemaps: Option<Vec<StyleMap>>,
+    stylemaps: Option<Box<Vec<StyleMap>>>,
 }
 
 impl Sealed for ValueFormat {}
@@ -300,17 +300,17 @@ impl ValueFormat {
 
     /// Adds a stylemap.
     pub fn push_stylemap(&mut self, stylemap: StyleMap) {
-        self.stylemaps.get_or_insert_with(Vec::new).push(stylemap);
+        self.stylemaps.get_or_insert_with(|| Box::new(Vec::new())).push(stylemap);
     }
 
     /// Returns the stylemaps
-    pub fn stylemaps(&self) -> Option<&Vec<StyleMap>> {
+    pub fn stylemaps(&self) -> Option<&Box<Vec<StyleMap>>> {
         self.stylemaps.as_ref()
     }
 
     /// Returns the mutable stylemap.
-    pub fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap> {
-        self.stylemaps.get_or_insert_with(Vec::new)
+    pub fn stylemaps_mut(&mut self) -> &mut Box<Vec<StyleMap>> {
+        self.stylemaps.get_or_insert_with(|| Box::new(Vec::new()))
     }
 
     /// Tries to format.
