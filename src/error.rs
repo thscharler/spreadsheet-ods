@@ -7,6 +7,7 @@ pub enum OdsError {
     Zip(zip::result::ZipError),
     Xml(quick_xml::Error),
     ParseInt(std::num::ParseIntError),
+    ParseBool(std::str::ParseBoolError),
     ParseFloat(std::num::ParseFloatError),
     Chrono(chrono::format::ParseError),
     Duration(time::OutOfRangeError),
@@ -21,6 +22,7 @@ impl Display for OdsError {
             OdsError::Zip(e) => write!(f, "Zip {}", e)?,
             OdsError::Xml(e) => write!(f, "Xml {}", e)?,
             OdsError::ParseInt(e) => write!(f, "ParseInt {}", e)?,
+            OdsError::ParseBool(e) => write!(f, "ParseBool {}", e)?,
             OdsError::ParseFloat(e) => write!(f, "ParseFloat {}", e)?,
             OdsError::Chrono(e) => write!(f, "Chrono {}", e)?,
             OdsError::Duration(e) => write!(f, "Duration {}", e)?,
@@ -39,6 +41,7 @@ impl std::error::Error for OdsError {
             OdsError::Zip(e) => Some(e),
             OdsError::Xml(e) => Some(e),
             OdsError::ParseInt(e) => Some(e),
+            OdsError::ParseBool(e) => Some(e),
             OdsError::ParseFloat(e) => Some(e),
             OdsError::Chrono(e) => Some(e),
             OdsError::Duration(e) => Some(e),
@@ -68,6 +71,12 @@ impl From<zip::result::ZipError> for OdsError {
 impl From<quick_xml::Error> for OdsError {
     fn from(err: quick_xml::Error) -> OdsError {
         OdsError::Xml(err)
+    }
+}
+
+impl From<std::str::ParseBoolError> for OdsError {
+    fn from(err: std::str::ParseBoolError) -> OdsError {
+        OdsError::ParseBool(err)
     }
 }
 

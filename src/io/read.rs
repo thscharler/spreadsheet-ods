@@ -16,7 +16,9 @@ use crate::style::{
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
-use crate::{ucell, ColRange, RowRange, SCell, Sheet, Value, ValueFormat, ValueType, WorkBook};
+use crate::{
+    ucell, ColRange, RowRange, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook,
+};
 
 /// Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
@@ -89,7 +91,8 @@ fn read_content(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsEr
 
             Event::Empty(xml_tag) |
             Event::Start(xml_tag)
-            if /* prelude */ xml_tag.name() == b"table:tracked-changes" ||
+            if /* prelude */ xml_tag.name() == b"office:scripts" ||
+                xml_tag.name() == b"table:tracked-changes" ||
                 xml_tag.name() == b"text:variable-decls" ||
                 xml_tag.name() == b"text:sequence-decls" ||
                 xml_tag.name() == b"text:user-field-decls" ||
@@ -109,7 +112,8 @@ fn read_content(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsEr
             }
 
             Event::End(xml_tag)
-            if /* prelude */ xml_tag.name() == b"table:tracked-changes" ||
+            if /* prelude */ xml_tag.name() == b"office:scripts" ||
+                xml_tag.name() == b"table:tracked-changes" ||
                 xml_tag.name() == b"text:variable-decls" ||
                 xml_tag.name() == b"text:sequence-decls" ||
                 xml_tag.name() == b"text:user-field-decls" ||
@@ -159,8 +163,9 @@ fn read_table(
 
     // Rows can be repeated. In reality only empty ones ever are.
     let mut row_repeat: ucell = 1;
-    // Row style.
     let mut row_style: Option<String> = None;
+    let mut row_cell_style: Option<String> = None;
+    let mut row_visible: Visibility = Default::default();
 
     let mut col_range_from = 0;
     let mut row_range_from = 0;
@@ -174,7 +179,7 @@ fn read_table(
             false
         };
         if cfg!(feature = "dump_xml") {
-            println!(" read_content {:?}", evt);
+            println!(" read_table {:?}", evt);
         }
         match evt {
             Event::End(xml_tag)
@@ -182,7 +187,8 @@ fn read_table(
                 break;
             }
 
-            Event::Start(xml_tag)
+            Event::Start(xml_tag) |
+            Event::Empty(xml_tag)
             if /* prelude */ xml_tag.name() == b"table:title" ||
                 xml_tag.name() == b"table:desc" ||
                 xml_tag.name() == b"table:table-source" ||
@@ -220,7 +226,7 @@ fn read_table(
 
             Event::Empty(xml_tag)
             if xml_tag.name() == b"table:table-column" => {
-                table_col = read_table_column(&mut sheet, table_col, xml, &xml_tag)?;
+                table_col = read_table_col_attr(&mut sheet, table_col, xml, &xml_tag)?;
             }
 
             Event::Start(xml_tag)
@@ -235,9 +241,11 @@ fn read_table(
 
             Event::Start(xml_tag)
             if xml_tag.name() == b"table:table-row" => {
-                let (repeat, style) = read_table_row_attr(xml, xml_tag)?;
+                let (repeat, style, cell_style, visible) = read_table_row_attr(xml, xml_tag)?;
                 row_repeat = repeat;
                 row_style = style;
+                row_cell_style = cell_style;
+                row_visible = visible;
             }
 
             Event::End(xml_tag)
@@ -257,6 +265,12 @@ fn read_table(
                     sheet.set_row_style(row, row_style);
                 }
                 row_style = None;
+                if let Some(row_cell_style) = row_cell_style {
+                    sheet.set_row_cell_style(row, row_cell_style);
+                }
+                row_cell_style = None;
+                sheet.set_row_visible(row, row_visible);
+                row_visible = Default::default();
 
                 row += row_repeat;
                 col = 0;
@@ -321,12 +335,15 @@ fn read_table_attr(
 fn read_table_row_attr(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     xml_tag: BytesStart,
-) -> Result<(ucell, Option<String>), OdsError> {
+) -> Result<(ucell, Option<String>, Option<String>, Visibility), OdsError> {
     let mut row_repeat: ucell = 1;
+    let mut row_visible: Visibility = Default::default();
     let mut row_style: Option<String> = None;
+    let mut row_cell_style: Option<String> = None;
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
+            // table:default-cell-style-name 19.615, table:visibility 19.749 and xml:id 19.914.
             attr if attr.key == b"table:number-rows-repeated" => {
                 let v = attr.unescaped_value()?;
                 let v = xml.decode(v.as_ref())?;
@@ -335,6 +352,14 @@ fn read_table_row_attr(
             attr if attr.key == b"table:style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
                 row_style = Some(v);
+            }
+            attr if attr.key == b"table:default-cell-style-name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                row_cell_style = Some(v);
+            }
+            attr if attr.key == b"table:visibility" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                row_visible = v.parse()?;
             }
             attr => {
                 if cfg!(feature = "dump_unused") {
@@ -347,11 +372,11 @@ fn read_table_row_attr(
         }
     }
 
-    Ok((row_repeat, row_style))
+    Ok((row_repeat, row_style, row_cell_style, row_visible))
 }
 
 // Reads the table-column attributes. Creates as many copies as indicated.
-fn read_table_column(
+fn read_table_col_attr(
     sheet: &mut Sheet,
     mut table_col: ucell,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
@@ -360,20 +385,25 @@ fn read_table_column(
     let mut style = None;
     let mut cell_style = None;
     let mut repeat: ucell = 1;
+    let mut visible: Visibility = Default::default();
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"table:style-name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
-                style = Some(v);
-            }
             attr if attr.key == b"table:number-columns-repeated" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
                 repeat = v.parse()?;
             }
+            attr if attr.key == b"table:style-name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                style = Some(v);
+            }
             attr if attr.key == b"table:default-cell-style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
                 cell_style = Some(v);
+            }
+            attr if attr.key == b"table:visibility" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                visible = v.parse()?;
             }
             attr => {
                 if cfg!(feature = "dump_unused") {
@@ -393,6 +423,7 @@ fn read_table_column(
         if let Some(cell_style) = &cell_style {
             sheet.set_column_cell_style(table_col, cell_style.clone());
         }
+        sheet.set_column_visible(table_col, visible);
         table_col += 1;
         repeat -= 1;
     }
@@ -1551,7 +1582,9 @@ fn read_style_style(
                     if e.name() == end_tag {
                         book.add_style(style);
                         break;
-                    } else if e.name() == b"style:tab-stops" {
+                    } else if e.name() == b"style:tab-stops"
+                        || e.name() == b"style:paragraph-properties"
+                    {
                         // noop
                     } else {
                         if cfg!(feature = "dump_unused") {
@@ -1693,6 +1726,9 @@ fn read_styles(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsErr
             Event::Decl(_) => {}
 
             Event::Start(xml_tag) if xml_tag.name() == b"office:document-styles" => {
+                // noop
+            }
+            Event::End(xml_tag) if xml_tag.name() == b"office:document-styles" => {
                 // noop
             }
 

@@ -17,7 +17,7 @@ use crate::style::{
     FontFaceDecl, HeaderFooter, PageLayout, Style, StyleFor, StyleOrigin, StyleUse,
 };
 use crate::xmltree::{XmlContent, XmlTag};
-use crate::{ucell, SCell, Sheet, Value, ValueFormat, ValueType, WorkBook};
+use crate::{ucell, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
 
 type OdsWriter = TempZip;
 type XmlOdsWriter<'a> = XmlWriter<TempWrite<'a>>;
@@ -586,7 +586,8 @@ fn write_ods_content(
 
     // extra tags. pass through only
     for tag in &book.extra {
-        if tag.name() == "table:tracked-changes" ||
+        if tag.name() == "office:scripts" ||
+            tag.name() == "table:tracked-changes" ||
             tag.name() == "text:variable-decls" ||
             tag.name() == "text:sequence-decls" ||
             tag.name() == "text:user-field-decls" ||
@@ -818,8 +819,16 @@ fn write_start_current_row(
     }
 
     xml_out.elem("table:table-row")?;
-    if let Some(row_style) = sheet.row_style(cur_row) {
-        xml_out.attr_esc("table:style-name", row_style.as_str())?;
+    if let Some(row_header) = sheet.row_header.get(&cur_row) {
+        if let Some(row_style) = row_header.style() {
+            xml_out.attr_esc("table:style-name", row_style.as_str())?;
+        }
+        if let Some(cell_style) = row_header.cell_style() {
+            xml_out.attr_esc("table:default-cell-style-name", cell_style.as_str())?;
+        }
+        if row_header.visible() != Visibility::Visible {
+            xml_out.attr_esc("table:visibility", row_header.visible().to_string().as_str())?;
+        }
     }
 
     // Might not be the first column in this row.
@@ -887,7 +896,13 @@ fn write_empty_rows_before(
             // What was the last_row? Was there a header start since?
             let last_row = cur_row - backward_dr;
             if header_rows.row < cur_row && header_rows.row > last_row {
-                write_empty_row(header_rows.row - last_row - corr, max_cell, xml_out)?;
+                write_empty_row(
+                    sheet,
+                    cur_row,
+                    header_rows.row - last_row - corr,
+                    max_cell,
+                    xml_out,
+                )?;
                 xml_out.elem("table:table-header-rows")?;
                 // Don't write the empty line for the first header-row, we can
                 // collapse it with the rest. corr suits fine for this.
@@ -901,7 +916,13 @@ fn write_empty_rows_before(
             if header_rows.to_row < cur_row && header_rows.to_row > cur_row - backward_dr {
                 // Empty lines, including the current line that marks
                 // the end of the header.
-                write_empty_row(header_rows.to_row - last_row - corr + 1, max_cell, xml_out)?;
+                write_empty_row(
+                    sheet,
+                    cur_row,
+                    header_rows.to_row - last_row - corr + 1,
+                    max_cell,
+                    xml_out,
+                )?;
                 xml_out.end_elem("table:table-header-rows")?;
                 // Correction for table start is no longer needed.
                 corr = 1;
@@ -911,19 +932,32 @@ fn write_empty_rows_before(
         }
 
         // Write out the empty lines.
-        write_empty_row(backward_dr - corr, max_cell, xml_out)?;
+        write_empty_row(sheet, cur_row, backward_dr - corr, max_cell, xml_out)?;
     }
 
     Ok(())
 }
 
 fn write_empty_row(
+    sheet: &Sheet,
+    cur_row: ucell,
     empty_count: u32,
     max_cell: (u32, u32),
     xml_out: &mut XmlWriter<TempWrite>,
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table-row")?;
     xml_out.attr("table:number-rows-repeated", &empty_count.to_string())?;
+    if let Some(row_header) = sheet.row_header.get(&cur_row) {
+        if let Some(row_style) = row_header.style() {
+            xml_out.attr_esc("table:style-name", row_style.as_str())?;
+        }
+        if let Some(cell_style) = row_header.cell_style() {
+            xml_out.attr_esc("table:default-cell-style-name", cell_style.as_str())?;
+        }
+        if row_header.visible() != Visibility::Visible {
+            xml_out.attr_esc("table:visibility", row_header.visible().to_string().as_str())?;
+        }
+    }
 
     // We fill the empty spaces completely up to max columns.
     let max_cell_col = max_cell.1.to_string();
@@ -970,9 +1004,6 @@ fn write_table_columns(
 ) -> Result<(), OdsError> {
     // table:table-column
     for c in 0..max_cell.1 {
-        let style = sheet.column_style(c);
-        let cell_style = sheet.column_cell_style(c);
-
         // markup header columns
         if let Some(header_cols) = &sheet.header_cols {
             if header_cols.col() == c {
@@ -980,16 +1011,17 @@ fn write_table_columns(
             }
         }
 
-        if style.is_some() || cell_style.is_some() {
-            xml_out.empty("table:table-column")?;
-            if let Some(style) = style {
+        xml_out.empty("table:table-column")?;
+        if let Some(col_header) = sheet.col_header.get(&c) {
+            if let Some(style) = col_header.style() {
                 xml_out.attr_esc("table:style-name", style.as_str())?;
             }
-            if let Some(cell_style) = cell_style {
+            if let Some(cell_style) = col_header.cell_style() {
                 xml_out.attr_esc("table:default-cell-style-name", cell_style.as_str())?;
             }
-        } else {
-            xml_out.empty("table:table-column")?;
+            if col_header.visible() != Visibility::Visible {
+                xml_out.attr_esc("table:visibility", col_header.visible().to_string().as_str())?;
+            }
         }
 
         // markup header columns

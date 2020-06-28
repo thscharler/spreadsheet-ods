@@ -144,6 +144,8 @@ use crate::attrmap::{AttrTableCol, AttrTableRow};
 use crate::style::{FontFaceDecl, PageLayout};
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
 mod attrmap;
 pub mod defaultstyles;
@@ -382,6 +384,98 @@ impl WorkBook {
     }
 }
 
+/// Visibility of a column or row.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum Visibility {
+    Visible,
+    Collapsed,
+    Filtered,
+}
+
+impl FromStr for Visibility {
+    type Err = OdsError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "visible" => Ok(Visibility::Visible),
+            "filter" => Ok(Visibility::Filtered),
+            "collapse" => Ok(Visibility::Collapsed),
+            _ => {
+                return Err(OdsError::Ods(format!(
+                    "Unknown value for table:visibility {}",
+                    s
+                )))
+            }
+        }
+    }
+}
+
+impl Default for Visibility {
+    fn default() -> Self {
+        Visibility::Visible
+    }
+}
+
+impl Display for Visibility {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Visibility::Visible => write!(f, "visible"),
+            Visibility::Collapsed => write!(f, "collapse"),
+            Visibility::Filtered => write!(f, "filter"),
+        }
+    }
+}
+
+/// Row/column data
+#[derive(Debug, Clone, Default)]
+struct RowColHeader {
+    style: Option<String>,
+    cell_style: Option<String>,
+    visible: Visibility,
+}
+
+impl RowColHeader {
+    pub fn new() -> Self {
+        Self {
+            style: None,
+            cell_style: None,
+            visible: Default::default(),
+        }
+    }
+
+    pub fn set_style<S: Into<String>>(&mut self, style: S) {
+        self.style = Some(style.into());
+    }
+
+    pub fn clear_style(&mut self) {
+        self.style = None;
+    }
+
+    pub fn style(&self) -> Option<&String> {
+        self.style.as_ref()
+    }
+
+    pub fn set_cell_style<S: Into<String>>(&mut self, style: S) {
+        self.cell_style = Some(style.into());
+    }
+
+    pub fn clear_cell_style(&mut self) {
+        self.cell_style = None;
+    }
+
+    pub fn cell_style(&self) -> Option<&String> {
+        self.cell_style.as_ref()
+    }
+
+    pub fn set_visible(&mut self, visible: Visibility) {
+        self.visible = visible;
+    }
+
+    pub fn visible(&self) -> Visibility {
+        self.visible
+    }
+}
+
 /// One sheet of the spreadsheet.
 ///
 /// Contains the data and the style-references. The can also be
@@ -394,9 +488,8 @@ pub struct Sheet {
 
     data: BTreeMap<(ucell, ucell), SCell>,
 
-    col_style: BTreeMap<ucell, String>,
-    col_cell_style: BTreeMap<ucell, String>,
-    row_style: BTreeMap<ucell, String>,
+    col_header: BTreeMap<ucell, RowColHeader>,
+    row_header: BTreeMap<ucell, RowColHeader>,
 
     header_rows: Option<RowRange>,
     header_cols: Option<ColRange>,
@@ -411,13 +504,10 @@ impl fmt::Debug for Sheet {
         for (k, v) in self.data.iter() {
             writeln!(f, "  data {:?} {:?}", k, v)?;
         }
-        for (k, v) in &self.col_style {
+        for (k, v) in &self.col_header {
             writeln!(f, "{:?} {:?}", k, v)?;
         }
-        for (k, v) in &self.col_cell_style {
-            writeln!(f, "{:?} {:?}", k, v)?;
-        }
-        for (k, v) in &self.row_style {
+        for (k, v) in &self.row_header {
             writeln!(f, "{:?} {:?}", k, v)?;
         }
         if let Some(header_rows) = &self.header_rows {
@@ -439,14 +529,13 @@ impl Sheet {
         Sheet {
             name: String::from(""),
             data: BTreeMap::new(),
+            col_header: Default::default(),
             style: None,
-            col_style: Default::default(),
-            col_cell_style: Default::default(),
-            row_style: Default::default(),
             header_rows: None,
             header_cols: None,
             print_ranges: None,
             extra: vec![],
+            row_header: Default::default(),
         }
     }
 
@@ -455,14 +544,13 @@ impl Sheet {
         Sheet {
             name: name.into(),
             data: BTreeMap::new(),
+            col_header: Default::default(),
             style: None,
-            col_style: Default::default(),
-            col_cell_style: Default::default(),
-            row_style: Default::default(),
             header_rows: None,
             header_cols: None,
             print_ranges: None,
             extra: vec![],
+            row_header: Default::default(),
         }
     }
 
@@ -486,24 +574,71 @@ impl Sheet {
         self.style.as_ref()
     }
 
-    /// Column wide style.
+    /// Column style.
     pub fn set_column_style<V: Into<String>>(&mut self, col: ucell, style: V) {
-        self.col_style.insert(col, style.into());
+        self.col_header
+            .entry(col)
+            .or_insert(RowColHeader::new())
+            .set_style(style);
     }
 
-    /// Returns the column wide style.
+    /// Remove the style.
+    pub fn clear_column_style(&mut self, col: ucell) {
+        self.col_header
+            .entry(col)
+            .or_insert(RowColHeader::new())
+            .clear_style();
+    }
+
+    /// Returns the column style.
     pub fn column_style(&self, col: ucell) -> Option<&String> {
-        self.col_style.get(&col)
+        if let Some(col_header) = self.col_header.get(&col) {
+            col_header.style()
+        } else {
+            None
+        }
     }
 
     /// Default cell style for this column.
     pub fn set_column_cell_style<V: Into<String>>(&mut self, col: ucell, style: V) {
-        self.col_cell_style.insert(col, style.into());
+        self.col_header
+            .entry(col)
+            .or_insert(RowColHeader::new())
+            .set_cell_style(style);
+    }
+
+    /// Remove the style.
+    pub fn clear_column_cell_style(&mut self, col: ucell) {
+        self.col_header
+            .entry(col)
+            .or_insert(RowColHeader::new())
+            .clear_cell_style();
     }
 
     /// Returns the default cell style for this column.
     pub fn column_cell_style(&self, col: ucell) -> Option<&String> {
-        self.col_cell_style.get(&col)
+        if let Some(col_header) = self.col_header.get(&col) {
+            col_header.cell_style()
+        } else {
+            None
+        }
+    }
+
+    /// Visibility of the column
+    pub fn set_column_visible(&mut self, col: ucell, visible: Visibility) {
+        self.col_header
+            .entry(col)
+            .or_insert(RowColHeader::new())
+            .set_visible(visible);
+    }
+
+    /// Returns the default cell style for this column.
+    pub fn column_visible(&self, col: ucell) -> Visibility {
+        if let Some(col_header) = self.col_header.get(&col) {
+            col_header.visible()
+        } else {
+            Default::default()
+        }
     }
 
     /// Creates a col style and sets the col width.
@@ -523,13 +658,70 @@ impl Sheet {
     }
 
     /// Row style.
-    pub fn set_row_style<V: Into<String>>(&mut self, row: ucell, style: V) {
-        self.row_style.insert(row, style.into());
+    pub fn set_row_style<V: Into<String>>(&mut self, col: ucell, style: V) {
+        self.row_header
+            .entry(col)
+            .or_insert(RowColHeader::new())
+            .set_style(style);
+    }
+
+    /// Remove the style.
+    pub fn clear_row_style(&mut self, col: ucell) {
+        self.row_header
+            .entry(col)
+            .or_insert(RowColHeader::new())
+            .clear_style();
     }
 
     /// Returns the row style.
-    pub fn row_style(&self, row: ucell) -> Option<&String> {
-        self.row_style.get(&row)
+    pub fn row_style(&self, col: ucell) -> Option<&String> {
+        if let Some(row_header) = self.row_header.get(&col) {
+            row_header.style()
+        } else {
+            None
+        }
+    }
+
+    /// Default cell style for this row.
+    pub fn set_row_cell_style<V: Into<String>>(&mut self, col: ucell, style: V) {
+        self.row_header
+            .entry(col)
+            .or_insert(RowColHeader::new())
+            .set_cell_style(style);
+    }
+
+    /// Remove the style.
+    pub fn clear_row_cell_style(&mut self, col: ucell) {
+        self.row_header
+            .entry(col)
+            .or_insert(RowColHeader::new())
+            .clear_cell_style();
+    }
+
+    /// Returns the default cell style for this row.
+    pub fn row_cell_style(&self, col: ucell) -> Option<&String> {
+        if let Some(row_header) = self.row_header.get(&col) {
+            row_header.cell_style()
+        } else {
+            None
+        }
+    }
+
+    /// Visibility of the row
+    pub fn set_row_visible(&mut self, col: ucell, visible: Visibility) {
+        self.row_header
+            .entry(col)
+            .or_insert(RowColHeader::new())
+            .set_visible(visible);
+    }
+
+    /// Returns the default cell style for this row.
+    pub fn row_visible(&self, col: ucell) -> Visibility {
+        if let Some(row_header) = self.row_header.get(&col) {
+            row_header.visible()
+        } else {
+            Default::default()
+        }
     }
 
     /// Creates a row-style and sets the row height.
