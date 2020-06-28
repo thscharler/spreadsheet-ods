@@ -491,6 +491,9 @@ pub struct Sheet {
     col_header: BTreeMap<ucell, RowColHeader>,
     row_header: BTreeMap<ucell, RowColHeader>,
 
+    display: bool,
+    print: bool,
+
     header_rows: Option<RowRange>,
     header_cols: Option<ColRange>,
     print_ranges: Option<Vec<CellRange>>,
@@ -536,6 +539,8 @@ impl Sheet {
             print_ranges: None,
             extra: vec![],
             row_header: Default::default(),
+            display: true,
+            print: true,
         }
     }
 
@@ -551,6 +556,8 @@ impl Sheet {
             print_ranges: None,
             extra: vec![],
             row_header: Default::default(),
+            display: true,
+            print: true,
         }
     }
 
@@ -749,6 +756,26 @@ impl Sheet {
         });
 
         (max.0 + 1, max.1 + 1)
+    }
+
+    /// Is the sheet displayed?
+    pub fn set_display(&mut self, display: bool) {
+        self.display = display;
+    }
+
+    /// Is the sheet displayed?
+    pub fn display(&self) -> bool {
+        self.display
+    }
+
+    /// Is the sheet printed?
+    pub fn set_print(&mut self, print: bool) {
+        self.print = print;
+    }
+
+    /// Is the sheet printed?
+    pub fn print(&self) -> bool {
+        self.print
     }
 
     /// Returns true if there is no SCell at the given position.

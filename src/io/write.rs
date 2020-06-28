@@ -652,6 +652,13 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     if let Some(print_ranges) = &sheet.print_ranges {
         xml_out.attr_esc("table:print-ranges", &cellranges_string(print_ranges))?;
     }
+    if !sheet.print() {
+        xml_out.attr("table:print", "false")?;
+    }
+    if !sheet.display() {
+        xml_out.attr("table:display", "false")?;
+    }
+
 
     let max_cell = sheet.used_grid_size();
 

@@ -1,5 +1,5 @@
+use spreadsheet_ods::{OdsError, read_ods, Sheet, ValueType, WorkBook, write_ods};
 use spreadsheet_ods::refs::{CellRange, ColRange, RowRange};
-use spreadsheet_ods::{read_ods, write_ods, OdsError, Sheet, ValueType, WorkBook};
 
 #[test]
 fn test_0() -> Result<(), OdsError> {
@@ -186,6 +186,26 @@ fn read_orders() -> Result<(), OdsError> {
     println!("read_orders");
 
     let _wb = read_ods("tests/orders.ods");
+
+    Ok(())
+}
+
+#[test]
+fn display_print() -> Result<(), OdsError> {
+    println!("display_print");
+
+    let mut wb = WorkBook::new();
+    let mut s0 = Sheet::new();
+    s0.set_value(0, 0, "display");
+    s0.set_display(false);
+    wb.push_sheet(s0);
+
+    let mut s1 = Sheet::new();
+    s1.set_value(0, 0, "print");
+    s1.set_print(false);
+    wb.push_sheet(s1);
+
+    write_ods(&wb, "test_out/display_print.ods")?;
 
     Ok(())
 }

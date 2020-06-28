@@ -312,6 +312,14 @@ fn read_table_attr(
                 let v = attr.unescape_and_decode_value(xml)?;
                 sheet.set_style(v);
             }
+            attr if attr.key == b"table:print" => {
+                let v = attr.unescape_and_decode_value(xml)?;
+                sheet.set_print(v.parse()?);
+            }
+            attr if attr.key == b"table:display" => {
+                let v = attr.unescape_and_decode_value(xml)?;
+                sheet.set_display(v.parse()?);
+            }
             attr if attr.key == b"table:print-ranges" => {
                 let v = attr.unescape_and_decode_value(xml)?;
                 let mut pos = 0usize;

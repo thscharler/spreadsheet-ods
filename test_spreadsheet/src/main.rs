@@ -6,10 +6,10 @@ fn main() {
 
 fn run() -> Result<(), OdsError> {
 
-    let wb = read_ods("../tests/missing/2017 Rindfleisch.ods")?;
-    write_ods(&wb, "../test_out/2017 Rindfleisch.ods")?;
+    let wb = read_ods("../tests/missing/RE20010.ods")?;
+    write_ods(&wb, "../test_out/RE20010.ods")?;
 
-    //println!("wb {:?}", wb);
+    // println!("wb {:?}", wb);
 
     Ok(())
 }
