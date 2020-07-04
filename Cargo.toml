@@ -7,7 +7,7 @@ description = "Read and write ODS files"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/thscharler/spreadsheet-ods"
 keywords = ["ODS", "spreadsheet"]
-categories = ["spreadsheet"]
+categories = ["parser-implementations"]
 exclude = [
     ".idea/*",
     ".gitignore",
