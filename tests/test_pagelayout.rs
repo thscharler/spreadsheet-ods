@@ -1,12 +1,12 @@
 use color::Rgb;
 
+use spreadsheet_ods::{cm, Length, OdsError, read_ods, WorkBook, write_ods};
 use spreadsheet_ods::style::{AttrFoBackgroundColor, AttrFoMargin, AttrFoMinHeight, PageLayout};
-use spreadsheet_ods::{cm, read_ods, write_ods, Length, OdsError, WorkBook};
 
 #[test]
 fn pagelayout() -> Result<(), OdsError> {
     let ods = read_ods("test_out/experiment.ods")?;
-    println!("{:?}", ods.pagelayout("Mpm1").unwrap().header().left());
+    //println!("{:?}", ods.pagelayout("Mpm1").unwrap().header().left());
     write_ods(&ods, "test_out/rexp.ods")?;
 
     Ok(())

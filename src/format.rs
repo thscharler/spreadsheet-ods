@@ -17,7 +17,15 @@
 //! v.push_minutes(FormatNumberStyle::Long);
 //! v.push_text(":");
 //! v.push_seconds(FormatNumberStyle::Long);
+//!
+//! let mut v = ValueFormat::new_with_name("n3", ValueType::Number);
+//! v.push_number(3, false);
 //! ```
+//! The output formatting is a rough approximation with the possibilities
+//! offered by format! and chrono::format. Especially there is no trace of
+//! i18n. But on the other hand the formatting rules are applied by LibreOffice
+//! when opening the spreadsheet so typically nobody notices this.
+//!
 
 use std::fmt::{Display, Formatter};
 
@@ -52,6 +60,9 @@ impl std::error::Error for ValueFormatError {}
 pub struct ValueFormat {
     /// Name
     name: String,
+    country: Option<String>,
+    language: Option<String>,
+    script: Option<String>,
     /// Value type
     v_type: ValueType,
     /// Origin information.
@@ -65,7 +76,7 @@ pub struct ValueFormat {
     /// Parts of the format.
     parts: Vec<FormatPart>,
     /// Style map data.
-    stylemaps: Option<Box<Vec<StyleMap>>>,
+    stylemaps: Option<Vec<StyleMap>>,
 }
 
 impl Sealed for ValueFormat {}
@@ -85,6 +96,9 @@ impl ValueFormat {
     pub fn new() -> Self {
         ValueFormat {
             name: String::from(""),
+            country: None,
+            language: None,
+            script: None,
             v_type: ValueType::Text,
             origin: Default::default(),
             styleuse: Default::default(),
@@ -99,6 +113,9 @@ impl ValueFormat {
     pub fn new_with_name<S: Into<String>>(name: S, value_type: ValueType) -> Self {
         ValueFormat {
             name: name.into(),
+            country: None,
+            language: None,
+            script: None,
             v_type: value_type,
             origin: Default::default(),
             styleuse: Default::default(),
@@ -117,6 +134,36 @@ impl ValueFormat {
     /// Returns the name.
     pub fn name(&self) -> &String {
         &self.name
+    }
+
+    /// Sets the country.
+    pub fn set_country<S: Into<String>>(&mut self, country: S) {
+        self.country = Some(country.into());
+    }
+
+    /// Country
+    pub fn country(&self) -> Option<&String> {
+        self.country.as_ref()
+    }
+
+    /// Sets the language.
+    pub fn set_language<S: Into<String>>(&mut self, language: S) {
+        self.language = Some(language.into());
+    }
+
+    /// Language
+    pub fn language(&self) -> Option<&String> {
+        self.language.as_ref()
+    }
+
+    /// Sets the Script.
+    pub fn set_script<S: Into<String>>(&mut self, script: S) {
+        self.script = Some(script.into());
+    }
+
+    /// Script
+    pub fn script(&self) -> Option<&String> {
+        self.script.as_ref()
     }
 
     /// Sets the value type.
@@ -223,22 +270,22 @@ impl ValueFormat {
     }
 
     /// Appends a format part.
-    pub fn push_era(&mut self, number: FormatNumberStyle, calendar: FormatCalendar) {
+    pub fn push_era(&mut self, number: FormatNumberStyle, calendar: FormatCalendarStyle) {
         self.push_part(FormatPart::new_era(number, calendar));
     }
 
     /// Appends a format part.
-    pub fn push_day_of_week(&mut self, number: FormatNumberStyle, calendar: FormatCalendar) {
+    pub fn push_day_of_week(&mut self, number: FormatNumberStyle, calendar: FormatCalendarStyle) {
         self.push_part(FormatPart::new_day_of_week(number, calendar));
     }
 
     /// Appends a format part.
-    pub fn push_week_of_year(&mut self, calendar: FormatCalendar) {
+    pub fn push_week_of_year(&mut self, calendar: FormatCalendarStyle) {
         self.push_part(FormatPart::new_week_of_year(calendar));
     }
 
     /// Appends a format part.
-    pub fn push_quarter(&mut self, number: FormatNumberStyle, calendar: FormatCalendar) {
+    pub fn push_quarter(&mut self, number: FormatNumberStyle, calendar: FormatCalendarStyle) {
         self.push_part(FormatPart::new_quarter(number, calendar));
     }
 
@@ -300,17 +347,19 @@ impl ValueFormat {
 
     /// Adds a stylemap.
     pub fn push_stylemap(&mut self, stylemap: StyleMap) {
-        self.stylemaps.get_or_insert_with(|| Box::new(Vec::new())).push(stylemap);
+        self.stylemaps
+            .get_or_insert_with(Vec::new)
+            .push(stylemap);
     }
 
     /// Returns the stylemaps
-    pub fn stylemaps(&self) -> Option<&Box<Vec<StyleMap>>> {
+    pub fn stylemaps(&self) -> Option<&Vec<StyleMap>> {
         self.stylemaps.as_ref()
     }
 
     /// Returns the mutable stylemap.
-    pub fn stylemaps_mut(&mut self) -> &mut Box<Vec<StyleMap>> {
-        self.stylemaps.get_or_insert_with(|| Box::new(Vec::new()))
+    pub fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap> {
+        self.stylemaps.get_or_insert_with(Vec::new)
     }
 
     /// Tries to format.
@@ -437,7 +486,7 @@ impl Display for FormatNumberStyle {
 
 /// Calendar types.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum FormatCalendar {
+pub enum FormatCalendarStyle {
     Gregorian,
     Gengou,
     ROC,
@@ -447,16 +496,16 @@ pub enum FormatCalendar {
     Buddhist,
 }
 
-impl Display for FormatCalendar {
+impl Display for FormatCalendarStyle {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            FormatCalendar::Gregorian => write!(f, "gregorian"),
-            FormatCalendar::Gengou => write!(f, "gengou"),
-            FormatCalendar::ROC => write!(f, "ROC"),
-            FormatCalendar::Hanja => write!(f, "hanja"),
-            FormatCalendar::Hijri => write!(f, "hijri"),
-            FormatCalendar::Jewish => write!(f, "jewish"),
-            FormatCalendar::Buddhist => write!(f, "buddhist"),
+            FormatCalendarStyle::Gregorian => write!(f, "gregorian"),
+            FormatCalendarStyle::Gengou => write!(f, "gengou"),
+            FormatCalendarStyle::ROC => write!(f, "ROC"),
+            FormatCalendarStyle::Hanja => write!(f, "hanja"),
+            FormatCalendarStyle::Hijri => write!(f, "hijri"),
+            FormatCalendarStyle::Jewish => write!(f, "jewish"),
+            FormatCalendarStyle::Buddhist => write!(f, "buddhist"),
         }
     }
 }
@@ -530,7 +579,7 @@ impl FormatPart {
 
     /// Format with scientific notation.
     pub fn new_scientific(dec_places: u8) -> Self {
-        let mut p = Self::new(FormatPartType::Fraction);
+        let mut p = Self::new(FormatPartType::Scientific);
         p.set_attr("number:decimal-places", dec_places.to_string());
         p
     }
@@ -566,27 +615,27 @@ impl FormatPart {
         p
     }
 
-    pub fn new_era(number: FormatNumberStyle, calendar: FormatCalendar) -> Self {
+    pub fn new_era(number: FormatNumberStyle, calendar: FormatCalendarStyle) -> Self {
         let mut p = Self::new(FormatPartType::Era);
         p.set_attr("number:style", number.to_string());
         p.set_attr("number:calendar", calendar.to_string());
         p
     }
 
-    pub fn new_day_of_week(number: FormatNumberStyle, calendar: FormatCalendar) -> Self {
+    pub fn new_day_of_week(number: FormatNumberStyle, calendar: FormatCalendarStyle) -> Self {
         let mut p = Self::new(FormatPartType::DayOfWeek);
         p.set_attr("number:style", number.to_string());
         p.set_attr("number:calendar", calendar.to_string());
         p
     }
 
-    pub fn new_week_of_year(calendar: FormatCalendar) -> Self {
+    pub fn new_week_of_year(calendar: FormatCalendarStyle) -> Self {
         let mut p = Self::new(FormatPartType::WeekOfYear);
         p.set_attr("number:calendar", calendar.to_string());
         p
     }
 
-    pub fn new_quarter(number: FormatNumberStyle, calendar: FormatCalendar) -> Self {
+    pub fn new_quarter(number: FormatNumberStyle, calendar: FormatCalendarStyle) -> Self {
         let mut p = Self::new(FormatPartType::Quarter);
         p.set_attr("number:style", number.to_string());
         p.set_attr("number:calendar", calendar.to_string());

@@ -355,8 +355,11 @@ impl HeaderFooter {
     }
 
     /// Left region.
-    pub fn left(&self) -> Option<&Box<TextTag>> {
-        self.region_left.as_ref()
+    pub fn left(&self) -> Option<&TextTag> {
+        match &self.region_left {
+            None => None,
+            Some(v) => Some(v.as_ref()),
+        }
     }
 
     /// Left region.
@@ -377,8 +380,11 @@ impl HeaderFooter {
     }
 
     /// Center region.
-    pub fn center(&self) -> Option<&Box<TextTag>> {
-        self.region_center.as_ref()
+    pub fn center(&self) -> Option<&TextTag> {
+        match &self.region_center {
+            None => None,
+            Some(v) => Some(v.as_ref()),
+        }
     }
 
     /// Center region.
@@ -399,8 +405,11 @@ impl HeaderFooter {
     }
 
     /// Right region.
-    pub fn right(&self) -> Option<&Box<TextTag>> {
-        self.region_right.as_ref()
+    pub fn right(&self) -> Option<&TextTag> {
+        match &self.region_right {
+            None => None,
+            Some(v) => Some(v.as_ref()),
+        }
     }
 
     /// Right region.
@@ -421,8 +430,11 @@ impl HeaderFooter {
     }
 
     /// Header content, if there are no regions.
-    pub fn content(&self) -> Option<&Box<TextTag>> {
-        self.content.as_ref()
+    pub fn content(&self) -> Option<&TextTag> {
+        match &self.content {
+            None => None,
+            Some(v) => Some(v.as_ref()),
+        }
     }
 
     /// Header content, if there are no regions.
@@ -574,7 +586,7 @@ pub struct Style {
     /// Graphic styles
     graphic_attr: GraphicAttr,
     /// Style maps
-    stylemaps: Option<Box<Vec<StyleMap>>>,
+    stylemaps: Option<Vec<StyleMap>>,
 }
 
 impl Style {
@@ -804,18 +816,18 @@ impl Style {
     /// Adds a stylemap.
     pub fn push_stylemap(&mut self, stylemap: StyleMap) {
         self.stylemaps
-            .get_or_insert_with(|| Box::new(Vec::new()))
+            .get_or_insert_with(Vec::new)
             .push(stylemap);
     }
 
     /// Returns the stylemaps
-    pub fn stylemaps(&self) -> Option<&Box<Vec<StyleMap>>> {
+    pub fn stylemaps(&self) -> Option<&Vec<StyleMap>> {
         self.stylemaps.as_ref()
     }
 
     /// Returns the mutable stylemap.
     pub fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap> {
-        self.stylemaps.get_or_insert_with(|| Box::new(Vec::new()))
+        self.stylemaps.get_or_insert_with(Vec::new)
     }
 }
 
@@ -1127,18 +1139,18 @@ impl<'a> IntoIterator for &'a TabStop {
 #[derive(Clone, Debug, Default)]
 pub struct ParagraphAttr {
     attr: AttrMapType,
-    tabstops: Option<Box<Vec<TabStop>>>,
+    tabstops: Option<Vec<TabStop>>,
     // todo: drop-cap
     // todo: background-image
 }
 
 impl ParagraphAttr {
     pub fn add_tabstop(&mut self, ts: TabStop) {
-        let tabstops = self.tabstops.get_or_insert_with(|| Box::new(Vec::new()));
+        let tabstops = self.tabstops.get_or_insert_with(Vec::new);
         tabstops.push(ts);
     }
 
-    pub fn tabstops(&self) -> Option<&Box<Vec<TabStop>>> {
+    pub fn tabstops(&self) -> Option<&Vec<TabStop>> {
         self.tabstops.as_ref()
     }
 }

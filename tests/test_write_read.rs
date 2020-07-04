@@ -3,14 +3,6 @@ use spreadsheet_ods::refs::{CellRange, ColRange, RowRange};
 
 #[test]
 fn test_0() -> Result<(), OdsError> {
-    if cfg!(dump_xml) {
-        println!("dump_xml!");
-        panic!();
-    } else {
-        println!("no dump_xml!");
-    }
-
-    println!("test_0");
     let mut wb = WorkBook::new();
     let mut sh = Sheet::new();
 
@@ -23,7 +15,7 @@ fn test_0() -> Result<(), OdsError> {
     let wi = read_ods("test_out/test_0.ods")?;
     let si = wi.sheet(0);
 
-    println!("{:?}", si);
+    // println!("{:?}", si);
 
     assert_eq!(si.value(0, 0).as_str_or(""), "A");
 
@@ -32,8 +24,6 @@ fn test_0() -> Result<(), OdsError> {
 
 #[test]
 fn test_span() -> Result<(), OdsError> {
-    println!("test_span");
-
     let mut wb = WorkBook::new();
 
     let mut sh = Sheet::new();
@@ -89,7 +79,6 @@ fn test_span() -> Result<(), OdsError> {
 
 #[test]
 fn test_header() -> Result<(), OdsError> {
-    println!("test_header");
     let mut wb = WorkBook::new();
 
     let mut sh = Sheet::new();
@@ -135,7 +124,6 @@ fn test_header() -> Result<(), OdsError> {
 
 #[test]
 fn test_print_range() -> Result<(), OdsError> {
-    println!("test_print_range");
     let mut wb = WorkBook::new();
 
     let mut sh = Sheet::new();
@@ -167,8 +155,6 @@ fn test_print_range() -> Result<(), OdsError> {
 
 #[test]
 fn read_text() -> Result<(), OdsError> {
-    println!("read_text");
-
     let wb = read_ods("tests/text.ods")?;
     let sh = wb.sheet(0);
 
@@ -176,24 +162,19 @@ fn read_text() -> Result<(), OdsError> {
 
     assert_eq!(v.value_type(), ValueType::TextXml);
 
-    println!("text value {:?}", v);
+    // println!("text value {:?}", v);
 
     Ok(())
 }
 
 #[test]
 fn read_orders() -> Result<(), OdsError> {
-    println!("read_orders");
-
     let _wb = read_ods("tests/orders.ods");
-
     Ok(())
 }
 
 #[test]
 fn display_print() -> Result<(), OdsError> {
-    println!("display_print");
-
     let mut wb = WorkBook::new();
     let mut s0 = Sheet::new();
     s0.set_value(0, 0, "display");

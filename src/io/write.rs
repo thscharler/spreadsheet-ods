@@ -1302,7 +1302,7 @@ fn write_styles(
                 }
                 xml_out.elem("style:tab-stops")?;
                 if let Some(tabstops) = style.paragraph().tabstops() {
-                    for ts in tabstops.as_ref() {
+                    for ts in tabstops {
                         xml_out.empty("style:tab-stop")?;
                         for (a, v) in ts {
                             xml_out.attr_esc(a.as_ref(), v.as_str())?;
@@ -1327,7 +1327,7 @@ fn write_styles(
         }
 
         if let Some(stylemaps) = style.stylemaps() {
-            for sm in stylemaps.as_ref() {
+            for sm in stylemaps {
                 xml_out.empty("style:map")?;
                 xml_out.attr_esc("style:condition", sm.condition())?;
                 xml_out.attr_esc("style:apply-style-name", sm.applied_style())?;
@@ -1429,7 +1429,7 @@ fn write_value_styles(
         }
 
         if let Some(stylemaps) = value_format.stylemaps() {
-            for sm in stylemaps.as_ref() {
+            for sm in stylemaps {
                 xml_out.empty("style:map")?;
                 xml_out.attr_esc("style:condition", sm.condition())?;
                 xml_out.attr_esc("style:apply-style-name", sm.applied_style())?;

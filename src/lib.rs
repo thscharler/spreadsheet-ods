@@ -401,7 +401,7 @@ impl FromStr for Visibility {
             "filter" => Ok(Visibility::Filtered),
             "collapse" => Ok(Visibility::Collapsed),
             _ => {
-                return Err(OdsError::Ods(format!(
+                Err(OdsError::Ods(format!(
                     "Unknown value for table:visibility {}",
                     s
                 )))
@@ -585,7 +585,7 @@ impl Sheet {
     pub fn set_column_style<V: Into<String>>(&mut self, col: ucell, style: V) {
         self.col_header
             .entry(col)
-            .or_insert(RowColHeader::new())
+            .or_insert_with(RowColHeader::new)
             .set_style(style);
     }
 
@@ -593,7 +593,7 @@ impl Sheet {
     pub fn clear_column_style(&mut self, col: ucell) {
         self.col_header
             .entry(col)
-            .or_insert(RowColHeader::new())
+            .or_insert_with(RowColHeader::new)
             .clear_style();
     }
 
@@ -610,7 +610,7 @@ impl Sheet {
     pub fn set_column_cell_style<V: Into<String>>(&mut self, col: ucell, style: V) {
         self.col_header
             .entry(col)
-            .or_insert(RowColHeader::new())
+            .or_insert_with(RowColHeader::new)
             .set_cell_style(style);
     }
 
@@ -618,7 +618,7 @@ impl Sheet {
     pub fn clear_column_cell_style(&mut self, col: ucell) {
         self.col_header
             .entry(col)
-            .or_insert(RowColHeader::new())
+            .or_insert_with(RowColHeader::new)
             .clear_cell_style();
     }
 
@@ -635,7 +635,7 @@ impl Sheet {
     pub fn set_column_visible(&mut self, col: ucell, visible: Visibility) {
         self.col_header
             .entry(col)
-            .or_insert(RowColHeader::new())
+            .or_insert_with(RowColHeader::new)
             .set_visible(visible);
     }
 
@@ -668,7 +668,7 @@ impl Sheet {
     pub fn set_row_style<V: Into<String>>(&mut self, col: ucell, style: V) {
         self.row_header
             .entry(col)
-            .or_insert(RowColHeader::new())
+            .or_insert_with(RowColHeader::new)
             .set_style(style);
     }
 
@@ -676,7 +676,7 @@ impl Sheet {
     pub fn clear_row_style(&mut self, col: ucell) {
         self.row_header
             .entry(col)
-            .or_insert(RowColHeader::new())
+            .or_insert_with(RowColHeader::new)
             .clear_style();
     }
 
@@ -693,7 +693,7 @@ impl Sheet {
     pub fn set_row_cell_style<V: Into<String>>(&mut self, col: ucell, style: V) {
         self.row_header
             .entry(col)
-            .or_insert(RowColHeader::new())
+            .or_insert_with(RowColHeader::new)
             .set_cell_style(style);
     }
 
@@ -701,7 +701,7 @@ impl Sheet {
     pub fn clear_row_cell_style(&mut self, col: ucell) {
         self.row_header
             .entry(col)
-            .or_insert(RowColHeader::new())
+            .or_insert_with(RowColHeader::new)
             .clear_cell_style();
     }
 
@@ -718,7 +718,7 @@ impl Sheet {
     pub fn set_row_visible(&mut self, col: ucell, visible: Visibility) {
         self.row_header
             .entry(col)
-            .or_insert(RowColHeader::new())
+            .or_insert_with(RowColHeader::new)
             .set_visible(visible);
     }
 
