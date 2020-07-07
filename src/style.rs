@@ -744,42 +744,82 @@ impl Style {
     }
 
     /// Table style attributes.
+    ///
+    /// Panic
+    ///
+    /// Only accessible when family() == StyleFor::Table.
     pub fn table(&self) -> &TableAttr {
+        assert_eq!(self.family, StyleFor::Table, "Can only be used for Table-Style.");
         &self.table_attr
     }
 
     /// Table style attributes.
+    ///
+    /// Panic
+    ///
+    /// Only accessible when family() == StyleFor::Table.    
     pub fn table_mut(&mut self) -> &mut TableAttr {
+        assert_eq!(self.family, StyleFor::Table, "Can only be used for Table-Style.");
         &mut self.table_attr
     }
 
     /// Table column style attributes.
+    ///
+    /// Panic
+    ///
+    /// Only accessible when family() == StyleFor::TableColumn.
     pub fn col(&self) -> &TableColAttr {
+        assert_eq!(self.family, StyleFor::TableColumn, "Can only be used for Column-Style.");
         &self.table_col_attr
     }
 
     /// Table column style attributes.
+    ///
+    /// Panic
+    ///
+    /// Only accessible when family() == StyleFor::TableColumn.
     pub fn col_mut(&mut self) -> &mut TableColAttr {
+        assert_eq!(self.family, StyleFor::TableColumn, "Can only be used for Column-Style.");
         &mut self.table_col_attr
     }
 
     /// Table-row style attributes.
+    ///
+    /// Panic
+    ///
+    /// Only accessible when family() == StyleFor::TableRow.
     pub fn row(&self) -> &TableRowAttr {
+        assert_eq!(self.family, StyleFor::TableRow, "Can only be used for Row-Style.");
         &self.table_row_attr
     }
 
     /// Table-row style attributes.
+    ///
+    /// Panic
+    ///
+    /// Only accessible when family() == StyleFor::TableRow.
     pub fn row_mut(&mut self) -> &mut TableRowAttr {
+        assert_eq!(self.family, StyleFor::TableRow, "Can only be used for Row-Style.");
         &mut self.table_row_attr
     }
 
     /// Table-cell style attributes.
+    ///
+    /// Panic
+    ///
+    /// Only accessible when family() == StyleFor::TableCell.    
     pub fn cell(&self) -> &TableCellAttr {
+        assert_eq!(self.family, StyleFor::TableCell, "Can only be used for Cell-Style.");
         &self.table_cell_attr
     }
 
     /// Table-cell style attributes.
+    ///
+    /// Panic
+    ///
+    /// Only accessible when family() == StyleFor::TableCell.    
     pub fn cell_mut(&mut self) -> &mut TableCellAttr {
+        assert_eq!(self.family, StyleFor::TableCell, "Can only be used for Cell-Style.");
         &mut self.table_cell_attr
     }
 
@@ -815,9 +855,7 @@ impl Style {
 
     /// Adds a stylemap.
     pub fn push_stylemap(&mut self, stylemap: StyleMap) {
-        self.stylemaps
-            .get_or_insert_with(Vec::new)
-            .push(stylemap);
+        self.stylemaps.get_or_insert_with(Vec::new).push(stylemap);
     }
 
     /// Returns the stylemaps

@@ -400,12 +400,10 @@ impl FromStr for Visibility {
             "visible" => Ok(Visibility::Visible),
             "filter" => Ok(Visibility::Filtered),
             "collapse" => Ok(Visibility::Collapsed),
-            _ => {
-                Err(OdsError::Ods(format!(
-                    "Unknown value for table:visibility {}",
-                    s
-                )))
-            }
+            _ => Err(OdsError::Ods(format!(
+                "Unknown value for table:visibility {}",
+                s
+            ))),
         }
     }
 }
@@ -1238,6 +1236,12 @@ macro_rules! percent {
     ($v:expr) => {
         Value::Percentage($v)
     };
+}
+
+impl From<()> for Value {
+    fn from(_: ()) -> Self {
+        Value::Empty
+    }
 }
 
 impl From<&str> for Value {

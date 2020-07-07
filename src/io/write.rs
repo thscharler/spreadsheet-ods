@@ -908,7 +908,7 @@ fn write_empty_rows_before(
             if header_rows.row < cur_row && header_rows.row > last_row {
                 write_empty_row(
                     sheet,
-                    cur_row,
+                    last_row,
                     header_rows.row - last_row - corr,
                     max_cell,
                     xml_out,
@@ -928,7 +928,7 @@ fn write_empty_rows_before(
                 // the end of the header.
                 write_empty_row(
                     sheet,
-                    cur_row,
+                    last_row,
                     header_rows.to_row - last_row - corr + 1,
                     max_cell,
                     xml_out,
@@ -942,7 +942,8 @@ fn write_empty_rows_before(
         }
 
         // Write out the empty lines.
-        write_empty_row(sheet, cur_row, backward_dr - corr, max_cell, xml_out)?;
+        let last_row = cur_row - backward_dr;
+        write_empty_row(sheet, last_row, backward_dr - corr, max_cell, xml_out)?;
     }
 
     Ok(())
@@ -1265,25 +1266,25 @@ fn write_styles(
             xml_out.attr_esc("style:data-style-name", value_format.as_str())?;
         }
 
-        if !style.cell().has_attr() {
+        if style.family() == StyleFor::TableCell && !style.cell().has_attr() {
             xml_out.empty("style:table-cell-properties")?;
             for (a, v) in style.cell() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !style.col().has_attr() {
+        if style.family() == StyleFor::TableColumn && !style.col().has_attr() {
             xml_out.empty("style:table-column-properties")?;
             for (a, v) in style.col() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !style.row().has_attr() {
+        if style.family() == StyleFor::TableRow &&!style.row().has_attr() {
             xml_out.empty("style:table-row-properties")?;
             for (a, v) in style.row() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if !style.table().has_attr() {
+        if style.family() == StyleFor::Table &&!style.table().has_attr() {
             xml_out.empty("style:table-properties")?;
             for (a, v) in style.table() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;

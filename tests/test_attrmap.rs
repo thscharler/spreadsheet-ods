@@ -1,5 +1,6 @@
 use color::Rgb;
 
+use spreadsheet_ods::{Angle, cm, deg, Length, mm, pt, Style};
 use spreadsheet_ods::style::{
     AttrFoBackgroundColor, AttrFoBorder, AttrFoMargin, AttrFoMinHeight, AttrFoPadding, AttrMap,
     AttrStyleDynamicSpacing, AttrStyleShadow, AttrSvgHeight, PageLayout,
@@ -10,7 +11,6 @@ use spreadsheet_ods::style::{
     FontPitch, PageBreak, ParaAlignVertical, RotationAlign, TextAlignSource, TextKeep,
     TextPosition, TextRelief, TextTransform, TextWeight, WrapOption, WritingMode,
 };
-use spreadsheet_ods::{cm, deg, mm, pt, Angle, Length, Style};
 
 #[test]
 fn test_attr1() {
@@ -84,7 +84,7 @@ fn test_attr2() {
 
 #[test]
 fn test_attr3() {
-    let mut st = Style::new_cell_style("c00", "f00");
+    let mut st = Style::new_table_style("c00", "f00");
 
     st.table_mut().set_break_before(PageBreak::Page);
     assert_eq!(
@@ -107,6 +107,8 @@ fn test_attr3() {
         Some(&"tb-lr".to_string())
     );
 
+    let mut st = Style::new_col_style("c01", "f00");
+
     st.col_mut().set_use_optimal_col_width(true);
     assert_eq!(
         st.col().attr("style:use-optimal-column-width"),
@@ -124,6 +126,8 @@ fn test_attr3() {
         st.col().attr("style:column-width"),
         Some(&"17cm".to_string())
     );
+
+    let mut st = Style::new_row_style("r02", "f00");
 
     st.row_mut().set_use_optimal_row_height(true);
     assert_eq!(
