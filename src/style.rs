@@ -872,7 +872,7 @@ impl Style {
 /// One style mapping.
 ///
 /// The rules for this are not very clear. It writes the necessary data fine,
-/// but the interpretation by LibreOffice is not very intelligable.
+/// but the interpretation by LibreOffice is not very intelligible.
 ///
 /// * The base-cell must include a table-name.
 /// * LibreOffice always adds calcext:conditional-formats which I can't handle.
