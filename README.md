@@ -1,4 +1,4 @@
-[![Latest Version]][crates.io] [![Documentation]][docs.rs] ![License]
+[![Latest Version]]![crates.io](https://img.shields.io/crates/v/spreadsheet-ods.svg) [![Documentation]][docs.rs] ![License]
 
 spreadsheet-ods - Read and write ODS files
 ====
