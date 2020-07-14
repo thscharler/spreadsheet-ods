@@ -1,6 +1,6 @@
 
 [![crates.io](https://img.shields.io/crates/v/spreadsheet-ods.svg)](https://crates.io/crates/spreadsheet-ods)
-[![Documentation](https://docs.rs/spreadsheet_ods/badge.svg)](https://docs.rs/spreadsheet_ods)
+[![Documentation](https://docs.rs/spreadsheet-ods/badge.svg)](https://docs.rs/spreadsheet_ods)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![License](https://img.shields.io/badge/license-APACHE-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
