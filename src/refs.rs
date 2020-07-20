@@ -711,22 +711,61 @@ pub(crate) fn parse_cellranges(
 }
 
 /// Appends the spreadsheet column name.
-pub(crate) fn push_colname(buf: &mut String, col: ucell) {
-    let mut col: u64 = col as u64 + 1;
-    let mut _buf = String::new();
+pub(crate) fn push_colname(buf: &mut String, mut col: ucell) {
+    let mut i = 0;
+    let mut dbuf = [0u8; 7];
 
-    while col != 0 {
-        _buf.push(std::char::from_u32((col % 26) as u32 - 1 + 'A' as u32).unwrap());
+    if col == ucell::max_value() {
+        // unroll first loop because of overflow
+        dbuf[0] = 21;
+        i += 1;
         col /= 26;
+    } else {
+        col += 1;
     }
 
-    buf.push_str(&_buf.chars().rev().collect::<String>());
+    while col > 0 {
+        dbuf[i] = (col % 26) as u8;
+        if dbuf[i] == 0 {
+            dbuf[i] = 25;
+            col = col / 26 - 1;
+        } else {
+            dbuf[i] -= 1;
+            col /= 26;
+        }
+
+        i += 1;
+    }
+
+    // reverse order
+    let mut j = i;
+    while j > 0 {
+        buf.push((b'A' + dbuf[j - 1]) as char);
+        j -= 1;
+    }
 }
 
 /// Appends the spreadsheet row name
-pub(crate) fn push_rowname(buf: &mut String, row: ucell) {
-    let row: u64 = row as u64 + 1;
-    buf.push_str(&row.to_string());
+pub(crate) fn push_rowname(buf: &mut String, mut row: ucell) {
+    let mut i = 0;
+    let mut dbuf = [0u8; 10];
+
+    // temp solution
+    let mut row: u64 = row.into();
+    row += 1;
+    while row > 0 {
+        dbuf[i] = (row % 10) as u8;
+        row /= 10;
+
+        i += 1;
+    }
+
+    // reverse order
+    let mut j = i;
+    while j > 0 {
+        buf.push((b'0' + dbuf[j - 1]) as char);
+        j -= 1;
+    }
 }
 
 /// Appends the table-name
@@ -822,12 +861,28 @@ fn test_names() {
     assert_eq!(buf, "ZA");
     buf.clear();
 
+    push_colname(&mut buf, ucell::max_value() - 1);
+    assert_eq!(buf, "MWLQKWU");
+    buf.clear();
+
+    push_colname(&mut buf, ucell::max_value());
+    assert_eq!(buf, "MWLQKWV");
+    buf.clear();
+
     push_rowname(&mut buf, 0);
     assert_eq!(buf, "1");
     buf.clear();
 
     push_rowname(&mut buf, 927);
     assert_eq!(buf, "928");
+    buf.clear();
+
+    push_rowname(&mut buf, ucell::max_value() - 1);
+    assert_eq!(buf, "4294967295");
+    buf.clear();
+
+    push_rowname(&mut buf, ucell::max_value());
+    assert_eq!(buf, "4294967296");
     buf.clear();
 
     push_tablename(&mut buf, Some(&"fable".to_string()));
