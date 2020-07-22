@@ -5,9 +5,26 @@ use spreadsheet_ods::style::{AttrFoBackgroundColor, AttrFoMargin, AttrFoMinHeigh
 
 #[test]
 fn pagelayout() -> Result<(), OdsError> {
-    let ods = read_ods("test_out/experiment.ods")?;
+    let path = std::path::Path::new("test_out/format.ods");
+    let ods;
+
+    if path.exists() {
+        ods = read_ods(path)?;
+    } else {
+        std::fs::create_dir_all(path.parent().unwrap())?;
+        std::fs::File::create(path)?;
+        ods = read_ods(path)?;
+    }
     //println!("{:?}", ods.pagelayout("Mpm1").unwrap().header().left());
-    write_ods(&ods, "test_out/rexp.ods")?;
+    let path = std::path::Path::new("test_out/rexp.ods");
+    
+    if path.exists() {
+        write_ods(&ods, path)?;
+    } else {
+        std::fs::create_dir_all(path.parent().unwrap())?;
+        std::fs::File::create(path)?;
+        write_ods(&ods, path)?;
+    }
 
     Ok(())
 }
