@@ -9,8 +9,21 @@
 //! use spreadsheet_ods::style::{Style, AttrText, TextRelief, AttrFoBorder, Border};
 //! use color::Rgb;
 //!
-//! let mut wb = spreadsheet_ods::read_ods("tests/example.ods").unwrap();
 //!
+//! let path = std::path::Path::new("tests/example.ods");
+//! let mut wb = if path.exists() {
+//!     spreadsheet_ods::read_ods(path).unwrap()
+//! } else {
+//!     WorkBook::new()
+//! };
+//!
+//! 
+//! if wb.num_sheets() == 0 {
+//!     let mut sheet = Sheet::new();
+//!     sheet.cell_mut(0, 0).set_value(Value::Boolean(true));
+//!     wb.push_sheet(sheet);
+//! }
+//! 
 //! let sheet = wb.sheet(0);
 //! let n = sheet.value(0,0).as_f64_or(0f64);
 //! if let Value::Boolean(v) = sheet.value(1,1) {
@@ -19,6 +32,10 @@
 //!     }
 //! }
 //!
+//! if wb.num_sheets() == 1 {
+//!     wb.push_sheet(Sheet::new());
+//! }
+//!  
 //! let mut sheet = wb.sheet_mut(1);
 //! sheet.set_value(0, 0, 21.4f32);
 //! sheet.set_value(0, 1, "foo");
