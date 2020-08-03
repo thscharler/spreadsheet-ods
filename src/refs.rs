@@ -715,7 +715,15 @@ pub(crate) fn push_colname(buf: &mut String, mut col: ucell) {
     let mut i = 0;
     let mut dbuf = [0u8; 7];
 
-    col += 1;
+    if col == ucell::max_value() {
+        // unroll first loop because of overflow
+        dbuf[0] = 21;
+        i += 1;
+        col /= 26;
+    } else {
+        col += 1;
+    }
+
     while col > 0 {
         dbuf[i] = (col % 26) as u8;
         if dbuf[i] == 0 {
@@ -742,6 +750,8 @@ pub(crate) fn push_rowname(buf: &mut String, mut row: ucell) {
     let mut i = 0;
     let mut dbuf = [0u8; 10];
 
+    // temp solution
+    let mut row: u64 = row.into();
     row += 1;
     while row > 0 {
         dbuf[i] = (row % 10) as u8;
@@ -851,12 +861,28 @@ fn test_names() {
     assert_eq!(buf, "ZA");
     buf.clear();
 
+    push_colname(&mut buf, ucell::max_value() - 1);
+    assert_eq!(buf, "MWLQKWU");
+    buf.clear();
+
+    push_colname(&mut buf, ucell::max_value());
+    assert_eq!(buf, "MWLQKWV");
+    buf.clear();
+
     push_rowname(&mut buf, 0);
     assert_eq!(buf, "1");
     buf.clear();
 
     push_rowname(&mut buf, 927);
     assert_eq!(buf, "928");
+    buf.clear();
+
+    push_rowname(&mut buf, ucell::max_value() - 1);
+    assert_eq!(buf, "4294967295");
+    buf.clear();
+
+    push_rowname(&mut buf, ucell::max_value());
+    assert_eq!(buf, "4294967296");
     buf.clear();
 
     push_tablename(&mut buf, Some(&"fable".to_string()));
