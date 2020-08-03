@@ -124,7 +124,7 @@ macro_rules! deg {
 #[macro_export]
 macro_rules! grad {
     ($l:expr) => {
-        Length::Grad($l as f64)
+        Angle::Grad($l as f64)
     };
 }
 
@@ -132,7 +132,7 @@ macro_rules! grad {
 #[macro_export]
 macro_rules! rad {
     ($l:expr) => {
-        Length::Rad($l as f64)
+        Angle::Rad($l as f64)
     };
 }
 
