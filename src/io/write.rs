@@ -685,7 +685,8 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     let mut last_r: ucell = 0;
     let mut last_c: ucell = 0;
 
-    for ((cur_row, cur_col), cell) in sheet.data.iter() {
+    for (cur_row, row_data) in sheet.rows.iter() {
+    for (cur_col, cell) in row_data.cells.iter() {
         // There may be a lot of gaps of any kind in our data.
         // In the XML format there is no cell identification, every gap
         // must be filled with empty rows/columns. For this we need some
@@ -693,12 +694,12 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
 
         // For the repeat-counter we need to look forward.
         // Works nicely with the range operator :-)
-        let (next_r, next_c, is_last_cell) = if let Some(((next_r, next_c), _)) =
-            sheet.data.range((*cur_row, cur_col + 1)..).next()
-        {
-            (*next_r, *next_c, false)
-        } else {
-            (max_cell.0, max_cell.1, true)
+        let (next_r, next_c, is_last_cell) = match row_data.cells.range((cur_col+1)..).next() {
+            Some((next_c, _)) => (*cur_row, *next_c, false),
+            None => match sheet.rows.range((cur_row+1)..).next() {
+                Some((next_r, _)) => (*next_r, max_cell.1, false),
+                None => (max_cell.0, max_cell.1, true),
+            },
         };
 
         // Looking forward row-wise.
@@ -770,6 +771,7 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
         first_cell = false;
         last_r = *cur_row;
         last_c = *cur_col;
+    }
     }
 
     xml_out.end_elem("table:table")?;

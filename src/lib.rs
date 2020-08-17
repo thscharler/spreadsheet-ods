@@ -491,6 +491,36 @@ impl RowColHeader {
     }
 }
 
+/// One row of a sheet of the spreadsheet.
+///
+/// Contains the data in cells and a repetition count which is mostly used to
+/// duplicate styling and validation code across a (possibly large) number of
+/// empty cells.
+#[derive(Clone, Default)]
+struct Row {
+	cells: BTreeMap<ucell, SCell>,
+	repeated: Option<ucell>,
+}
+
+impl fmt::Debug for Row {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "row")?;
+        for (k, v) in self.cells.iter() {
+            writeln!(f, "  data {:?} {:?}", k, v)?;
+        }
+        if let Some(repeated) = &self.repeated {
+            writeln!(f, "repeated {:?}", repeated)?;
+        }
+        Ok(())
+    }
+}
+
+impl Row {
+    fn cell_mut(&mut self, col: ucell) -> &mut SCell {
+        self.cells.entry(col).or_insert_with(SCell::new)
+    }
+}
+
 /// One sheet of the spreadsheet.
 ///
 /// Contains the data and the style-references. The can also be
@@ -501,7 +531,7 @@ pub struct Sheet {
     name: String,
     style: Option<String>,
 
-    data: BTreeMap<(ucell, ucell), SCell>,
+    rows: BTreeMap<ucell, Row>,
 
     col_header: BTreeMap<ucell, RowColHeader>,
     row_header: BTreeMap<ucell, RowColHeader>,
@@ -519,8 +549,10 @@ pub struct Sheet {
 impl fmt::Debug for Sheet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "name {:?} style {:?}", self.name, self.style)?;
-        for (k, v) in self.data.iter() {
-            writeln!(f, "  data {:?} {:?}", k, v)?;
+        for (k, v) in self.rows.iter() {
+            for (vk, vv) in v.cells.iter() {
+                 writeln!(f, "  data ({:?}, {:?}) {:?}", k, vk, vv)?;
+            }
         }
         for (k, v) in &self.col_header {
             writeln!(f, "{:?} {:?}", k, v)?;
@@ -546,7 +578,7 @@ impl Sheet {
     pub fn new() -> Self {
         Sheet {
             name: String::from(""),
-            data: BTreeMap::new(),
+            rows: BTreeMap::new(),
             col_header: Default::default(),
             style: None,
             header_rows: None,
@@ -563,7 +595,7 @@ impl Sheet {
     pub fn new_with_name<S: Into<String>>(name: S) -> Self {
         Sheet {
             name: name.into(),
-            data: BTreeMap::new(),
+            rows: BTreeMap::new(),
             col_header: Default::default(),
             style: None,
             header_rows: None,
@@ -763,14 +795,24 @@ impl Sheet {
     }
 
     /// Returns a tuple of (max(row)+1, max(col)+1)
+    // TODO: Suggestion for alternate behaviour:
+    //       > Returns `0` for both components if no rows are used. If
+    //       > (whatever that means) some rows are used but all of them contain
+    //       > no cells, the second conmponent is `0`.
+    //       Of course, this distinction only matters if we can have empty
+    //       sheets. The second distinction even only matters if we can have
+    //       empty rows. I'm not sure if that is the case but would have assumed
+    //       so intuitively.
     pub fn used_grid_size(&self) -> (ucell, ucell) {
-        let max = self.data.keys().fold((0, 0), |mut max, (r, c)| {
-            max.0 = u32::max(max.0, *r);
-            max.1 = u32::max(max.1, *c);
-            max
-        });
+        let max_row = self.rows.keys().next_back();
+        let max_col = self.rows.iter().fold(0, |max, (_, v)|
+            u32::max(max, *v.cells.keys().next_back().unwrap_or(&0))
+        );
 
-        (max.0 + 1, max.1 + 1)
+        match max_row {
+            None => (0, max_col+1),
+            Some(mr) => (mr+1, max_col),
+        }
     }
 
     /// Is the sheet displayed?
@@ -795,28 +837,41 @@ impl Sheet {
 
     /// Returns true if there is no SCell at the given position.
     pub fn is_empty(&self, row: ucell, col: ucell) -> bool {
-        self.data.get(&(row, col)).is_none()
+        let row = self.rows.get(&row);
+        match row {
+            None => true,
+            Some(r) => r.cells.get(&col).is_none(),
+        }
     }
 
     /// Returns the cell if available.
+    // TODO: Consider repeated rows
     pub fn cell(&self, row: ucell, col: ucell) -> Option<&SCell> {
-        self.data.get(&(row, col))
+        self.rows.get(&row)?.cells.get(&col)
+    }
+
+    /// Ensures that there is a Row at the given position and returns
+    /// a reference to it.
+    // TODO: Consider repeated rows
+    fn row_mut(&mut self, row: ucell) -> &mut Row {
+        self.rows.entry(row).or_insert_with(Row::default)
     }
 
     /// Ensures that there is a SCell at the given position and returns
     /// a reference to it.
     pub fn cell_mut(&mut self, row: ucell, col: ucell) -> &mut SCell {
-        self.data.entry((row, col)).or_insert_with(SCell::new)
+        self.row_mut(row).cell_mut(col)
     }
 
     /// Adds a cell. Replaces an existing one.
     pub fn add_cell(&mut self, row: ucell, col: ucell, cell: SCell) -> Option<SCell> {
-        self.data.insert((row, col), cell)
+        self.row_mut(row).cells.insert(col, cell)
     }
 
     /// Removes a cell.
+    // TODO: Consider repeated rows
     pub fn remove_cell(&mut self, row: ucell, col: ucell) -> Option<SCell> {
-        self.data.remove(&(row, col))
+        self.rows.get_mut(&row)?.cells.remove(&col)
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
@@ -827,20 +882,20 @@ impl Sheet {
         value: V,
         style: W,
     ) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        let mut cell = self.cell_mut(row, col);
         cell.value = value.into();
         cell.style = Some(style.into());
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
     pub fn set_value<V: Into<Value>>(&mut self, row: ucell, col: ucell, value: V) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        let mut cell = self.cell_mut(row, col);
         cell.value = value.into();
     }
 
     /// Returns a value
     pub fn value(&self, row: ucell, col: ucell) -> &Value {
-        if let Some(cell) = self.data.get(&(row, col)) {
+        if let Some(cell) = self.cell(row, col) {
             &cell.value
         } else {
             &Value::Empty
@@ -849,13 +904,13 @@ impl Sheet {
 
     /// Sets a formula for the specified cell. Creates a new cell if necessary.
     pub fn set_formula<V: Into<String>>(&mut self, row: ucell, col: ucell, formula: V) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        let mut cell = self.cell_mut(row, col);
         cell.formula = Some(formula.into());
     }
 
     /// Returns a value
     pub fn formula(&self, row: ucell, col: ucell) -> Option<&String> {
-        if let Some(c) = self.data.get(&(row, col)) {
+        if let Some(c) = self.cell(row, col) {
             c.formula.as_ref()
         } else {
             None
@@ -864,13 +919,13 @@ impl Sheet {
 
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
     pub fn set_cell_style<V: Into<String>>(&mut self, row: ucell, col: ucell, style: V) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        let mut cell = self.cell_mut(row, col);
         cell.style = Some(style.into());
     }
 
     /// Returns a value
     pub fn cell_style(&self, row: ucell, col: ucell) -> Option<&String> {
-        if let Some(c) = self.data.get(&(row, col)) {
+        if let Some(c) = self.cell(row, col) {
             c.style.as_ref()
         } else {
             None
@@ -879,13 +934,13 @@ impl Sheet {
 
     /// Sets the rowspan of the cell. Must be greater than 0.
     pub fn set_row_span(&mut self, row: ucell, col: ucell, span: ucell) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        let mut cell = self.cell_mut(row, col);
         cell.span.0 = span;
     }
 
     /// Rowspan of the cell.
     pub fn row_span(&self, row: ucell, col: ucell) -> ucell {
-        if let Some(c) = self.data.get(&(row, col)) {
+        if let Some(c) = self.cell(row, col) {
             c.span.0
         } else {
             1
@@ -895,13 +950,13 @@ impl Sheet {
     /// Sets the colspan of the cell. Must be greater than 0.
     pub fn set_col_span(&mut self, row: ucell, col: ucell, span: ucell) {
         assert!(span > 0);
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        let mut cell = self.cell_mut(row, col);
         cell.span.1 = span;
     }
 
     /// Colspan of the cell.
     pub fn col_span(&self, row: ucell, col: ucell) -> ucell {
-        if let Some(c) = self.data.get(&(row, col)) {
+        if let Some(c) = self.cell(row, col) {
             c.span.1
         } else {
             1
