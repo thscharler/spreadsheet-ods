@@ -496,10 +496,20 @@ impl RowColHeader {
 /// Contains the data in cells and a repetition count which is mostly used to
 /// duplicate styling and validation code across a (possibly large) number of
 /// empty cells.
-#[derive(Clone, Default)]
+///
+/// The `repeated` attribute is at least and usually `1`.
+#[derive(Clone)]
 struct Row {
 	cells: BTreeMap<ucell, SCell>,
-	repeated: Option<ucell>,
+	repeated: ucell,
+}
+
+impl Default for Row {
+    fn default() -> Row {
+        let cells = BTreeMap::default();
+        let repeated = 1;
+        Row {cells, repeated}
+    }
 }
 
 impl fmt::Debug for Row {
@@ -508,9 +518,7 @@ impl fmt::Debug for Row {
         for (k, v) in self.cells.iter() {
             writeln!(f, "  data {:?} {:?}", k, v)?;
         }
-        if let Some(repeated) = &self.repeated {
-            writeln!(f, "repeated {:?}", repeated)?;
-        }
+        writeln!(f, "repeated {:?}", self.repeated)?;
         Ok(())
     }
 }
@@ -518,6 +526,12 @@ impl fmt::Debug for Row {
 impl Row {
     fn cell_mut(&mut self, col: ucell) -> &mut SCell {
         self.cells.entry(col).or_insert_with(SCell::new)
+    }
+
+    fn default_repeated(repeated: ucell) -> Row {
+        let mut r = Row::default();
+        r.repeated = repeated;
+        r
     }
 }
 
@@ -615,7 +629,7 @@ impl Sheet {
 
     /// Sheet name.
     pub fn name(&self) -> &String {
-        &self.name
+       &self.name
     }
 
     /// Sets the table-style
@@ -844,17 +858,76 @@ impl Sheet {
         }
     }
 
+    /// Returns the row if available.
+    fn row(&self, row: ucell) -> Option<&Row> {
+        // Find largest row which is at most the row we want
+        let (prev_index, prev_row) = self.rows.range(0..=row).next_back()?;
+        // Find out how often the row is repeated (neccessarily at least once,
+        // for our purposes)
+        let rep = prev_row.repeated;
+        // This will trigger in particular if `prev_index == row`
+        if prev_index + rep > row {
+            Some(prev_row)
+        } else {
+            None
+        }
+    }
+
     /// Returns the cell if available.
-    // TODO: Consider repeated rows
     pub fn cell(&self, row: ucell, col: ucell) -> Option<&SCell> {
-        self.rows.get(&row)?.cells.get(&col)
+        self.row(row)?.cells.get(&col)
     }
 
     /// Ensures that there is a Row at the given position and returns
     /// a reference to it.
-    // TODO: Consider repeated rows
     fn row_mut(&mut self, row: ucell) -> &mut Row {
-        self.rows.entry(row).or_insert_with(Row::default)
+        // Find largest row which is at most the row we want
+        let prev = self.rows.range(0..=row).next_back();
+        // Find out how often the row is repeated (neccessarily at least once,
+        // for our purposes)
+        let prev_index = if let Some((prev_index, _)) = prev {
+            *prev_index
+        } else {
+            self.rows.insert(0, Row::default_repeated(row));
+            self.rows.insert(row, Row::default());
+            return self.rows.get_mut(&row).unwrap();
+        };
+        let prev_row = self.rows.get_mut(&prev_index).unwrap();
+        let rep = prev_row.repeated;
+        if prev_index == row {
+            let corr_row = prev_row;
+            if rep == 1 {
+                // Nothing to do. \o/
+            } else if rep > 1 {
+                let mut next_row = corr_row.clone();
+                corr_row.repeated = 1;
+                next_row.repeated = rep-1;
+                self.rows.insert(row+1, next_row);
+            } else {
+                panic!("This row is repeated 0 times?!")
+            }
+        } else if prev_index + rep > row {
+            let mut corr_row = prev_row.clone();
+            // Necessarily non-negative
+            let next_rep = prev_index + rep - row - 1;
+            // Necessarily greater 0 as otherwise we would have branched before
+            prev_row.repeated = row - prev_index;
+            corr_row.repeated = 1;
+            if next_rep > 0 {
+                let mut next_row = prev_row.clone();
+                next_row.repeated = next_rep;
+                self.rows.insert(row+1, next_row);
+            }
+            self.rows.insert(row, corr_row);
+        } else {
+            // Necessarily non-negative
+            let padd_rep = row - prev_index - rep;
+            if padd_rep > 0 {
+                self.rows.insert(prev_index+rep, Row::default_repeated(padd_rep));
+            }
+            self.rows.insert(row, Row::default());
+        }
+        self.rows.get_mut(&row).unwrap()
     }
 
     /// Ensures that there is a SCell at the given position and returns
