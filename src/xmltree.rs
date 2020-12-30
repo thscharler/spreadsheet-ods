@@ -102,9 +102,39 @@ impl XmlTag {
         self.content.push(XmlContent::Tag(xmltag));
     }
 
+    /// Retrieves the first tag, if any.
+    pub fn pop_tag(&mut self) -> Option<XmlTag> {
+        match self.content.get(0) {
+            None => None,
+            Some(XmlContent::Tag(_)) => {
+                if let XmlContent::Tag(tag) = self.content.pop().unwrap() {
+                    Some(tag)
+                } else {
+                    unreachable!()
+                }
+            }
+            Some(XmlContent::Text(_)) => None,
+        }
+    }
+
     /// Add text.
     pub fn push_text<S: Into<String>>(&mut self, text: S) {
         self.content.push(XmlContent::Text(text.into()));
+    }
+
+    /// Retrieves the first text element.
+    pub fn pop_text(&mut self) -> Option<String> {
+        match self.content.get(0) {
+            None => None,
+            Some(XmlContent::Text(_)) => {
+                if let XmlContent::Text(text) = self.content.pop().unwrap() {
+                    Some(text)
+                } else {
+                    unreachable!()
+                }
+            }
+            Some(XmlContent::Tag(_)) => None,
+        }
     }
 
     /// Sets an attribute. Allows for cascading.

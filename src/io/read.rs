@@ -1116,16 +1116,23 @@ fn read_headerfooter(
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
                     b"style:region-left" => {
-                        let cm = read_xml(b"style:region-left", xml, &xml_tag, empty_tag)?;
-                        hf.set_left(cm);
+                        let cm = read_xml_content(b"style:region-left", xml, &xml_tag, empty_tag)?;
+                        if let Some(cm) = cm {
+                            hf.set_left(cm);
+                        }
                     }
                     b"style:region-center" => {
-                        let cm = read_xml(b"style:region-center", xml, &xml_tag, empty_tag)?;
-                        hf.set_center(cm);
+                        let cm =
+                            read_xml_content(b"style:region-center", xml, &xml_tag, empty_tag)?;
+                        if let Some(cm) = cm {
+                            hf.set_center(cm);
+                        }
                     }
                     b"style:region-right" => {
-                        let cm = read_xml(b"style:region-right", xml, &xml_tag, empty_tag)?;
-                        hf.set_right(cm);
+                        let cm = read_xml_content(b"style:region-right", xml, &xml_tag, empty_tag)?;
+                        if let Some(cm) = cm {
+                            hf.set_right(cm);
+                        }
                     }
                     b"text:p" => {
                         let cm = read_xml(b"text:p", xml, &xml_tag, empty_tag)?;
@@ -1772,6 +1779,17 @@ fn read_styles(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsErr
     Ok(())
 }
 
+// Reads a part of the XML as XmlTag's, and returns the first content XmlTag.
+fn read_xml_content(
+    end_tag: &[u8],
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
+    empty_tag: bool,
+) -> Result<Option<XmlTag>, OdsError> {
+    Ok(read_xml(end_tag, xml, xml_tag, empty_tag)?.pop_tag())
+}
+
+// Reads a part of the XML as XmlTag's.
 fn read_xml(
     end_tag: &[u8],
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
