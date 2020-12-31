@@ -57,15 +57,31 @@ fn read_content(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsEr
             Event::Decl(_) => {}
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"office:document-content"
-                || xml_tag.name() == b"office:body"
+            if xml_tag.name() == b"office:body"
                 || xml_tag.name() == b"office:spreadsheet" => {
                 // noop
             }
             Event::End(xml_tag)
-            if xml_tag.name() == b"office:document-content"
-                || xml_tag.name() == b"office:body"
+            if xml_tag.name() == b"office:body"
                 || xml_tag.name() == b"office:spreadsheet" => {
+                // noop
+            }
+            Event::Start(xml_tag)
+            if xml_tag.name() == b"office:document-content" => {
+                for attr in xml_tag.attributes().with_checks(false) {
+                    match attr? {
+                        attr if attr.key == b"office:version" => {
+                            let v = attr.unescape_and_decode_value(&xml)?;
+                            book.set_version(v);
+                        }
+                        _ => {
+                            // noop
+                        }
+                    }
+                }
+            }
+            Event::End(xml_tag)
+            if xml_tag.name() == b"office:document-content" => {
                 // noop
             }
 

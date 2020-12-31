@@ -172,6 +172,9 @@ pub struct WorkBook {
     /// The data.
     sheets: Vec<Sheet>,
 
+    // ODS Version
+    version: String,
+
     //// FontDecl hold the style:font-face elements
     fonts: HashMap<String, FontFaceDecl>,
 
@@ -231,6 +234,7 @@ impl WorkBook {
     pub fn new() -> Self {
         WorkBook {
             sheets: Default::default(),
+            version: "1.3".to_string(),
             fonts: Default::default(),
             styles: Default::default(),
             formats: Default::default(),
@@ -239,6 +243,16 @@ impl WorkBook {
             file: None,
             extra: vec![],
         }
+    }
+
+    /// Set ODS version.
+    pub fn version(&self) -> &String {
+        &self.version
+    }
+
+    /// ODS version.
+    pub fn set_version(&mut self, version: String) {
+        self.version = version.to_string();
     }
 
     /// Number of sheets.

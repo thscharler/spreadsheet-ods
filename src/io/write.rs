@@ -36,9 +36,9 @@ pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), Ods
     }
 
     write_mimetype(&mut zip_writer, &mut file_set)?;
-    write_manifest(&mut zip_writer, &mut file_set)?;
-    write_manifest_rdf(&mut zip_writer, &mut file_set)?;
-    write_meta(&mut zip_writer, &mut file_set)?;
+    write_manifest(&book, &mut zip_writer, &mut file_set)?;
+    write_manifest_rdf(&book, &mut zip_writer, &mut file_set)?;
+    write_meta(&book, &mut zip_writer, &mut file_set)?;
     //write_settings(&mut zip_writer, &mut file_set)?;
     //write_configurations(&mut zip_writer, &mut file_set)?;
     write_ods_styles(&book, &mut zip_writer, &mut file_set)?;
@@ -102,7 +102,11 @@ fn write_mimetype(
     Ok(())
 }
 
-fn write_manifest(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+fn write_manifest(
+    book: &WorkBook,
+    zip_out: &mut OdsWriter,
+    file_set: &mut HashSet<String>,
+) -> Result<(), OdsError> {
     if !file_set.contains("META-INF/manifest.xml") {
         file_set.insert(String::from("META-INF/manifest.xml"));
 
@@ -118,11 +122,11 @@ fn write_manifest(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Re
             "xmlns:manifest",
             "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0",
         )?;
-        xml_out.attr("manifest:version", "1.2")?;
+        xml_out.attr("manifest:version", book.version())?;
 
         xml_out.empty("manifest:file-entry")?;
         xml_out.attr("manifest:full-path", "/")?;
-        xml_out.attr("manifest:version", "1.2")?;
+        xml_out.attr("manifest:version", book.version())?;
         xml_out.attr(
             "manifest:media-type",
             "application/vnd.oasis.opendocument.spreadsheet",
@@ -163,6 +167,7 @@ fn write_manifest(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Re
 }
 
 fn write_manifest_rdf(
+    _book: &WorkBook,
     zip_out: &mut OdsWriter,
     file_set: &mut HashSet<String>,
 ) -> Result<(), OdsError> {
@@ -220,7 +225,11 @@ fn write_manifest_rdf(
     Ok(())
 }
 
-fn write_meta(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
+fn write_meta(
+    book: &WorkBook,
+    zip_out: &mut OdsWriter,
+    file_set: &mut HashSet<String>,
+) -> Result<(), OdsError> {
     if !file_set.contains("meta.xml") {
         file_set.insert(String::from("meta.xml"));
 
@@ -239,7 +248,7 @@ fn write_meta(zip_out: &mut OdsWriter, file_set: &mut HashSet<String>) -> Result
             "xmlns:office",
             "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
         )?;
-        xml_out.attr("office:version", "1.2")?;
+        xml_out.attr("office:version", book.version())?;
 
         xml_out.elem("office:meta")?;
 
@@ -402,7 +411,7 @@ fn write_ods_styles(
         "xmlns:presentation",
         "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
     )?;
-    xml_out.attr("office:version", "1.2")?;
+    xml_out.attr("office:version", book.version())?;
 
     xml_out.elem("office:font-face-decls")?;
     write_font_decl(&book.fonts, StyleOrigin::Styles, &mut xml_out)?;
@@ -470,54 +479,9 @@ fn write_ods_content(
 
     xml_out.elem("office:document-content")?;
     xml_out.attr(
-        "xmlns:presentation",
-        "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
-    )?;
-    xml_out.attr("xmlns:grddl", "http://www.w3.org/2003/g/data-view#")?;
-    xml_out.attr("xmlns:xhtml", "http://www.w3.org/1999/xhtml")?;
-    xml_out.attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")?;
-    xml_out.attr("xmlns:xsd", "http://www.w3.org/2001/XMLSchema")?;
-    xml_out.attr("xmlns:xforms", "http://www.w3.org/2002/xforms")?;
-    xml_out.attr("xmlns:dom", "http://www.w3.org/2001/xml-events")?;
-    xml_out.attr(
-        "xmlns:script",
-        "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
-    )?;
-    xml_out.attr(
-        "xmlns:form",
-        "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
-    )?;
-    xml_out.attr("xmlns:math", "http://www.w3.org/1998/Math/MathML")?;
-    xml_out.attr(
-        "xmlns:draw",
-        "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
-    )?;
-    xml_out.attr(
-        "xmlns:dr3d",
-        "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
-    )?;
-    xml_out.attr(
-        "xmlns:text",
-        "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
-    )?;
-    xml_out.attr(
-        "xmlns:style",
-        "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
-    )?;
-    xml_out.attr(
         "xmlns:meta",
         "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
     )?;
-    xml_out.attr("xmlns:ooo", "http://openoffice.org/2004/office")?;
-    xml_out.attr(
-        "xmlns:loext",
-        "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
-    )?;
-    xml_out.attr(
-        "xmlns:svg",
-        "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
-    )?;
-    xml_out.attr("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
     xml_out.attr(
         "xmlns:office",
         "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
@@ -527,38 +491,56 @@ fn write_ods_content(
         "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
     )?;
     xml_out.attr(
-        "xmlns:field",
-        "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
+        "xmlns:style",
+        "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
     )?;
-    xml_out.attr("xmlns:xlink", "http://www.w3.org/1999/xlink")?;
     xml_out.attr(
-        "xmlns:formx",
-        "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0",
+        "xmlns:text",
+        "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
     )?;
-    xml_out.attr("xmlns:dc", "http://purl.org/dc/elements/1.1/")?;
+    xml_out.attr(
+        "xmlns:dr3d",
+        "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:svg",
+        "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
+    )?;
     xml_out.attr(
         "xmlns:chart",
         "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
     )?;
-    xml_out.attr("xmlns:rpt", "http://openoffice.org/2005/report")?;
     xml_out.attr(
         "xmlns:table",
         "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
     )?;
-    xml_out.attr("xmlns:css3t", "http://www.w3.org/TR/css3-text/")?;
-    xml_out.attr(
-        "xmlns:number",
-        "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
-    )?;
-    xml_out.attr("xmlns:ooow", "http://openoffice.org/2004/writer")?;
-    xml_out.attr("xmlns:oooc", "http://openoffice.org/2004/calc")?;
-    xml_out.attr("xmlns:tableooo", "http://openoffice.org/2009/table")?;
+    xml_out.attr("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
     xml_out.attr(
         "xmlns:calcext",
         "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
     )?;
-    xml_out.attr("xmlns:drawooo", "http://openoffice.org/2010/draw")?;
-    xml_out.attr("office:version", "1.2")?;
+    xml_out.attr(
+        "xmlns:loext",
+        "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:field",
+        "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:form",
+        "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:script",
+        "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:presentation",
+        "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
+    )?;
+
+    xml_out.attr("office:version", book.version())?;
 
     xml_out.empty("office:scripts")?;
 
@@ -658,7 +640,6 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     if !sheet.display() {
         xml_out.attr("table:display", "false")?;
     }
-
 
     let max_cell = sheet.used_grid_size();
 
@@ -1278,13 +1259,13 @@ fn write_styles(
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if style.family() == StyleFor::TableRow &&!style.row().has_attr() {
+        if style.family() == StyleFor::TableRow && !style.row().has_attr() {
             xml_out.empty("style:table-row-properties")?;
             for (a, v) in style.row() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
-        if style.family() == StyleFor::Table &&!style.table().has_attr() {
+        if style.family() == StyleFor::Table && !style.table().has_attr() {
             xml_out.empty("style:table-properties")?;
             for (a, v) in style.table() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
