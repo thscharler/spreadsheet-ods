@@ -189,6 +189,9 @@ pub struct WorkBook {
     /// The data.
     sheets: Vec<Sheet>,
 
+    // ODS Version
+    version: String,
+
     //// FontDecl hold the style:font-face elements
     fonts: HashMap<String, FontFaceDecl>,
 
@@ -248,6 +251,7 @@ impl WorkBook {
     pub fn new() -> Self {
         WorkBook {
             sheets: Default::default(),
+            version: "1.3".to_string(),
             fonts: Default::default(),
             styles: Default::default(),
             formats: Default::default(),
@@ -256,6 +260,16 @@ impl WorkBook {
             file: None,
             extra: vec![],
         }
+    }
+
+    /// Set ODS version.
+    pub fn version(&self) -> &String {
+        &self.version
+    }
+
+    /// ODS version.
+    pub fn set_version(&mut self, version: String) {
+        self.version = version.to_string();
     }
 
     /// Number of sheets.
@@ -1302,69 +1316,61 @@ impl From<Decimal> for Value {
     }
 }
 
-impl From<f64> for Value {
-    fn from(f: f64) -> Self {
-        Value::Number(f)
+#[cfg(feature = "use_decimal")]
+impl From<Option<Decimal>> for Value {
+    fn from(f: Option<Decimal>) -> Self {
+        if let Some(f) = f {
+            Value::Number(f.to_f64().unwrap())
+        } else {
+            Value::Empty
+        }
     }
 }
 
-impl From<f32> for Value {
-    fn from(f: f32) -> Self {
-        Value::Number(f as f64)
-    }
+macro_rules! from_number {
+    ($l:ty) => {
+        impl From<$l> for Value {
+            fn from(f: $l) -> Self {
+                Value::Number(f as f64)
+            }
+        }
+
+        impl From<Option<$l>> for Value {
+            fn from(f: Option<$l>) -> Self {
+                if let Some(f) = f {
+                    Value::Number(f as f64)
+                } else {
+                    Value::Empty
+                }
+            }
+        }
+    };
 }
 
-impl From<i64> for Value {
-    fn from(i: i64) -> Self {
-        Value::Number(i as f64)
-    }
-}
-
-impl From<i32> for Value {
-    fn from(i: i32) -> Self {
-        Value::Number(i as f64)
-    }
-}
-
-impl From<i16> for Value {
-    fn from(i: i16) -> Self {
-        Value::Number(i as f64)
-    }
-}
-
-impl From<i8> for Value {
-    fn from(i: i8) -> Self {
-        Value::Number(i as f64)
-    }
-}
-
-impl From<u64> for Value {
-    fn from(u: u64) -> Self {
-        Value::Number(u as f64)
-    }
-}
-
-impl From<u32> for Value {
-    fn from(u: u32) -> Self {
-        Value::Number(u as f64)
-    }
-}
-
-impl From<u16> for Value {
-    fn from(u: u16) -> Self {
-        Value::Number(u as f64)
-    }
-}
-
-impl From<u8> for Value {
-    fn from(u: u8) -> Self {
-        Value::Number(u as f64)
-    }
-}
+from_number!(f64);
+from_number!(f32);
+from_number!(i64);
+from_number!(i32);
+from_number!(i16);
+from_number!(i8);
+from_number!(u64);
+from_number!(u32);
+from_number!(u16);
+from_number!(u8);
 
 impl From<bool> for Value {
     fn from(b: bool) -> Self {
         Value::Boolean(b)
+    }
+}
+
+impl From<Option<bool>> for Value {
+    fn from(b: Option<bool>) -> Self {
+        if let Some(b) = b {
+            Value::Boolean(b)
+        } else {
+            Value::Empty
+        }
     }
 }
 

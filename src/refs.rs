@@ -746,7 +746,7 @@ pub(crate) fn push_colname(buf: &mut String, mut col: ucell) {
 }
 
 /// Appends the spreadsheet row name
-pub(crate) fn push_rowname(buf: &mut String, mut row: ucell) {
+pub(crate) fn push_rowname(buf: &mut String, row: ucell) {
     let mut i = 0;
     let mut dbuf = [0u8; 10];
 

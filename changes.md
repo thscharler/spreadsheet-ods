@@ -1,4 +1,11 @@
 
+# 0.4.2
+
+- Allow the ODS version to be specified. This adds support for 
+  ODS 1.3. 
+-- Default version set to 1.3. 
+
+
 # 0.4.1 
 
 - Refine usage of Style::cell(), cell_mut(), table(), table_mut(), col(), col_mut(), 
