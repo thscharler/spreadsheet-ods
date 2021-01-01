@@ -1,5 +1,5 @@
-use spreadsheet_ods::*;
 use spreadsheet_ods::style::*;
+use spreadsheet_ods::*;
 
 #[test]
 fn issue1() {

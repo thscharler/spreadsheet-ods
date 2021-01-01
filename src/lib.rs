@@ -157,8 +157,7 @@ pub use io::{read_ods, write_ods};
 pub use refs::{CellRange, CellRef, ColRange, RowRange};
 pub use style::{Angle, Length, Style};
 
-use crate::attrmap::{AttrTableCol, AttrTableRow};
-use crate::style::{FontFaceDecl, PageLayout};
+use crate::style::{AttrTableCol, AttrTableRow, FontFaceDecl, PageLayout};
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
 use std::fmt::{Display, Formatter};
