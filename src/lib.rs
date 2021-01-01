@@ -17,13 +17,13 @@
 //!     WorkBook::new()
 //! };
 //!
-//! 
+//!
 //! if wb.num_sheets() == 0 {
 //!     let mut sheet = Sheet::new();
 //!     sheet.cell_mut(0, 0).set_value(Value::Boolean(true));
 //!     wb.push_sheet(sheet);
 //! }
-//! 
+//!
 //! let sheet = wb.sheet(0);
 //! let n = sheet.value(0,0).as_f64_or(0f64);
 //! if let Value::Boolean(v) = sheet.value(1,1) {

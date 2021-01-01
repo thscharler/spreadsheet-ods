@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 
-use spreadsheet_ods::{OdsError, Sheet, Style, ValueFormat, ValueType, WorkBook, write_ods};
 use spreadsheet_ods::format::{FormatCalendarStyle, FormatNumberStyle};
+use spreadsheet_ods::{write_ods, OdsError, Sheet, Style, ValueFormat, ValueType, WorkBook};
 
 #[test]
 pub fn value_format() {

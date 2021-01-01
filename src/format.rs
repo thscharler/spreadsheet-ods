@@ -347,9 +347,7 @@ impl ValueFormat {
 
     /// Adds a stylemap.
     pub fn push_stylemap(&mut self, stylemap: StyleMap) {
-        self.stylemaps
-            .get_or_insert_with(Vec::new)
-            .push(stylemap);
+        self.stylemaps.get_or_insert_with(Vec::new).push(stylemap);
     }
 
     /// Returns the stylemaps
