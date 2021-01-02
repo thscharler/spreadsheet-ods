@@ -1,9 +1,9 @@
 use crate::attrmap::AttrMap;
 use crate::style::{
     border_line_width_string, border_string, color_string, percent_string, shadow_string, Border,
-    CellAlignVertical, FontPitch, LineMode, LineStyle, LineType, LineWidth, PageBreak,
-    ParaAlignVertical, RotationAlign, TextAlign, TextAlignSource, TextKeep, TextPosition,
-    TextRelief, TextStyle, TextTransform, TextWeight, WrapOption, WritingMode,
+    CellAlignVertical, FontPitch, FontStyle, FontWeight, LineMode, LineStyle, LineType, LineWidth,
+    PageBreak, ParaAlignVertical, RotationAlign, TextAlign, TextAlignSource, TextKeep,
+    TextPosition, TextRelief, TextTransform, WrapOption, WritingMode,
 };
 use crate::{style, Angle, Length};
 use color::Rgb;
@@ -433,15 +433,15 @@ where
         self.set_attr("fo:font-style", "italic".to_string());
     }
 
-    fn set_font_style(&mut self, style: TextStyle) {
+    fn set_font_style(&mut self, style: FontStyle) {
         self.set_attr("fo:font-style", style.to_string());
     }
 
     fn set_font_bold(&mut self) {
-        self.set_attr("fo:font-weight", TextWeight::Bold.to_string());
+        self.set_attr("fo:font-weight", FontWeight::Bold.to_string());
     }
 
-    fn set_font_weight(&mut self, weight: TextWeight) {
+    fn set_font_weight(&mut self, weight: FontWeight) {
         self.set_attr("fo:font-weight", weight.to_string());
     }
 

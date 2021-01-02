@@ -159,7 +159,7 @@ pub use style::{Angle, Length, Style};
 
 use crate::style::{
     FontFaceDecl, GraphicStyle, PageLayout, ParagraphStyle, TableCellStyle, TableColumnStyle,
-    TableRowStyle, TableStyle,
+    TableRowStyle, TableStyle, TextStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -206,6 +206,7 @@ pub struct WorkBook {
     column_styles: HashMap<String, TableColumnStyle>,
     cell_styles: HashMap<String, TableCellStyle>,
     para_styles: HashMap<String, ParagraphStyle>,
+    text_styles: HashMap<String, TextStyle>,
     graphic_styles: HashMap<String, GraphicStyle>,
 
     /// Value-styles are actual formatting instructions
@@ -288,6 +289,7 @@ impl WorkBook {
             column_styles: Default::default(),
             cell_styles: Default::default(),
             para_styles: Default::default(),
+            text_styles: Default::default(),
             graphic_styles: Default::default(),
             formats: Default::default(),
             def_styles: Default::default(),
@@ -512,6 +514,27 @@ impl WorkBook {
     /// Returns the mutable style.
     pub fn paragraph_style_mut(&mut self, name: &str) -> Option<&mut ParagraphStyle> {
         self.para_styles.get_mut(name)
+    }
+
+    /// Adds a style.
+    pub fn add_text_style(&mut self, style: TextStyle) {
+        self.text_styles
+            .insert(style.name().unwrap().to_string(), style);
+    }
+
+    /// Removes a style.
+    pub fn remove_text_style(&mut self, name: &str) -> Option<TextStyle> {
+        self.text_styles.remove(name)
+    }
+
+    /// Returns the style.
+    pub fn text_style(&self, name: &str) -> Option<&TextStyle> {
+        self.text_styles.get(name)
+    }
+
+    /// Returns the mutable style.
+    pub fn text_style_mut(&mut self, name: &str) -> Option<&mut TextStyle> {
+        self.text_styles.get_mut(name)
     }
 
     /// Adds a style.

@@ -350,25 +350,25 @@ impl Display for ParaAlignVertical {
 
 /// Text style values.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum TextStyle {
+pub enum FontStyle {
     Normal,
     Italic,
     Oblique,
 }
 
-impl Display for TextStyle {
+impl Display for FontStyle {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            TextStyle::Normal => write!(f, "normal"),
-            TextStyle::Italic => write!(f, "italic"),
-            TextStyle::Oblique => write!(f, "oblique"),
+            FontStyle::Normal => write!(f, "normal"),
+            FontStyle::Italic => write!(f, "italic"),
+            FontStyle::Oblique => write!(f, "oblique"),
         }
     }
 }
 
 /// Text weight values.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum TextWeight {
+pub enum FontWeight {
     Normal,
     Bold,
     W100,
@@ -382,20 +382,20 @@ pub enum TextWeight {
     W900,
 }
 
-impl Display for TextWeight {
+impl Display for FontWeight {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            TextWeight::Normal => write!(f, "normal"),
-            TextWeight::Bold => write!(f, "bold"),
-            TextWeight::W100 => write!(f, "100"),
-            TextWeight::W200 => write!(f, "200"),
-            TextWeight::W300 => write!(f, "300"),
-            TextWeight::W400 => write!(f, "400"),
-            TextWeight::W500 => write!(f, "500"),
-            TextWeight::W600 => write!(f, "600"),
-            TextWeight::W700 => write!(f, "700"),
-            TextWeight::W800 => write!(f, "800"),
-            TextWeight::W900 => write!(f, "900"),
+            FontWeight::Normal => write!(f, "normal"),
+            FontWeight::Bold => write!(f, "bold"),
+            FontWeight::W100 => write!(f, "100"),
+            FontWeight::W200 => write!(f, "200"),
+            FontWeight::W300 => write!(f, "300"),
+            FontWeight::W400 => write!(f, "400"),
+            FontWeight::W500 => write!(f, "500"),
+            FontWeight::W600 => write!(f, "600"),
+            FontWeight::W700 => write!(f, "700"),
+            FontWeight::W800 => write!(f, "800"),
+            FontWeight::W900 => write!(f, "900"),
         }
     }
 }

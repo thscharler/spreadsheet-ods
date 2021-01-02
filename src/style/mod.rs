@@ -17,6 +17,7 @@ mod row_style;
 mod stylemap;
 mod table_style;
 mod tabstop;
+mod text_style;
 mod units;
 
 pub use crate::attrmap::*;
@@ -31,6 +32,7 @@ pub use row_style::*;
 pub use stylemap::*;
 pub use table_style::*;
 pub use tabstop::*;
+pub use text_style::*;
 pub use units::*;
 
 use crate::sealed::Sealed;
@@ -74,6 +76,7 @@ pub enum StyleFor {
     TableCell,
     Graphic,
     Paragraph,
+    Text,
     None,
 }
 

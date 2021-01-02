@@ -12,9 +12,9 @@ use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
 use crate::style::{
-    FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle, Style, StyleFor,
-    StyleMap, StyleOrigin, StyleUse, TabStop, TableCellStyle, TableColumnStyle, TableRowStyle,
-    TableStyle,
+    FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle, StyleFor, StyleMap,
+    StyleOrigin, StyleUse, TabStop, TableCellStyle, TableColumnStyle, TableRowStyle, TableStyle,
+    TextStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -1550,108 +1550,28 @@ fn read_style_style(
 ) -> Result<(), OdsError> {
     match read_family_attr(xml, xml_tag)? {
         StyleFor::Table => {
-            read_table_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+            read_table_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
         StyleFor::TableRow => {
-            read_tablerow_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+            read_tablerow_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
         StyleFor::TableColumn => {
-            read_tablecolumn_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+            read_tablecolumn_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
         StyleFor::TableCell => {
-            read_tablecell_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+            read_tablecell_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
         StyleFor::Paragraph => {
-            read_paragraph_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+            read_paragraph_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
         StyleFor::Graphic => {
-            read_graphic_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+            read_graphic_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
-        _ => read_any_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?,
-    }
-    Ok(())
-}
-
-// style:style tag
-#[allow(clippy::single_match)]
-#[allow(clippy::collapsible_if)]
-fn read_any_style(
-    book: &mut WorkBook,
-    origin: StyleOrigin,
-    styleuse: StyleUse,
-    end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
-    empty_tag: bool,
-) -> Result<(), OdsError> {
-    let mut buf = Vec::new();
-
-    let mut style: Style = Style::new();
-    style.set_origin(origin);
-    style.set_styleuse(styleuse);
-
-    read_style_attr(&mut style, xml, xml_tag)?;
-
-    // In case of an empty xml-tag we are done here.
-    if empty_tag {
-        book.add_style(style);
-    } else {
-        loop {
-            let evt = xml.read_event(&mut buf)?;
-            if cfg!(feature = "dump_xml") {
-                println!(" read_style_tag {:?}", evt);
-            }
-            match evt {
-                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:table-properties" => copy_attr(style.table_mut(), xml, xml_tag)?,
-                    b"style:table-column-properties" => copy_attr(style.col_mut(), xml, xml_tag)?,
-                    b"style:table-row-properties" => copy_attr(style.row_mut(), xml, xml_tag)?,
-                    b"style:table-cell-properties" => copy_attr(style.cell_mut(), xml, xml_tag)?,
-                    b"style:text-properties" => copy_attr(style.text_mut(), xml, xml_tag)?,
-                    b"style:paragraph-properties" => {
-                        copy_attr(style.paragraph_mut(), xml, xml_tag)?
-                    }
-                    b"style:graphic-properties" => copy_attr(style.graphic_mut(), xml, xml_tag)?,
-                    b"style:map" => style.push_stylemap(read_stylemap(xml, xml_tag)?),
-
-                    b"style:tab-stops" => (),
-                    b"style:tab-stop" => {
-                        let mut ts = TabStop::new();
-                        copy_attr(&mut ts, xml, xml_tag)?;
-                        style.paragraph_mut().add_tabstop(ts);
-                    }
-
-                    _ => {
-                        if cfg!(feature = "dump_unused") {
-                            println!(" read_style_style unused {:?}", evt);
-                        }
-                    }
-                },
-                Event::Text(_) => (),
-                Event::End(ref e) => {
-                    if e.name() == end_tag {
-                        book.add_style(style);
-                        break;
-                    } else if e.name() == b"style:tab-stops"
-                        || e.name() == b"style:paragraph-properties"
-                    {
-                        // noop
-                    } else {
-                        if cfg!(feature = "dump_unused") {
-                            println!(" read_style_style unused {:?}", evt);
-                        }
-                    }
-                }
-                Event::Eof => break,
-                _ => {
-                    if cfg!(feature = "dump_unused") {
-                        println!(" read_style_style unused {:?}", evt);
-                    }
-                }
-            }
+        StyleFor::Text => {
+            read_text_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
+        StyleFor::None => {}
     }
-
     Ok(())
 }
 
@@ -2029,6 +1949,68 @@ fn read_paragraph_style(
 // style:style tag
 #[allow(clippy::single_match)]
 #[allow(clippy::collapsible_if)]
+fn read_text_style(
+    book: &mut WorkBook,
+    origin: StyleOrigin,
+    styleuse: StyleUse,
+    end_tag: &[u8],
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
+    empty_tag: bool,
+) -> Result<(), OdsError> {
+    let mut buf = Vec::new();
+
+    let mut style = TextStyle::empty();
+    style.set_origin(origin);
+    style.set_styleuse(styleuse);
+
+    copy_attr2(style.attr_mut(), xml, xml_tag)?;
+
+    // In case of an empty xml-tag we are done here.
+    if empty_tag {
+        book.add_text_style(style);
+    } else {
+        loop {
+            let evt = xml.read_event(&mut buf)?;
+            if cfg!(feature = "dump_xml") {
+                println!(" read_text_style {:?}", evt);
+            }
+            match evt {
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
+                    b"style:text-properties" => copy_attr2(style.text_style_mut(), xml, xml_tag)?,
+                    _ => {
+                        if cfg!(feature = "dump_unused") {
+                            println!(" read_text_style unused {:?}", evt);
+                        }
+                    }
+                },
+                Event::Text(_) => (),
+                Event::End(ref e) => {
+                    if e.name() == end_tag {
+                        book.add_text_style(style);
+                        break;
+                    } else {
+                        if cfg!(feature = "dump_unused") {
+                            println!(" read_text_style unused {:?}", evt);
+                        }
+                    }
+                }
+                Event::Eof => break,
+                _ => {
+                    if cfg!(feature = "dump_unused") {
+                        println!(" read_text_style unused {:?}", evt);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+// style:style tag
+#[allow(clippy::single_match)]
+#[allow(clippy::collapsible_if)]
 fn read_graphic_style(
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -2139,6 +2121,7 @@ fn read_family_attr(
                     "table-cell" => return Ok(StyleFor::TableCell),
                     "graphic" => return Ok(StyleFor::Graphic),
                     "paragraph" => return Ok(StyleFor::Paragraph),
+                    "text" => return Ok(StyleFor::Text),
                     _ => {
                         return Err(OdsError::Ods(format!("style:family unknown {} ", v)));
                     }
@@ -2156,63 +2139,6 @@ fn read_family_attr(
     }
 
     Err(OdsError::Ods("no style:family".to_string()))
-}
-
-fn read_style_attr(
-    style: &mut Style,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
-) -> Result<(), OdsError> {
-    for attr in xml_tag.attributes().with_checks(false) {
-        match attr? {
-            attr if attr.key == b"style:name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
-                style.set_name(v);
-            }
-            attr if attr.key == b"style:display-name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
-                style.set_display_name(v);
-            }
-            attr if attr.key == b"style:family" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
-                match v.as_ref() {
-                    "table" => style.set_family(StyleFor::Table),
-                    "table-column" => style.set_family(StyleFor::TableColumn),
-                    "table-row" => style.set_family(StyleFor::TableRow),
-                    "table-cell" => style.set_family(StyleFor::TableCell),
-                    "graphic" => style.set_family(StyleFor::Graphic),
-                    "paragraph" => style.set_family(StyleFor::Paragraph),
-                    _ => {
-                        if cfg!(feature = "dump_unused") {
-                            println!(" style:family unused {} ", v);
-                        }
-                    }
-                }
-            }
-            attr if attr.key == b"style:parent-style-name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
-                style.set_parent(v);
-            }
-            attr if attr.key == b"style:data-style-name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
-                style.set_value_format(v);
-            }
-            attr if attr.key == b"style:master-page-name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
-                style.set_master_page_name(v);
-            }
-            attr => {
-                if cfg!(feature = "dump_unused") {
-                    let n = xml.decode(xml_tag.name())?;
-                    let k = xml.decode(attr.key)?;
-                    let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_style_attr unused {} {} {}", n, k, v);
-                }
-            }
-        }
-    }
-
-    Ok(())
 }
 
 fn copy_attr(

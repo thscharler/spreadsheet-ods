@@ -1,9 +1,9 @@
 use crate::attrmap2::AttrMap2;
 use crate::style::{
     border_line_width_string, border_string, color_string, percent_string, shadow_string, Border,
-    CellAlignVertical, Length, LineMode, LineStyle, LineType, LineWidth, PageBreak,
-    ParaAlignVertical, RotationAlign, StyleOrigin, StyleUse, TextAlign, TextAlignSource, TextKeep,
-    TextPosition, TextRelief, TextStyle, TextTransform, TextWeight, WrapOption, WritingMode,
+    CellAlignVertical, FontStyle, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth,
+    PageBreak, ParaAlignVertical, RotationAlign, StyleOrigin, StyleUse, TextAlign, TextAlignSource,
+    TextKeep, TextPosition, TextRelief, TextTransform, WrapOption, WritingMode,
 };
 use crate::Angle;
 use color::Rgb;

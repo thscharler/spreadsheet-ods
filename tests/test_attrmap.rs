@@ -7,8 +7,8 @@ use spreadsheet_ods::style::{
 use spreadsheet_ods::style::{
     AttrFoBreak, AttrFoKeepWithNext, AttrFontDecl, AttrParagraph, AttrStyleWritingMode,
     AttrTableCell, AttrTableCol, AttrTableRow, AttrText, Border, CellAlignVertical, FontFaceDecl,
-    FontPitch, PageBreak, ParaAlignVertical, RotationAlign, TextAlignSource, TextKeep,
-    TextPosition, TextRelief, TextTransform, TextWeight, WrapOption, WritingMode,
+    FontPitch, FontWeight, PageBreak, ParaAlignVertical, RotationAlign, TextAlignSource, TextKeep,
+    TextPosition, TextRelief, TextTransform, WrapOption, WritingMode,
 };
 use spreadsheet_ods::{cm, deg, mm, pt, Angle, Length, Style};
 
@@ -247,7 +247,7 @@ fn test_attr6() {
     st.text_mut().set_font_bold();
     assert_eq!(st.text().attr("fo:font-weight"), Some(&"bold".to_string()));
 
-    st.text_mut().set_font_weight(TextWeight::W700);
+    st.text_mut().set_font_weight(FontWeight::W700);
     assert_eq!(st.text().attr("fo:font-weight"), Some(&"700".to_string()));
 
     st.text_mut().set_font_size(pt!(13));

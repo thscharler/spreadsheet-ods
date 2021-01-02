@@ -284,16 +284,16 @@ macro_rules! text {
             self.$acc().set_attr("fo:font-style", "italic".to_string());
         }
 
-        pub fn set_font_style(&mut self, style: TextStyle) {
+        pub fn set_font_style(&mut self, style: FontStyle) {
             self.$acc().set_attr("fo:font-style", style.to_string());
         }
 
         pub fn set_font_bold(&mut self) {
             self.$acc()
-                .set_attr("fo:font-weight", TextWeight::Bold.to_string());
+                .set_attr("fo:font-weight", FontWeight::Bold.to_string());
         }
 
-        pub fn set_font_weight(&mut self, weight: TextWeight) {
+        pub fn set_font_weight(&mut self, weight: FontWeight) {
             self.$acc().set_attr("fo:font-weight", weight.to_string());
         }
 
