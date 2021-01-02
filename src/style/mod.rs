@@ -1,7 +1,36 @@
+//! Styles define a large number of attributes. These are grouped together
+//! as table, row, column, cell, paragraph and text attributes.
 //!
-//! Defines the basic structures for table styling,
-//! [PageLayout](struct.PageLayout.html)
-//! and [Style](struct.Style.html)
+//! ```
+//! use spreadsheet_ods::{Style, CellRef, WorkBook};
+//! use spreadsheet_ods::style::{StyleOrigin, StyleUse, AttrText, StyleMap, TableCellStyle};
+//! use color::Rgb;
+//!
+//! let mut wb = WorkBook::new();
+//!
+//! let mut st = TableCellStyle::new("ce12", "num2");
+//! st.set_color(Rgb::new(192, 128, 0));
+//! st.set_font_bold();
+//! wb.add_cell_style(st);
+//!
+//! let mut st = TableCellStyle::new("ce11", "num2");
+//! st.set_color(Rgb::new(0, 192, 128));
+//! st.set_font_bold();
+//! wb.add_cell_style(st);
+//!
+//! let mut st = TableCellStyle::new("ce13", "num4");
+//! st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::remote("sheet0", 4, 3)));
+//! st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::remote("sheet0", 4, 3)));
+//! wb.add_cell_style(st);
+//! ```
+//! Styles can be defined in content.xml or as global styles in styles.xml. This
+//! is reflected as the StyleOrigin. The StyleUse differentiates between automatic
+//! and user visible, named styles. And third StyleFor defines for which part of
+//! the document the style can be used.
+//!
+//! Cell styles usually reference a value format for text formatting purposes.
+//!
+//! Styles can also link to a parent style and to a pagelayout.
 //!
 
 mod attr;
@@ -86,40 +115,6 @@ impl Default for StyleFor {
     }
 }
 
-/// Styles define a large number of attributes. These are grouped together
-/// as table, row, column, cell, paragraph and text attributes.
-///
-/// ```
-/// use spreadsheet_ods::{Style, CellRef, WorkBook};
-/// use spreadsheet_ods::style::{StyleOrigin, StyleUse, AttrText, StyleMap};
-/// use color::Rgb;
-///
-/// let mut wb = WorkBook::new();
-///
-/// let mut st = Style::new_cell_style("ce12", "num2");
-/// st.text_mut().set_color(Rgb::new(192, 128, 0));
-/// st.text_mut().set_font_bold();
-/// wb.add_style(st);
-///
-/// let mut st = Style::new_cell_style("ce11", "num2");
-/// st.text_mut().set_color(Rgb::new(0, 192, 128));
-/// st.text_mut().set_font_bold();
-/// wb.add_style(st);
-///
-/// let mut st = Style::new_cell_style("ce13", "num4");
-/// st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::remote("sheet0", 4, 3)));
-/// st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::remote("sheet0", 4, 3)));
-/// wb.add_style(st);
-/// ```
-/// Styles can be defined in content.xml or as global styles in styles.xml. This
-/// is reflected as the StyleOrigin. The StyleUse differentiates between automatic
-/// and user visible, named styles. And third StyleFor defines for which part of
-/// the document the style can be used.
-///
-/// Cell styles usually reference a value format for text formatting purposes.
-///
-/// Styles can also link to a parent style and to a pagelayout.
-///
 #[derive(Debug, Clone, Default)]
 pub struct Style {
     /// Style name.

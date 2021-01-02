@@ -1589,7 +1589,7 @@ fn read_table_style(
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut style: TableStyle = TableStyle::empty();
+    let mut style = TableStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
 
@@ -1607,22 +1607,6 @@ fn read_table_style(
             match evt {
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
                     b"style:table-properties" => copy_attr2(style.table_style_mut(), xml, xml_tag)?,
-                    // b"style:table-column-properties" => copy_attr(style.col_mut(), xml, xml_tag)?,
-                    // b"style:table-row-properties" => copy_attr(style.row_mut(), xml, xml_tag)?,
-                    // b"style:table-cell-properties" => copy_attr(style.cell_mut(), xml, xml_tag)?,
-                    // b"style:text-properties" => copy_attr(style.text_mut(), xml, xml_tag)?,
-                    // b"style:paragraph-properties" => {
-                    //     copy_attr(style.paragraph_mut(), xml, xml_tag)?
-                    // }
-                    // b"style:graphic-properties" => copy_attr(style.graphic_mut(), xml, xml_tag)?,
-                    // b"style:map" => style.push_stylemap(read_stylemap(xml, xml_tag)?),
-                    //
-                    // b"style:tab-stops" => (),
-                    // b"style:tab-stop" => {
-                    //     let mut ts = TabStop::new();
-                    //     copy_attr(&mut ts, xml, xml_tag)?;
-                    //     style.paragraph_mut().add_tabstop(ts);
-                    // }
                     _ => {
                         if cfg!(feature = "dump_unused") {
                             println!(" read_table_style unused {:?}", evt);
@@ -1634,10 +1618,6 @@ fn read_table_style(
                     if e.name() == end_tag {
                         book.add_table_style(style);
                         break;
-                    // } else if e.name() == b"style:tab-stops"
-                    //     || e.name() == b"style:paragraph-properties"
-                    // {
-                    //     // noop
                     } else {
                         if cfg!(feature = "dump_unused") {
                             println!(" read_table_style unused {:?}", evt);
@@ -1671,7 +1651,7 @@ fn read_tablerow_style(
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut style: TableRowStyle = TableRowStyle::empty();
+    let mut style = TableRowStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
 
@@ -1827,8 +1807,8 @@ fn read_tablecell_style(
                         copy_attr2(style.paragraph_style_mut(), xml, xml_tag)?
                     }
                     // b"style:graphic-properties" => copy_attr(style.graphic_mut(), xml, xml_tag)?,
-                    // b"style:map" => style.push_stylemap(read_stylemap(xml, xml_tag)?),
-                    //
+                    b"style:map" => style.push_stylemap(read_stylemap(xml, xml_tag)?),
+
                     // b"style:tab-stops" => (),
                     // b"style:tab-stop" => {
                     //     let mut ts = TabStop::new();
@@ -1846,9 +1826,7 @@ fn read_tablecell_style(
                     if e.name() == end_tag {
                         book.add_cell_style(style);
                         break;
-                    } else if e.name() == b"style:text-properties"
-                        || e.name() == b"style:paragraph-properties"
-                    {
+                    } else if e.name() == b"style:paragraph-properties" {
                         // noop
                     } else {
                         if cfg!(feature = "dump_unused") {

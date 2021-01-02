@@ -39,7 +39,7 @@ impl TableStyle {
         }
     }
 
-    pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
+    pub fn new<S: Into<String>>(name: S) -> Self {
         let mut s = Self {
             origin: Default::default(),
             styleuse: Default::default(),

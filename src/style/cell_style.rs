@@ -2,8 +2,8 @@ use crate::attrmap2::AttrMap2;
 use crate::style::{
     border_line_width_string, border_string, color_string, percent_string, shadow_string, Border,
     CellAlignVertical, FontStyle, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth,
-    PageBreak, ParaAlignVertical, RotationAlign, StyleOrigin, StyleUse, TextAlign, TextAlignSource,
-    TextKeep, TextPosition, TextRelief, TextTransform, WrapOption, WritingMode,
+    PageBreak, ParaAlignVertical, RotationAlign, StyleMap, StyleOrigin, StyleUse, TextAlign,
+    TextAlignSource, TextKeep, TextPosition, TextRelief, TextTransform, WrapOption, WritingMode,
 };
 use crate::Angle;
 use color::Rgb;
@@ -32,6 +32,8 @@ pub struct TableCellStyle {
     cell_style: AttrMap2,
     paragraph_style: AttrMap2,
     text_style: AttrMap2,
+    /// Style maps
+    stylemaps: Option<Vec<StyleMap>>,
 }
 
 impl TableCellStyle {
@@ -43,10 +45,11 @@ impl TableCellStyle {
             cell_style: Default::default(),
             paragraph_style: Default::default(),
             text_style: Default::default(),
+            stylemaps: None,
         }
     }
 
-    pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
+    pub fn new<S: Into<String>, T: Into<String>>(name: S, value_format: T) -> Self {
         let mut s = Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -54,8 +57,10 @@ impl TableCellStyle {
             cell_style: Default::default(),
             paragraph_style: Default::default(),
             text_style: Default::default(),
+            stylemaps: None,
         };
         s.set_name(name.into());
+        s.set_value_format(value_format.into());
         s
     }
 
@@ -83,11 +88,11 @@ impl TableCellStyle {
         self.attr.set_attr("style:name", name.into());
     }
 
-    pub fn data_style(&self) -> Option<&String> {
+    pub fn value_format(&self) -> Option<&String> {
         self.attr.attr("style:data-style-name")
     }
 
-    pub fn set_data_style<S: Into<String>>(&mut self, name: S) {
+    pub fn set_value_format<S: Into<String>>(&mut self, name: S) {
         self.attr.set_attr("style:data-style-name", name.into());
     }
 
@@ -137,6 +142,21 @@ impl TableCellStyle {
 
     pub fn text_style_mut(&mut self) -> &mut AttrMap2 {
         &mut self.text_style
+    }
+
+    /// Adds a stylemap.
+    pub fn push_stylemap(&mut self, stylemap: StyleMap) {
+        self.stylemaps.get_or_insert_with(Vec::new).push(stylemap);
+    }
+
+    /// Returns the stylemaps
+    pub fn stylemaps(&self) -> Option<&Vec<StyleMap>> {
+        self.stylemaps.as_ref()
+    }
+
+    /// Returns the mutable stylemap.
+    pub fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap> {
+        self.stylemaps.get_or_insert_with(Vec::new)
     }
 
     fo_background_color!(cell_style_mut);

@@ -16,7 +16,6 @@ use string_cache::DefaultAtom;
 /// use spreadsheet_ods::style::{HeaderFooter, PageLayout, Length};
 /// use color::Rgb;
 /// use spreadsheet_ods::style::{AttrFoBackgroundColor, AttrFoMinHeight, AttrFoMargin};
-/// use spreadsheet_ods::style::pagelayout::PageLayout;
 ///
 /// let mut wb = WorkBook::new();
 ///

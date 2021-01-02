@@ -1,18 +1,3 @@
-use std::mem::size_of;
-use std::time::Duration;
-
-use chrono::NaiveDateTime;
-
-use spreadsheet_ods::format::FormatPart;
-use spreadsheet_ods::style::{
-    AttrMapType, HeaderFooter, PageLayout, ParagraphAttr, StyleMap, TableAttr,
-};
-use spreadsheet_ods::text::TextTag;
-use spreadsheet_ods::xmltree::XmlContent;
-use spreadsheet_ods::{
-    ucell, CellRange, CellRef, SCell, Sheet, Style, Value, ValueFormat, ValueType, WorkBook,
-};
-
 #[test]
 pub fn sizes() {
     // println!("WorkBook {}", size_of::<WorkBook>());

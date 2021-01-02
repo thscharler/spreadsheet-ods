@@ -2,7 +2,7 @@ use spreadsheet_ods::xmltree::XmlTag;
 
 #[test]
 pub fn test_tree() {
-    let tag = XmlTag::new("table:shapes").con_tag(
+    let _tag = XmlTag::new("table:shapes").con_tag(
         XmlTag::new("draw:frame")
             .con_attr("draw:z", "0")
             .con_attr("draw:name", "Bild 1")

@@ -2,15 +2,15 @@ use color::Rgb;
 
 use spreadsheet_ods::style::{
     AttrFoBackgroundColor, AttrFoBorder, AttrFoMargin, AttrFoMinHeight, AttrFoPadding, AttrMap,
-    AttrStyleDynamicSpacing, AttrStyleShadow, AttrSvgHeight, PageLayout,
+    AttrStyleDynamicSpacing, AttrStyleShadow, AttrSvgHeight, PageLayout, TableCellStyle,
+    TableColumnStyle, TableRowStyle, TableStyle,
 };
 use spreadsheet_ods::style::{
-    AttrFoBreak, AttrFoKeepWithNext, AttrFontDecl, AttrParagraph, AttrStyleWritingMode,
-    AttrTableCell, AttrTableCol, AttrTableRow, AttrText, Border, CellAlignVertical, FontFaceDecl,
-    FontPitch, FontWeight, PageBreak, ParaAlignVertical, RotationAlign, TextAlignSource, TextKeep,
-    TextPosition, TextRelief, TextTransform, WrapOption, WritingMode,
+    AttrFontDecl, Border, CellAlignVertical, FontFaceDecl, FontPitch, FontWeight, PageBreak,
+    ParaAlignVertical, RotationAlign, TextAlignSource, TextKeep, TextPosition, TextRelief,
+    TextTransform, WrapOption, WritingMode,
 };
-use spreadsheet_ods::{cm, deg, mm, pt, Angle, Length, Style};
+use spreadsheet_ods::{cm, deg, mm, pt, Angle, Length};
 
 #[test]
 fn test_attr1() {
@@ -84,208 +84,228 @@ fn test_attr2() {
 
 #[test]
 fn test_attr3() {
-    let mut st = Style::new_table_style("c00", "f00");
+    let mut st = TableStyle::new("c00");
 
-    st.table_mut().set_break_before(PageBreak::Page);
+    st.set_break_before(PageBreak::Page);
     assert_eq!(
-        st.table().attr("fo:break-before"),
+        st.table_style().attr("fo:break-before"),
         Some(&"page".to_string())
     );
 
-    st.table_mut().set_break_after(PageBreak::Page);
-    assert_eq!(st.table().attr("fo:break-after"), Some(&"page".to_string()));
-
-    st.table_mut().set_keep_with_next(TextKeep::Auto);
+    st.set_break_after(PageBreak::Page);
     assert_eq!(
-        st.table().attr("fo:keep-with-next"),
+        st.table_style().attr("fo:break-after"),
+        Some(&"page".to_string())
+    );
+
+    st.set_keep_with_next(TextKeep::Auto);
+    assert_eq!(
+        st.table_style().attr("fo:keep-with-next"),
         Some(&"auto".to_string())
     );
 
-    st.table_mut().set_writing_mode(WritingMode::TbLr);
+    st.set_writing_mode(WritingMode::TbLr);
     assert_eq!(
-        st.table().attr("style:writing-mode"),
+        st.table_style().attr("style:writing-mode"),
         Some(&"tb-lr".to_string())
     );
 
-    let mut st = Style::new_col_style("c01", "f00");
+    let mut st = TableColumnStyle::new("c01");
 
-    st.col_mut().set_use_optimal_col_width(true);
+    st.set_use_optimal_col_width(true);
     assert_eq!(
-        st.col().attr("style:use-optimal-column-width"),
+        st.column_style().attr("style:use-optimal-column-width"),
         Some(&"true".to_string())
     );
 
-    st.col_mut().set_rel_col_width(33.0);
+    st.set_rel_col_width(33.0);
     assert_eq!(
-        st.col().attr("style:rel-column-width"),
+        st.column_style().attr("style:rel-column-width"),
         Some(&"33*".to_string())
     );
 
-    st.col_mut().set_col_width(cm!(17));
+    st.set_col_width(cm!(17));
     assert_eq!(
-        st.col().attr("style:column-width"),
+        st.column_style().attr("style:column-width"),
         Some(&"17cm".to_string())
     );
 
-    let mut st = Style::new_row_style("r02", "f00");
+    let mut st = TableRowStyle::new("r02");
 
-    st.row_mut().set_use_optimal_row_height(true);
+    st.set_use_optimal_row_height(true);
     assert_eq!(
-        st.row().attr("style:use-optimal-row-height"),
+        st.row_style().attr("style:use-optimal-row-height"),
         Some(&"true".to_string())
     );
 
-    st.row_mut().set_min_row_height(pt!(77));
+    st.set_min_row_height(pt!(77));
     assert_eq!(
-        st.row().attr("style:min-row-height"),
+        st.row_style().attr("style:min-row-height"),
         Some(&"77pt".to_string())
     );
 
-    st.row_mut().set_row_height(pt!(77));
-    assert_eq!(st.row().attr("style:row-height"), Some(&"77pt".to_string()));
+    st.set_row_height(pt!(77));
+    assert_eq!(
+        st.row_style().attr("style:row-height"),
+        Some(&"77pt".to_string())
+    );
 }
 
 #[test]
 fn test_attr4() {
-    let mut st = Style::new_cell_style("c00", "f00");
+    let mut st = TableCellStyle::new("c00", "f00");
 
-    st.cell_mut()
-        .set_diagonal_bl_tr(pt!(0.2), Border::Ridge, Rgb::new(0, 127, 0));
+    st.set_diagonal_bl_tr(pt!(0.2), Border::Ridge, Rgb::new(0, 127, 0));
     assert_eq!(
-        st.cell().attr("style:diagonal-bl-tr"),
+        st.cell_style().attr("style:diagonal-bl-tr"),
         Some(&"0.2pt ridge #007f00".to_string())
     );
 
-    st.cell_mut()
-        .set_diagonal_tl_br(pt!(0.2), Border::Ridge, Rgb::new(0, 127, 0));
+    st.set_diagonal_tl_br(pt!(0.2), Border::Ridge, Rgb::new(0, 127, 0));
     assert_eq!(
-        st.cell().attr("style:diagonal-bl-tr"),
+        st.cell_style().attr("style:diagonal-bl-tr"),
         Some(&"0.2pt ridge #007f00".to_string())
     );
 
-    st.cell_mut().set_wrap_option(WrapOption::Wrap);
-    assert_eq!(st.cell().attr("fo:wrap-option"), Some(&"wrap".to_string()));
-
-    st.cell_mut().set_print_content(true);
+    st.set_wrap_option(WrapOption::Wrap);
     assert_eq!(
-        st.cell().attr("style:print-content"),
+        st.cell_style().attr("fo:wrap-option"),
+        Some(&"wrap".to_string())
+    );
+
+    st.set_print_content(true);
+    assert_eq!(
+        st.cell_style().attr("style:print-content"),
         Some(&"true".to_string())
     );
 
-    st.cell_mut().set_repeat_content(true);
+    st.set_repeat_content(true);
     assert_eq!(
-        st.cell().attr("style:repeat-content"),
+        st.cell_style().attr("style:repeat-content"),
         Some(&"true".to_string())
     );
 
-    st.cell_mut().set_rotation_align(RotationAlign::Center);
+    st.set_rotation_align(RotationAlign::Center);
     assert_eq!(
-        st.cell().attr("style:rotation-align"),
+        st.cell_style().attr("style:rotation-align"),
         Some(&"center".to_string())
     );
 
-    st.cell_mut().set_rotation_angle(deg!(42));
+    st.set_rotation_angle(deg!(42));
     assert_eq!(
-        st.cell().attr("style:rotation-angle"),
+        st.cell_style().attr("style:rotation-angle"),
         Some(&"42deg".to_string())
     );
 
-    st.cell_mut().set_shrink_to_fit(true);
+    st.set_shrink_to_fit(true);
     assert_eq!(
-        st.cell().attr("style:shrink-to-fit"),
+        st.cell_style().attr("style:shrink-to-fit"),
         Some(&"true".to_string())
     );
 
-    st.cell_mut().set_vertical_align(CellAlignVertical::Top);
+    st.set_vertical_align(CellAlignVertical::Top);
     assert_eq!(
-        st.cell().attr("style:vertical-align"),
+        st.cell_style().attr("style:vertical-align"),
         Some(&"top".to_string())
     );
 }
 
 #[test]
 fn test_attr5() {
-    let mut st = Style::new_cell_style("c00", "f00");
+    let mut st = TableCellStyle::new("c00", "f00");
 
-    st.paragraph_mut()
-        .set_vertical_align(ParaAlignVertical::Baseline);
+    st.set_vertical_align_para(ParaAlignVertical::Baseline);
     assert_eq!(
-        st.paragraph().attr("style:vertical-align"),
+        st.paragraph_style().attr("style:vertical-align"),
         Some(&"baseline".to_string())
     );
 
-    st.paragraph_mut().set_line_spacing(pt!(4));
+    st.set_line_spacing(pt!(4));
     assert_eq!(
-        st.paragraph().attr("style:line-spacing"),
+        st.paragraph_style().attr("style:line-spacing"),
         Some(&"4pt".to_string())
     );
 
-    st.paragraph_mut().set_number_lines(true);
+    st.set_number_lines(true);
     assert_eq!(
-        st.paragraph().attr("text:number-lines"),
+        st.paragraph_style().attr("text:number-lines"),
         Some(&"true".to_string())
     );
 
-    st.paragraph_mut()
-        .set_text_align_source(TextAlignSource::ValueType);
+    st.set_text_align_source(TextAlignSource::ValueType);
     assert_eq!(
-        st.paragraph().attr("style:text-align-source"),
+        st.paragraph_style().attr("style:text-align-source"),
         Some(&"value-type".to_string())
     );
 
-    st.paragraph_mut().set_text_indent(mm!(4.2));
+    st.set_text_indent(mm!(4.2));
     assert_eq!(
-        st.paragraph().attr("fo:text-indent"),
+        st.paragraph_style().attr("fo:text-indent"),
         Some(&"4.2mm".to_string())
     );
 }
 
 #[test]
 fn test_attr6() {
-    let mut st = Style::new_cell_style("c00", "f00");
+    let mut st = TableCellStyle::new("c00", "f00");
 
-    st.text_mut().set_font_bold();
-    assert_eq!(st.text().attr("fo:font-weight"), Some(&"bold".to_string()));
-
-    st.text_mut().set_font_weight(FontWeight::W700);
-    assert_eq!(st.text().attr("fo:font-weight"), Some(&"700".to_string()));
-
-    st.text_mut().set_font_size(pt!(13));
-    assert_eq!(st.text().attr("fo:font-size"), Some(&"13pt".to_string()));
-
-    st.text_mut().set_color(Rgb::new(0, 0, 128));
-    assert_eq!(st.text().attr("fo:color"), Some(&"#000080".to_string()));
-
-    st.text_mut().set_font_italic();
-    assert_eq!(st.text().attr("fo:font-style"), Some(&"italic".to_string()));
-
-    st.text_mut().set_font_name("Boing");
+    st.set_font_bold();
     assert_eq!(
-        st.text().attr("style:font-name"),
+        st.text_style().attr("fo:font-weight"),
+        Some(&"bold".to_string())
+    );
+
+    st.set_font_weight(FontWeight::W700);
+    assert_eq!(
+        st.text_style().attr("fo:font-weight"),
+        Some(&"700".to_string())
+    );
+
+    st.set_font_size(pt!(13));
+    assert_eq!(
+        st.text_style().attr("fo:font-size"),
+        Some(&"13pt".to_string())
+    );
+
+    st.set_color(Rgb::new(0, 0, 128));
+    assert_eq!(
+        st.text_style().attr("fo:color"),
+        Some(&"#000080".to_string())
+    );
+
+    st.set_font_italic();
+    assert_eq!(
+        st.text_style().attr("fo:font-style"),
+        Some(&"italic".to_string())
+    );
+
+    st.set_font_name("Boing");
+    assert_eq!(
+        st.text_style().attr("style:font-name"),
         Some(&"Boing".to_string())
     );
 
-    st.text_mut().set_font_relief(TextRelief::Engraved);
+    st.set_font_relief(TextRelief::Engraved);
     assert_eq!(
-        st.text().attr("style:font-relief"),
+        st.text_style().attr("style:font-relief"),
         Some(&"engraved".to_string())
     );
 
-    st.text_mut().set_letter_spacing(pt!(0.2));
+    st.set_letter_spacing(pt!(0.2));
     assert_eq!(
-        st.text().attr("fo:letter-spacing"),
+        st.text_style().attr("fo:letter-spacing"),
         Some(&"0.2pt".to_string())
     );
 
-    st.text_mut().set_text_position(TextPosition::Sub);
+    st.set_text_position(TextPosition::Sub);
     assert_eq!(
-        st.text().attr("style:text-position"),
+        st.text_style().attr("style:text-position"),
         Some(&"sub".to_string())
     );
 
-    st.text_mut().set_text_transform(TextTransform::Lowercase);
+    st.set_text_transform(TextTransform::Lowercase);
     assert_eq!(
-        st.text().attr("fo:text-transform"),
+        st.text_style().attr("fo:text-transform"),
         Some(&"lowercase".to_string())
     );
 }

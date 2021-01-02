@@ -6,7 +6,7 @@
 //! use spreadsheet_ods::format;
 //! use spreadsheet_ods::formula;
 //! use spreadsheet_ods::{Length, cm, mm};
-//! use spreadsheet_ods::style::{Style, AttrText, TextRelief, AttrFoBorder, Border};
+//! use spreadsheet_ods::style::{Style, AttrText, TextRelief, AttrFoBorder, Border, TableCellStyle};
 //! use color::Rgb;
 //!
 //!
@@ -49,11 +49,11 @@
 //! let nice_date_format = format::create_date_dmy_format("nice_date_format");
 //! wb.add_format(nice_date_format);
 //!
-//! let mut nice_date_style = Style::new_cell_style("nice_date_style", "nice_date_format");
-//! nice_date_style.text_mut().set_font_bold();
-//! nice_date_style.text_mut().set_font_relief(TextRelief::Engraved);
-//! nice_date_style.cell_mut().set_border(mm!(0.2), Border::Dashed, Rgb::new(192, 72, 72));
-//! wb.add_style(nice_date_style);
+//! let mut nice_date_style = TableCellStyle::new("nice_date_style", "nice_date_format");
+//! nice_date_style.set_font_bold();
+//! nice_date_style.set_font_relief(TextRelief::Engraved);
+//! nice_date_style.set_border(mm!(0.2), Border::Dashed, Rgb::new(192, 72, 72));
+//! wb.add_cell_style(nice_date_style);
 //!
 //! spreadsheet_ods::write_ods(&wb, "test_out/tryout.ods");
 //!
@@ -199,8 +199,6 @@ pub struct WorkBook {
     fonts: HashMap<String, FontFaceDecl>,
 
     /// Styles hold the style:style elements.
-    styles: HashMap<String, Style>,
-
     table_styles: HashMap<String, TableStyle>,
     row_styles: HashMap<String, TableRowStyle>,
     column_styles: HashMap<String, TableColumnStyle>,
@@ -233,13 +231,10 @@ pub struct WorkBook {
 impl fmt::Debug for WorkBook {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{:?}", self.version)?;
-        // for s in self.sheets.iter() {
-        //     writeln!(f, "{:?}", s)?;
-        // }
-        // for s in self.fonts.values() {
-        //     writeln!(f, "{:?}", s)?;
-        // }
-        for s in self.styles.values() {
+        for s in self.sheets.iter() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for s in self.fonts.values() {
             writeln!(f, "{:?}", s)?;
         }
         for s in self.table_styles.values() {
@@ -260,18 +255,18 @@ impl fmt::Debug for WorkBook {
         for s in self.graphic_styles.values() {
             writeln!(f, "{:?}", s)?;
         }
-        // for s in self.formats.values() {
-        //     writeln!(f, "{:?}", s)?;
-        // }
-        // for (t, s) in &self.def_styles {
-        //     writeln!(f, "{:?} -> {:?}", t, s)?;
-        // }
-        // for s in self.page_layouts.values() {
-        //     writeln!(f, "{:?}", s)?;
-        // }
-        // for xtr in &self.extra {
-        //     writeln!(f, "extras {:?}", xtr)?;
-        // }
+        for s in self.formats.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for (t, s) in &self.def_styles {
+            writeln!(f, "{:?} -> {:?}", t, s)?;
+        }
+        for s in self.page_layouts.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for xtr in &self.extra {
+            writeln!(f, "extras {:?}", xtr)?;
+        }
         writeln!(f, "{:?}", self.file)?;
         Ok(())
     }
@@ -283,7 +278,6 @@ impl WorkBook {
             sheets: Default::default(),
             version: "1.3".to_string(),
             fonts: Default::default(),
-            styles: Default::default(),
             table_styles: Default::default(),
             row_styles: Default::default(),
             column_styles: Default::default(),
@@ -360,7 +354,7 @@ impl WorkBook {
 
     /// Finds a ValueFormat starting with the stylename attached to a cell.
     pub fn find_value_format(&self, style_name: &str) -> Option<&ValueFormat> {
-        if let Some(style) = self.styles.get(style_name) {
+        if let Some(style) = self.cell_styles.get(style_name) {
             if let Some(value_format_name) = style.value_format() {
                 if let Some(value_format) = self.formats.get(value_format_name) {
                     return Some(&value_format);
@@ -389,26 +383,6 @@ impl WorkBook {
     /// Returns a mutable FontDecl.
     pub fn font_mut(&mut self, name: &str) -> Option<&mut FontFaceDecl> {
         self.fonts.get_mut(name)
-    }
-
-    /// Adds a style.
-    pub fn add_style(&mut self, style: Style) {
-        self.styles.insert(style.name().to_string(), style);
-    }
-
-    /// Removes a style.
-    pub fn remove_style(&mut self, name: &str) -> Option<Style> {
-        self.styles.remove(name)
-    }
-
-    /// Returns the style.
-    pub fn style(&self, name: &str) -> Option<&Style> {
-        self.styles.get(name)
-    }
-
-    /// Returns the mutable style.
-    pub fn style_mut(&mut self, name: &str) -> Option<&mut Style> {
-        self.styles.get_mut(name)
     }
 
     /// Adds a style.

@@ -1,4 +1,4 @@
-use crate::style::Style;
+use crate::style::TableCellStyle;
 use crate::{format, ValueType, WorkBook};
 
 /// Adds default-styles for all basic ValueTypes. These are also set as default
@@ -17,12 +17,12 @@ pub fn create_default_styles(book: &mut WorkBook) {
     book.add_format(format::create_datetime_format("datetime1"));
     book.add_format(format::create_time_format("time1"));
 
-    book.add_style(Style::new_cell_style("default-bool", "bool1"));
-    book.add_style(Style::new_cell_style("default-num", "num1"));
-    book.add_style(Style::new_cell_style("default-percent", "percent1"));
-    book.add_style(Style::new_cell_style("default-currency", "currency1"));
-    book.add_style(Style::new_cell_style("default-date", "date1"));
-    book.add_style(Style::new_cell_style("default-time", "time1"));
+    book.add_cell_style(TableCellStyle::new("default-bool", "bool1"));
+    book.add_cell_style(TableCellStyle::new("default-num", "num1"));
+    book.add_cell_style(TableCellStyle::new("default-percent", "percent1"));
+    book.add_cell_style(TableCellStyle::new("default-currency", "currency1"));
+    book.add_cell_style(TableCellStyle::new("default-date", "date1"));
+    book.add_cell_style(TableCellStyle::new("default-time", "time1"));
 
     book.add_def_style(ValueType::Boolean, "default-bool");
     book.add_def_style(ValueType::Number, "default-num");

@@ -1409,6 +1409,14 @@ fn write_tablecell_style(
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }
+    if let Some(stylemaps) = style.stylemaps() {
+        for sm in stylemaps {
+            xml_out.empty("style:map")?;
+            xml_out.attr_esc("style:condition", sm.condition())?;
+            xml_out.attr_esc("style:apply-style-name", sm.applied_style())?;
+            xml_out.attr_esc("style:base-cell-address", &sm.base_cell().to_string())?;
+        }
+    }
     if style.styleuse() == StyleUse::Default {
         xml_out.end_elem("style:default-style")?;
     } else {
