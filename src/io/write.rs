@@ -956,7 +956,7 @@ fn write_xmltag(x: &XmlTag, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> 
     } else {
         xml_out.elem(x.name())?;
     }
-    for (k, v) in x.attr_iter() {
+    for (k, v) in x.attr_map().iter() {
         xml_out.attr_esc(k.as_ref(), v.as_str())?;
     }
 

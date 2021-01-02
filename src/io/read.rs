@@ -6,7 +6,6 @@ use chrono::{Duration, NaiveDate, NaiveDateTime};
 use quick_xml::events::{BytesStart, Event};
 use zip::read::ZipFile;
 
-use crate::attrmap::AttrMap;
 use crate::attrmap2::{AttrMap2, AttrMap2Trait};
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
@@ -2120,22 +2119,6 @@ fn read_family_attr(
     Err(OdsError::Ods("no style:family".to_string()))
 }
 
-fn copy_attr(
-    attrmap: &mut dyn AttrMap,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
-) -> Result<(), OdsError> {
-    for attr in xml_tag.attributes().with_checks(false) {
-        if let Ok(attr) = attr {
-            let k = xml.decode(&attr.key)?;
-            let v = attr.unescape_and_decode_value(&xml)?;
-            attrmap.set_attr(k, v);
-        }
-    }
-
-    Ok(())
-}
-
 fn copy_attr2(
     attrmap: &mut AttrMap2,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
@@ -2224,7 +2207,7 @@ fn read_xml(
     let mut stack = Vec::new();
 
     let mut tag = XmlTag::new(xml.decode(xml_tag.name())?);
-    copy_attr(&mut tag, xml, xml_tag)?;
+    copy_attr2(tag.attr_map_mut(), xml, xml_tag)?;
     stack.push(tag);
 
     if !empty_tag {
@@ -2237,7 +2220,7 @@ fn read_xml(
             match evt {
                 Event::Start(xmlbytes) => {
                     let mut tag = XmlTag::new(xml.decode(xmlbytes.name())?);
-                    copy_attr(&mut tag, xml, &xmlbytes)?;
+                    copy_attr2(tag.attr_map_mut(), xml, &xmlbytes)?;
                     stack.push(tag);
                 }
 
@@ -2256,7 +2239,7 @@ fn read_xml(
 
                 Event::Empty(xmlbytes) => {
                     let mut emptytag = XmlTag::new(xml.decode(xmlbytes.name())?);
-                    copy_attr(&mut emptytag, xml, &xmlbytes)?;
+                    copy_attr2(emptytag.attr_map_mut(), xml, &xmlbytes)?;
 
                     if let Some(parent) = stack.last_mut() {
                         parent.push_tag(emptytag);
@@ -2331,7 +2314,7 @@ fn read_text_or_tag(
                     if stack.is_empty() {
                         // No parent tag on the stack. Create the parent.
                         let mut toplevel = XmlTag::new(xml.decode(xml_tag.name())?);
-                        copy_attr(&mut toplevel, xml, xml_tag)?;
+                        copy_attr2(toplevel.attr_map_mut(), xml, xml_tag)?;
                         // Previous plain text strings are added.
                         if let Some(s) = &str {
                             toplevel.push_text(s.as_str());
@@ -2343,7 +2326,7 @@ fn read_text_or_tag(
 
                     // Set the new tag.
                     let mut tag = XmlTag::new(xml.decode(xmlbytes.name())?);
-                    copy_attr(&mut tag, xml, &xmlbytes)?;
+                    copy_attr2(tag.attr_map_mut(), xml, &xmlbytes)?;
                     stack.push(tag);
                 }
 
@@ -2371,7 +2354,7 @@ fn read_text_or_tag(
                     if stack.is_empty() {
                         // No parent tag on the stack. Create the parent.
                         let mut toplevel = XmlTag::new(xml.decode(xml_tag.name())?);
-                        copy_attr(&mut toplevel, xml, xml_tag)?;
+                        copy_attr2(toplevel.attr_map_mut(), xml, xml_tag)?;
                         // Previous plain text strings are added.
                         if let Some(s) = &str {
                             toplevel.push_text(s.as_str());
@@ -2383,7 +2366,7 @@ fn read_text_or_tag(
 
                     // Create the tag and append it immediately to the parent.
                     let mut emptytag = XmlTag::new(xml.decode(xmlbytes.name())?);
-                    copy_attr(&mut emptytag, xml, &xmlbytes)?;
+                    copy_attr2(emptytag.attr_map_mut(), xml, &xmlbytes)?;
 
                     if let Some(parent) = stack.last_mut() {
                         parent.push_tag(emptytag);
