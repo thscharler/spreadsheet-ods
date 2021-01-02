@@ -51,13 +51,13 @@ impl FontFaceDecl {
         self.origin
     }
 
-    pub fn attr(&self) -> &AttrMap2 {
+    pub fn attr_map(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    pub fn attr_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attr_map_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
-    font_decl!(attr_mut);
+    font_decl!(attr_map_mut);
 }

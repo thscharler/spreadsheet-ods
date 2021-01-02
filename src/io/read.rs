@@ -842,7 +842,7 @@ fn read_fonts(
                             attr => {
                                 let k = xml.decode(&attr.key)?;
                                 let v = attr.unescape_and_decode_value(&xml)?;
-                                font.attr_mut().set_attr(k, v);
+                                font.attr_map_mut().set_attr(k, v);
                             }
                         }
                     }
@@ -1519,7 +1519,7 @@ fn read_value_format_attr(
             attr => {
                 let k = xml.decode(&attr.key)?;
                 let v = attr.unescape_and_decode_value(&xml)?;
-                value_style.attr_mut().set_attr(k, v);
+                value_style.attr_map_mut().set_attr(k, v);
             }
         }
     }
@@ -1594,7 +1594,7 @@ fn read_table_style(
     style.set_origin(origin);
     style.set_styleuse(styleuse);
 
-    copy_attr2(style.attr_mut(), xml, xml_tag)?;
+    copy_attr2(style.attr_map_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -1656,7 +1656,7 @@ fn read_tablerow_style(
     style.set_origin(origin);
     style.set_styleuse(styleuse);
 
-    copy_attr2(style.attr_mut(), xml, xml_tag)?;
+    copy_attr2(style.attr_map_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -1720,7 +1720,7 @@ fn read_tablecolumn_style(
     style.set_origin(origin);
     style.set_styleuse(styleuse);
 
-    copy_attr2(style.attr_mut(), xml, xml_tag)?;
+    copy_attr2(style.attr_map_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -1787,7 +1787,7 @@ fn read_tablecell_style(
         style.set_name("");
     }
 
-    copy_attr2(style.attr_mut(), xml, xml_tag)?;
+    copy_attr2(style.attr_map_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -1866,7 +1866,7 @@ fn read_paragraph_style(
     style.set_origin(origin);
     style.set_styleuse(styleuse);
 
-    copy_attr2(style.attr_mut(), xml, xml_tag)?;
+    copy_attr2(style.attr_map_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -1888,7 +1888,7 @@ fn read_paragraph_style(
                     b"style:tab-stops" => (),
                     b"style:tab-stop" => {
                         let mut ts = TabStop::new();
-                        copy_attr2(ts.attr_mut(), xml, xml_tag)?;
+                        copy_attr2(ts.attr_map_mut(), xml, xml_tag)?;
                         style.add_tabstop(ts);
                     }
                     _ => {
@@ -1943,7 +1943,7 @@ fn read_text_style(
     style.set_origin(origin);
     style.set_styleuse(styleuse);
 
-    copy_attr2(style.attr_mut(), xml, xml_tag)?;
+    copy_attr2(style.attr_map_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -2005,7 +2005,7 @@ fn read_graphic_style(
     style.set_origin(origin);
     style.set_styleuse(styleuse);
 
-    copy_attr2(style.attr_mut(), xml, xml_tag)?;
+    copy_attr2(style.attr_map_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {

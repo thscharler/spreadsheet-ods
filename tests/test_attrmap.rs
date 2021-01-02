@@ -73,19 +73,19 @@ fn test_attr2() {
 
     ff.set_font_family("Helvetica");
     assert_eq!(
-        ff.attr().attr("svg:font-family"),
+        ff.attr_map().attr("svg:font-family"),
         Some(&"Helvetica".to_string())
     );
 
     ff.set_font_family_generic("fool");
     assert_eq!(
-        ff.attr().attr("style:font-family-generic"),
+        ff.attr_map().attr("style:font-family-generic"),
         Some(&"fool".to_string())
     );
 
     ff.set_font_pitch(FontPitch::Fixed);
     assert_eq!(
-        ff.attr().attr("style:font-pitch"),
+        ff.attr_map().attr("style:font-pitch"),
         Some(&"fixed".to_string())
     );
 }

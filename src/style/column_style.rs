@@ -71,11 +71,11 @@ impl ColumnStyle {
         self.attr.set_attr("style:name", name.into());
     }
 
-    pub fn attr(&self) -> &AttrMap2 {
+    pub fn attr_map(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    pub fn attr_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attr_map_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 

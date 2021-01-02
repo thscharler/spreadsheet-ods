@@ -188,14 +188,6 @@ impl ValueFormat {
         self.styleuse
     }
 
-    pub fn attr(&self) -> &AttrMap2 {
-        &self.attr
-    }
-
-    pub fn attr_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.attr
-    }
-
     /// Text style attributes.
     pub fn text_style(&self) -> &AttrMap2 {
         &self.text_style

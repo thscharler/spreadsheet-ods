@@ -84,11 +84,11 @@ impl TableStyle {
         self.attr.attr("style:master-page-name")
     }
 
-    pub fn attr(&self) -> &AttrMap2 {
+    pub fn attr_map(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    pub fn attr_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attr_map_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 

@@ -1191,7 +1191,7 @@ fn write_font_decl(
     for font in fonts.values().filter(|s| s.origin() == origin) {
         xml_out.empty("style:font-face")?;
         xml_out.attr_esc("style:name", font.name().as_str())?;
-        for (a, v) in font.attr().iter() {
+        for (a, v) in font.attr_map().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }
@@ -1264,7 +1264,7 @@ fn write_table_style(style: &TableStyle, xml_out: &mut XmlOdsWriter) -> Result<(
         }
     }
     xml_out.attr("style:family", "table")?;
-    for (a, v) in style.attr().iter() {
+    for (a, v) in style.attr_map().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1301,7 +1301,7 @@ fn write_tablerow_style(style: &RowStyle, xml_out: &mut XmlOdsWriter) -> Result<
         }
     }
     xml_out.attr("style:family", "table-row")?;
-    for (a, v) in style.attr().iter() {
+    for (a, v) in style.attr_map().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1341,7 +1341,7 @@ fn write_tablecolumn_style(
         }
     }
     xml_out.attr("style:family", "table-column")?;
-    for (a, v) in style.attr().iter() {
+    for (a, v) in style.attr_map().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1378,7 +1378,7 @@ fn write_tablecell_style(style: &CellStyle, xml_out: &mut XmlOdsWriter) -> Resul
         }
     }
     xml_out.attr("style:family", "table-cell")?;
-    for (a, v) in style.attr().iter() {
+    for (a, v) in style.attr_map().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1438,7 +1438,7 @@ fn write_paragraph_style(
         }
     }
     xml_out.attr("style:family", "paragraph")?;
-    for (a, v) in style.attr().iter() {
+    for (a, v) in style.attr_map().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1463,7 +1463,7 @@ fn write_paragraph_style(
             if let Some(tabstops) = style.tabstops() {
                 for ts in tabstops {
                     xml_out.empty("style:tab-stop")?;
-                    for (a, v) in ts.attr().iter() {
+                    for (a, v) in ts.attr_map().iter() {
                         xml_out.attr_esc(a.as_ref(), v.as_str())?;
                     }
                 }
@@ -1499,7 +1499,7 @@ fn write_text_style(style: &TextStyle, xml_out: &mut XmlOdsWriter) -> Result<(),
         }
     }
     xml_out.attr("style:family", "text")?;
-    for (a, v) in style.attr().iter() {
+    for (a, v) in style.attr_map().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1536,7 +1536,7 @@ fn write_graphic_style(style: &GraphicStyle, xml_out: &mut XmlOdsWriter) -> Resu
         }
     }
     xml_out.attr("style:family", "graphic")?;
-    for (a, v) in style.attr().iter() {
+    for (a, v) in style.attr_map().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1587,7 +1587,7 @@ fn write_value_styles(
 
         xml_out.elem(tag)?;
         xml_out.attr_esc("style:name", value_format.name().as_str())?;
-        for (a, v) in value_format.attr().iter() {
+        for (a, v) in value_format.attr_map().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
 
