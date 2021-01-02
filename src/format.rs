@@ -27,19 +27,19 @@
 //! when opening the spreadsheet so typically nobody notices this.
 //!
 
-use std::fmt::{Display, Formatter};
+pub use crate::attrmap2::{AttrMap2, AttrMap2Trait};
 
-use chrono::NaiveDateTime;
-use time::Duration;
-
-use crate::attrmap2::{AttrMap2, AttrMap2Trait};
-use crate::style::{
-    color_string, percent_string, shadow_string, FontStyle, FontWeight, Length, LineMode,
-    LineStyle, LineType, LineWidth, StyleMap, StyleOrigin, StyleUse, TextPosition, TextRelief,
-    TextTransform,
+use crate::style::stylemap::StyleMap;
+use crate::style::units::{
+    FontStyle, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth, TextPosition,
+    TextRelief, TextTransform,
 };
+use crate::style::{color_string, percent_string, shadow_string, StyleOrigin, StyleUse};
 use crate::ValueType;
+use chrono::NaiveDateTime;
 use color::Rgb;
+use std::fmt::{Display, Formatter};
+use time::Duration;
 
 #[derive(Debug)]
 pub enum ValueFormatError {

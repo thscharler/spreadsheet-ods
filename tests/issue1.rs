@@ -1,4 +1,4 @@
-use spreadsheet_ods::style::*;
+use spreadsheet_ods::style::units::*;
 use spreadsheet_ods::*;
 
 #[test]

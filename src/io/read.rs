@@ -10,14 +10,17 @@ use crate::attrmap2::{AttrMap2, AttrMap2Trait};
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
+use crate::style::stylemap::StyleMap;
+use crate::style::tabstop::TabStop;
 use crate::style::{
-    CellStyle, ColumnStyle, FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle,
-    RowStyle, StyleFor, StyleMap, StyleOrigin, StyleUse, TabStop, TableStyle, TextStyle,
+    FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle, StyleFor, StyleOrigin,
+    StyleUse, TextStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
 use crate::{
-    ucell, ColRange, RowRange, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook,
+    ucell, CellStyle, ColRange, ColumnStyle, RowRange, RowStyle, SCell, Sheet, TableStyle, Value,
+    ValueFormat, ValueType, Visibility, WorkBook,
 };
 
 /// Reads an ODS-file.

@@ -1,9 +1,13 @@
 use crate::attrmap2::AttrMap2;
+use crate::style::tabstop::TabStop;
+use crate::style::units::{
+    Border, FontStyle, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth, PageBreak,
+    ParaAlignVertical, TextAlign, TextAlignSource, TextKeep, TextPosition, TextRelief,
+    TextTransform, WritingMode,
+};
 use crate::style::{
-    border_line_width_string, border_string, color_string, percent_string, shadow_string, Border,
-    FontStyle, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth, PageBreak,
-    ParaAlignVertical, StyleOrigin, StyleUse, TabStop, TextAlign, TextAlignSource, TextKeep,
-    TextPosition, TextRelief, TextTransform, WritingMode,
+    border_line_width_string, border_string, color_string, percent_string, shadow_string,
+    StyleOrigin, StyleUse,
 };
 use color::Rgb;
 

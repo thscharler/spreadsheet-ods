@@ -5,9 +5,10 @@
 //! use chrono::NaiveDate;
 //! use spreadsheet_ods::format;
 //! use spreadsheet_ods::formula;
-//! use spreadsheet_ods::{Length, cm, mm};
-//! use spreadsheet_ods::style::{AttrText, TextRelief, AttrFoBorder, Border, CellStyle};
+//! use spreadsheet_ods::{cm, mm};
+//! use spreadsheet_ods::style::{CellStyle};
 //! use color::Rgb;
+//! use spreadsheet_ods::style::units::{TextRelief, Border, Length};
 //!
 //!
 //! let path = std::path::Path::new("tests/example.ods");
@@ -142,7 +143,6 @@
 
 #[macro_use]
 mod attr_macro;
-mod attrmap;
 mod attrmap2;
 pub mod defaultstyles;
 pub mod error;
@@ -158,12 +158,10 @@ pub use crate::error::OdsError;
 pub use crate::format::ValueFormat;
 pub use crate::io::{read_ods, write_ods};
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
-pub use crate::style::{Angle, Length};
+pub use crate::style::{CellStyle, ColumnStyle, RowStyle, TableStyle};
 
-use crate::style::{
-    CellStyle, ColumnStyle, FontFaceDecl, GraphicStyle, PageLayout, ParagraphStyle, RowStyle,
-    TableStyle, TextStyle,
-};
+use crate::style::units::Length;
+use crate::style::{FontFaceDecl, GraphicStyle, PageLayout, ParagraphStyle, TextStyle};
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
 use chrono::{NaiveDate, NaiveDateTime};

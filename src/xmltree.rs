@@ -5,7 +5,7 @@
 //!
 //! ```
 //! use spreadsheet_ods::xmltree::XmlTag;
-//! use spreadsheet_ods::style::AttrMap;
+//! use spreadsheet_ods::xmltree::AttrMap2Trait;
 //!
 //! let tag = XmlTag::new("table:shapes")
 //!         .con_tag(XmlTag::new("draw:frame")
@@ -43,7 +43,7 @@
 //!
 //! ```
 
-use crate::attrmap2::{AttrMap2, AttrMap2Trait};
+pub use crate::attrmap2::{AttrMap2, AttrMap2Trait};
 
 /// Defines a XML tag and it's children.
 #[derive(Debug, Clone, Default)]

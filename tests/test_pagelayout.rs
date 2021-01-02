@@ -1,7 +1,8 @@
 use color::Rgb;
 
+use spreadsheet_ods::style::units::Length;
 use spreadsheet_ods::style::PageLayout;
-use spreadsheet_ods::{cm, read_ods, write_ods, Length, OdsError, WorkBook};
+use spreadsheet_ods::{cm, read_ods, write_ods, OdsError, WorkBook};
 
 #[test]
 fn pagelayout() -> Result<(), OdsError> {

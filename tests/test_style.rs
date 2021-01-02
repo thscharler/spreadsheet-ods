@@ -1,6 +1,7 @@
 use color::Rgb;
 
-use spreadsheet_ods::style::{CellStyle, StyleMap, StyleOrigin, StyleUse, TableStyle};
+use spreadsheet_ods::style::stylemap::StyleMap;
+use spreadsheet_ods::style::{CellStyle, StyleOrigin, StyleUse, TableStyle};
 use spreadsheet_ods::{write_ods, CellRef, OdsError, Sheet, WorkBook};
 
 #[test]

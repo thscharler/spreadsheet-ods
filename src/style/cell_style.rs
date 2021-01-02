@@ -1,11 +1,14 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::{
-    border_line_width_string, border_string, color_string, percent_string, shadow_string, Border,
-    CellAlignVertical, FontStyle, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth,
-    PageBreak, ParaAlignVertical, RotationAlign, StyleMap, StyleOrigin, StyleUse, TextAlign,
-    TextAlignSource, TextKeep, TextPosition, TextRelief, TextTransform, WrapOption, WritingMode,
+use crate::style::stylemap::StyleMap;
+use crate::style::units::{
+    Angle, Border, CellAlignVertical, FontStyle, FontWeight, Length, LineMode, LineStyle, LineType,
+    LineWidth, PageBreak, ParaAlignVertical, RotationAlign, TextAlign, TextAlignSource, TextKeep,
+    TextPosition, TextRelief, TextTransform, WrapOption, WritingMode,
 };
-use crate::Angle;
+use crate::style::{
+    border_line_width_string, border_string, color_string, percent_string, shadow_string,
+    StyleOrigin, StyleUse,
+};
 use color::Rgb;
 
 #[derive(Debug, Clone)]

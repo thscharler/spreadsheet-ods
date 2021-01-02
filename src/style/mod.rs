@@ -3,8 +3,9 @@
 //!
 //! ```
 //! use spreadsheet_ods::{CellRef, WorkBook};
-//! use spreadsheet_ods::style::{StyleOrigin, StyleUse, AttrText, StyleMap, CellStyle};
+//! use spreadsheet_ods::style::{StyleOrigin, StyleUse, CellStyle};
 //! use color::Rgb;
+//! use spreadsheet_ods::style::stylemap::StyleMap;
 //!
 //! let mut wb = WorkBook::new();
 //!
@@ -33,7 +34,6 @@
 //! Styles can also link to a parent style and to a pagelayout.
 //!
 
-mod attr;
 mod cell_style;
 mod column_style;
 mod fontface;
@@ -41,13 +41,13 @@ mod graphic_style;
 mod pagelayout;
 mod paragraph_style;
 mod row_style;
-mod stylemap;
+pub mod stylemap;
 mod table_style;
-mod tabstop;
+pub mod tabstop;
 mod text_style;
-mod units;
+pub mod units;
 
-pub use attr::*;
+pub use crate::attrmap2::*;
 pub use cell_style::*;
 pub use column_style::*;
 pub use fontface::*;
@@ -55,16 +55,11 @@ pub use graphic_style::*;
 pub use pagelayout::*;
 pub use paragraph_style::*;
 pub use row_style::*;
-pub use stylemap::*;
 pub use table_style::*;
-pub use tabstop::*;
 pub use text_style::*;
-pub use units::*;
 
-use crate::attrmap::*;
-use crate::sealed::Sealed;
+use crate::style::units::{Border, Length};
 use color::Rgb;
-use string_cache::DefaultAtom;
 
 /// Origin of a style. Content.xml or Styles.xml.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -112,37 +107,6 @@ impl Default for StyleFor {
         StyleFor::None
     }
 }
-
-/// Text styles.
-#[derive(Clone, Debug, Default)]
-pub struct TextAttr {
-    attr: AttrMapType,
-}
-
-impl Sealed for TextAttr {}
-
-impl AttrMap for TextAttr {
-    fn attr_map(&self) -> &AttrMapType {
-        &self.attr
-    }
-
-    fn attr_map_mut(&mut self) -> &mut AttrMapType {
-        &mut self.attr
-    }
-}
-
-impl<'a> IntoIterator for &'a TextAttr {
-    type Item = (&'a DefaultAtom, &'a String);
-    type IntoIter = AttrMapIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        AttrMapIter::from(self.attr_map())
-    }
-}
-
-impl AttrFoBackgroundColor for TextAttr {}
-
-impl AttrText for TextAttr {}
 
 pub(crate) fn color_string(color: Rgb<u8>) -> String {
     format!("#{:02x}{:02x}{:02x}", color.r, color.g, color.b)

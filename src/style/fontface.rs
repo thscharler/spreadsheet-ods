@@ -1,5 +1,5 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::FontPitch;
+use crate::style::units::FontPitch;
 use crate::style::StyleOrigin;
 
 /// Font declarations.

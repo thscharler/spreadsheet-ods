@@ -1,7 +1,6 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::{
-    color_string, shadow_string, Length, PageBreak, StyleOrigin, StyleUse, TextKeep, WritingMode,
-};
+use crate::style::units::{Length, PageBreak, TextKeep, WritingMode};
+use crate::style::{color_string, shadow_string, StyleOrigin, StyleUse};
 use color::Rgb;
 
 #[derive(Debug, Clone)]

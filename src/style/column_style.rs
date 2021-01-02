@@ -1,5 +1,6 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::{rel_width_string, Length, PageBreak, StyleOrigin, StyleUse};
+use crate::style::units::{Length, PageBreak};
+use crate::style::{rel_width_string, StyleOrigin, StyleUse};
 
 #[derive(Debug, Clone)]
 pub struct ColumnStyle {

@@ -12,9 +12,9 @@ use color::Rgb;
 /// ```
 /// use spreadsheet_ods::{write_ods, WorkBook};
 /// use spreadsheet_ods::{cm};
-/// use spreadsheet_ods::style::{HeaderFooter, PageLayout, Length};
+/// use spreadsheet_ods::style::{HeaderFooter, PageLayout};
 /// use color::Rgb;
-/// use spreadsheet_ods::style::{AttrFoBackgroundColor, AttrFoMinHeight, AttrFoMargin};
+/// use spreadsheet_ods::style::units::Length;
 ///
 /// let mut wb = WorkBook::new();
 ///

@@ -1,12 +1,14 @@
 use color::Rgb;
 
-use spreadsheet_ods::style::{
-    Border, CellAlignVertical, FontFaceDecl, FontPitch, FontWeight, PageBreak, ParaAlignVertical,
+use spreadsheet_ods::style::units::{
+    Angle, Border, CellAlignVertical, FontPitch, FontWeight, Length, PageBreak, ParaAlignVertical,
     RotationAlign, TextAlignSource, TextKeep, TextPosition, TextRelief, TextTransform, WrapOption,
     WritingMode,
 };
-use spreadsheet_ods::style::{CellStyle, ColumnStyle, PageLayout, RowStyle, TableStyle};
-use spreadsheet_ods::{cm, deg, mm, pt, Angle, Length};
+use spreadsheet_ods::style::{
+    CellStyle, ColumnStyle, FontFaceDecl, PageLayout, RowStyle, TableStyle,
+};
+use spreadsheet_ods::{cm, deg, mm, pt};
 
 #[test]
 fn test_attr1() {

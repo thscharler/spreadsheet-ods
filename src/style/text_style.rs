@@ -1,8 +1,9 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::{
-    color_string, percent_string, shadow_string, FontStyle, FontWeight, Length, LineMode,
-    LineStyle, LineType, LineWidth, StyleOrigin, StyleUse, TextPosition, TextRelief, TextTransform,
+use crate::style::units::{
+    FontStyle, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth, TextPosition,
+    TextRelief, TextTransform,
 };
+use crate::style::{color_string, percent_string, shadow_string, StyleOrigin, StyleUse};
 use color::Rgb;
 
 #[derive(Debug, Clone)]

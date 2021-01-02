@@ -1,6 +1,6 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::{color_string, LineStyle, LineType, LineWidth};
-use crate::Length;
+use crate::style::color_string;
+use crate::style::units::{Length, LineStyle, LineType, LineWidth};
 use color::Rgb;
 use std::fmt::{Display, Formatter};
 
