@@ -1,9 +1,10 @@
-use crate::attrmap::{AttrMap, AttrMapType};
+use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType};
 use crate::sealed::Sealed;
 use crate::style::{color_string, LineStyle, LineType, LineWidth};
 use crate::Length;
 use color::Rgb;
 use std::fmt::{Display, Formatter};
+use string_cache::DefaultAtom;
 
 #[derive(Clone, Copy, Debug)]
 pub enum TabStopType {
@@ -98,5 +99,14 @@ impl AttrMap for TabStop {
 
     fn attr_map_mut(&mut self) -> &mut AttrMapType {
         &mut self.attr
+    }
+}
+
+impl<'a> IntoIterator for &'a TabStop {
+    type Item = (&'a DefaultAtom, &'a String);
+    type IntoIter = AttrMapIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        AttrMapIter::from(self.attr_map())
     }
 }

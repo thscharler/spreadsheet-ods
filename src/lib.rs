@@ -6,7 +6,7 @@
 //! use spreadsheet_ods::format;
 //! use spreadsheet_ods::formula;
 //! use spreadsheet_ods::{Length, cm, mm};
-//! use spreadsheet_ods::style::{Style, AttrText, TextRelief, AttrFoBorder, Border, TableCellStyle};
+//! use spreadsheet_ods::style::{AttrText, TextRelief, AttrFoBorder, Border, TableCellStyle};
 //! use color::Rgb;
 //!
 //!
@@ -155,7 +155,7 @@ pub use error::OdsError;
 pub use format::ValueFormat;
 pub use io::{read_ods, write_ods};
 pub use refs::{CellRange, CellRef, ColRange, RowRange};
-pub use style::{Angle, Length, Style};
+pub use style::{Angle, Length};
 
 use crate::style::{
     FontFaceDecl, GraphicStyle, PageLayout, ParagraphStyle, TableCellStyle, TableColumnStyle,
