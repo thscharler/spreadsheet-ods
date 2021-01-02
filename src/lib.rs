@@ -157,13 +157,14 @@ pub use io::{read_ods, write_ods};
 pub use refs::{CellRange, CellRef, ColRange, RowRange};
 pub use style::{Angle, Length, Style};
 
-use crate::style::{AttrTableCol, AttrTableRow, FontFaceDecl, PageLayout};
+use crate::style::{AnyStyle, AttrTableCol, AttrTableRow, FontFaceDecl, PageLayout};
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 mod attrmap;
+mod attrmap2;
 pub mod defaultstyles;
 pub mod error;
 pub mod format;
@@ -197,6 +198,8 @@ pub struct WorkBook {
     /// Styles hold the style:style elements.
     styles: HashMap<String, Style>,
 
+    styles2: HashMap<String, AnyStyle>,
+
     /// Value-styles are actual formatting instructions
     /// for various datatypes.
     /// Represents the various number:xxx-style elements.
@@ -220,27 +223,31 @@ pub struct WorkBook {
 
 impl fmt::Debug for WorkBook {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for s in self.sheets.iter() {
-            writeln!(f, "{:?}", s)?;
-        }
-        for s in self.fonts.values() {
-            writeln!(f, "{:?}", s)?;
-        }
+        writeln!(f, "{:?}", self.)
+        // for s in self.sheets.iter() {
+        //     writeln!(f, "{:?}", s)?;
+        // }
+        // for s in self.fonts.values() {
+        //     writeln!(f, "{:?}", s)?;
+        // }
         for s in self.styles.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.formats.values() {
+        for s in self.styles2.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for (t, s) in &self.def_styles {
-            writeln!(f, "{:?} -> {:?}", t, s)?;
-        }
-        for s in self.page_layouts.values() {
-            writeln!(f, "{:?}", s)?;
-        }
-        for xtr in &self.extra {
-            writeln!(f, "extras {:?}", xtr)?;
-        }
+        // for s in self.formats.values() {
+        //     writeln!(f, "{:?}", s)?;
+        // }
+        // for (t, s) in &self.def_styles {
+        //     writeln!(f, "{:?} -> {:?}", t, s)?;
+        // }
+        // for s in self.page_layouts.values() {
+        //     writeln!(f, "{:?}", s)?;
+        // }
+        // for xtr in &self.extra {
+        //     writeln!(f, "extras {:?}", xtr)?;
+        // }
         writeln!(f, "{:?}", self.file)?;
         Ok(())
     }
@@ -253,6 +260,7 @@ impl WorkBook {
             version: "1.3".to_string(),
             fonts: Default::default(),
             styles: Default::default(),
+            styles2: Default::default(),
             formats: Default::default(),
             def_styles: Default::default(),
             page_layouts: Default::default(),
@@ -371,6 +379,26 @@ impl WorkBook {
     /// Returns the mutable style.
     pub fn style_mut(&mut self, name: &str) -> Option<&mut Style> {
         self.styles.get_mut(name)
+    }
+
+    /// Adds a style.
+    pub fn add_style2(&mut self, style: AnyStyle) {
+        self.styles2.insert(style.name().to_string(), style);
+    }
+
+    /// Removes a style.
+    pub fn remove_style2(&mut self, name: &str) -> Option<AnyStyle> {
+        self.styles2.remove(name)
+    }
+
+    /// Returns the style.
+    pub fn style2(&self, name: &str) -> Option<&AnyStyle> {
+        self.styles2.get(name)
+    }
+
+    /// Returns the mutable style.
+    pub fn style_mut2(&mut self, name: &str) -> Option<&mut AnyStyle> {
+        self.styles2.get_mut(name)
     }
 
     /// Adds a value format.

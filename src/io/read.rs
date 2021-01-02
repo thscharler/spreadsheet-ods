@@ -7,12 +7,13 @@ use quick_xml::events::{BytesStart, Event};
 use zip::read::ZipFile;
 
 use crate::attrmap::AttrMap;
+use crate::attrmap2::AttrMap2;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
 use crate::style::{
     FontFaceDecl, HeaderFooter, PageLayout, Style, StyleFor, StyleMap, StyleOrigin, StyleUse,
-    TabStop,
+    TabStop, TableStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -1566,7 +1567,29 @@ fn read_style_style(
     xml_tag: &BytesStart,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
+    match read_family_attr(xml, xml_tag)? {
+        StyleFor::Table => {
+            read_table_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+        }
+        _ => read_any_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?,
+    }
+    Ok(())
+}
+
+// style:style tag
+#[allow(clippy::single_match)]
+#[allow(clippy::collapsible_if)]
+fn read_any_style(
+    book: &mut WorkBook,
+    origin: StyleOrigin,
+    styleuse: StyleUse,
+    end_tag: &[u8],
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
+    empty_tag: bool,
+) -> Result<(), OdsError> {
     let mut buf = Vec::new();
+
     let mut style: Style = Style::new();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
@@ -1636,6 +1659,88 @@ fn read_style_style(
     Ok(())
 }
 
+// style:style tag
+#[allow(clippy::single_match)]
+#[allow(clippy::collapsible_if)]
+fn read_table_style(
+    book: &mut WorkBook,
+    origin: StyleOrigin,
+    styleuse: StyleUse,
+    end_tag: &[u8],
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
+    empty_tag: bool,
+) -> Result<(), OdsError> {
+    let mut buf = Vec::new();
+
+    let mut style: TableStyle = TableStyle::empty();
+    style.set_origin(origin);
+    style.set_styleuse(styleuse);
+
+    copy_attr2(style.attr_mut(), xml, xml_tag)?;
+
+    // In case of an empty xml-tag we are done here.
+    if empty_tag {
+        book.add_style2(style.into());
+    } else {
+        loop {
+            let evt = xml.read_event(&mut buf)?;
+            if cfg!(feature = "dump_xml") {
+                println!(" read_table_style_style {:?}", evt);
+            }
+            match evt {
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
+                    b"style:table-properties" => copy_attr2(style.table_style_mut(), xml, xml_tag)?,
+                    // b"style:table-column-properties" => copy_attr(style.col_mut(), xml, xml_tag)?,
+                    // b"style:table-row-properties" => copy_attr(style.row_mut(), xml, xml_tag)?,
+                    // b"style:table-cell-properties" => copy_attr(style.cell_mut(), xml, xml_tag)?,
+                    // b"style:text-properties" => copy_attr(style.text_mut(), xml, xml_tag)?,
+                    // b"style:paragraph-properties" => {
+                    //     copy_attr(style.paragraph_mut(), xml, xml_tag)?
+                    // }
+                    // b"style:graphic-properties" => copy_attr(style.graphic_mut(), xml, xml_tag)?,
+                    // b"style:map" => style.push_stylemap(read_stylemap(xml, xml_tag)?),
+                    //
+                    // b"style:tab-stops" => (),
+                    // b"style:tab-stop" => {
+                    //     let mut ts = TabStop::new();
+                    //     copy_attr(&mut ts, xml, xml_tag)?;
+                    //     style.paragraph_mut().add_tabstop(ts);
+                    // }
+                    _ => {
+                        if cfg!(feature = "dump_unused") {
+                            println!(" read_table_style_style unused {:?}", evt);
+                        }
+                    }
+                },
+                Event::Text(_) => (),
+                Event::End(ref e) => {
+                    if e.name() == end_tag {
+                        book.add_style2(style.into());
+                        break;
+                    // } else if e.name() == b"style:tab-stops"
+                    //     || e.name() == b"style:paragraph-properties"
+                    // {
+                    //     // noop
+                    } else {
+                        if cfg!(feature = "dump_unused") {
+                            println!(" read_table_style_style unused {:?}", evt);
+                        }
+                    }
+                }
+                Event::Eof => break,
+                _ => {
+                    if cfg!(feature = "dump_unused") {
+                        println!(" read_table_style_style unused {:?}", evt);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 fn read_stylemap(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     xml_tag: &BytesStart,
@@ -1668,6 +1773,40 @@ fn read_stylemap(
     }
 
     Ok(sm)
+}
+
+fn read_family_attr(
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
+) -> Result<StyleFor, OdsError> {
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key == b"style:family" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                match v.as_ref() {
+                    "table" => return Ok(StyleFor::Table),
+                    "table-column" => return Ok(StyleFor::TableColumn),
+                    "table-row" => return Ok(StyleFor::TableRow),
+                    "table-cell" => return Ok(StyleFor::TableCell),
+                    "graphic" => return Ok(StyleFor::Graphic),
+                    "paragraph" => return Ok(StyleFor::Paragraph),
+                    _ => {
+                        return Err(OdsError::Ods(format!("style:family unknown {} ", v)));
+                    }
+                }
+            }
+            attr => {
+                if cfg!(feature = "dump_unused") {
+                    let n = xml.decode(xml_tag.name())?;
+                    let k = xml.decode(attr.key)?;
+                    let v = attr.unescape_and_decode_value(xml)?;
+                    println!(" read_style_attr unused {} {} {}", n, k, v);
+                }
+            }
+        }
+    }
+
+    Err(OdsError::Ods(format!("no style:family")))
 }
 
 fn read_style_attr(
@@ -1729,6 +1868,22 @@ fn read_style_attr(
 
 fn copy_attr(
     attrmap: &mut dyn AttrMap,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
+) -> Result<(), OdsError> {
+    for attr in xml_tag.attributes().with_checks(false) {
+        if let Ok(attr) = attr {
+            let k = xml.decode(&attr.key)?;
+            let v = attr.unescape_and_decode_value(&xml)?;
+            attrmap.set_attr(k, v);
+        }
+    }
+
+    Ok(())
+}
+
+fn copy_attr2(
+    attrmap: &mut AttrMap2,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     xml_tag: &BytesStart,
 ) -> Result<(), OdsError> {

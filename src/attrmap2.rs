@@ -7,45 +7,43 @@
 use std::collections::{hash_map, HashMap};
 use string_cache::DefaultAtom;
 
+type MapType = Option<Box<HashMap<DefaultAtom, String>>>;
+
 /// Container type for attributes.
-pub type AttrMapType = Option<Box<HashMap<DefaultAtom, String>>>;
+#[derive(Default, Clone, Debug)]
+pub struct AttrMap2 {
+    map: MapType,
+}
 
-/// Container trait for attributes.
-///
-/// Sealed
-///
-/// This trait is only to be used internally.
-pub trait AttrMap /*sealed::Sealed*/ {
-    /// Reference to the map of actual attributes.
-    fn attr_map(&self) -> &AttrMapType;
-    /// Reference to the map of actual attributes.
-    fn attr_map_mut(&mut self) -> &mut AttrMapType;
-
+impl AttrMap2 {
+    pub fn new() -> Self {
+        AttrMap2 {
+            map: Default::default(),
+        }
+    }
     /// Are there any attributes?
-    fn has_attr(&self) -> bool {
-        self.attr_map().is_none()
+    pub fn is_empty(&self) -> bool {
+        self.map.is_none()
     }
 
     /// Add from Vec
-    fn add_all(&mut self, data: Vec<(&str, String)>) {
-        let attr = self.attr_map_mut();
-
-        let attr = attr.get_or_insert_with(|| Box::new(HashMap::new()));
+    pub fn add_all(&mut self, data: Vec<(&str, String)>) {
+        let attr = self.map.get_or_insert_with(|| Box::new(HashMap::new()));
         for (name, val) in data {
             attr.insert(DefaultAtom::from(name), val);
         }
     }
 
     /// Adds an attribute.
-    fn set_attr(&mut self, name: &str, value: String) {
-        self.attr_map_mut()
+    pub fn set_attr(&mut self, name: &str, value: String) {
+        self.map
             .get_or_insert_with(|| Box::new(HashMap::new()))
             .insert(DefaultAtom::from(name), value);
     }
 
     /// Removes an attribute.
-    fn clear_attr(&mut self, name: &str) -> Option<String> {
-        if let Some(ref mut attr) = self.attr_map_mut() {
+    pub fn clear_attr(&mut self, name: &str) -> Option<String> {
+        if let Some(ref mut attr) = self.map {
             attr.remove(&DefaultAtom::from(name))
         } else {
             None
@@ -53,12 +51,16 @@ pub trait AttrMap /*sealed::Sealed*/ {
     }
 
     /// Returns the attribute.
-    fn attr(&self, name: &str) -> Option<&String> {
-        if let Some(prp) = self.attr_map() {
+    pub fn attr(&self, name: &str) -> Option<&String> {
+        if let Some(ref prp) = self.map {
             prp.get(&DefaultAtom::from(name))
         } else {
             None
         }
+    }
+
+    pub fn iter(&self) -> AttrMapIter {
+        From::from(self)
     }
 }
 
@@ -67,9 +69,9 @@ pub struct AttrMapIter<'a> {
     it: Option<hash_map::Iter<'a, DefaultAtom, String>>,
 }
 
-impl<'a> From<&'a AttrMapType> for AttrMapIter<'a> {
-    fn from(attrmap: &'a AttrMapType) -> Self {
-        if let Some(attrmap) = attrmap {
+impl<'a> From<&'a AttrMap2> for AttrMapIter<'a> {
+    fn from(attrmap: &'a AttrMap2) -> Self {
+        if let Some(ref attrmap) = attrmap.map {
             Self {
                 it: Some(attrmap.iter()),
             }

@@ -1,7 +1,13 @@
 use color::Rgb;
 
-use spreadsheet_ods::style::{AttrText, StyleMap, StyleOrigin, StyleUse};
+use spreadsheet_ods::style::{AttrText, StyleMap, StyleOrigin, StyleUse, TableStyle};
 use spreadsheet_ods::{write_ods, CellRef, OdsError, Sheet, Style, WorkBook};
+
+#[test]
+fn testtablestyle() {
+    let mut s = TableStyle::new("fine");
+    s.set_background_color(Rgb::new(0, 0, 0));
+}
 
 #[test]
 fn teststyles() -> Result<(), OdsError> {

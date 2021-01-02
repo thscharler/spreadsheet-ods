@@ -1,8 +1,9 @@
 use crate::attrmap::AttrMap;
 use crate::style::{
-    color_string, Border, CellAlignVertical, FontPitch, LineMode, LineStyle, LineType, LineWidth,
-    PageBreak, ParaAlignVertical, RotationAlign, TextAlign, TextAlignSource, TextKeep,
-    TextPosition, TextRelief, TextStyle, TextTransform, TextWeight, WrapOption, WritingMode,
+    color_string, shadow_string, Border, CellAlignVertical, FontPitch, LineMode, LineStyle,
+    LineType, LineWidth, PageBreak, ParaAlignVertical, RotationAlign, TextAlign, TextAlignSource,
+    TextKeep, TextPosition, TextRelief, TextStyle, TextTransform, TextWeight, WrapOption,
+    WritingMode,
 };
 use crate::{Angle, Length};
 use color::Rgb;
@@ -567,17 +568,4 @@ fn rel_width_string(value: f64) -> String {
 
 fn border_line_width_string(inner: Length, space: Length, outer: Length) -> String {
     format!("{} {} {}", inner, space, outer)
-}
-
-fn shadow_string(
-    x_offset: Length,
-    y_offset: Length,
-    blur: Option<Length>,
-    color: Rgb<u8>,
-) -> String {
-    if let Some(blur) = blur {
-        format!("{} {} {} {}", color_string(color), x_offset, y_offset, blur)
-    } else {
-        format!("{} {} {}", color_string(color), x_offset, y_offset)
-    }
 }

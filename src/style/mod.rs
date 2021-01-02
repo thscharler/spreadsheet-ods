@@ -5,17 +5,24 @@
 //!
 
 mod attr;
+#[macro_use]
+mod attr_macro;
+mod any_style;
 mod fontface;
 mod pagelayout;
 mod stylemap;
+mod table_row_style;
+mod table_style;
 mod tabstop;
 mod units;
 
 pub use crate::attrmap::*;
+pub use any_style::*;
 pub use attr::*;
 pub use fontface::*;
 pub use pagelayout::*;
 pub use stylemap::*;
+pub use table_style::*;
 pub use tabstop::*;
 pub use units::*;
 
@@ -724,4 +731,17 @@ impl<'a> IntoIterator for &'a GraphicAttr {
 
 pub(crate) fn color_string(color: Rgb<u8>) -> String {
     format!("#{:02x}{:02x}{:02x}", color.r, color.g, color.b)
+}
+
+pub(crate) fn shadow_string(
+    x_offset: Length,
+    y_offset: Length,
+    blur: Option<Length>,
+    color: Rgb<u8>,
+) -> String {
+    if let Some(blur) = blur {
+        format!("{} {} {} {}", color_string(color), x_offset, y_offset, blur)
+    } else {
+        format!("{} {} {}", color_string(color), x_offset, y_offset)
+    }
 }
