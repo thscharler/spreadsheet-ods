@@ -7,27 +7,27 @@
 mod attr;
 #[macro_use]
 mod attr_macro;
+mod cell_style;
+mod column_style;
 mod fontface;
 mod pagelayout;
 mod paragraph_style;
+mod row_style;
 mod stylemap;
 mod table_style;
-mod tablecell_style;
-mod tablecolumn_style;
-mod tablerow_style;
 mod tabstop;
 mod units;
 
 pub use crate::attrmap::*;
 pub use attr::*;
+pub use cell_style::*;
+pub use column_style::*;
 pub use fontface::*;
 pub use pagelayout::*;
 pub use paragraph_style::*;
+pub use row_style::*;
 pub use stylemap::*;
 pub use table_style::*;
-pub use tablecell_style::*;
-pub use tablecolumn_style::*;
-pub use tablerow_style::*;
 pub use tabstop::*;
 pub use units::*;
 
