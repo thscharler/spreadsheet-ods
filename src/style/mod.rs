@@ -11,6 +11,7 @@ mod fontface;
 mod pagelayout;
 mod stylemap;
 mod table_style;
+mod tablecell_style;
 mod tablecolumn_style;
 mod tablerow_style;
 mod tabstop;
@@ -22,6 +23,7 @@ pub use fontface::*;
 pub use pagelayout::*;
 pub use stylemap::*;
 pub use table_style::*;
+pub use tablecell_style::*;
 pub use tablecolumn_style::*;
 pub use tablerow_style::*;
 pub use tabstop::*;
@@ -749,4 +751,19 @@ pub(crate) fn shadow_string(
 
 pub(crate) fn rel_width_string(value: f64) -> String {
     format!("{}*", value)
+}
+
+pub(crate) fn border_string(width: Length, border: Border, color: Rgb<u8>) -> String {
+    format!(
+        "{} {} #{:02x}{:02x}{:02x}",
+        width, border, color.r, color.g, color.b
+    )
+}
+
+pub(crate) fn percent_string(value: f64) -> String {
+    format!("{}%", value)
+}
+
+pub(crate) fn border_line_width_string(inner: Length, space: Length, outer: Length) -> String {
+    format!("{} {} {}", inner, space, outer)
 }

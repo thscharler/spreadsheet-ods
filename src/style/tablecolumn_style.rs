@@ -16,7 +16,7 @@ pub struct TableColumnStyle {
     // ok style:family 19.480,
     // ignore style:list-level 19.499,
     // ignore style:list-style-name 19.500,
-    // ok style:master-page-name 19.501,
+    // ignore style:master-page-name 19.501,
     // ok style:name 19.502,
     // ignore style:next-style-name 19.503,
     // ignore style:parent-style-name 19.510,

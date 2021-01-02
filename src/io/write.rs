@@ -14,8 +14,8 @@ use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{cellranges_string, CellRange};
 use crate::style::{
-    FontFaceDecl, HeaderFooter, PageLayout, StyleFor, StyleOrigin, StyleUse, TableColumnStyle,
-    TableRowStyle, TableStyle,
+    FontFaceDecl, HeaderFooter, PageLayout, StyleFor, StyleOrigin, StyleUse, TableCellStyle,
+    TableColumnStyle, TableRowStyle, TableStyle,
 };
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{ucell, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
@@ -1209,14 +1209,19 @@ fn write_styles(
             write_table_style(style, xml_out)?;
         }
     }
-    for style in book.tablerow_styles.values() {
+    for style in book.row_styles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
             write_tablerow_style(style, xml_out)?;
         }
     }
-    for style in book.tablecolumn_styles.values() {
+    for style in book.column_styles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
             write_tablecolumn_style(style, xml_out)?;
+        }
+    }
+    for style in book.cell_styles.values() {
+        if style.origin() == origin && style.styleuse() == styleuse {
+            write_tablecell_style(style, xml_out)?;
         }
     }
 
@@ -1404,6 +1409,7 @@ fn write_tablerow_style(style: &TableRowStyle, xml_out: &mut XmlOdsWriter) -> Re
 
     Ok(())
 }
+
 fn write_tablecolumn_style(
     style: &TableColumnStyle,
     xml_out: &mut XmlOdsWriter,
@@ -1432,6 +1438,58 @@ fn write_tablecolumn_style(
     if !style.column_style().is_empty() {
         xml_out.empty("style:table-column-properties")?;
         for (a, v) in style.column_style().iter() {
+            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+        }
+    }
+    if style.styleuse() == StyleUse::Default {
+        xml_out.end_elem("style:default-style")?;
+    } else {
+        xml_out.end_elem("style:style")?;
+    }
+
+    Ok(())
+}
+
+fn write_tablecell_style(
+    style: &TableCellStyle,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
+    if style.styleuse() == StyleUse::Default {
+        xml_out.elem("style:default-style")?;
+    } else {
+        xml_out.elem("style:style")?;
+        if let Some(name) = style.name() {
+            xml_out.attr_esc("style:name", name)?;
+        } else {
+            return Err(OdsError::Ods(format!("No format name for {:?}", style)));
+        }
+    }
+    xml_out.attr("style:family", "table-cell")?;
+    for (a, v) in style.attr().iter() {
+        match a.as_ref() {
+            "style:name" => {}
+            "style:family" => {}
+            _ => {
+                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            }
+        }
+    }
+
+    if !style.cell_style().is_empty() {
+        xml_out.empty("style:table-cell-properties")?;
+        for (a, v) in style.cell_style().iter() {
+            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+        }
+    }
+    if !&style.paragraph_style().is_empty() {
+        xml_out.empty("style:paragraph-properties")?;
+        for (a, v) in style.paragraph_style().iter() {
+            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+        }
+    }
+    if !style.text_style().is_empty() {
+        xml_out.empty("style:text-properties")?;
+        for (a, v) in style.text_style().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }

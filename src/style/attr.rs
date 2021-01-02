@@ -1,9 +1,9 @@
 use crate::attrmap::AttrMap;
 use crate::style::{
-    color_string, shadow_string, Border, CellAlignVertical, FontPitch, LineMode, LineStyle,
-    LineType, LineWidth, PageBreak, ParaAlignVertical, RotationAlign, TextAlign, TextAlignSource,
-    TextKeep, TextPosition, TextRelief, TextStyle, TextTransform, TextWeight, WrapOption,
-    WritingMode,
+    border_line_width_string, border_string, color_string, percent_string, shadow_string, Border,
+    CellAlignVertical, FontPitch, LineMode, LineStyle, LineType, LineWidth, PageBreak,
+    ParaAlignVertical, RotationAlign, TextAlign, TextAlignSource, TextKeep, TextPosition,
+    TextRelief, TextStyle, TextTransform, TextWeight, WrapOption, WritingMode,
 };
 use crate::{style, Angle, Length};
 use color::Rgb;
@@ -549,19 +549,4 @@ where
     fn set_font_overline_width(&mut self, lwidth: LineWidth) {
         self.set_attr("style:text-overline-width", lwidth.to_string());
     }
-}
-
-fn border_string(width: Length, border: Border, color: Rgb<u8>) -> String {
-    format!(
-        "{} {} #{:02x}{:02x}{:02x}",
-        width, border, color.r, color.g, color.b
-    )
-}
-
-fn percent_string(value: f64) -> String {
-    format!("{}%", value)
-}
-
-fn border_line_width_string(inner: Length, space: Length, outer: Length) -> String {
-    format!("{} {} {}", inner, space, outer)
 }
