@@ -1191,7 +1191,7 @@ fn write_font_decl(
     for font in fonts.values().filter(|s| s.origin() == origin) {
         xml_out.empty("style:font-face")?;
         xml_out.attr_esc("style:name", font.name().as_str())?;
-        for (a, v) in font.attr_iter() {
+        for (a, v) in font.attr().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }

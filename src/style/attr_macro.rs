@@ -424,3 +424,24 @@ macro_rules! text {
         }
     };
 }
+
+#[macro_export]
+macro_rules! font_decl {
+    ($acc:ident) => {
+        /// External font family name.
+        pub fn set_font_family<S: Into<String>>(&mut self, name: S) {
+            self.$acc().set_attr("svg:font-family", name.into());
+        }
+
+        /// System generic name.
+        pub fn set_font_family_generic<S: Into<String>>(&mut self, name: S) {
+            self.$acc()
+                .set_attr("style:font-family-generic", name.into());
+        }
+
+        /// Font pitch.
+        pub fn set_font_pitch(&mut self, pitch: FontPitch) {
+            self.$acc().set_attr("style:font-pitch", pitch.to_string());
+        }
+    };
+}

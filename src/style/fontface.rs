@@ -1,6 +1,5 @@
-use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType};
-use crate::sealed::Sealed;
-use crate::style::attr::AttrFontDecl;
+use crate::attrmap2::AttrMap2;
+use crate::style::FontPitch;
 use crate::style::StyleOrigin;
 
 /// Font declarations.
@@ -10,21 +9,7 @@ pub struct FontFaceDecl {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// All other attributes.
-    attr: AttrMapType,
-}
-
-impl Sealed for FontFaceDecl {}
-
-impl AttrFontDecl for FontFaceDecl {}
-
-impl AttrMap for FontFaceDecl {
-    fn attr_map(&self) -> &AttrMapType {
-        &self.attr
-    }
-
-    fn attr_map_mut(&mut self) -> &mut AttrMapType {
-        &mut self.attr
-    }
+    attr: AttrMap2,
 }
 
 impl FontFaceDecl {
@@ -33,7 +18,7 @@ impl FontFaceDecl {
         Self {
             name: "".to_string(),
             origin: Default::default(),
-            attr: None,
+            attr: Default::default(),
         }
     }
 
@@ -42,7 +27,7 @@ impl FontFaceDecl {
         Self {
             name: name.into(),
             origin: StyleOrigin::Content,
-            attr: None,
+            attr: Default::default(),
         }
     }
 
@@ -66,8 +51,13 @@ impl FontFaceDecl {
         self.origin
     }
 
-    /// Iterator over the attributes of this pagelayout.
-    pub fn attr_iter(&self) -> AttrMapIter {
-        AttrMapIter::from(self.attr_map())
+    pub fn attr(&self) -> &AttrMap2 {
+        &self.attr
     }
+
+    pub fn attr_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.attr
+    }
+
+    font_decl!(attr_mut);
 }

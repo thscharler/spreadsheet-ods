@@ -6,9 +6,9 @@ use spreadsheet_ods::style::{
     RowStyle, TableStyle,
 };
 use spreadsheet_ods::style::{
-    AttrFontDecl, Border, CellAlignVertical, FontFaceDecl, FontPitch, FontWeight, PageBreak,
-    ParaAlignVertical, RotationAlign, TextAlignSource, TextKeep, TextPosition, TextRelief,
-    TextTransform, WrapOption, WritingMode,
+    Border, CellAlignVertical, FontFaceDecl, FontPitch, FontWeight, PageBreak, ParaAlignVertical,
+    RotationAlign, TextAlignSource, TextKeep, TextPosition, TextRelief, TextTransform, WrapOption,
+    WritingMode,
 };
 use spreadsheet_ods::{cm, deg, mm, pt, Angle, Length};
 
@@ -70,16 +70,22 @@ fn test_attr2() {
     let mut ff = FontFaceDecl::new();
 
     ff.set_font_family("Helvetica");
-    assert_eq!(ff.attr("svg:font-family"), Some(&"Helvetica".to_string()));
+    assert_eq!(
+        ff.attr().attr("svg:font-family"),
+        Some(&"Helvetica".to_string())
+    );
 
     ff.set_font_family_generic("fool");
     assert_eq!(
-        ff.attr("style:font-family-generic"),
+        ff.attr().attr("style:font-family-generic"),
         Some(&"fool".to_string())
     );
 
     ff.set_font_pitch(FontPitch::Fixed);
-    assert_eq!(ff.attr("style:font-pitch"), Some(&"fixed".to_string()));
+    assert_eq!(
+        ff.attr().attr("style:font-pitch"),
+        Some(&"fixed".to_string())
+    );
 }
 
 #[test]

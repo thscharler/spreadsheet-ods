@@ -842,7 +842,7 @@ fn read_fonts(
                             attr => {
                                 let k = xml.decode(&attr.key)?;
                                 let v = attr.unescape_and_decode_value(&xml)?;
-                                font.set_attr(k, v);
+                                font.attr_mut().set_attr(k, v);
                             }
                         }
                     }
