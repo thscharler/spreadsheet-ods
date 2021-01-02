@@ -1,11 +1,10 @@
-use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType};
-use crate::sealed::Sealed;
-use crate::style::attr::{
-    AttrFoBackgroundColor, AttrFoBorder, AttrFoMargin, AttrFoMinHeight, AttrFoPadding,
-    AttrStyleDynamicSpacing, AttrStyleShadow, AttrSvgHeight,
+use crate::attrmap2::AttrMap2;
+use crate::style::{
+    border_line_width_string, border_string, color_string, percent_string, shadow_string, Border,
+    Length,
 };
 use crate::text::TextTag;
-use string_cache::DefaultAtom;
+use color::Rgb;
 
 /// Page layout.
 /// Contains all header and footer information.
@@ -23,10 +22,10 @@ use string_cache::DefaultAtom;
 ///
 /// pl.set_background_color(Rgb::new(12, 129, 252));
 ///
-/// pl.header_attr_mut().set_min_height(cm!(0.75));
-/// pl.header_attr_mut().set_margin_left(cm!(0.15));
-/// pl.header_attr_mut().set_margin_right(cm!(0.15));
-/// pl.header_attr_mut().set_margin_bottom(Length::Cm(0.75));
+/// pl.header_style_mut().set_min_height(cm!(0.75));
+/// pl.header_style_mut().set_margin_left(cm!(0.15));
+/// pl.header_style_mut().set_margin_right(cm!(0.15));
+/// pl.header_style_mut().set_margin_bottom(Length::Cm(0.75));
 ///
 /// pl.header_mut().center_mut().push_text("middle ground");
 /// pl.header_mut().left_mut().push_text("left wing");
@@ -42,42 +41,16 @@ pub struct PageLayout {
     name: String,
     master_page_name: String,
 
-    attr: AttrMapType,
+    style: AttrMap2,
 
-    header_attr: HeaderFooterAttr,
+    header_style: HeaderFooterStyle,
     header: HeaderFooter,
     header_left: HeaderFooter,
 
-    footer_attr: HeaderFooterAttr,
+    footer_style: HeaderFooterStyle,
     footer: HeaderFooter,
     footer_left: HeaderFooter,
 }
-
-impl Sealed for PageLayout {}
-
-impl AttrMap for PageLayout {
-    fn attr_map(&self) -> &AttrMapType {
-        &self.attr
-    }
-
-    fn attr_map_mut(&mut self) -> &mut AttrMapType {
-        &mut self.attr
-    }
-}
-
-impl AttrFoBackgroundColor for PageLayout {}
-
-impl AttrFoBorder for PageLayout {}
-
-impl AttrFoMargin for PageLayout {}
-
-impl AttrFoPadding for PageLayout {}
-
-impl AttrStyleDynamicSpacing for PageLayout {}
-
-impl AttrStyleShadow for PageLayout {}
-
-impl AttrSvgHeight for PageLayout {}
 
 impl PageLayout {
     /// Create with name "Mpm1" and masterpage-name "Default".
@@ -85,13 +58,13 @@ impl PageLayout {
         Self {
             name: "Mpm1".to_string(),
             master_page_name: "Default".to_string(),
-            attr: None,
+            style: Default::default(),
             header: Default::default(),
             header_left: Default::default(),
-            header_attr: Default::default(),
+            header_style: Default::default(),
             footer: Default::default(),
             footer_left: Default::default(),
-            footer_attr: Default::default(),
+            footer_style: Default::default(),
         }
     }
 
@@ -100,13 +73,13 @@ impl PageLayout {
         Self {
             name: "Mpm2".to_string(),
             master_page_name: "Report".to_string(),
-            attr: None,
+            style: Default::default(),
             header: Default::default(),
             header_left: Default::default(),
-            header_attr: Default::default(),
+            header_style: Default::default(),
             footer: Default::default(),
             footer_left: Default::default(),
-            footer_attr: Default::default(),
+            footer_style: Default::default(),
         }
     }
 
@@ -130,10 +103,37 @@ impl PageLayout {
         &self.master_page_name
     }
 
-    /// Iterator over the attributes of this pagelayout.
-    pub fn attr_iter(&self) -> AttrMapIter {
-        AttrMapIter::from(self.attr_map())
+    pub fn style(&self) -> &AttrMap2 {
+        &self.style
     }
+
+    pub fn style_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.style
+    }
+    // TODO: more attributes
+    // fo:page-height 20.215, fo:page-width 20.216, style:border-line-width 20.248,
+    // style:border-line-width-bottom 20.249, style:border-line-width-left 20.250,
+    // style:border-line-width-right 20.251, style:border-line-width-top 20.252,
+    // style:first-page-number 20.266, style:footnote-max-height 20.296,
+    // style:layout-grid-base-height 20.304, style:layout-grid-base-width 20.305,
+    // style:layout-grid-color 20.306, style:layout-grid-display 20.307,
+    // style:layout-grid-lines 20.308, style:layout-grid-mode 20.309,
+    // style:layoutgrid-print 20.310, style:layout-grid-ruby-below 20.311,
+    // style:layout-gridruby-height 20.312, style:layout-grid-snap-to 20.313,
+    // style:layout-gridstandard-mode 20.314,
+    // style:num-format 20.322, style:num-letter-sync 20.323,
+    // style:num-prefix 20.324, style:num-suffix 20.325, style:paper-tray-name
+    // 20.329, style:print 20.330, style:print-orientation 20.333, style:print-pageorder 20.332,
+    // style:register-truth-ref-style-name 20.337, style:scale-to
+    // 20.352, style:scale-to-X 20.354, style:scale-to-Y 20.355, style:scale-to-pages
+    // 20.353, style:shadow 20.359, style:table-centering 20.363 and style:writingmode 20.404.
+    fo_background_color!(style_mut);
+    fo_border!(style_mut);
+    fo_margin!(style_mut);
+    fo_padding!(style_mut);
+    style_dynamic_spacing!(style_mut);
+    style_shadow!(style_mut);
+    svg_height!(style_mut);
 
     /// Left side header.
     pub fn set_header(&mut self, header: HeaderFooter) {
@@ -166,13 +166,13 @@ impl PageLayout {
     }
 
     /// Attributes for header.
-    pub fn header_attr(&self) -> &HeaderFooterAttr {
-        &self.header_attr
+    pub fn header_style(&self) -> &HeaderFooterStyle {
+        &self.header_style
     }
 
     /// Attributes for header.
-    pub fn header_attr_mut(&mut self) -> &mut HeaderFooterAttr {
-        &mut self.header_attr
+    pub fn header_style_mut(&mut self) -> &mut HeaderFooterStyle {
+        &mut self.header_style
     }
 
     /// Footer.
@@ -206,57 +206,39 @@ impl PageLayout {
     }
 
     /// Attributes for footer.
-    pub fn footer_attr(&self) -> &HeaderFooterAttr {
-        &self.footer_attr
+    pub fn footer_style(&self) -> &HeaderFooterStyle {
+        &self.footer_style
     }
 
     /// Attributes for footer.
-    pub fn footer_attr_mut(&mut self) -> &mut HeaderFooterAttr {
-        &mut self.footer_attr
+    pub fn footer_style_mut(&mut self) -> &mut HeaderFooterStyle {
+        &mut self.footer_style
     }
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct HeaderFooterAttr {
-    attr: AttrMapType,
+pub struct HeaderFooterStyle {
+    style: AttrMap2,
 }
 
-impl Sealed for HeaderFooterAttr {}
-
-impl AttrMap for HeaderFooterAttr {
-    fn attr_map(&self) -> &AttrMapType {
-        &self.attr
+impl HeaderFooterStyle {
+    pub fn style(&self) -> &AttrMap2 {
+        &self.style
     }
 
-    fn attr_map_mut(&mut self) -> &mut AttrMapType {
-        &mut self.attr
+    pub fn style_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.style
     }
+
+    fo_background_color!(style_mut);
+    fo_border!(style_mut);
+    fo_min_height!(style_mut);
+    fo_margin!(style_mut);
+    fo_padding!(style_mut);
+    style_dynamic_spacing!(style_mut);
+    style_shadow!(style_mut);
+    svg_height!(style_mut);
 }
-
-impl<'a> IntoIterator for &'a HeaderFooterAttr {
-    type Item = (&'a DefaultAtom, &'a String);
-    type IntoIter = AttrMapIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        AttrMapIter::from(self.attr_map())
-    }
-}
-
-impl AttrFoBackgroundColor for HeaderFooterAttr {}
-
-impl AttrFoBorder for HeaderFooterAttr {}
-
-impl AttrFoMargin for HeaderFooterAttr {}
-
-impl AttrFoMinHeight for HeaderFooterAttr {}
-
-impl AttrFoPadding for HeaderFooterAttr {}
-
-impl AttrStyleDynamicSpacing for HeaderFooterAttr {}
-
-impl AttrStyleShadow for HeaderFooterAttr {}
-
-impl AttrSvgHeight for HeaderFooterAttr {}
 
 /// Header/Footer data.
 /// Can be seen as three regions left/center/right or as one region.

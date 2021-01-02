@@ -1,6 +1,6 @@
 use color::Rgb;
 
-use spreadsheet_ods::style::{AttrFoBackgroundColor, AttrFoMargin, AttrFoMinHeight, PageLayout};
+use spreadsheet_ods::style::PageLayout;
 use spreadsheet_ods::{cm, read_ods, write_ods, Length, OdsError, WorkBook};
 
 #[test]
@@ -37,10 +37,10 @@ fn crpagelayout() -> Result<(), OdsError> {
 
     pl.set_background_color(Rgb::new(12, 129, 252));
 
-    pl.header_attr_mut().set_min_height(cm!(0.75));
-    pl.header_attr_mut().set_margin_left(cm!(0.15));
-    pl.header_attr_mut().set_margin_right(cm!(0.15));
-    pl.header_attr_mut().set_margin_bottom(cm!(0.15));
+    pl.header_style_mut().set_min_height(cm!(0.75));
+    pl.header_style_mut().set_margin_left(cm!(0.15));
+    pl.header_style_mut().set_margin_right(cm!(0.15));
+    pl.header_style_mut().set_margin_bottom(cm!(0.15));
 
     pl.header_mut().center_mut().push_text("middle ground");
     pl.header_mut().left_mut().push_text("left wing");

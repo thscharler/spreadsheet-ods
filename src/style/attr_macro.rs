@@ -445,3 +445,36 @@ macro_rules! font_decl {
         }
     };
 }
+
+#[macro_export]
+macro_rules! svg_height {
+    ($acc:ident) => {
+        pub fn set_height(&mut self, height: Length) {
+            self.$acc().set_attr("svg:height", height.to_string());
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! fo_min_height {
+    ($acc:ident) => {
+        pub fn set_min_height(&mut self, height: Length) {
+            self.$acc().set_attr("fo:min-height", height.to_string());
+        }
+
+        pub fn set_min_height_percent(&mut self, height: f64) {
+            self.$acc()
+                .set_attr("fo:min-height", percent_string(height));
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! style_dynamic_spacing {
+    ($acc:ident) => {
+        pub fn set_dynamic_spacing(&mut self, dynamic: bool) {
+            self.$acc()
+                .set_attr("style:dynamic-spacing", dynamic.to_string());
+        }
+    };
+}

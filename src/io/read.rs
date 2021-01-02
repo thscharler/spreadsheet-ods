@@ -917,15 +917,15 @@ fn read_page_layout(
         match evt {
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
-                    b"style:page-layout-properties" => copy_attr(&mut pl, xml, xml_tag)?,
+                    b"style:page-layout-properties" => copy_attr2(pl.style_mut(), xml, xml_tag)?,
                     b"style:header-style" => header_style = true,
                     b"style:footer-style" => footer_style = true,
                     b"style:header-footer-properties" => {
                         if header_style {
-                            copy_attr(pl.header_attr_mut(), xml, xml_tag)?;
+                            copy_attr2(pl.header_style_mut().style_mut(), xml, xml_tag)?;
                         }
                         if footer_style {
-                            copy_attr(pl.footer_attr_mut(), xml, xml_tag)?;
+                            copy_attr2(pl.footer_style_mut().style_mut(), xml, xml_tag)?;
                         }
                     }
                     b"style:background-image" => {

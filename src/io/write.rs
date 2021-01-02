@@ -1669,17 +1669,17 @@ fn write_pagelayout(
         xml_out.elem("style:page-layout")?;
         xml_out.attr_esc("style:name", &style.name())?;
 
-        if let Some(attr) = style.attr_map() {
+        if !style.style().is_empty() {
             xml_out.empty("style:page-layout-properties")?;
-            for (k, v) in attr.iter() {
+            for (k, v) in style.style().iter() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }
 
         xml_out.elem("style:header-style")?;
         xml_out.empty("style:header-footer-properties")?;
-        if !style.header_attr().has_attr() {
-            for (k, v) in style.header_attr() {
+        if !style.header_style().style().is_empty() {
+            for (k, v) in style.header_style().style().iter() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }
@@ -1687,8 +1687,8 @@ fn write_pagelayout(
 
         xml_out.elem("style:footer-style")?;
         xml_out.empty("style:header-footer-properties")?;
-        if !style.header_attr().has_attr() {
-            for (k, v) in style.footer_attr() {
+        if !style.footer_style().style().is_empty() {
+            for (k, v) in style.footer_style().style().iter() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }
