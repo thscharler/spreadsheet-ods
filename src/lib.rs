@@ -158,8 +158,8 @@ pub use refs::{CellRange, CellRef, ColRange, RowRange};
 pub use style::{Angle, Length, Style};
 
 use crate::style::{
-    FontFaceDecl, PageLayout, ParagraphStyle, TableCellStyle, TableColumnStyle, TableRowStyle,
-    TableStyle,
+    FontFaceDecl, GraphicStyle, PageLayout, ParagraphStyle, TableCellStyle, TableColumnStyle,
+    TableRowStyle, TableStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -206,6 +206,7 @@ pub struct WorkBook {
     column_styles: HashMap<String, TableColumnStyle>,
     cell_styles: HashMap<String, TableCellStyle>,
     para_styles: HashMap<String, ParagraphStyle>,
+    graphic_styles: HashMap<String, GraphicStyle>,
 
     /// Value-styles are actual formatting instructions
     /// for various datatypes.
@@ -255,6 +256,9 @@ impl fmt::Debug for WorkBook {
         for s in self.para_styles.values() {
             writeln!(f, "{:?}", s)?;
         }
+        for s in self.graphic_styles.values() {
+            writeln!(f, "{:?}", s)?;
+        }
         // for s in self.formats.values() {
         //     writeln!(f, "{:?}", s)?;
         // }
@@ -284,6 +288,7 @@ impl WorkBook {
             column_styles: Default::default(),
             cell_styles: Default::default(),
             para_styles: Default::default(),
+            graphic_styles: Default::default(),
             formats: Default::default(),
             def_styles: Default::default(),
             page_layouts: Default::default(),
@@ -508,6 +513,28 @@ impl WorkBook {
     pub fn paragraph_style_mut(&mut self, name: &str) -> Option<&mut ParagraphStyle> {
         self.para_styles.get_mut(name)
     }
+
+    /// Adds a style.
+    pub fn add_graphic_style(&mut self, style: GraphicStyle) {
+        self.graphic_styles
+            .insert(style.name().unwrap().to_string(), style);
+    }
+
+    /// Removes a style.
+    pub fn remove_graphic_style(&mut self, name: &str) -> Option<GraphicStyle> {
+        self.graphic_styles.remove(name)
+    }
+
+    /// Returns the style.
+    pub fn graphic_style(&self, name: &str) -> Option<&GraphicStyle> {
+        self.graphic_styles.get(name)
+    }
+
+    /// Returns the mutable style.
+    pub fn graphic_style_mut(&mut self, name: &str) -> Option<&mut GraphicStyle> {
+        self.graphic_styles.get_mut(name)
+    }
+
     /// Adds a value format.
     pub fn add_format(&mut self, vstyle: ValueFormat) {
         self.formats.insert(vstyle.name().to_string(), vstyle);

@@ -12,8 +12,9 @@ use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
 use crate::style::{
-    FontFaceDecl, HeaderFooter, PageLayout, ParagraphStyle, Style, StyleFor, StyleMap, StyleOrigin,
-    StyleUse, TabStop, TableCellStyle, TableColumnStyle, TableRowStyle, TableStyle,
+    FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle, Style, StyleFor,
+    StyleMap, StyleOrigin, StyleUse, TabStop, TableCellStyle, TableColumnStyle, TableRowStyle,
+    TableStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -1563,6 +1564,9 @@ fn read_style_style(
         StyleFor::Paragraph => {
             read_paragraph_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
         }
+        StyleFor::Graphic => {
+            read_graphic_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+        }
         _ => read_any_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?,
     }
     Ok(())
@@ -2013,6 +2017,70 @@ fn read_paragraph_style(
                 _ => {
                     if cfg!(feature = "dump_unused") {
                         println!(" read_paragraph_style unused {:?}", evt);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+// style:style tag
+#[allow(clippy::single_match)]
+#[allow(clippy::collapsible_if)]
+fn read_graphic_style(
+    book: &mut WorkBook,
+    origin: StyleOrigin,
+    styleuse: StyleUse,
+    end_tag: &[u8],
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
+    empty_tag: bool,
+) -> Result<(), OdsError> {
+    let mut buf = Vec::new();
+
+    let mut style = GraphicStyle::empty();
+    style.set_origin(origin);
+    style.set_styleuse(styleuse);
+
+    copy_attr2(style.attr_mut(), xml, xml_tag)?;
+
+    // In case of an empty xml-tag we are done here.
+    if empty_tag {
+        book.add_graphic_style(style);
+    } else {
+        loop {
+            let evt = xml.read_event(&mut buf)?;
+            if cfg!(feature = "dump_xml") {
+                println!(" read_graphic_style {:?}", evt);
+            }
+            match evt {
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
+                    b"style:graphic-properties" => {
+                        copy_attr2(style.graphic_style_mut(), xml, xml_tag)?
+                    }
+                    _ => {
+                        if cfg!(feature = "dump_unused") {
+                            println!(" read_graphic_style unused {:?}", evt);
+                        }
+                    }
+                },
+                Event::Text(_) => (),
+                Event::End(ref e) => {
+                    if e.name() == end_tag {
+                        book.add_graphic_style(style);
+                        break;
+                    } else {
+                        if cfg!(feature = "dump_unused") {
+                            println!(" read_graphic_style unused {:?}", evt);
+                        }
+                    }
+                }
+                Event::Eof => break,
+                _ => {
+                    if cfg!(feature = "dump_unused") {
+                        println!(" read_graphic_style unused {:?}", evt);
                     }
                 }
             }
