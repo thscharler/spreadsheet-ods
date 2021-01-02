@@ -89,25 +89,6 @@ impl Default for StyleUse {
     }
 }
 
-/// Applicability of this style.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StyleFor {
-    Table,
-    TableRow,
-    TableColumn,
-    TableCell,
-    Graphic,
-    Paragraph,
-    Text,
-    None,
-}
-
-impl Default for StyleFor {
-    fn default() -> Self {
-        StyleFor::None
-    }
-}
-
 pub(crate) fn color_string(color: Rgb<u8>) -> String {
     format!("#{:02x}{:02x}{:02x}", color.r, color.g, color.b)
 }

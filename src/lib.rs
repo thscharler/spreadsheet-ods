@@ -151,7 +151,7 @@ pub mod error;
 pub mod format;
 pub mod formula;
 mod io;
-pub mod refs;
+mod refs;
 pub mod style;
 pub mod text;
 pub mod xmltree;

@@ -324,7 +324,6 @@ impl ValueFormat {
     }
 
     /// Adds all format parts.
-    #[allow(clippy::collapsible_if)]
     pub fn push_parts(&mut self, partvec: &mut Vec<FormatPart>) {
         self.parts.append(partvec);
     }

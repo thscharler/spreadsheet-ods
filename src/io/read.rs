@@ -13,8 +13,8 @@ use crate::refs::{parse_cellranges, parse_cellref, CellRef};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
-    FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle, StyleFor, StyleOrigin,
-    StyleUse, TextStyle,
+    FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle, StyleOrigin, StyleUse,
+    TextStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -816,7 +816,6 @@ fn parse_value(
 }
 
 // reads a font-face
-#[allow(clippy::single_match)]
 fn read_fonts(
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -970,7 +969,6 @@ fn read_page_layout(
 }
 
 // read the master-styles tag
-#[allow(clippy::single_match)]
 fn read_master_styles(
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -1540,8 +1538,6 @@ fn read_part(
 }
 
 // style:style tag
-#[allow(clippy::single_match)]
-#[allow(clippy::collapsible_if)]
 fn read_style_style(
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -1551,35 +1547,38 @@ fn read_style_style(
     xml_tag: &BytesStart,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
-    match read_family_attr(xml, xml_tag)? {
-        StyleFor::Table => {
+    match read_family_attr(xml, xml_tag)?.as_str() {
+        "table" => {
             read_table_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
-        StyleFor::TableRow => {
+        "table-row" => {
             read_tablerow_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
-        StyleFor::TableColumn => {
+        "table-column" => {
             read_tablecolumn_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
-        StyleFor::TableCell => {
+        "table-cell" => {
             read_tablecell_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
-        StyleFor::Paragraph => {
+        "paragraph" => {
             read_paragraph_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
-        StyleFor::Graphic => {
+        "graphic" => {
             read_graphic_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
-        StyleFor::Text => {
+        "text" => {
             read_text_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
         }
-        StyleFor::None => {}
+        v => {
+            if cfg!(feature = "dump_unused") {
+                println!(" read_family_attr unused {:?}", v);
+            }
+        }
     }
     Ok(())
 }
 
 // style:style tag
-#[allow(clippy::single_match)]
 #[allow(clippy::collapsible_if)]
 fn read_table_style(
     book: &mut WorkBook,
@@ -1641,7 +1640,6 @@ fn read_table_style(
 }
 
 // style:style tag
-#[allow(clippy::single_match)]
 #[allow(clippy::collapsible_if)]
 fn read_tablerow_style(
     book: &mut WorkBook,
@@ -1705,7 +1703,6 @@ fn read_tablerow_style(
 }
 
 // style:style tag
-#[allow(clippy::single_match)]
 #[allow(clippy::collapsible_if)]
 fn read_tablecolumn_style(
     book: &mut WorkBook,
@@ -1769,7 +1766,6 @@ fn read_tablecolumn_style(
 }
 
 // style:style tag
-#[allow(clippy::single_match)]
 #[allow(clippy::collapsible_if)]
 fn read_tablecell_style(
     book: &mut WorkBook,
@@ -1851,7 +1847,6 @@ fn read_tablecell_style(
 }
 
 // style:style tag
-#[allow(clippy::single_match)]
 #[allow(clippy::collapsible_if)]
 fn read_paragraph_style(
     book: &mut WorkBook,
@@ -1928,7 +1923,6 @@ fn read_paragraph_style(
 }
 
 // style:style tag
-#[allow(clippy::single_match)]
 #[allow(clippy::collapsible_if)]
 fn read_text_style(
     book: &mut WorkBook,
@@ -1990,7 +1984,6 @@ fn read_text_style(
 }
 
 // style:style tag
-#[allow(clippy::single_match)]
 #[allow(clippy::collapsible_if)]
 fn read_graphic_style(
     book: &mut WorkBook,
@@ -2090,19 +2083,14 @@ fn read_stylemap(
 fn read_family_attr(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     xml_tag: &BytesStart,
-) -> Result<StyleFor, OdsError> {
+) -> Result<String, OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:family" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
                 match v.as_ref() {
-                    "table" => return Ok(StyleFor::Table),
-                    "table-column" => return Ok(StyleFor::TableColumn),
-                    "table-row" => return Ok(StyleFor::TableRow),
-                    "table-cell" => return Ok(StyleFor::TableCell),
-                    "graphic" => return Ok(StyleFor::Graphic),
-                    "paragraph" => return Ok(StyleFor::Paragraph),
-                    "text" => return Ok(StyleFor::Text),
+                    "table" | "table-column" | "table-row" | "table-cell" | "graphic"
+                    | "paragraph" | "text" => return Ok(v.as_str().to_string()),
                     _ => {
                         return Err(OdsError::Ods(format!("style:family unknown {} ", v)));
                     }
