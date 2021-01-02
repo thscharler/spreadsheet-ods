@@ -7,7 +7,7 @@ use quick_xml::events::{BytesStart, Event};
 use zip::read::ZipFile;
 
 use crate::attrmap::AttrMap;
-use crate::attrmap2::AttrMap2;
+use crate::attrmap2::{AttrMap2, AttrMap2Trait};
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
@@ -1449,7 +1449,9 @@ fn read_value_format(
                             value_style_part = None;
                         }
                     }
-                    b"style:text-properties" => copy_attr(value_style.text_mut(), xml, xml_tag)?,
+                    b"style:text-properties" => {
+                        copy_attr2(value_style.text_style_mut(), xml, xml_tag)?
+                    }
                     _ => {
                         if cfg!(feature = "dump_unused") {
                             println!(" read_value_format unused {:?}", evt);
@@ -1517,7 +1519,7 @@ fn read_value_format_attr(
             attr => {
                 let k = xml.decode(&attr.key)?;
                 let v = attr.unescape_and_decode_value(&xml)?;
-                value_style.set_attr(k, v);
+                value_style.attr_mut().set_attr(k, v);
             }
         }
     }
@@ -1531,7 +1533,7 @@ fn read_part(
     part_type: FormatPartType,
 ) -> Result<FormatPart, OdsError> {
     let mut part = FormatPart::new(part_type);
-    copy_attr(&mut part, xml, xml_tag)?;
+    copy_attr2(part.attr_map_mut(), xml, xml_tag)?;
     Ok(part)
 }
 

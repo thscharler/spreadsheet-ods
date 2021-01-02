@@ -32,10 +32,14 @@ use std::fmt::{Display, Formatter};
 use chrono::NaiveDateTime;
 use time::Duration;
 
-use crate::attrmap::{AttrMap, AttrMapType};
-use crate::sealed::Sealed;
-use crate::style::{StyleMap, StyleOrigin, StyleUse, TextAttr};
+use crate::attrmap2::{AttrMap2, AttrMap2Trait};
+use crate::style::{
+    color_string, percent_string, shadow_string, FontStyle, FontWeight, Length, LineMode,
+    LineStyle, LineType, LineWidth, StyleMap, StyleOrigin, StyleUse, TextPosition, TextRelief,
+    TextTransform,
+};
 use crate::ValueType;
+use color::Rgb;
 
 #[derive(Debug)]
 pub enum ValueFormatError {
@@ -70,25 +74,13 @@ pub struct ValueFormat {
     /// Usage of this style.
     styleuse: StyleUse,
     /// Properties of the format.
-    attr: AttrMapType,
+    attr: AttrMap2,
     /// Cell text styles
-    text_attr: TextAttr,
+    text_style: AttrMap2,
     /// Parts of the format.
     parts: Vec<FormatPart>,
     /// Style map data.
     stylemaps: Option<Vec<StyleMap>>,
-}
-
-impl Sealed for ValueFormat {}
-
-impl AttrMap for ValueFormat {
-    fn attr_map(&self) -> &AttrMapType {
-        &self.attr
-    }
-
-    fn attr_map_mut(&mut self) -> &mut AttrMapType {
-        &mut self.attr
-    }
 }
 
 impl ValueFormat {
@@ -102,8 +94,8 @@ impl ValueFormat {
             v_type: ValueType::Text,
             origin: Default::default(),
             styleuse: Default::default(),
-            attr: None,
-            text_attr: Default::default(),
+            attr: Default::default(),
+            text_style: Default::default(),
             parts: Default::default(),
             stylemaps: None,
         }
@@ -119,8 +111,8 @@ impl ValueFormat {
             v_type: value_type,
             origin: Default::default(),
             styleuse: Default::default(),
-            attr: None,
-            text_attr: Default::default(),
+            attr: Default::default(),
+            text_style: Default::default(),
             parts: Default::default(),
             stylemaps: None,
         }
@@ -196,15 +188,25 @@ impl ValueFormat {
         self.styleuse
     }
 
-    /// Text style attributes.
-    pub fn text(&self) -> &TextAttr {
-        &self.text_attr
+    pub fn attr(&self) -> &AttrMap2 {
+        &self.attr
+    }
+
+    pub fn attr_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.attr
     }
 
     /// Text style attributes.
-    pub fn text_mut(&mut self) -> &mut TextAttr {
-        &mut self.text_attr
+    pub fn text_style(&self) -> &AttrMap2 {
+        &self.text_style
     }
+
+    /// Text style attributes.
+    pub fn text_style_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.text_style
+    }
+
+    text!(text_style_mut);
 
     /// Appends a format part.
     pub fn push_boolean(&mut self) {
@@ -419,6 +421,16 @@ impl ValueFormat {
     }
 }
 
+impl AttrMap2Trait for ValueFormat {
+    fn attr_map(&self) -> &AttrMap2 {
+        &self.attr
+    }
+
+    fn attr_map_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.attr
+    }
+}
+
 /// Identifies the structural parts of a value format.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum FormatPartType {
@@ -449,19 +461,17 @@ pub struct FormatPart {
     /// What kind of format part is this?
     part_type: FormatPartType,
     /// Properties of this part.
-    attr: AttrMapType,
+    attr: AttrMap2,
     /// Some content.
     content: Option<String>,
 }
 
-impl Sealed for FormatPart {}
-
-impl AttrMap for FormatPart {
-    fn attr_map(&self) -> &AttrMapType {
+impl AttrMap2Trait for FormatPart {
+    fn attr_map(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut AttrMapType {
+    fn attr_map_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 }
@@ -513,7 +523,7 @@ impl FormatPart {
     pub fn new(ftype: FormatPartType) -> Self {
         FormatPart {
             part_type: ftype,
-            attr: None,
+            attr: Default::default(),
             content: None,
         }
     }
@@ -522,7 +532,7 @@ impl FormatPart {
     pub fn new_with_content<S: Into<String>>(ftype: FormatPartType, content: S) -> Self {
         FormatPart {
             part_type: ftype,
-            attr: None,
+            attr: Default::default(),
             content: Some(content.into()),
         }
     }

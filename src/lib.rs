@@ -140,32 +140,8 @@
 
 #![doc(html_root_url = "https://docs.rs/spreadsheet-ods/0.4.0")]
 
-use std::collections::{BTreeMap, HashMap};
-use std::fmt;
-use std::path::PathBuf;
-
-use chrono::{NaiveDate, NaiveDateTime};
-#[cfg(feature = "use_decimal")]
-use rust_decimal::prelude::*;
-#[cfg(feature = "use_decimal")]
-use rust_decimal::Decimal;
-use time::Duration;
-
-pub use error::OdsError;
-pub use format::ValueFormat;
-pub use io::{read_ods, write_ods};
-pub use refs::{CellRange, CellRef, ColRange, RowRange};
-pub use style::{Angle, Length};
-
-use crate::style::{
-    CellStyle, ColumnStyle, FontFaceDecl, GraphicStyle, PageLayout, ParagraphStyle, RowStyle,
-    TableStyle, TextStyle,
-};
-use crate::text::TextTag;
-use crate::xmltree::XmlTag;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
-
+#[macro_use]
+mod attr_macro;
 mod attrmap;
 mod attrmap2;
 pub mod defaultstyles;
@@ -177,6 +153,30 @@ pub mod refs;
 pub mod style;
 pub mod text;
 pub mod xmltree;
+
+pub use crate::error::OdsError;
+pub use crate::format::ValueFormat;
+pub use crate::io::{read_ods, write_ods};
+pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
+pub use crate::style::{Angle, Length};
+
+use crate::style::{
+    CellStyle, ColumnStyle, FontFaceDecl, GraphicStyle, PageLayout, ParagraphStyle, RowStyle,
+    TableStyle, TextStyle,
+};
+use crate::text::TextTag;
+use crate::xmltree::XmlTag;
+use chrono::{NaiveDate, NaiveDateTime};
+#[cfg(feature = "use_decimal")]
+use rust_decimal::prelude::*;
+#[cfg(feature = "use_decimal")]
+use rust_decimal::Decimal;
+use std::collections::{BTreeMap, HashMap};
+use std::fmt;
+use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
+use std::str::FromStr;
+use time::Duration;
 
 pub(crate) mod sealed {
     pub trait Sealed {}

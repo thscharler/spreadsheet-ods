@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
-use crate::attrmap::AttrMap;
+use crate::attrmap2::AttrMap2Trait;
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::tmp2zip::{TempWrite, TempZip};
@@ -1587,15 +1587,13 @@ fn write_value_styles(
 
         xml_out.elem(tag)?;
         xml_out.attr_esc("style:name", value_format.name().as_str())?;
-        if let Some(prp) = value_format.attr_map() {
-            for (a, v) in prp.iter() {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
-            }
+        for (a, v) in value_format.attr().iter() {
+            xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
 
-        if !value_format.text().has_attr() {
+        if !value_format.text_style().is_empty() {
             xml_out.empty("style:text-properties")?;
-            for (a, v) in value_format.text() {
+            for (a, v) in value_format.text_style().iter() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
@@ -1627,10 +1625,8 @@ fn write_value_styles(
                 || part.part_type() == FormatPartType::CurrencySymbol
             {
                 xml_out.elem(part_tag)?;
-                if let Some(prp) = part.attr_map() {
-                    for (a, v) in prp.iter() {
-                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
-                    }
+                for (a, v) in part.attr_map().iter() {
+                    xml_out.attr_esc(a.as_ref(), v.as_str())?;
                 }
                 if let Some(content) = part.content() {
                     xml_out.text_esc(content)?;
@@ -1638,10 +1634,8 @@ fn write_value_styles(
                 xml_out.end_elem(part_tag)?;
             } else {
                 xml_out.empty(part_tag)?;
-                if let Some(prp) = part.attr_map() {
-                    for (a, v) in prp.iter() {
-                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
-                    }
+                for (a, v) in part.attr_map().iter() {
+                    xml_out.attr_esc(a.as_ref(), v.as_str())?;
                 }
             }
         }

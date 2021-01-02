@@ -34,8 +34,6 @@
 //!
 
 mod attr;
-#[macro_use]
-mod attr_macro;
 mod cell_style;
 mod column_style;
 mod fontface;
@@ -49,7 +47,6 @@ mod tabstop;
 mod text_style;
 mod units;
 
-pub use crate::attrmap::*;
 pub use attr::*;
 pub use cell_style::*;
 pub use column_style::*;
@@ -64,6 +61,7 @@ pub use tabstop::*;
 pub use text_style::*;
 pub use units::*;
 
+use crate::attrmap::*;
 use crate::sealed::Sealed;
 use color::Rgb;
 use string_cache::DefaultAtom;

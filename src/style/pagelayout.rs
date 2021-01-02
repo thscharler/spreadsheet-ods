@@ -230,10 +230,14 @@ impl HeaderFooterStyle {
         &mut self.style
     }
 
+    // TODO: more of this ...
+    // style:border-line-width 20.248,
+    // style:border-linewidth-bottom 20.249, style:border-line-width-left 20.250,
+    // style:border-linewidth-right 20.251, style:border-line-width-top 20.252,
     fo_background_color!(style_mut);
     fo_border!(style_mut);
-    fo_min_height!(style_mut);
     fo_margin!(style_mut);
+    fo_min_height!(style_mut);
     fo_padding!(style_mut);
     style_dynamic_spacing!(style_mut);
     style_shadow!(style_mut);

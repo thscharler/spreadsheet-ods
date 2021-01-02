@@ -9,6 +9,39 @@ use string_cache::DefaultAtom;
 
 type MapType = Option<Box<HashMap<DefaultAtom, String>>>;
 
+/// Allows forwarding for structs that contain an AttrMap2
+pub trait AttrMap2Trait {
+    /// Reference to the map of actual attributes.
+    fn attr_map(&self) -> &AttrMap2;
+    /// Reference to the map of actual attributes.
+    fn attr_map_mut(&mut self) -> &mut AttrMap2;
+
+    /// Are there any attributes?
+    fn is_empty(&self) -> bool {
+        self.attr_map().is_empty()
+    }
+
+    /// Add from Vec
+    fn add_all(&mut self, data: Vec<(&str, String)>) {
+        self.attr_map_mut().add_all(data);
+    }
+
+    /// Adds an attribute.
+    fn set_attr(&mut self, name: &str, value: String) {
+        self.attr_map_mut().set_attr(name, value);
+    }
+
+    /// Removes an attribute.
+    fn clear_attr(&mut self, name: &str) -> Option<String> {
+        self.attr_map_mut().clear_attr(name)
+    }
+
+    /// Returns the attribute.
+    fn attr(&self, name: &str) -> Option<&String> {
+        self.attr_map().attr(name)
+    }
+}
+
 /// Container type for attributes.
 #[derive(Default, Clone, Debug)]
 pub struct AttrMap2 {
