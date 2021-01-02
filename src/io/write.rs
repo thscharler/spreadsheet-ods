@@ -14,8 +14,8 @@ use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{cellranges_string, CellRange};
 use crate::style::{
-    FontFaceDecl, HeaderFooter, PageLayout, StyleFor, StyleOrigin, StyleUse, TableCellStyle,
-    TableColumnStyle, TableRowStyle, TableStyle,
+    FontFaceDecl, HeaderFooter, PageLayout, ParagraphStyle, StyleFor, StyleOrigin, StyleUse,
+    TableCellStyle, TableColumnStyle, TableRowStyle, TableStyle,
 };
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{ucell, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
@@ -1224,6 +1224,11 @@ fn write_styles(
             write_tablecell_style(style, xml_out)?;
         }
     }
+    for style in book.para_styles.values() {
+        if style.origin() == origin && style.styleuse() == styleuse {
+            write_paragraph_style(style, xml_out)?;
+        }
+    }
 
     for style in book
         .styles
@@ -1485,6 +1490,70 @@ fn write_tablecell_style(
         xml_out.empty("style:paragraph-properties")?;
         for (a, v) in style.paragraph_style().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
+        }
+    }
+    if !style.text_style().is_empty() {
+        xml_out.empty("style:text-properties")?;
+        for (a, v) in style.text_style().iter() {
+            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+        }
+    }
+    if style.styleuse() == StyleUse::Default {
+        xml_out.end_elem("style:default-style")?;
+    } else {
+        xml_out.end_elem("style:style")?;
+    }
+
+    Ok(())
+}
+
+fn write_paragraph_style(
+    style: &ParagraphStyle,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
+    if style.styleuse() == StyleUse::Default {
+        xml_out.elem("style:default-style")?;
+    } else {
+        xml_out.elem("style:style")?;
+        if let Some(name) = style.name() {
+            xml_out.attr_esc("style:name", name)?;
+        } else {
+            return Err(OdsError::Ods(format!("No format name for {:?}", style)));
+        }
+    }
+    xml_out.attr("style:family", "paragraph")?;
+    for (a, v) in style.attr().iter() {
+        match a.as_ref() {
+            "style:name" => {}
+            "style:family" => {}
+            _ => {
+                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            }
+        }
+    }
+
+    if !style.paragraph_style().is_empty() {
+        if style.tabstops().is_none() {
+            xml_out.empty("style:paragraph-properties")?;
+            for (a, v) in style.paragraph_style().iter() {
+                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            }
+        } else {
+            xml_out.elem("style:paragraph-properties")?;
+            for (a, v) in style.paragraph_style().iter() {
+                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            }
+            xml_out.elem("style:tab-stops")?;
+            if let Some(tabstops) = style.tabstops() {
+                for ts in tabstops {
+                    xml_out.empty("style:tab-stop")?;
+                    for (a, v) in ts {
+                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                    }
+                }
+            }
+            xml_out.end_elem("style:tab-stops")?;
+            xml_out.end_elem("style:paragraph-properties")?;
         }
     }
     if !style.text_style().is_empty() {

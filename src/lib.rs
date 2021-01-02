@@ -158,7 +158,8 @@ pub use refs::{CellRange, CellRef, ColRange, RowRange};
 pub use style::{Angle, Length, Style};
 
 use crate::style::{
-    FontFaceDecl, PageLayout, TableCellStyle, TableColumnStyle, TableRowStyle, TableStyle,
+    FontFaceDecl, PageLayout, ParagraphStyle, TableCellStyle, TableColumnStyle, TableRowStyle,
+    TableStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -204,6 +205,7 @@ pub struct WorkBook {
     row_styles: HashMap<String, TableRowStyle>,
     column_styles: HashMap<String, TableColumnStyle>,
     cell_styles: HashMap<String, TableCellStyle>,
+    para_styles: HashMap<String, ParagraphStyle>,
 
     /// Value-styles are actual formatting instructions
     /// for various datatypes.
@@ -250,6 +252,9 @@ impl fmt::Debug for WorkBook {
         for s in self.cell_styles.values() {
             writeln!(f, "{:?}", s)?;
         }
+        for s in self.para_styles.values() {
+            writeln!(f, "{:?}", s)?;
+        }
         // for s in self.formats.values() {
         //     writeln!(f, "{:?}", s)?;
         // }
@@ -278,6 +283,7 @@ impl WorkBook {
             row_styles: Default::default(),
             column_styles: Default::default(),
             cell_styles: Default::default(),
+            para_styles: Default::default(),
             formats: Default::default(),
             def_styles: Default::default(),
             page_layouts: Default::default(),
@@ -482,6 +488,26 @@ impl WorkBook {
         self.cell_styles.get_mut(name)
     }
 
+    /// Adds a style.
+    pub fn add_paragraph_style(&mut self, style: ParagraphStyle) {
+        self.para_styles
+            .insert(style.name().unwrap().to_string(), style);
+    }
+
+    /// Removes a style.
+    pub fn remove_paragraph_style(&mut self, name: &str) -> Option<ParagraphStyle> {
+        self.para_styles.remove(name)
+    }
+
+    /// Returns the style.
+    pub fn paragraph_style(&self, name: &str) -> Option<&ParagraphStyle> {
+        self.para_styles.get(name)
+    }
+
+    /// Returns the mutable style.
+    pub fn paragraph_style_mut(&mut self, name: &str) -> Option<&mut ParagraphStyle> {
+        self.para_styles.get_mut(name)
+    }
     /// Adds a value format.
     pub fn add_format(&mut self, vstyle: ValueFormat) {
         self.formats.insert(vstyle.name().to_string(), vstyle);
