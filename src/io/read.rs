@@ -13,7 +13,7 @@ use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
 use crate::style::{
     FontFaceDecl, HeaderFooter, PageLayout, Style, StyleFor, StyleMap, StyleOrigin, StyleUse,
-    TabStop, TableRowStyle, TableStyle,
+    TabStop, TableColumnStyle, TableRowStyle, TableStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -1554,6 +1554,9 @@ fn read_style_style(
         StyleFor::TableRow => {
             read_tablerow_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
         }
+        StyleFor::TableColumn => {
+            read_tablecolumn_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+        }
         _ => read_any_style(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?,
     }
     Ok(())
@@ -1756,7 +1759,7 @@ fn read_tablerow_style(
             match evt {
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
                     b"style:table-row-properties" => {
-                        copy_attr2(style.tablerow_style_mut(), xml, xml_tag)?
+                        copy_attr2(style.row_style_mut(), xml, xml_tag)?
                     }
                     _ => {
                         if cfg!(feature = "dump_unused") {
@@ -1779,6 +1782,70 @@ fn read_tablerow_style(
                 _ => {
                     if cfg!(feature = "dump_unused") {
                         println!(" read_tablerow_style unused {:?}", evt);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+// style:style tag
+#[allow(clippy::single_match)]
+#[allow(clippy::collapsible_if)]
+fn read_tablecolumn_style(
+    book: &mut WorkBook,
+    origin: StyleOrigin,
+    styleuse: StyleUse,
+    end_tag: &[u8],
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
+    empty_tag: bool,
+) -> Result<(), OdsError> {
+    let mut buf = Vec::new();
+
+    let mut style = TableColumnStyle::empty();
+    style.set_origin(origin);
+    style.set_styleuse(styleuse);
+
+    copy_attr2(style.attr_mut(), xml, xml_tag)?;
+
+    // In case of an empty xml-tag we are done here.
+    if empty_tag {
+        book.add_tablecolumn_style(style);
+    } else {
+        loop {
+            let evt = xml.read_event(&mut buf)?;
+            if cfg!(feature = "dump_xml") {
+                println!(" read_table_style {:?}", evt);
+            }
+            match evt {
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
+                    b"style:table-column-properties" => {
+                        copy_attr2(style.column_style_mut(), xml, xml_tag)?
+                    }
+                    _ => {
+                        if cfg!(feature = "dump_unused") {
+                            println!(" read_table_style unused {:?}", evt);
+                        }
+                    }
+                },
+                Event::Text(_) => (),
+                Event::End(ref e) => {
+                    if e.name() == end_tag {
+                        book.add_tablecolumn_style(style);
+                        break;
+                    } else {
+                        if cfg!(feature = "dump_unused") {
+                            println!(" read_table_style unused {:?}", evt);
+                        }
+                    }
+                }
+                Event::Eof => break,
+                _ => {
+                    if cfg!(feature = "dump_unused") {
+                        println!(" read_table_style unused {:?}", evt);
                     }
                 }
             }

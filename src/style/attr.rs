@@ -5,7 +5,7 @@ use crate::style::{
     TextKeep, TextPosition, TextRelief, TextStyle, TextTransform, TextWeight, WrapOption,
     WritingMode,
 };
-use crate::{Angle, Length};
+use crate::{style, Angle, Length};
 use color::Rgb;
 
 /// Attributes for a FontFaceDecl
@@ -294,7 +294,7 @@ where
 {
     /// Relative weights for the column width
     fn set_rel_col_width(&mut self, rel: f64) {
-        self.set_attr("style:rel-column-width", rel_width_string(rel));
+        self.set_attr("style:rel-column-width", style::rel_width_string(rel));
     }
 
     /// Column width
@@ -560,10 +560,6 @@ fn border_string(width: Length, border: Border, color: Rgb<u8>) -> String {
 
 fn percent_string(value: f64) -> String {
     format!("{}%", value)
-}
-
-fn rel_width_string(value: f64) -> String {
-    format!("{}*", value)
 }
 
 fn border_line_width_string(inner: Length, space: Length, outer: Length) -> String {

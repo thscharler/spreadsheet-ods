@@ -1,10 +1,8 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::{color_string, PageBreak, StyleOrigin, StyleUse, TextKeep};
-use crate::Length;
-use color::Rgb;
+use crate::style::{rel_width_string, Length, PageBreak, StyleOrigin, StyleUse};
 
 #[derive(Debug, Clone)]
-pub struct TableRowStyle {
+pub struct TableColumnStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
@@ -13,28 +11,28 @@ pub struct TableRowStyle {
     // ??? style:auto-update 19.467,
     // ??? style:class 19.470,
     // ignore style:data-style-name 19.473,
-    // ??? style:default-outlinelevel 19.474,
+    // ignore style:default-outlinelevel 19.474,
     // ignore style:display-name 19.476,
     // ok style:family 19.480,
     // ignore style:list-level 19.499,
     // ignore style:list-style-name 19.500,
-    // ignore style:master-page-name 19.501,
+    // ok style:master-page-name 19.501,
     // ok style:name 19.502,
     // ignore style:next-style-name 19.503,
     // ignore style:parent-style-name 19.510,
     // ignore style:percentage-data-style-name 19.511.
     attr: AttrMap2,
     /// Table style properties
-    row_style: AttrMap2,
+    column_style: AttrMap2,
 }
 
-impl TableRowStyle {
+impl TableColumnStyle {
     pub fn empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            row_style: Default::default(),
+            column_style: Default::default(),
         }
     }
 
@@ -43,7 +41,7 @@ impl TableRowStyle {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            row_style: Default::default(),
+            column_style: Default::default(),
         };
         s.set_name(name.into());
         s
@@ -81,30 +79,31 @@ impl TableRowStyle {
         &mut self.attr
     }
 
-    pub fn row_style(&self) -> &AttrMap2 {
-        &self.row_style
+    pub fn column_style(&self) -> &AttrMap2 {
+        &self.column_style
     }
 
-    pub fn row_style_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.row_style
+    pub fn column_style_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.column_style
     }
 
-    fo_background_color!(row_style_mut);
-    fo_break!(row_style_mut);
-    fo_keep_together!(row_style_mut);
+    fo_break!(column_style_mut);
 
-    pub fn set_min_row_height(&mut self, min_height: Length) {
-        self.row_style
-            .set_attr("style:min-row-height", min_height.to_string());
+    /// Relative weights for the column width
+    pub fn set_rel_col_width(&mut self, rel: f64) {
+        self.column_style
+            .set_attr("style:rel-column-width", rel_width_string(rel));
     }
 
-    pub fn set_row_height(&mut self, height: Length) {
-        self.row_style
-            .set_attr("style:row-height", height.to_string());
+    /// Column width
+    pub fn set_col_width(&mut self, width: Length) {
+        self.column_style
+            .set_attr("style:column-width", width.to_string());
     }
 
-    pub fn set_use_optimal_row_height(&mut self, opt: bool) {
-        self.row_style
-            .set_attr("style:use-optimal-row-height", opt.to_string());
+    /// Override switch for the column width.
+    pub fn set_use_optimal_col_width(&mut self, opt: bool) {
+        self.column_style
+            .set_attr("style:use-optimal-column-width", opt.to_string());
     }
 }

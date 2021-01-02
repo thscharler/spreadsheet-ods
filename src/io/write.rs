@@ -14,8 +14,8 @@ use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{cellranges_string, CellRange};
 use crate::style::{
-    FontFaceDecl, HeaderFooter, PageLayout, StyleFor, StyleOrigin, StyleUse, TableRowStyle,
-    TableStyle,
+    FontFaceDecl, HeaderFooter, PageLayout, StyleFor, StyleOrigin, StyleUse, TableColumnStyle,
+    TableRowStyle, TableStyle,
 };
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{ucell, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
@@ -1214,6 +1214,11 @@ fn write_styles(
             write_tablerow_style(style, xml_out)?;
         }
     }
+    for style in book.tablecolumn_styles.values() {
+        if style.origin() == origin && style.styleuse() == styleuse {
+            write_tablecolumn_style(style, xml_out)?;
+        }
+    }
 
     for style in book
         .styles
@@ -1385,9 +1390,48 @@ fn write_tablerow_style(style: &TableRowStyle, xml_out: &mut XmlOdsWriter) -> Re
         }
     }
 
-    if !style.tablerow_style().is_empty() {
+    if !style.row_style().is_empty() {
         xml_out.empty("style:table-row-properties")?;
-        for (a, v) in style.tablerow_style().iter() {
+        for (a, v) in style.row_style().iter() {
+            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+        }
+    }
+    if style.styleuse() == StyleUse::Default {
+        xml_out.end_elem("style:default-style")?;
+    } else {
+        xml_out.end_elem("style:style")?;
+    }
+
+    Ok(())
+}
+fn write_tablecolumn_style(
+    style: &TableColumnStyle,
+    xml_out: &mut XmlOdsWriter,
+) -> Result<(), OdsError> {
+    if style.styleuse() == StyleUse::Default {
+        xml_out.elem("style:default-style")?;
+    } else {
+        xml_out.elem("style:style")?;
+        if let Some(name) = style.name() {
+            xml_out.attr_esc("style:name", name)?;
+        } else {
+            return Err(OdsError::Ods(format!("No format name for {:?}", style)));
+        }
+    }
+    xml_out.attr("style:family", "table-column")?;
+    for (a, v) in style.attr().iter() {
+        match a.as_ref() {
+            "style:name" => {}
+            "style:family" => {}
+            _ => {
+                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            }
+        }
+    }
+
+    if !style.column_style().is_empty() {
+        xml_out.empty("style:table-column-properties")?;
+        for (a, v) in style.column_style().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }

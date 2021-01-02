@@ -157,7 +157,7 @@ pub use io::{read_ods, write_ods};
 pub use refs::{CellRange, CellRef, ColRange, RowRange};
 pub use style::{Angle, Length, Style};
 
-use crate::style::{AttrTableCol, FontFaceDecl, PageLayout, TableRowStyle, TableStyle};
+use crate::style::{FontFaceDecl, PageLayout, TableColumnStyle, TableRowStyle, TableStyle};
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
 use std::fmt::{Display, Formatter};
@@ -200,6 +200,7 @@ pub struct WorkBook {
 
     table_styles: HashMap<String, TableStyle>,
     tablerow_styles: HashMap<String, TableRowStyle>,
+    tablecolumn_styles: HashMap<String, TableColumnStyle>,
 
     /// Value-styles are actual formatting instructions
     /// for various datatypes.
@@ -240,6 +241,9 @@ impl fmt::Debug for WorkBook {
         for s in self.tablerow_styles.values() {
             writeln!(f, "{:?}", s)?;
         }
+        for s in self.tablecolumn_styles.values() {
+            writeln!(f, "{:?}", s)?;
+        }
         // for s in self.formats.values() {
         //     writeln!(f, "{:?}", s)?;
         // }
@@ -266,6 +270,7 @@ impl WorkBook {
             styles: Default::default(),
             table_styles: Default::default(),
             tablerow_styles: Default::default(),
+            tablecolumn_styles: Default::default(),
             formats: Default::default(),
             def_styles: Default::default(),
             page_layouts: Default::default(),
@@ -426,6 +431,27 @@ impl WorkBook {
     /// Returns the mutable style.
     pub fn tablerow_style_mut(&mut self, name: &str) -> Option<&mut TableRowStyle> {
         self.tablerow_styles.get_mut(name)
+    }
+
+    /// Adds a style.
+    pub fn add_tablecolumn_style(&mut self, style: TableColumnStyle) {
+        self.tablecolumn_styles
+            .insert(style.name().unwrap().to_string(), style);
+    }
+
+    /// Removes a style.
+    pub fn remove_tablecolumn_style(&mut self, name: &str) -> Option<TableColumnStyle> {
+        self.tablecolumn_styles.remove(name)
+    }
+
+    /// Returns the style.
+    pub fn tablecolumn_style(&self, name: &str) -> Option<&TableColumnStyle> {
+        self.tablecolumn_styles.get(name)
+    }
+
+    /// Returns the mutable style.
+    pub fn tablecolumn_style_mut(&mut self, name: &str) -> Option<&mut TableColumnStyle> {
+        self.tablecolumn_styles.get_mut(name)
     }
 
     /// Adds a value format.
@@ -735,14 +761,14 @@ impl Sheet {
     pub fn set_col_width(&mut self, workbook: &mut WorkBook, col: ucell, width: Length) {
         let style_name = format!("co{}", col);
 
-        let mut col_style = if let Some(style) = workbook.remove_style(&style_name) {
+        let mut col_style = if let Some(style) = workbook.remove_tablecolumn_style(&style_name) {
             style
         } else {
-            Style::new_col_style(&style_name, "")
+            TableColumnStyle::new(&style_name)
         };
-        col_style.col_mut().set_col_width(width);
-        col_style.col_mut().set_use_optimal_col_width(false);
-        workbook.add_style(col_style);
+        col_style.set_col_width(width);
+        col_style.set_use_optimal_col_width(false);
+        workbook.add_tablecolumn_style(col_style);
 
         self.set_column_style(col, &style_name);
     }

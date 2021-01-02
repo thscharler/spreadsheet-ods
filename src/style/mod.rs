@@ -11,6 +11,7 @@ mod fontface;
 mod pagelayout;
 mod stylemap;
 mod table_style;
+mod tablecolumn_style;
 mod tablerow_style;
 mod tabstop;
 mod units;
@@ -21,6 +22,7 @@ pub use fontface::*;
 pub use pagelayout::*;
 pub use stylemap::*;
 pub use table_style::*;
+pub use tablecolumn_style::*;
 pub use tablerow_style::*;
 pub use tabstop::*;
 pub use units::*;
@@ -743,4 +745,8 @@ pub(crate) fn shadow_string(
     } else {
         format!("{} {} {}", color_string(color), x_offset, y_offset)
     }
+}
+
+pub(crate) fn rel_width_string(value: f64) -> String {
+    format!("{}*", value)
 }
