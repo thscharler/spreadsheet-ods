@@ -157,7 +157,7 @@ pub use io::{read_ods, write_ods};
 pub use refs::{CellRange, CellRef, ColRange, RowRange};
 pub use style::{Angle, Length, Style};
 
-use crate::style::{AnyStyle, AttrTableCol, AttrTableRow, FontFaceDecl, PageLayout};
+use crate::style::{AttrTableCol, FontFaceDecl, PageLayout, TableRowStyle, TableStyle};
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
 use std::fmt::{Display, Formatter};
@@ -198,7 +198,8 @@ pub struct WorkBook {
     /// Styles hold the style:style elements.
     styles: HashMap<String, Style>,
 
-    styles2: HashMap<String, AnyStyle>,
+    table_styles: HashMap<String, TableStyle>,
+    tablerow_styles: HashMap<String, TableRowStyle>,
 
     /// Value-styles are actual formatting instructions
     /// for various datatypes.
@@ -223,7 +224,7 @@ pub struct WorkBook {
 
 impl fmt::Debug for WorkBook {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{:?}", self.)
+        writeln!(f, "{:?}", self.version)?;
         // for s in self.sheets.iter() {
         //     writeln!(f, "{:?}", s)?;
         // }
@@ -233,7 +234,10 @@ impl fmt::Debug for WorkBook {
         for s in self.styles.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.styles2.values() {
+        for s in self.table_styles.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for s in self.tablerow_styles.values() {
             writeln!(f, "{:?}", s)?;
         }
         // for s in self.formats.values() {
@@ -260,7 +264,8 @@ impl WorkBook {
             version: "1.3".to_string(),
             fonts: Default::default(),
             styles: Default::default(),
-            styles2: Default::default(),
+            table_styles: Default::default(),
+            tablerow_styles: Default::default(),
             formats: Default::default(),
             def_styles: Default::default(),
             page_layouts: Default::default(),
@@ -276,7 +281,7 @@ impl WorkBook {
 
     /// ODS version.
     pub fn set_version(&mut self, version: String) {
-        self.version = version.to_string();
+        self.version = version;
     }
 
     /// Number of sheets.
@@ -382,23 +387,45 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_style2(&mut self, style: AnyStyle) {
-        self.styles2.insert(style.name().to_string(), style);
+    pub fn add_table_style(&mut self, style: TableStyle) {
+        self.table_styles
+            .insert(style.name().unwrap().to_string(), style);
     }
 
     /// Removes a style.
-    pub fn remove_style2(&mut self, name: &str) -> Option<AnyStyle> {
-        self.styles2.remove(name)
+    pub fn remove_table_style(&mut self, name: &str) -> Option<TableStyle> {
+        self.table_styles.remove(name)
     }
 
     /// Returns the style.
-    pub fn style2(&self, name: &str) -> Option<&AnyStyle> {
-        self.styles2.get(name)
+    pub fn table_style(&self, name: &str) -> Option<&TableStyle> {
+        self.table_styles.get(name)
     }
 
     /// Returns the mutable style.
-    pub fn style_mut2(&mut self, name: &str) -> Option<&mut AnyStyle> {
-        self.styles2.get_mut(name)
+    pub fn table_style_mut(&mut self, name: &str) -> Option<&mut TableStyle> {
+        self.table_styles.get_mut(name)
+    }
+
+    /// Adds a style.
+    pub fn add_tablerow_style(&mut self, style: TableRowStyle) {
+        self.tablerow_styles
+            .insert(style.name().unwrap().to_string(), style);
+    }
+
+    /// Removes a style.
+    pub fn remove_tablerow_style(&mut self, name: &str) -> Option<TableRowStyle> {
+        self.tablerow_styles.remove(name)
+    }
+
+    /// Returns the style.
+    pub fn tablerow_style(&self, name: &str) -> Option<&TableRowStyle> {
+        self.tablerow_styles.get(name)
+    }
+
+    /// Returns the mutable style.
+    pub fn tablerow_style_mut(&mut self, name: &str) -> Option<&mut TableRowStyle> {
+        self.tablerow_styles.get_mut(name)
     }
 
     /// Adds a value format.
@@ -791,14 +818,14 @@ impl Sheet {
     pub fn set_row_height(&mut self, workbook: &mut WorkBook, row: ucell, height: Length) {
         let style_name = format!("ro{}", row);
 
-        let mut row_style = if let Some(style) = workbook.remove_style(&style_name) {
+        let mut row_style = if let Some(style) = workbook.remove_tablerow_style(&style_name) {
             style
         } else {
-            Style::new_row_style(&style_name, "")
+            TableRowStyle::new(&style_name)
         };
-        row_style.row_mut().set_row_height(height);
-        row_style.row_mut().set_use_optimal_row_height(false);
-        workbook.add_style(row_style);
+        row_style.set_row_height(height);
+        row_style.set_use_optimal_row_height(false);
+        workbook.add_tablerow_style(row_style);
 
         self.set_row_style(row, &style_name);
     }

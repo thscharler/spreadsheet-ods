@@ -89,3 +89,14 @@ macro_rules! style_writing_mode {
         }
     };
 }
+
+#[macro_export]
+macro_rules! fo_keep_together {
+    ($acc:ident) => {
+        /// page-break
+        pub fn set_keep_together(&mut self, keep_together: TextKeep) {
+            self.$acc()
+                .set_attr("fo:keep-together", keep_together.to_string());
+        }
+    };
+}

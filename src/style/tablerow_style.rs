@@ -1,11 +1,10 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::{
-    color_string, shadow_string, Length, PageBreak, StyleOrigin, StyleUse, TextKeep, WritingMode,
-};
+use crate::style::{color_string, PageBreak, StyleOrigin, StyleUse, TextKeep};
+use crate::Length;
 use color::Rgb;
 
 #[derive(Debug, Clone)]
-pub struct TableStyle {
+pub struct TableRowStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
@@ -19,32 +18,32 @@ pub struct TableStyle {
     // ok style:family 19.480,
     // ignore style:list-level 19.499,
     // ignore style:list-style-name 19.500,
-    // ok style:master-page-name 19.501,
+    // ignore style:master-page-name 19.501,
     // ok style:name 19.502,
     // ignore style:next-style-name 19.503,
     // ignore style:parent-style-name 19.510,
     // ignore style:percentage-data-style-name 19.511.
     attr: AttrMap2,
     /// Table style properties
-    table_style: AttrMap2,
+    tablerow_style: AttrMap2,
 }
 
-impl TableStyle {
+impl TableRowStyle {
     pub fn empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            table_style: Default::default(),
+            tablerow_style: Default::default(),
         }
     }
 
-    pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
+    pub fn new<S: Into<String>>(name: S) -> Self {
         let mut s = Self {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            table_style: Default::default(),
+            tablerow_style: Default::default(),
         };
         s.set_name(name.into());
         s
@@ -74,16 +73,6 @@ impl TableStyle {
         self.attr.set_attr("style:name", name.into());
     }
 
-    /// Sets the value format.
-    pub fn set_master_page_name<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:master-page-name", name.into());
-    }
-
-    /// Returns the value format.
-    pub fn master_page_name(&self) -> Option<&String> {
-        self.attr.attr("style:master-page-name")
-    }
-
     pub fn attr(&self) -> &AttrMap2 {
         &self.attr
     }
@@ -92,18 +81,30 @@ impl TableStyle {
         &mut self.attr
     }
 
-    pub fn table_style(&self) -> &AttrMap2 {
-        &self.table_style
+    pub fn tablerow_style(&self) -> &AttrMap2 {
+        &self.tablerow_style
     }
 
-    pub fn table_style_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.table_style
+    pub fn tablerow_style_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.tablerow_style
     }
 
-    fo_background_color!(table_style_mut);
-    fo_margin!(table_style_mut);
-    fo_break!(table_style_mut);
-    fo_keep_with_next!(table_style_mut);
-    style_shadow!(table_style_mut);
-    style_writing_mode!(table_style_mut);
+    fo_background_color!(tablerow_style_mut);
+    fo_break!(tablerow_style_mut);
+    fo_keep_together!(tablerow_style_mut);
+
+    pub fn set_min_row_height(&mut self, min_height: Length) {
+        self.tablerow_style
+            .set_attr("style:min-row-height", min_height.to_string());
+    }
+
+    pub fn set_row_height(&mut self, height: Length) {
+        self.tablerow_style
+            .set_attr("style:row-height", height.to_string());
+    }
+
+    pub fn set_use_optimal_row_height(&mut self, opt: bool) {
+        self.tablerow_style
+            .set_attr("style:use-optimal-row-height", opt.to_string());
+    }
 }
