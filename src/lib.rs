@@ -6,7 +6,7 @@
 //! use spreadsheet_ods::format;
 //! use spreadsheet_ods::formula;
 //! use spreadsheet_ods::{Length, cm, mm};
-//! use spreadsheet_ods::style::{AttrText, TextRelief, AttrFoBorder, Border, TableCellStyle};
+//! use spreadsheet_ods::style::{AttrText, TextRelief, AttrFoBorder, Border, CellStyle};
 //! use color::Rgb;
 //!
 //!
@@ -49,7 +49,7 @@
 //! let nice_date_format = format::create_date_dmy_format("nice_date_format");
 //! wb.add_format(nice_date_format);
 //!
-//! let mut nice_date_style = TableCellStyle::new("nice_date_style", "nice_date_format");
+//! let mut nice_date_style = CellStyle::new("nice_date_style", "nice_date_format");
 //! nice_date_style.set_font_bold();
 //! nice_date_style.set_font_relief(TextRelief::Engraved);
 //! nice_date_style.set_border(mm!(0.2), Border::Dashed, Rgb::new(192, 72, 72));
@@ -158,8 +158,8 @@ pub use refs::{CellRange, CellRef, ColRange, RowRange};
 pub use style::{Angle, Length};
 
 use crate::style::{
-    FontFaceDecl, GraphicStyle, PageLayout, ParagraphStyle, TableCellStyle, TableColumnStyle,
-    TableRowStyle, TableStyle, TextStyle,
+    CellStyle, ColumnStyle, FontFaceDecl, GraphicStyle, PageLayout, ParagraphStyle, RowStyle,
+    TableStyle, TextStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -200,9 +200,9 @@ pub struct WorkBook {
 
     /// Styles hold the style:style elements.
     table_styles: HashMap<String, TableStyle>,
-    row_styles: HashMap<String, TableRowStyle>,
-    column_styles: HashMap<String, TableColumnStyle>,
-    cell_styles: HashMap<String, TableCellStyle>,
+    row_styles: HashMap<String, RowStyle>,
+    column_styles: HashMap<String, ColumnStyle>,
+    cell_styles: HashMap<String, CellStyle>,
     para_styles: HashMap<String, ParagraphStyle>,
     text_styles: HashMap<String, TextStyle>,
     graphic_styles: HashMap<String, GraphicStyle>,
@@ -407,65 +407,65 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_row_style(&mut self, style: TableRowStyle) {
+    pub fn add_row_style(&mut self, style: RowStyle) {
         self.row_styles
             .insert(style.name().unwrap().to_string(), style);
     }
 
     /// Removes a style.
-    pub fn remove_row_style(&mut self, name: &str) -> Option<TableRowStyle> {
+    pub fn remove_row_style(&mut self, name: &str) -> Option<RowStyle> {
         self.row_styles.remove(name)
     }
 
     /// Returns the style.
-    pub fn row_style(&self, name: &str) -> Option<&TableRowStyle> {
+    pub fn row_style(&self, name: &str) -> Option<&RowStyle> {
         self.row_styles.get(name)
     }
 
     /// Returns the mutable style.
-    pub fn row_style_mut(&mut self, name: &str) -> Option<&mut TableRowStyle> {
+    pub fn row_style_mut(&mut self, name: &str) -> Option<&mut RowStyle> {
         self.row_styles.get_mut(name)
     }
 
     /// Adds a style.
-    pub fn add_column_style(&mut self, style: TableColumnStyle) {
+    pub fn add_column_style(&mut self, style: ColumnStyle) {
         self.column_styles
             .insert(style.name().unwrap().to_string(), style);
     }
 
     /// Removes a style.
-    pub fn remove_column_style(&mut self, name: &str) -> Option<TableColumnStyle> {
+    pub fn remove_column_style(&mut self, name: &str) -> Option<ColumnStyle> {
         self.column_styles.remove(name)
     }
 
     /// Returns the style.
-    pub fn column_style(&self, name: &str) -> Option<&TableColumnStyle> {
+    pub fn column_style(&self, name: &str) -> Option<&ColumnStyle> {
         self.column_styles.get(name)
     }
 
     /// Returns the mutable style.
-    pub fn column_style_mut(&mut self, name: &str) -> Option<&mut TableColumnStyle> {
+    pub fn column_style_mut(&mut self, name: &str) -> Option<&mut ColumnStyle> {
         self.column_styles.get_mut(name)
     }
 
     /// Adds a style.
-    pub fn add_cell_style(&mut self, style: TableCellStyle) {
+    pub fn add_cell_style(&mut self, style: CellStyle) {
         self.cell_styles
             .insert(style.name().unwrap().to_string(), style);
     }
 
     /// Removes a style.
-    pub fn remove_cell_style(&mut self, name: &str) -> Option<TableCellStyle> {
+    pub fn remove_cell_style(&mut self, name: &str) -> Option<CellStyle> {
         self.cell_styles.remove(name)
     }
 
     /// Returns the style.
-    pub fn cell_style(&self, name: &str) -> Option<&TableCellStyle> {
+    pub fn cell_style(&self, name: &str) -> Option<&CellStyle> {
         self.cell_styles.get(name)
     }
 
     /// Returns the mutable style.
-    pub fn cell_style_mut(&mut self, name: &str) -> Option<&mut TableCellStyle> {
+    pub fn cell_style_mut(&mut self, name: &str) -> Option<&mut CellStyle> {
         self.cell_styles.get_mut(name)
     }
 
@@ -842,7 +842,7 @@ impl Sheet {
         let mut col_style = if let Some(style) = workbook.remove_column_style(&style_name) {
             style
         } else {
-            TableColumnStyle::new(&style_name)
+            ColumnStyle::new(&style_name)
         };
         col_style.set_col_width(width);
         col_style.set_use_optimal_col_width(false);
@@ -925,7 +925,7 @@ impl Sheet {
         let mut row_style = if let Some(style) = workbook.remove_row_style(&style_name) {
             style
         } else {
-            TableRowStyle::new(&style_name)
+            RowStyle::new(&style_name)
         };
         row_style.set_row_height(height);
         row_style.set_use_optimal_row_height(false);

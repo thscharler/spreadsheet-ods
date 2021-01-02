@@ -4,7 +4,7 @@ use crate::Length;
 use color::Rgb;
 
 #[derive(Debug, Clone)]
-pub struct TableRowStyle {
+pub struct RowStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
@@ -28,7 +28,7 @@ pub struct TableRowStyle {
     row_style: AttrMap2,
 }
 
-impl TableRowStyle {
+impl RowStyle {
     pub fn empty() -> Self {
         Self {
             origin: Default::default(),

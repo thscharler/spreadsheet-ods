@@ -3,22 +3,22 @@
 //!
 //! ```
 //! use spreadsheet_ods::{CellRef, WorkBook};
-//! use spreadsheet_ods::style::{StyleOrigin, StyleUse, AttrText, StyleMap, TableCellStyle};
+//! use spreadsheet_ods::style::{StyleOrigin, StyleUse, AttrText, StyleMap, CellStyle};
 //! use color::Rgb;
 //!
 //! let mut wb = WorkBook::new();
 //!
-//! let mut st = TableCellStyle::new("ce12", "num2");
+//! let mut st = CellStyle::new("ce12", "num2");
 //! st.set_color(Rgb::new(192, 128, 0));
 //! st.set_font_bold();
 //! wb.add_cell_style(st);
 //!
-//! let mut st = TableCellStyle::new("ce11", "num2");
+//! let mut st = CellStyle::new("ce11", "num2");
 //! st.set_color(Rgb::new(0, 192, 128));
 //! st.set_font_bold();
 //! wb.add_cell_style(st);
 //!
-//! let mut st = TableCellStyle::new("ce13", "num4");
+//! let mut st = CellStyle::new("ce13", "num4");
 //! st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::remote("sheet0", 4, 3)));
 //! st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::remote("sheet0", 4, 3)));
 //! wb.add_cell_style(st);

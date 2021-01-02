@@ -1,6 +1,6 @@
 use color::Rgb;
 
-use spreadsheet_ods::style::{StyleMap, StyleOrigin, StyleUse, TableCellStyle, TableStyle};
+use spreadsheet_ods::style::{CellStyle, StyleMap, StyleOrigin, StyleUse, TableStyle};
 use spreadsheet_ods::{write_ods, CellRef, OdsError, Sheet, WorkBook};
 
 #[test]
@@ -13,21 +13,21 @@ fn testtablestyle() {
 fn teststyles() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
 
-    let mut st = TableCellStyle::new("ce12", "num2");
+    let mut st = CellStyle::new("ce12", "num2");
     st.set_origin(StyleOrigin::Styles);
     st.set_styleuse(StyleUse::Named);
     st.set_display_name("CC12");
     st.set_color(Rgb::new(192, 128, 0));
     wb.add_cell_style(st);
 
-    let mut st = TableCellStyle::new("ce11", "num2");
+    let mut st = CellStyle::new("ce11", "num2");
     st.set_origin(StyleOrigin::Styles);
     st.set_styleuse(StyleUse::Named);
     st.set_display_name("CC11");
     st.set_color(Rgb::new(0, 192, 128));
     wb.add_cell_style(st);
 
-    let mut st = TableCellStyle::new("ce13", "num4");
+    let mut st = CellStyle::new("ce13", "num4");
     st.push_stylemap(StyleMap::new(
         "cell-content()=\"BB\"",
         "ce12",

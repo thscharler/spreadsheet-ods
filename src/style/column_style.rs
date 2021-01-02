@@ -2,7 +2,7 @@ use crate::attrmap2::AttrMap2;
 use crate::style::{rel_width_string, Length, PageBreak, StyleOrigin, StyleUse};
 
 #[derive(Debug, Clone)]
-pub struct TableColumnStyle {
+pub struct ColumnStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
@@ -26,7 +26,7 @@ pub struct TableColumnStyle {
     column_style: AttrMap2,
 }
 
-impl TableColumnStyle {
+impl ColumnStyle {
     pub fn empty() -> Self {
         Self {
             origin: Default::default(),

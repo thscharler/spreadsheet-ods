@@ -9,7 +9,7 @@ use crate::Angle;
 use color::Rgb;
 
 #[derive(Debug, Clone)]
-pub struct TableCellStyle {
+pub struct CellStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
@@ -36,7 +36,7 @@ pub struct TableCellStyle {
     stylemaps: Option<Vec<StyleMap>>,
 }
 
-impl TableCellStyle {
+impl CellStyle {
     pub fn empty() -> Self {
         Self {
             origin: Default::default(),

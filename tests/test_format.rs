@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 
 use spreadsheet_ods::format::{FormatCalendarStyle, FormatNumberStyle};
-use spreadsheet_ods::style::TableCellStyle;
+use spreadsheet_ods::style::CellStyle;
 use spreadsheet_ods::{write_ods, OdsError, Sheet, ValueFormat, ValueType, WorkBook};
 
 #[test]
@@ -134,14 +134,14 @@ fn write_format() -> Result<(), OdsError> {
     fs.push_quarter(FormatNumberStyle::Long, FormatCalendarStyle::Gregorian);
     wb.add_format(fs);
 
-    wb.add_cell_style(TableCellStyle::new("f1", "f1"));
-    wb.add_cell_style(TableCellStyle::new("f2", "f2"));
-    wb.add_cell_style(TableCellStyle::new("f3", "f3"));
-    wb.add_cell_style(TableCellStyle::new("f31", "f31"));
-    wb.add_cell_style(TableCellStyle::new("f4", "f4"));
-    wb.add_cell_style(TableCellStyle::new("f5", "f5"));
-    wb.add_cell_style(TableCellStyle::new("f6", "f6"));
-    wb.add_cell_style(TableCellStyle::new("f7", "f7"));
+    wb.add_cell_style(CellStyle::new("f1", "f1"));
+    wb.add_cell_style(CellStyle::new("f2", "f2"));
+    wb.add_cell_style(CellStyle::new("f3", "f3"));
+    wb.add_cell_style(CellStyle::new("f31", "f31"));
+    wb.add_cell_style(CellStyle::new("f4", "f4"));
+    wb.add_cell_style(CellStyle::new("f5", "f5"));
+    wb.add_cell_style(CellStyle::new("f6", "f6"));
+    wb.add_cell_style(CellStyle::new("f7", "f7"));
 
     let mut sh = Sheet::new();
     sh.set_styled_value(0, 0, 1.234567f64, "f1");

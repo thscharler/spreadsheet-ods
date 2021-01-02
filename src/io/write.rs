@@ -14,8 +14,8 @@ use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{cellranges_string, CellRange};
 use crate::style::{
-    FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle, StyleOrigin, StyleUse,
-    TableCellStyle, TableColumnStyle, TableRowStyle, TableStyle, TextStyle,
+    CellStyle, ColumnStyle, FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle,
+    RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{ucell, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
@@ -1289,7 +1289,7 @@ fn write_table_style(style: &TableStyle, xml_out: &mut XmlOdsWriter) -> Result<(
     Ok(())
 }
 
-fn write_tablerow_style(style: &TableRowStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_tablerow_style(style: &RowStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1327,7 +1327,7 @@ fn write_tablerow_style(style: &TableRowStyle, xml_out: &mut XmlOdsWriter) -> Re
 }
 
 fn write_tablecolumn_style(
-    style: &TableColumnStyle,
+    style: &ColumnStyle,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
@@ -1366,10 +1366,7 @@ fn write_tablecolumn_style(
     Ok(())
 }
 
-fn write_tablecell_style(
-    style: &TableCellStyle,
-    xml_out: &mut XmlOdsWriter,
-) -> Result<(), OdsError> {
+fn write_tablecell_style(style: &CellStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {

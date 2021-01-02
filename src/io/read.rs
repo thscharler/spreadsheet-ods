@@ -12,9 +12,8 @@ use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
 use crate::style::{
-    FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle, StyleFor, StyleMap,
-    StyleOrigin, StyleUse, TabStop, TableCellStyle, TableColumnStyle, TableRowStyle, TableStyle,
-    TextStyle,
+    CellStyle, ColumnStyle, FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle,
+    RowStyle, StyleFor, StyleMap, StyleOrigin, StyleUse, TabStop, TableStyle, TextStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -1651,7 +1650,7 @@ fn read_tablerow_style(
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut style = TableRowStyle::empty();
+    let mut style = RowStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
 
@@ -1715,7 +1714,7 @@ fn read_tablecolumn_style(
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut style = TableColumnStyle::empty();
+    let mut style = ColumnStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
 
@@ -1779,7 +1778,7 @@ fn read_tablecell_style(
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut style = TableCellStyle::empty();
+    let mut style = CellStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
     if styleuse == StyleUse::Default {

@@ -2,8 +2,8 @@ use color::Rgb;
 
 use spreadsheet_ods::style::{
     AttrFoBackgroundColor, AttrFoBorder, AttrFoMargin, AttrFoMinHeight, AttrFoPadding, AttrMap,
-    AttrStyleDynamicSpacing, AttrStyleShadow, AttrSvgHeight, PageLayout, TableCellStyle,
-    TableColumnStyle, TableRowStyle, TableStyle,
+    AttrStyleDynamicSpacing, AttrStyleShadow, AttrSvgHeight, CellStyle, ColumnStyle, PageLayout,
+    RowStyle, TableStyle,
 };
 use spreadsheet_ods::style::{
     AttrFontDecl, Border, CellAlignVertical, FontFaceDecl, FontPitch, FontWeight, PageBreak,
@@ -110,7 +110,7 @@ fn test_attr3() {
         Some(&"tb-lr".to_string())
     );
 
-    let mut st = TableColumnStyle::new("c01");
+    let mut st = ColumnStyle::new("c01");
 
     st.set_use_optimal_col_width(true);
     assert_eq!(
@@ -130,7 +130,7 @@ fn test_attr3() {
         Some(&"17cm".to_string())
     );
 
-    let mut st = TableRowStyle::new("r02");
+    let mut st = RowStyle::new("r02");
 
     st.set_use_optimal_row_height(true);
     assert_eq!(
@@ -153,7 +153,7 @@ fn test_attr3() {
 
 #[test]
 fn test_attr4() {
-    let mut st = TableCellStyle::new("c00", "f00");
+    let mut st = CellStyle::new("c00", "f00");
 
     st.set_diagonal_bl_tr(pt!(0.2), Border::Ridge, Rgb::new(0, 127, 0));
     assert_eq!(
@@ -212,7 +212,7 @@ fn test_attr4() {
 
 #[test]
 fn test_attr5() {
-    let mut st = TableCellStyle::new("c00", "f00");
+    let mut st = CellStyle::new("c00", "f00");
 
     st.set_vertical_align_para(ParaAlignVertical::Baseline);
     assert_eq!(
@@ -247,7 +247,7 @@ fn test_attr5() {
 
 #[test]
 fn test_attr6() {
-    let mut st = TableCellStyle::new("c00", "f00");
+    let mut st = CellStyle::new("c00", "f00");
 
     st.set_font_bold();
     assert_eq!(
