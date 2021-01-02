@@ -1463,7 +1463,7 @@ fn write_paragraph_style(
             if let Some(tabstops) = style.tabstops() {
                 for ts in tabstops {
                     xml_out.empty("style:tab-stop")?;
-                    for (a, v) in ts {
+                    for (a, v) in ts.attr().iter() {
                         xml_out.attr_esc(a.as_ref(), v.as_str())?;
                     }
                 }

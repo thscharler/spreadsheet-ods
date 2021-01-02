@@ -1886,7 +1886,7 @@ fn read_paragraph_style(
                     b"style:tab-stops" => (),
                     b"style:tab-stop" => {
                         let mut ts = TabStop::new();
-                        copy_attr(&mut ts, xml, xml_tag)?;
+                        copy_attr2(ts.attr_mut(), xml, xml_tag)?;
                         style.add_tabstop(ts);
                     }
                     _ => {
