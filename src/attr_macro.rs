@@ -1,4 +1,3 @@
-#[macro_export]
 macro_rules! fo_background_color {
     ($acc:ident) => {
         /// Border style.
@@ -9,7 +8,6 @@ macro_rules! fo_background_color {
     };
 }
 
-#[macro_export]
 macro_rules! fo_break {
     ($acc:ident) => {
         /// page-break
@@ -26,7 +24,6 @@ macro_rules! fo_break {
     };
 }
 
-#[macro_export]
 macro_rules! fo_keep_with_next {
     ($acc:ident) => {
         /// page-break
@@ -37,7 +34,6 @@ macro_rules! fo_keep_with_next {
     };
 }
 
-#[macro_export]
 macro_rules! style_shadow {
     ($acc:ident) => {
         pub fn set_shadow(
@@ -55,7 +51,6 @@ macro_rules! style_shadow {
     };
 }
 
-#[macro_export]
 macro_rules! style_writing_mode {
     ($acc:ident) => {
         pub fn set_writing_mode(&mut self, writing_mode: WritingMode) {
@@ -65,7 +60,6 @@ macro_rules! style_writing_mode {
     };
 }
 
-#[macro_export]
 macro_rules! fo_keep_together {
     ($acc:ident) => {
         /// page-break
@@ -76,7 +70,6 @@ macro_rules! fo_keep_together {
     };
 }
 
-#[macro_export]
 macro_rules! fo_border {
     ($acc:ident) => {
         /// Border style all four sides.
@@ -166,7 +159,6 @@ macro_rules! fo_border {
     };
 }
 
-#[macro_export]
 macro_rules! fo_padding {
     ($acc:ident) => {
         pub fn set_padding(&mut self, padding: Length) {
@@ -193,7 +185,6 @@ macro_rules! fo_padding {
     };
 }
 
-#[macro_export]
 macro_rules! fo_margin {
     ($acc:ident) => {
         pub fn set_margin(&mut self, margin: Length) {
@@ -218,7 +209,6 @@ macro_rules! fo_margin {
     };
 }
 
-#[macro_export]
 macro_rules! paragraph {
     ($acc:ident) => {
         pub fn set_text_align_source(&mut self, align: TextAlignSource) {
@@ -251,7 +241,6 @@ macro_rules! paragraph {
     };
 }
 
-#[macro_export]
 macro_rules! text {
     ($acc:ident) => {
         pub fn set_color(&mut self, color: Rgb<u8>) {
@@ -425,7 +414,6 @@ macro_rules! text {
     };
 }
 
-#[macro_export]
 macro_rules! font_decl {
     ($acc:ident) => {
         /// External font family name.
@@ -446,7 +434,6 @@ macro_rules! font_decl {
     };
 }
 
-#[macro_export]
 macro_rules! svg_height {
     ($acc:ident) => {
         pub fn set_height(&mut self, height: Length) {
@@ -455,7 +442,6 @@ macro_rules! svg_height {
     };
 }
 
-#[macro_export]
 macro_rules! fo_min_height {
     ($acc:ident) => {
         pub fn set_min_height(&mut self, height: Length) {
@@ -469,7 +455,6 @@ macro_rules! fo_min_height {
     };
 }
 
-#[macro_export]
 macro_rules! style_dynamic_spacing {
     ($acc:ident) => {
         pub fn set_dynamic_spacing(&mut self, dynamic: bool) {

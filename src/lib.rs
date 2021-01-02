@@ -143,6 +143,8 @@
 
 #[macro_use]
 mod attr_macro;
+#[macro_use]
+mod unit_macro;
 mod attrmap2;
 pub mod defaultstyles;
 pub mod error;
@@ -158,9 +160,9 @@ pub use crate::error::OdsError;
 pub use crate::format::ValueFormat;
 pub use crate::io::{read_ods, write_ods};
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
+pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, ColumnStyle, RowStyle, TableStyle};
 
-use crate::style::units::Length;
 use crate::style::{FontFaceDecl, GraphicStyle, PageLayout, ParagraphStyle, TextStyle};
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
