@@ -163,7 +163,7 @@ fn test_attr3() {
 
 #[test]
 fn test_attr4() {
-    let mut st = CellStyle::new("c00", "f00");
+    let mut st = CellStyle::new("c00", &"f00".into());
 
     st.set_diagonal_bl_tr(pt!(0.2), Border::Ridge, Rgb::new(0, 127, 0));
     assert_eq!(
@@ -222,7 +222,7 @@ fn test_attr4() {
 
 #[test]
 fn test_attr5() {
-    let mut st = CellStyle::new("c00", "f00");
+    let mut st = CellStyle::new("c00", &"f00".into());
 
     st.set_vertical_align_para(ParaAlignVertical::Baseline);
     assert_eq!(
@@ -257,7 +257,7 @@ fn test_attr5() {
 
 #[test]
 fn test_attr6() {
-    let mut st = CellStyle::new("c00", "f00");
+    let mut st = CellStyle::new("c00", &"f00".into());
 
     st.set_font_bold();
     assert_eq!(

@@ -3,6 +3,8 @@ use crate::style::units::{Length, PageBreak, TextKeep, WritingMode};
 use crate::style::{color_string, shadow_string, StyleOrigin, StyleUse};
 use color::Rgb;
 
+style_ref!(TableStyleRef);
+
 #[derive(Debug, Clone)]
 pub struct TableStyle {
     /// From where did we get this style.
@@ -47,6 +49,10 @@ impl TableStyle {
         };
         s.set_name(name.into());
         s
+    }
+
+    pub fn style_ref(&self) -> TableStyleRef {
+        TableStyleRef::from(self.name().unwrap().clone())
     }
 
     pub fn origin(&self) -> StyleOrigin {

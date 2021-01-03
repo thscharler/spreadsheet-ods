@@ -3,6 +3,8 @@ use crate::style::units::{Length, PageBreak, TextKeep};
 use crate::style::{color_string, StyleOrigin, StyleUse};
 use color::Rgb;
 
+style_ref!(RowStyleRef);
+
 #[derive(Debug, Clone)]
 pub struct RowStyle {
     /// From where did we get this style.
@@ -47,6 +49,10 @@ impl RowStyle {
         };
         s.set_name(name.into());
         s
+    }
+
+    pub fn style_ref(&self) -> RowStyleRef {
+        RowStyleRef::from(self.name().unwrap().clone())
     }
 
     pub fn origin(&self) -> StyleOrigin {

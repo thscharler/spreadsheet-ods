@@ -1,4 +1,5 @@
 use crate::attrmap2::AttrMap2;
+use crate::format::ValueFormatRef;
 use crate::style::stylemap::StyleMap;
 use crate::style::units::{
     Angle, Border, CellAlignVertical, FontStyle, FontWeight, Length, LineMode, LineStyle, LineType,
@@ -10,6 +11,8 @@ use crate::style::{
     StyleOrigin, StyleUse,
 };
 use color::Rgb;
+
+style_ref!(CellStyleRef);
 
 #[derive(Debug, Clone)]
 pub struct CellStyle {
@@ -52,7 +55,7 @@ impl CellStyle {
         }
     }
 
-    pub fn new<S: Into<String>, T: Into<String>>(name: S, value_format: T) -> Self {
+    pub fn new<S: Into<String>>(name: S, value_format: &ValueFormatRef) -> Self {
         let mut s = Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -65,6 +68,10 @@ impl CellStyle {
         s.set_name(name.into());
         s.set_value_format(value_format.into());
         s
+    }
+
+    pub fn style_ref(&self) -> CellStyleRef {
+        CellStyleRef::from(self.name().unwrap().clone())
     }
 
     pub fn origin(&self) -> StyleOrigin {
@@ -95,8 +102,9 @@ impl CellStyle {
         self.attr.attr("style:data-style-name")
     }
 
-    pub fn set_value_format<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:data-style-name", name.into());
+    pub fn set_value_format(&mut self, name: &ValueFormatRef) {
+        self.attr
+            .set_attr("style:data-style-name", name.to_string());
     }
 
     pub fn display_name(&self) -> Option<&String> {
@@ -111,8 +119,9 @@ impl CellStyle {
         self.attr.attr("style:parent-style-name")
     }
 
-    pub fn set_parent_style<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:parent-style-name", name.into());
+    pub fn set_parent_style(&mut self, name: &CellStyleRef) {
+        self.attr
+            .set_attr("style:parent-style-name", name.to_string());
     }
 
     pub fn attr_map(&self) -> &AttrMap2 {

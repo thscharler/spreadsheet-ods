@@ -59,6 +59,8 @@ impl Display for ValueFormatError {
 
 impl std::error::Error for ValueFormatError {}
 
+style_ref!(ValueFormatRef);
+
 /// Actual textual formatting of values.
 #[derive(Debug, Clone, Default)]
 pub struct ValueFormat {
@@ -116,6 +118,10 @@ impl ValueFormat {
             parts: Default::default(),
             stylemaps: None,
         }
+    }
+
+    pub fn format_ref(&self) -> ValueFormatRef {
+        ValueFormatRef::from(self.name().as_str())
     }
 
     /// Sets the name.

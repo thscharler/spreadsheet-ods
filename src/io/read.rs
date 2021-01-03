@@ -273,11 +273,11 @@ fn read_table(
                 //     }
                 // }
                 if let Some(row_style) = row_style {
-                    sheet.set_row_style(row, row_style);
+                    sheet.set_row_style(row, &row_style.into());
                 }
                 row_style = None;
                 if let Some(row_cell_style) = row_cell_style {
-                    sheet.set_row_cell_style(row, row_cell_style);
+                    sheet.set_row_cell_style(row, &row_cell_style.into());
                 }
                 row_cell_style = None;
                 sheet.set_row_visible(row, row_visible);
@@ -321,7 +321,7 @@ fn read_table_attr(
             }
             attr if attr.key == b"table:style-name" => {
                 let v = attr.unescape_and_decode_value(xml)?;
-                sheet.set_style(v);
+                sheet.set_style(&v.into());
             }
             attr if attr.key == b"table:print" => {
                 let v = attr.unescape_and_decode_value(xml)?;
@@ -437,10 +437,10 @@ fn read_table_col_attr(
 
     while repeat > 0 {
         if let Some(style) = &style {
-            sheet.set_column_style(table_col, style.clone());
+            sheet.set_column_style(table_col, &style.into());
         }
         if let Some(cell_style) = &cell_style {
-            sheet.set_column_cell_style(table_col, cell_style.clone());
+            sheet.set_column_cell_style(table_col, &cell_style.into());
         }
         sheet.set_column_visible(table_col, visible);
         table_col += 1;
@@ -625,8 +625,8 @@ fn read_empty_table_cell(
                     .set_formula(attr.unescape_and_decode_value(&xml)?);
             }
             attr if attr.key == b"table:style-name" => {
-                cell.get_or_insert_with(SCell::new)
-                    .set_style(attr.unescape_and_decode_value(&xml)?);
+                let v = attr.unescape_and_decode_value(&xml)?;
+                cell.get_or_insert_with(SCell::new).set_style(&v.into());
             }
             attr if attr.key == b"table:number-rows-spanned" => {
                 let v = attr.unescape_and_decode_value(&xml)?;

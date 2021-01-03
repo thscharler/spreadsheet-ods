@@ -2,6 +2,8 @@ use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak};
 use crate::style::{rel_width_string, StyleOrigin, StyleUse};
 
+style_ref!(ColumnStyleRef);
+
 #[derive(Debug, Clone)]
 pub struct ColumnStyle {
     /// From where did we get this style.
@@ -46,6 +48,10 @@ impl ColumnStyle {
         };
         s.set_name(name.into());
         s
+    }
+
+    pub fn style_ref(&self) -> ColumnStyleRef {
+        ColumnStyleRef::from(self.name().unwrap().clone())
     }
 
     pub fn origin(&self) -> StyleOrigin {

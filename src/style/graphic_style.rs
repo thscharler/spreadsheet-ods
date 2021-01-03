@@ -1,6 +1,8 @@
 use crate::attrmap2::AttrMap2;
 use crate::style::{StyleOrigin, StyleUse};
 
+style_ref!(GraphicStyleRef);
+
 #[derive(Debug, Clone)]
 pub struct GraphicStyle {
     /// From where did we get this style.
@@ -45,6 +47,10 @@ impl GraphicStyle {
         };
         s.set_name(name.into());
         s
+    }
+
+    pub fn style_ref(&self) -> GraphicStyleRef {
+        GraphicStyleRef::from(self.name().unwrap().clone())
     }
 
     pub fn origin(&self) -> StyleOrigin {

@@ -6,6 +6,8 @@ use crate::style::units::{
 use crate::style::{color_string, percent_string, shadow_string, StyleOrigin, StyleUse};
 use color::Rgb;
 
+style_ref!(TextStyleRef);
+
 #[derive(Debug, Clone)]
 pub struct TextStyle {
     /// From where did we get this style.
@@ -51,6 +53,10 @@ impl TextStyle {
         s
     }
 
+    pub fn style_ref(&self) -> TextStyleRef {
+        TextStyleRef::from(self.name().unwrap().clone())
+    }
+
     pub fn origin(&self) -> StyleOrigin {
         self.origin
     }
@@ -87,8 +93,9 @@ impl TextStyle {
         self.attr.attr("style:parent-style-name")
     }
 
-    pub fn set_parent_style<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:parent-style-name", name.into());
+    pub fn set_parent_style(&mut self, name: &TextStyleRef) {
+        self.attr
+            .set_attr("style:parent-style-name", name.to_string());
     }
 
     pub fn attr_map(&self) -> &AttrMap2 {

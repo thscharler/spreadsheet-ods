@@ -9,17 +9,17 @@
 //!
 //! let mut wb = WorkBook::new();
 //!
-//! let mut st = CellStyle::new("ce12", "num2");
+//! let mut st = CellStyle::new("ce12", &"num2".into());
 //! st.set_color(Rgb::new(192, 128, 0));
 //! st.set_font_bold();
 //! wb.add_cell_style(st);
 //!
-//! let mut st = CellStyle::new("ce11", "num2");
+//! let mut st = CellStyle::new("ce11", &"num2".into());
 //! st.set_color(Rgb::new(0, 192, 128));
 //! st.set_font_bold();
 //! wb.add_cell_style(st);
 //!
-//! let mut st = CellStyle::new("ce13", "num4");
+//! let mut st = CellStyle::new("ce13", &"num4".into());
 //! st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::remote("sheet0", 4, 3)));
 //! st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::remote("sheet0", 4, 3)));
 //! wb.add_cell_style(st);

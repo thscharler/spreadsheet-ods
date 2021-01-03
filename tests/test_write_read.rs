@@ -1,5 +1,5 @@
-use spreadsheet_ods::refs::{CellRange, ColRange, RowRange};
 use spreadsheet_ods::{read_ods, write_ods, OdsError, Sheet, ValueType, WorkBook};
+use spreadsheet_ods::{CellRange, ColRange, RowRange};
 
 #[test]
 fn test_0() -> Result<(), OdsError> {

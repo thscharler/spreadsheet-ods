@@ -11,6 +11,8 @@ use crate::style::{
 };
 use color::Rgb;
 
+style_ref!(ParagraphStyleRef);
+
 #[derive(Debug, Clone)]
 pub struct ParagraphStyle {
     /// From where did we get this style.
@@ -64,6 +66,10 @@ impl ParagraphStyle {
         s
     }
 
+    pub fn style_ref(&self) -> ParagraphStyleRef {
+        ParagraphStyleRef::from(self.name().unwrap().clone())
+    }
+
     pub fn origin(&self) -> StyleOrigin {
         self.origin
     }
@@ -100,16 +106,18 @@ impl ParagraphStyle {
         self.attr.attr("style:parent-style-name")
     }
 
-    pub fn set_parent_style<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:parent-style-name", name.into());
+    pub fn set_parent_style(&mut self, name: &ParagraphStyleRef) {
+        self.attr
+            .set_attr("style:parent-style-name", name.to_string());
     }
 
     pub fn next_style(&self) -> Option<&String> {
         self.attr.attr("style:next-style-name")
     }
 
-    pub fn set_next_style<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:next-style-name", name.into());
+    pub fn set_next_style(&mut self, name: &ParagraphStyleRef) {
+        self.attr
+            .set_attr("style:next-style-name", name.to_string());
     }
 
     pub fn add_tabstop(&mut self, ts: TabStop) {

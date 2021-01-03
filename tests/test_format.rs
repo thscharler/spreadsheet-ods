@@ -87,77 +87,77 @@ pub fn value_format() {
 fn write_format() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
 
-    let mut fs = ValueFormat::new_with_name("f1", ValueType::Number);
-    fs.push_scientific(4);
-    wb.add_format(fs);
+    let mut v1 = ValueFormat::new_with_name("f1", ValueType::Number);
+    v1.push_scientific(4);
+    let v1 = wb.add_format(v1);
 
-    let mut fs = ValueFormat::new_with_name("f2", ValueType::Number);
-    fs.push_number_fix(2, false);
-    wb.add_format(fs);
+    let mut v2 = ValueFormat::new_with_name("f2", ValueType::Number);
+    v2.push_number_fix(2, false);
+    let v2 = wb.add_format(v2);
 
-    let mut fs = ValueFormat::new_with_name("f3", ValueType::Number);
-    fs.push_number(2, false);
-    wb.add_format(fs);
+    let mut v3 = ValueFormat::new_with_name("f3", ValueType::Number);
+    v3.push_number(2, false);
+    let v3 = wb.add_format(v3);
 
-    let mut fs = ValueFormat::new_with_name("f31", ValueType::Number);
-    fs.push_fraction(13, 1, 1, 1, false);
-    wb.add_format(fs);
+    let mut v31 = ValueFormat::new_with_name("f31", ValueType::Number);
+    v31.push_fraction(13, 1, 1, 1, false);
+    let v31 = wb.add_format(v31);
 
-    let mut fs = ValueFormat::new_with_name("f4", ValueType::Currency);
-    fs.push_currency("AT", "de", "€");
-    fs.push_text(" ");
-    fs.push_number(2, false);
-    wb.add_format(fs);
+    let mut v4 = ValueFormat::new_with_name("f4", ValueType::Currency);
+    v4.push_currency("AT", "de", "€");
+    v4.push_text(" ");
+    v4.push_number(2, false);
+    let v4 = wb.add_format(v4);
 
-    let mut fs = ValueFormat::new_with_name("f5", ValueType::Percentage);
-    fs.push_number(2, false);
-    fs.push_text("/ct");
-    wb.add_format(fs);
+    let mut v5 = ValueFormat::new_with_name("f5", ValueType::Percentage);
+    v5.push_number(2, false);
+    v5.push_text("/ct");
+    let v5 = wb.add_format(v5);
 
-    let mut fs = ValueFormat::new_with_name("f6", ValueType::Boolean);
-    fs.push_boolean();
-    wb.add_format(fs);
+    let mut v6 = ValueFormat::new_with_name("f6", ValueType::Boolean);
+    v6.push_boolean();
+    let v6 = wb.add_format(v6);
 
-    let mut fs = ValueFormat::new_with_name("f7", ValueType::DateTime);
-    fs.push_era(FormatNumberStyle::Long, FormatCalendarStyle::Gregorian);
-    fs.push_text(" ");
-    fs.push_year(FormatNumberStyle::Long);
-    fs.push_text(" ");
-    fs.push_month(FormatNumberStyle::Long);
-    fs.push_text(" ");
-    fs.push_day(FormatNumberStyle::Long);
-    fs.push_text(" ");
-    fs.push_day_of_week(FormatNumberStyle::Long, FormatCalendarStyle::Gregorian);
-    fs.push_text(" ");
-    fs.push_week_of_year(FormatCalendarStyle::Gregorian);
-    fs.push_text(" ");
-    fs.push_quarter(FormatNumberStyle::Long, FormatCalendarStyle::Gregorian);
-    wb.add_format(fs);
+    let mut v7 = ValueFormat::new_with_name("f7", ValueType::DateTime);
+    v7.push_era(FormatNumberStyle::Long, FormatCalendarStyle::Gregorian);
+    v7.push_text(" ");
+    v7.push_year(FormatNumberStyle::Long);
+    v7.push_text(" ");
+    v7.push_month(FormatNumberStyle::Long);
+    v7.push_text(" ");
+    v7.push_day(FormatNumberStyle::Long);
+    v7.push_text(" ");
+    v7.push_day_of_week(FormatNumberStyle::Long, FormatCalendarStyle::Gregorian);
+    v7.push_text(" ");
+    v7.push_week_of_year(FormatCalendarStyle::Gregorian);
+    v7.push_text(" ");
+    v7.push_quarter(FormatNumberStyle::Long, FormatCalendarStyle::Gregorian);
+    let v7 = wb.add_format(v7);
 
-    wb.add_cell_style(CellStyle::new("f1", "f1"));
-    wb.add_cell_style(CellStyle::new("f2", "f2"));
-    wb.add_cell_style(CellStyle::new("f3", "f3"));
-    wb.add_cell_style(CellStyle::new("f31", "f31"));
-    wb.add_cell_style(CellStyle::new("f4", "f4"));
-    wb.add_cell_style(CellStyle::new("f5", "f5"));
-    wb.add_cell_style(CellStyle::new("f6", "f6"));
-    wb.add_cell_style(CellStyle::new("f7", "f7"));
+    let f1 = wb.add_cell_style(CellStyle::new("f1", &v1));
+    let f2 = wb.add_cell_style(CellStyle::new("f2", &v2));
+    let f3 = wb.add_cell_style(CellStyle::new("f3", &v3));
+    let f31 = wb.add_cell_style(CellStyle::new("f31", &v31));
+    let f4 = wb.add_cell_style(CellStyle::new("f4", &v4));
+    let f5 = wb.add_cell_style(CellStyle::new("f5", &v5));
+    let f6 = wb.add_cell_style(CellStyle::new("f6", &v6));
+    let f7 = wb.add_cell_style(CellStyle::new("f7", &v7));
 
     let mut sh = Sheet::new();
-    sh.set_styled_value(0, 0, 1.234567f64, "f1");
-    sh.set_styled_value(1, 0, 1.234567f64, "f2");
-    sh.set_styled_value(2, 0, 1.234567f64, "f3");
-    sh.set_styled_value(2, 1, 1.234567f64, "f31");
-    sh.set_styled_value(3, 0, 1.234567f64, "f4");
-    sh.set_styled_value(4, 0, 1.234567f64, "f5");
+    sh.set_styled_value(0, 0, 1.234567f64, &f1);
+    sh.set_styled_value(1, 0, 1.234567f64, &f2);
+    sh.set_styled_value(2, 0, 1.234567f64, &f3);
+    sh.set_styled_value(2, 1, 1.234567f64, &f31);
+    sh.set_styled_value(3, 0, 1.234567f64, &f4);
+    sh.set_styled_value(4, 0, 1.234567f64, &f5);
 
-    sh.set_styled_value(6, 0, 1.234567f64, "f6");
+    sh.set_styled_value(6, 0, 1.234567f64, &f6);
 
     sh.set_styled_value(
         7,
         0,
         NaiveDateTime::from_timestamp(1_223_222_222, 22992),
-        "f7",
+        &f7,
     );
 
     wb.push_sheet(sh);

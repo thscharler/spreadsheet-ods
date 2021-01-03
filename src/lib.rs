@@ -36,25 +36,27 @@
 //! if wb.num_sheets() == 1 {
 //!     wb.push_sheet(Sheet::new());
 //! }
-//!  
+//!
+//! let date_format = format::create_date_dmy_format("date_format");
+//! let date_format = wb.add_format(date_format);
+//!
+//! let mut date_style = CellStyle::new("nice_date_style", &date_format);
+//! date_style.set_font_bold();
+//! date_style.set_font_relief(TextRelief::Engraved);
+//! date_style.set_border(mm!(0.2), Border::Dashed, Rgb::new(192, 72, 72));
+//! let date_style = wb.add_cell_style(date_style);
+//!
 //! let mut sheet = wb.sheet_mut(1);
 //! sheet.set_value(0, 0, 21.4f32);
 //! sheet.set_value(0, 1, "foo");
-//! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), "nice_date_style");
+//! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), &date_style);
 //! sheet.set_formula(0, 3, format!("of:={}+1", formula::fcellref(0,0)));
 //!
 //! let mut sheet = Sheet::new_with_name("sample");
 //! sheet.set_value(5,5, "sample");
 //! wb.push_sheet(sheet);
 //!
-//! let nice_date_format = format::create_date_dmy_format("nice_date_format");
-//! wb.add_format(nice_date_format);
-//!
-//! let mut nice_date_style = CellStyle::new("nice_date_style", "nice_date_format");
-//! nice_date_style.set_font_bold();
-//! nice_date_style.set_font_relief(TextRelief::Engraved);
-//! nice_date_style.set_border(mm!(0.2), Border::Dashed, Rgb::new(192, 72, 72));
-//! wb.add_cell_style(nice_date_style);
+
 //!
 //! spreadsheet_ods::write_ods(&wb, "test_out/tryout.ods");
 //!
@@ -145,6 +147,8 @@
 mod attr_macro;
 #[macro_use]
 mod unit_macro;
+#[macro_use]
+mod ref_macro;
 mod attrmap2;
 pub mod defaultstyles;
 pub mod error;
@@ -161,9 +165,16 @@ pub use crate::format::ValueFormat;
 pub use crate::io::{read_ods, write_ods};
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 pub use crate::style::units::{Angle, Length};
-pub use crate::style::{CellStyle, ColumnStyle, RowStyle, TableStyle};
+pub use crate::style::{
+    CellStyle, CellStyleRef, ColumnStyle, ColumnStyleRef, RowStyle, RowStyleRef, TableStyle,
+    TableStyleRef,
+};
 
-use crate::style::{FontFaceDecl, GraphicStyle, PageLayout, ParagraphStyle, TextStyle};
+use crate::format::ValueFormatRef;
+use crate::style::{
+    FontFaceDecl, GraphicStyle, GraphicStyleRef, PageLayout, ParagraphStyle, ParagraphStyleRef,
+    TextStyle, TextStyleRef,
+};
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
 use chrono::{NaiveDate, NaiveDateTime};
@@ -177,10 +188,6 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
 use time::Duration;
-
-pub(crate) mod sealed {
-    pub trait Sealed {}
-}
 
 /// Cell index type for row/column indexes.
 #[allow(non_camel_case_types)]
@@ -343,7 +350,7 @@ impl WorkBook {
 
     /// Adds a default-style for all new values.
     /// This information is only used when writing the data to the ODS file.
-    pub fn add_def_style(&mut self, value_type: ValueType, style: &str) {
+    pub fn add_def_style(&mut self, value_type: ValueType, style: &CellStyleRef) {
         self.def_styles.insert(value_type, style.to_string());
     }
 
@@ -386,9 +393,11 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_table_style(&mut self, style: TableStyle) {
+    pub fn add_table_style(&mut self, style: TableStyle) -> TableStyleRef {
+        let sref = style.style_ref();
         self.table_styles
             .insert(style.name().unwrap().to_string(), style);
+        sref
     }
 
     /// Removes a style.
@@ -407,9 +416,11 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_row_style(&mut self, style: RowStyle) {
+    pub fn add_row_style(&mut self, style: RowStyle) -> RowStyleRef {
+        let sref = style.style_ref();
         self.row_styles
             .insert(style.name().unwrap().to_string(), style);
+        sref
     }
 
     /// Removes a style.
@@ -428,9 +439,11 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_column_style(&mut self, style: ColumnStyle) {
+    pub fn add_column_style(&mut self, style: ColumnStyle) -> ColumnStyleRef {
+        let sref = style.style_ref();
         self.column_styles
             .insert(style.name().unwrap().to_string(), style);
+        sref
     }
 
     /// Removes a style.
@@ -449,9 +462,11 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_cell_style(&mut self, style: CellStyle) {
+    pub fn add_cell_style(&mut self, style: CellStyle) -> CellStyleRef {
+        let sref = style.style_ref();
         self.cell_styles
             .insert(style.name().unwrap().to_string(), style);
+        sref
     }
 
     /// Removes a style.
@@ -470,9 +485,11 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_paragraph_style(&mut self, style: ParagraphStyle) {
+    pub fn add_paragraph_style(&mut self, style: ParagraphStyle) -> ParagraphStyleRef {
+        let sref = style.style_ref();
         self.para_styles
             .insert(style.name().unwrap().to_string(), style);
+        sref
     }
 
     /// Removes a style.
@@ -491,9 +508,11 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_text_style(&mut self, style: TextStyle) {
+    pub fn add_text_style(&mut self, style: TextStyle) -> TextStyleRef {
+        let sref = style.style_ref();
         self.text_styles
             .insert(style.name().unwrap().to_string(), style);
+        sref
     }
 
     /// Removes a style.
@@ -512,9 +531,11 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_graphic_style(&mut self, style: GraphicStyle) {
+    pub fn add_graphic_style(&mut self, style: GraphicStyle) -> GraphicStyleRef {
+        let sref = style.style_ref();
         self.graphic_styles
             .insert(style.name().unwrap().to_string(), style);
+        sref
     }
 
     /// Removes a style.
@@ -533,8 +554,10 @@ impl WorkBook {
     }
 
     /// Adds a value format.
-    pub fn add_format(&mut self, vstyle: ValueFormat) {
+    pub fn add_format(&mut self, vstyle: ValueFormat) -> ValueFormatRef {
+        let sref = vstyle.format_ref();
         self.formats.insert(vstyle.name().to_string(), vstyle);
+        sref
     }
 
     /// Removes the format.
@@ -613,15 +636,15 @@ impl Display for Visibility {
     }
 }
 
-/// Row/column data
+/// Row data
 #[derive(Debug, Clone, Default)]
-struct RowColHeader {
+struct RowHeader {
     style: Option<String>,
     cell_style: Option<String>,
     visible: Visibility,
 }
 
-impl RowColHeader {
+impl RowHeader {
     pub fn new() -> Self {
         Self {
             style: None,
@@ -630,8 +653,8 @@ impl RowColHeader {
         }
     }
 
-    pub fn set_style<S: Into<String>>(&mut self, style: S) {
-        self.style = Some(style.into());
+    pub fn set_style(&mut self, style: &RowStyleRef) {
+        self.style = Some(style.to_string());
     }
 
     pub fn clear_style(&mut self) {
@@ -642,8 +665,58 @@ impl RowColHeader {
         self.style.as_ref()
     }
 
-    pub fn set_cell_style<S: Into<String>>(&mut self, style: S) {
-        self.cell_style = Some(style.into());
+    pub fn set_cell_style(&mut self, style: &CellStyleRef) {
+        self.cell_style = Some(style.to_string());
+    }
+
+    pub fn clear_cell_style(&mut self) {
+        self.cell_style = None;
+    }
+
+    pub fn cell_style(&self) -> Option<&String> {
+        self.cell_style.as_ref()
+    }
+
+    pub fn set_visible(&mut self, visible: Visibility) {
+        self.visible = visible;
+    }
+
+    pub fn visible(&self) -> Visibility {
+        self.visible
+    }
+}
+
+/// Column data
+#[derive(Debug, Clone, Default)]
+struct ColHeader {
+    style: Option<String>,
+    cell_style: Option<String>,
+    visible: Visibility,
+}
+
+impl ColHeader {
+    pub fn new() -> Self {
+        Self {
+            style: None,
+            cell_style: None,
+            visible: Default::default(),
+        }
+    }
+
+    pub fn set_style(&mut self, style: &ColumnStyleRef) {
+        self.style = Some(style.to_string());
+    }
+
+    pub fn clear_style(&mut self) {
+        self.style = None;
+    }
+
+    pub fn style(&self) -> Option<&String> {
+        self.style.as_ref()
+    }
+
+    pub fn set_cell_style(&mut self, style: &CellStyleRef) {
+        self.cell_style = Some(style.to_string());
     }
 
     pub fn clear_cell_style(&mut self) {
@@ -675,8 +748,8 @@ pub struct Sheet {
 
     data: BTreeMap<(ucell, ucell), SCell>,
 
-    col_header: BTreeMap<ucell, RowColHeader>,
-    row_header: BTreeMap<ucell, RowColHeader>,
+    col_header: BTreeMap<ucell, ColHeader>,
+    row_header: BTreeMap<ucell, RowHeader>,
 
     display: bool,
     print: bool,
@@ -759,8 +832,8 @@ impl Sheet {
     }
 
     /// Sets the table-style
-    pub fn set_style<V: Into<String>>(&mut self, style: V) {
-        self.style = Some(style.into());
+    pub fn set_style(&mut self, style: &TableStyleRef) {
+        self.style = Some(style.to_string());
     }
 
     /// Returns the table-style.
@@ -769,10 +842,10 @@ impl Sheet {
     }
 
     /// Column style.
-    pub fn set_column_style<V: Into<String>>(&mut self, col: ucell, style: V) {
+    pub fn set_column_style(&mut self, col: ucell, style: &ColumnStyleRef) {
         self.col_header
             .entry(col)
-            .or_insert_with(RowColHeader::new)
+            .or_insert_with(ColHeader::new)
             .set_style(style);
     }
 
@@ -780,7 +853,7 @@ impl Sheet {
     pub fn clear_column_style(&mut self, col: ucell) {
         self.col_header
             .entry(col)
-            .or_insert_with(RowColHeader::new)
+            .or_insert_with(ColHeader::new)
             .clear_style();
     }
 
@@ -794,10 +867,10 @@ impl Sheet {
     }
 
     /// Default cell style for this column.
-    pub fn set_column_cell_style<V: Into<String>>(&mut self, col: ucell, style: V) {
+    pub fn set_column_cell_style(&mut self, col: ucell, style: &CellStyleRef) {
         self.col_header
             .entry(col)
-            .or_insert_with(RowColHeader::new)
+            .or_insert_with(ColHeader::new)
             .set_cell_style(style);
     }
 
@@ -805,7 +878,7 @@ impl Sheet {
     pub fn clear_column_cell_style(&mut self, col: ucell) {
         self.col_header
             .entry(col)
-            .or_insert_with(RowColHeader::new)
+            .or_insert_with(ColHeader::new)
             .clear_cell_style();
     }
 
@@ -822,7 +895,7 @@ impl Sheet {
     pub fn set_column_visible(&mut self, col: ucell, visible: Visibility) {
         self.col_header
             .entry(col)
-            .or_insert_with(RowColHeader::new)
+            .or_insert_with(ColHeader::new)
             .set_visible(visible);
     }
 
@@ -846,16 +919,16 @@ impl Sheet {
         };
         col_style.set_col_width(width);
         col_style.set_use_optimal_col_width(false);
-        workbook.add_column_style(col_style);
+        let col_style = workbook.add_column_style(col_style);
 
-        self.set_column_style(col, &style_name);
+        self.set_column_style(col, &col_style);
     }
 
     /// Row style.
-    pub fn set_row_style<V: Into<String>>(&mut self, col: ucell, style: V) {
+    pub fn set_row_style(&mut self, col: ucell, style: &RowStyleRef) {
         self.row_header
             .entry(col)
-            .or_insert_with(RowColHeader::new)
+            .or_insert_with(RowHeader::new)
             .set_style(style);
     }
 
@@ -863,7 +936,7 @@ impl Sheet {
     pub fn clear_row_style(&mut self, col: ucell) {
         self.row_header
             .entry(col)
-            .or_insert_with(RowColHeader::new)
+            .or_insert_with(RowHeader::new)
             .clear_style();
     }
 
@@ -877,10 +950,10 @@ impl Sheet {
     }
 
     /// Default cell style for this row.
-    pub fn set_row_cell_style<V: Into<String>>(&mut self, col: ucell, style: V) {
+    pub fn set_row_cell_style(&mut self, col: ucell, style: &CellStyleRef) {
         self.row_header
             .entry(col)
-            .or_insert_with(RowColHeader::new)
+            .or_insert_with(RowHeader::new)
             .set_cell_style(style);
     }
 
@@ -888,7 +961,7 @@ impl Sheet {
     pub fn clear_row_cell_style(&mut self, col: ucell) {
         self.row_header
             .entry(col)
-            .or_insert_with(RowColHeader::new)
+            .or_insert_with(RowHeader::new)
             .clear_cell_style();
     }
 
@@ -905,7 +978,7 @@ impl Sheet {
     pub fn set_row_visible(&mut self, col: ucell, visible: Visibility) {
         self.row_header
             .entry(col)
-            .or_insert_with(RowColHeader::new)
+            .or_insert_with(RowHeader::new)
             .set_visible(visible);
     }
 
@@ -929,9 +1002,9 @@ impl Sheet {
         };
         row_style.set_row_height(height);
         row_style.set_use_optimal_row_height(false);
-        workbook.add_row_style(row_style);
+        let row_style = workbook.add_row_style(row_style);
 
-        self.set_row_style(row, &style_name);
+        self.set_row_style(row, &row_style);
     }
 
     /// Returns a tuple of (max(row)+1, max(col)+1)
@@ -992,16 +1065,16 @@ impl Sheet {
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
-    pub fn set_styled_value<V: Into<Value>, W: Into<String>>(
+    pub fn set_styled_value<V: Into<Value>>(
         &mut self,
         row: ucell,
         col: ucell,
         value: V,
-        style: W,
+        style: &CellStyleRef,
     ) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
         cell.value = value.into();
-        cell.style = Some(style.into());
+        cell.style = Some(style.to_string());
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
@@ -1035,9 +1108,9 @@ impl Sheet {
     }
 
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
-    pub fn set_cell_style<V: Into<String>>(&mut self, row: ucell, col: ucell, style: V) {
+    pub fn set_cell_style(&mut self, row: ucell, col: ucell, style: &CellStyleRef) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
-        cell.style = Some(style.into());
+        cell.style = Some(style.to_string());
     }
 
     /// Returns a value
@@ -1175,8 +1248,8 @@ impl SCell {
     }
 
     /// Sets the cell style.
-    pub fn set_style<V: Into<String>>(&mut self, style: V) {
-        self.style = Some(style.into());
+    pub fn set_style(&mut self, style: &CellStyleRef) {
+        self.style = Some(style.to_string());
     }
 
     /// Sets the row span of this cell.
