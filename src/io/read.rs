@@ -19,7 +19,7 @@ use crate::style::{
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
 use crate::{
-    ucell, CellStyle, ColRange, ColumnStyle, RowRange, RowStyle, SCell, Sheet, TableStyle, Value,
+    ucell, CellStyle, ColRange, ColStyle, RowRange, RowStyle, SCell, Sheet, TableStyle, Value,
     ValueFormat, ValueType, Visibility, WorkBook,
 };
 
@@ -437,12 +437,12 @@ fn read_table_col_attr(
 
     while repeat > 0 {
         if let Some(style) = &style {
-            sheet.set_column_style(table_col, &style.into());
+            sheet.set_col_style(table_col, &style.into());
         }
         if let Some(cell_style) = &cell_style {
-            sheet.set_column_cell_style(table_col, &cell_style.into());
+            sheet.set_col_cell_style(table_col, &cell_style.into());
         }
-        sheet.set_column_visible(table_col, visible);
+        sheet.set_col_visible(table_col, visible);
         table_col += 1;
         repeat -= 1;
     }
@@ -1715,7 +1715,7 @@ fn read_tablecolumn_style(
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut style = ColumnStyle::empty();
+    let mut style = ColStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
 
@@ -1723,7 +1723,7 @@ fn read_tablecolumn_style(
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
-        book.add_column_style(style);
+        book.add_col_style(style);
     } else {
         loop {
             let evt = xml.read_event(&mut buf)?;
@@ -1733,7 +1733,7 @@ fn read_tablecolumn_style(
             match evt {
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
                     b"style:table-column-properties" => {
-                        copy_attr2(style.column_style_mut(), xml, xml_tag)?
+                        copy_attr2(style.colstyle_mut(), xml, xml_tag)?
                     }
                     _ => {
                         if cfg!(feature = "dump_unused") {
@@ -1744,7 +1744,7 @@ fn read_tablecolumn_style(
                 Event::Text(_) => (),
                 Event::End(ref e) => {
                     if e.name() == end_tag {
-                        book.add_column_style(style);
+                        book.add_col_style(style);
                         break;
                     } else {
                         if cfg!(feature = "dump_unused") {

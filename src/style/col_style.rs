@@ -2,10 +2,10 @@ use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak};
 use crate::style::{rel_width_string, StyleOrigin, StyleUse};
 
-style_ref!(ColumnStyleRef);
+style_ref!(ColStyleRef);
 
 #[derive(Debug, Clone)]
-pub struct ColumnStyle {
+pub struct ColStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
@@ -26,16 +26,16 @@ pub struct ColumnStyle {
     // ignore style:percentage-data-style-name 19.511.
     attr: AttrMap2,
     /// Table style properties
-    column_style: AttrMap2,
+    colstyle: AttrMap2,
 }
 
-impl ColumnStyle {
+impl ColStyle {
     pub fn empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            column_style: Default::default(),
+            colstyle: Default::default(),
         }
     }
 
@@ -44,14 +44,14 @@ impl ColumnStyle {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            column_style: Default::default(),
+            colstyle: Default::default(),
         };
         s.set_name(name.into());
         s
     }
 
-    pub fn style_ref(&self) -> ColumnStyleRef {
-        ColumnStyleRef::from(self.name().unwrap().clone())
+    pub fn style_ref(&self) -> ColStyleRef {
+        ColStyleRef::from(self.name().unwrap().clone())
     }
 
     pub fn origin(&self) -> StyleOrigin {
@@ -86,31 +86,31 @@ impl ColumnStyle {
         &mut self.attr
     }
 
-    pub fn column_style(&self) -> &AttrMap2 {
-        &self.column_style
+    pub fn colstyle(&self) -> &AttrMap2 {
+        &self.colstyle
     }
 
-    pub fn column_style_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.column_style
+    pub fn colstyle_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.colstyle
     }
 
-    fo_break!(column_style_mut);
+    fo_break!(colstyle_mut);
 
     /// Relative weights for the column width
     pub fn set_rel_col_width(&mut self, rel: f64) {
-        self.column_style
+        self.colstyle
             .set_attr("style:rel-column-width", rel_width_string(rel));
     }
 
     /// Column width
     pub fn set_col_width(&mut self, width: Length) {
-        self.column_style
+        self.colstyle
             .set_attr("style:column-width", width.to_string());
     }
 
     /// Override switch for the column width.
     pub fn set_use_optimal_col_width(&mut self, opt: bool) {
-        self.column_style
+        self.colstyle
             .set_attr("style:use-optimal-column-width", opt.to_string());
     }
 }

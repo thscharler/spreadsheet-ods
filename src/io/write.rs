@@ -14,7 +14,7 @@ use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{cellranges_string, CellRange};
 use crate::style::{
-    CellStyle, ColumnStyle, FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle,
+    CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle,
     RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::xmltree::{XmlContent, XmlTag};
@@ -1214,7 +1214,7 @@ fn write_styles(
             write_tablerow_style(style, xml_out)?;
         }
     }
-    for style in book.column_styles.values() {
+    for style in book.col_styles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
             write_tablecolumn_style(style, xml_out)?;
         }
@@ -1326,10 +1326,7 @@ fn write_tablerow_style(style: &RowStyle, xml_out: &mut XmlOdsWriter) -> Result<
     Ok(())
 }
 
-fn write_tablecolumn_style(
-    style: &ColumnStyle,
-    xml_out: &mut XmlOdsWriter,
-) -> Result<(), OdsError> {
+fn write_tablecolumn_style(style: &ColStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1351,9 +1348,9 @@ fn write_tablecolumn_style(
         }
     }
 
-    if !style.column_style().is_empty() {
+    if !style.colstyle().is_empty() {
         xml_out.empty("style:table-column-properties")?;
-        for (a, v) in style.column_style().iter() {
+        for (a, v) in style.colstyle().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }

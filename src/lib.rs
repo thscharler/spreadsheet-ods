@@ -166,7 +166,7 @@ pub use crate::io::{read_ods, write_ods};
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 pub use crate::style::units::{Angle, Length};
 pub use crate::style::{
-    CellStyle, CellStyleRef, ColumnStyle, ColumnStyleRef, RowStyle, RowStyleRef, TableStyle,
+    CellStyle, CellStyleRef, ColStyle, ColStyleRef, RowStyle, RowStyleRef, TableStyle,
     TableStyleRef,
 };
 
@@ -208,7 +208,7 @@ pub struct WorkBook {
     /// Styles hold the style:style elements.
     table_styles: HashMap<String, TableStyle>,
     row_styles: HashMap<String, RowStyle>,
-    column_styles: HashMap<String, ColumnStyle>,
+    col_styles: HashMap<String, ColStyle>,
     cell_styles: HashMap<String, CellStyle>,
     para_styles: HashMap<String, ParagraphStyle>,
     text_styles: HashMap<String, TextStyle>,
@@ -250,7 +250,7 @@ impl fmt::Debug for WorkBook {
         for s in self.row_styles.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.column_styles.values() {
+        for s in self.col_styles.values() {
             writeln!(f, "{:?}", s)?;
         }
         for s in self.cell_styles.values() {
@@ -287,7 +287,7 @@ impl WorkBook {
             fonts: Default::default(),
             table_styles: Default::default(),
             row_styles: Default::default(),
-            column_styles: Default::default(),
+            col_styles: Default::default(),
             cell_styles: Default::default(),
             para_styles: Default::default(),
             text_styles: Default::default(),
@@ -439,26 +439,26 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_column_style(&mut self, style: ColumnStyle) -> ColumnStyleRef {
+    pub fn add_col_style(&mut self, style: ColStyle) -> ColStyleRef {
         let sref = style.style_ref();
-        self.column_styles
+        self.col_styles
             .insert(style.name().unwrap().to_string(), style);
         sref
     }
 
     /// Removes a style.
-    pub fn remove_column_style(&mut self, name: &str) -> Option<ColumnStyle> {
-        self.column_styles.remove(name)
+    pub fn remove_col_style(&mut self, name: &str) -> Option<ColStyle> {
+        self.col_styles.remove(name)
     }
 
     /// Returns the style.
-    pub fn column_style(&self, name: &str) -> Option<&ColumnStyle> {
-        self.column_styles.get(name)
+    pub fn col_style(&self, name: &str) -> Option<&ColStyle> {
+        self.col_styles.get(name)
     }
 
     /// Returns the mutable style.
-    pub fn column_style_mut(&mut self, name: &str) -> Option<&mut ColumnStyle> {
-        self.column_styles.get_mut(name)
+    pub fn col_style_mut(&mut self, name: &str) -> Option<&mut ColStyle> {
+        self.col_styles.get_mut(name)
     }
 
     /// Adds a style.
@@ -703,7 +703,7 @@ impl ColHeader {
         }
     }
 
-    pub fn set_style(&mut self, style: &ColumnStyleRef) {
+    pub fn set_style(&mut self, style: &ColStyleRef) {
         self.style = Some(style.to_string());
     }
 
@@ -842,7 +842,7 @@ impl Sheet {
     }
 
     /// Column style.
-    pub fn set_column_style(&mut self, col: ucell, style: &ColumnStyleRef) {
+    pub fn set_col_style(&mut self, col: ucell, style: &ColStyleRef) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
@@ -850,7 +850,7 @@ impl Sheet {
     }
 
     /// Remove the style.
-    pub fn clear_column_style(&mut self, col: ucell) {
+    pub fn clear_col_style(&mut self, col: ucell) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
@@ -858,7 +858,7 @@ impl Sheet {
     }
 
     /// Returns the column style.
-    pub fn column_style(&self, col: ucell) -> Option<&String> {
+    pub fn col_style(&self, col: ucell) -> Option<&String> {
         if let Some(col_header) = self.col_header.get(&col) {
             col_header.style()
         } else {
@@ -867,7 +867,7 @@ impl Sheet {
     }
 
     /// Default cell style for this column.
-    pub fn set_column_cell_style(&mut self, col: ucell, style: &CellStyleRef) {
+    pub fn set_col_cell_style(&mut self, col: ucell, style: &CellStyleRef) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
@@ -875,7 +875,7 @@ impl Sheet {
     }
 
     /// Remove the style.
-    pub fn clear_column_cell_style(&mut self, col: ucell) {
+    pub fn clear_col_cell_style(&mut self, col: ucell) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
@@ -883,7 +883,7 @@ impl Sheet {
     }
 
     /// Returns the default cell style for this column.
-    pub fn column_cell_style(&self, col: ucell) -> Option<&String> {
+    pub fn col_cell_style(&self, col: ucell) -> Option<&String> {
         if let Some(col_header) = self.col_header.get(&col) {
             col_header.cell_style()
         } else {
@@ -892,7 +892,7 @@ impl Sheet {
     }
 
     /// Visibility of the column
-    pub fn set_column_visible(&mut self, col: ucell, visible: Visibility) {
+    pub fn set_col_visible(&mut self, col: ucell, visible: Visibility) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
@@ -900,7 +900,7 @@ impl Sheet {
     }
 
     /// Returns the default cell style for this column.
-    pub fn column_visible(&self, col: ucell) -> Visibility {
+    pub fn col_visible(&self, col: ucell) -> Visibility {
         if let Some(col_header) = self.col_header.get(&col) {
             col_header.visible()
         } else {
@@ -912,16 +912,16 @@ impl Sheet {
     pub fn set_col_width(&mut self, workbook: &mut WorkBook, col: ucell, width: Length) {
         let style_name = format!("co{}", col);
 
-        let mut col_style = if let Some(style) = workbook.remove_column_style(&style_name) {
+        let mut col_style = if let Some(style) = workbook.remove_col_style(&style_name) {
             style
         } else {
-            ColumnStyle::new(&style_name)
+            ColStyle::new(&style_name)
         };
         col_style.set_col_width(width);
         col_style.set_use_optimal_col_width(false);
-        let col_style = workbook.add_column_style(col_style);
+        let col_style = workbook.add_col_style(col_style);
 
-        self.set_column_style(col, &col_style);
+        self.set_col_style(col, &col_style);
     }
 
     /// Row style.

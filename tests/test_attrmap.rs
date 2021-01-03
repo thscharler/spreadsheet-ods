@@ -5,9 +5,7 @@ use spreadsheet_ods::style::units::{
     RotationAlign, TextAlignSource, TextKeep, TextPosition, TextRelief, TextTransform, WrapOption,
     WritingMode,
 };
-use spreadsheet_ods::style::{
-    CellStyle, ColumnStyle, FontFaceDecl, PageLayout, RowStyle, TableStyle,
-};
+use spreadsheet_ods::style::{CellStyle, ColStyle, FontFaceDecl, PageLayout, RowStyle, TableStyle};
 use spreadsheet_ods::{cm, deg, mm, pt};
 
 #[test]
@@ -120,23 +118,23 @@ fn test_attr3() {
         Some(&"tb-lr".to_string())
     );
 
-    let mut st = ColumnStyle::new("c01");
+    let mut st = ColStyle::new("c01");
 
     st.set_use_optimal_col_width(true);
     assert_eq!(
-        st.column_style().attr("style:use-optimal-column-width"),
+        st.colstyle().attr("style:use-optimal-column-width"),
         Some(&"true".to_string())
     );
 
     st.set_rel_col_width(33.0);
     assert_eq!(
-        st.column_style().attr("style:rel-column-width"),
+        st.colstyle().attr("style:rel-column-width"),
         Some(&"33*".to_string())
     );
 
     st.set_col_width(cm!(17));
     assert_eq!(
-        st.column_style().attr("style:column-width"),
+        st.colstyle().attr("style:column-width"),
         Some(&"17cm".to_string())
     );
 

@@ -35,7 +35,7 @@
 //!
 
 mod cell_style;
-mod column_style;
+mod col_style;
 mod fontface;
 mod graphic_style;
 mod pagelayout;
@@ -49,7 +49,7 @@ pub mod units;
 
 pub use crate::attrmap2::*;
 pub use cell_style::*;
-pub use column_style::*;
+pub use col_style::*;
 pub use fontface::*;
 pub use graphic_style::*;
 pub use pagelayout::*;
