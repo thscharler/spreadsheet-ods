@@ -22,10 +22,10 @@ use color::Rgb;
 ///
 /// pl.set_background_color(Rgb::new(12, 129, 252));
 ///
-/// pl.header_style_mut().set_min_height(cm!(0.75));
-/// pl.header_style_mut().set_margin_left(cm!(0.15));
-/// pl.header_style_mut().set_margin_right(cm!(0.15));
-/// pl.header_style_mut().set_margin_bottom(Length::Cm(0.75));
+/// pl.headerstyle_mut().set_min_height(cm!(0.75));
+/// pl.headerstyle_mut().set_margin_left(cm!(0.15));
+/// pl.headerstyle_mut().set_margin_right(cm!(0.15));
+/// pl.headerstyle_mut().set_margin_bottom(Length::Cm(0.75));
 ///
 /// pl.header_mut().center_mut().push_text("middle ground");
 /// pl.header_mut().left_mut().push_text("left wing");
@@ -43,11 +43,11 @@ pub struct PageLayout {
 
     style: AttrMap2,
 
-    header_style: HeaderFooterStyle,
+    headerstyle: HeaderFooterStyle,
     header: HeaderFooter,
     header_left: HeaderFooter,
 
-    footer_style: HeaderFooterStyle,
+    footerstyle: HeaderFooterStyle,
     footer: HeaderFooter,
     footer_left: HeaderFooter,
 }
@@ -61,10 +61,10 @@ impl PageLayout {
             style: Default::default(),
             header: Default::default(),
             header_left: Default::default(),
-            header_style: Default::default(),
+            headerstyle: Default::default(),
             footer: Default::default(),
             footer_left: Default::default(),
-            footer_style: Default::default(),
+            footerstyle: Default::default(),
         }
     }
 
@@ -76,10 +76,10 @@ impl PageLayout {
             style: Default::default(),
             header: Default::default(),
             header_left: Default::default(),
-            header_style: Default::default(),
+            headerstyle: Default::default(),
             footer: Default::default(),
             footer_left: Default::default(),
-            footer_style: Default::default(),
+            footerstyle: Default::default(),
         }
     }
 
@@ -166,13 +166,13 @@ impl PageLayout {
     }
 
     /// Attributes for header.
-    pub fn header_style(&self) -> &HeaderFooterStyle {
-        &self.header_style
+    pub fn headerstyle(&self) -> &HeaderFooterStyle {
+        &self.headerstyle
     }
 
     /// Attributes for header.
-    pub fn header_style_mut(&mut self) -> &mut HeaderFooterStyle {
-        &mut self.header_style
+    pub fn headerstyle_mut(&mut self) -> &mut HeaderFooterStyle {
+        &mut self.headerstyle
     }
 
     /// Footer.
@@ -206,13 +206,13 @@ impl PageLayout {
     }
 
     /// Attributes for footer.
-    pub fn footer_style(&self) -> &HeaderFooterStyle {
-        &self.footer_style
+    pub fn footerstyle(&self) -> &HeaderFooterStyle {
+        &self.footerstyle
     }
 
     /// Attributes for footer.
-    pub fn footer_style_mut(&mut self) -> &mut HeaderFooterStyle {
-        &mut self.footer_style
+    pub fn footerstyle_mut(&mut self) -> &mut HeaderFooterStyle {
+        &mut self.footerstyle
     }
 }
 

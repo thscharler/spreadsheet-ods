@@ -1,11 +1,10 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::units::{Length, PageBreak};
-use crate::style::{rel_width_string, StyleOrigin, StyleUse};
+use crate::style::{StyleOrigin, StyleUse};
 
-style_ref!(ColStyleRef);
+style_ref!(GraphicStyleRef);
 
 #[derive(Debug, Clone)]
-pub struct ColStyle {
+pub struct GraphicStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
@@ -14,7 +13,7 @@ pub struct ColStyle {
     // ??? style:auto-update 19.467,
     // ??? style:class 19.470,
     // ignore style:data-style-name 19.473,
-    // ignore style:default-outlinelevel 19.474,
+    // ??? style:default-outlinelevel 19.474,
     // ignore style:display-name 19.476,
     // ok style:family 19.480,
     // ignore style:list-level 19.499,
@@ -26,32 +25,32 @@ pub struct ColStyle {
     // ignore style:percentage-data-style-name 19.511.
     attr: AttrMap2,
     /// Table style properties
-    colstyle: AttrMap2,
+    graphicstyle: AttrMap2,
 }
 
-impl ColStyle {
+impl GraphicStyle {
     pub fn empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            colstyle: Default::default(),
+            graphicstyle: Default::default(),
         }
     }
 
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
         let mut s = Self {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            colstyle: Default::default(),
+            graphicstyle: Default::default(),
         };
         s.set_name(name.into());
         s
     }
 
-    pub fn style_ref(&self) -> ColStyleRef {
-        ColStyleRef::from(self.name().unwrap().clone())
+    pub fn style_ref(&self) -> GraphicStyleRef {
+        GraphicStyleRef::from(self.name().unwrap().clone())
     }
 
     pub fn origin(&self) -> StyleOrigin {
@@ -78,39 +77,19 @@ impl ColStyle {
         self.attr.set_attr("style:name", name.into());
     }
 
-    pub fn attr_map(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    pub fn attr_map_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
-    pub fn colstyle(&self) -> &AttrMap2 {
-        &self.colstyle
+    pub fn graphicstyle(&self) -> &AttrMap2 {
+        &self.graphicstyle
     }
 
-    pub fn colstyle_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.colstyle
-    }
-
-    fo_break!(colstyle_mut);
-
-    /// Relative weights for the column width
-    pub fn set_rel_col_width(&mut self, rel: f64) {
-        self.colstyle
-            .set_attr("style:rel-column-width", rel_width_string(rel));
-    }
-
-    /// Column width
-    pub fn set_col_width(&mut self, width: Length) {
-        self.colstyle
-            .set_attr("style:column-width", width.to_string());
-    }
-
-    /// Override switch for the column width.
-    pub fn set_use_optimal_col_width(&mut self, opt: bool) {
-        self.colstyle
-            .set_attr("style:use-optimal-column-width", opt.to_string());
+    pub fn graphicstyle_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.graphicstyle
     }
 }

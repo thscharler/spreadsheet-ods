@@ -88,11 +88,11 @@ impl TabStop {
         self.attr.set_attr("style:type", t.to_string());
     }
 
-    pub fn attr_map(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    pub fn attr_map_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 }

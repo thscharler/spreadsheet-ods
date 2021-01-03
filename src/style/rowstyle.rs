@@ -1,10 +1,12 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::{StyleOrigin, StyleUse};
+use crate::style::units::{Length, PageBreak, TextKeep};
+use crate::style::{color_string, StyleOrigin, StyleUse};
+use color::Rgb;
 
-style_ref!(GraphicStyleRef);
+style_ref!(RowStyleRef);
 
 #[derive(Debug, Clone)]
-pub struct GraphicStyle {
+pub struct RowStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
@@ -25,32 +27,32 @@ pub struct GraphicStyle {
     // ignore style:percentage-data-style-name 19.511.
     attr: AttrMap2,
     /// Table style properties
-    graphic_style: AttrMap2,
+    rowstyle: AttrMap2,
 }
 
-impl GraphicStyle {
+impl RowStyle {
     pub fn empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            graphic_style: Default::default(),
+            rowstyle: Default::default(),
         }
     }
 
-    pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
+    pub fn new<S: Into<String>>(name: S) -> Self {
         let mut s = Self {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            graphic_style: Default::default(),
+            rowstyle: Default::default(),
         };
         s.set_name(name.into());
         s
     }
 
-    pub fn style_ref(&self) -> GraphicStyleRef {
-        GraphicStyleRef::from(self.name().unwrap().clone())
+    pub fn style_ref(&self) -> RowStyleRef {
+        RowStyleRef::from(self.name().unwrap().clone())
     }
 
     pub fn origin(&self) -> StyleOrigin {
@@ -77,19 +79,38 @@ impl GraphicStyle {
         self.attr.set_attr("style:name", name.into());
     }
 
-    pub fn attr_map(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    pub fn attr_map_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
-    pub fn graphic_style(&self) -> &AttrMap2 {
-        &self.graphic_style
+    pub fn rowstyle(&self) -> &AttrMap2 {
+        &self.rowstyle
     }
 
-    pub fn graphic_style_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.graphic_style
+    pub fn rowstyle_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.rowstyle
+    }
+
+    fo_background_color!(rowstyle_mut);
+    fo_break!(rowstyle_mut);
+    fo_keep_together!(rowstyle_mut);
+
+    pub fn set_min_row_height(&mut self, min_height: Length) {
+        self.rowstyle
+            .set_attr("style:min-row-height", min_height.to_string());
+    }
+
+    pub fn set_row_height(&mut self, height: Length) {
+        self.rowstyle
+            .set_attr("style:row-height", height.to_string());
+    }
+
+    pub fn set_use_optimal_row_height(&mut self, opt: bool) {
+        self.rowstyle
+            .set_attr("style:use-optimal-row-height", opt.to_string());
     }
 }

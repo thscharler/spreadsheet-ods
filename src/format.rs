@@ -78,7 +78,7 @@ pub struct ValueFormat {
     /// Properties of the format.
     attr: AttrMap2,
     /// Cell text styles
-    text_style: AttrMap2,
+    textstyle: AttrMap2,
     /// Parts of the format.
     parts: Vec<FormatPart>,
     /// Style map data.
@@ -97,7 +97,7 @@ impl ValueFormat {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            text_style: Default::default(),
+            textstyle: Default::default(),
             parts: Default::default(),
             stylemaps: None,
         }
@@ -114,7 +114,7 @@ impl ValueFormat {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            text_style: Default::default(),
+            textstyle: Default::default(),
             parts: Default::default(),
             stylemaps: None,
         }
@@ -195,16 +195,16 @@ impl ValueFormat {
     }
 
     /// Text style attributes.
-    pub fn text_style(&self) -> &AttrMap2 {
-        &self.text_style
+    pub fn textstyle(&self) -> &AttrMap2 {
+        &self.textstyle
     }
 
     /// Text style attributes.
-    pub fn text_style_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.text_style
+    pub fn textstyle_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.textstyle
     }
 
-    text!(text_style_mut);
+    text!(textstyle_mut);
 
     /// Appends a format part.
     pub fn push_boolean(&mut self) {
@@ -419,11 +419,11 @@ impl ValueFormat {
 }
 
 impl AttrMap2Trait for ValueFormat {
-    fn attr_map(&self) -> &AttrMap2 {
+    fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut AttrMap2 {
+    fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 }
@@ -464,11 +464,11 @@ pub struct FormatPart {
 }
 
 impl AttrMap2Trait for FormatPart {
-    fn attr_map(&self) -> &AttrMap2 {
+    fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut AttrMap2 {
+    fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 }

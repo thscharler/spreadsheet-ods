@@ -19,14 +19,14 @@ fn teststyles() -> Result<(), OdsError> {
     ce12.set_styleuse(StyleUse::Named);
     ce12.set_display_name("CC12");
     ce12.set_color(Rgb::new(192, 128, 0));
-    wb.add_cell_style(ce12);
+    wb.add_cellstyle(ce12);
 
     let mut ce11 = CellStyle::new("ce11", &"num2".into());
     ce11.set_origin(StyleOrigin::Styles);
     ce11.set_styleuse(StyleUse::Named);
     ce11.set_display_name("CC11");
     ce11.set_color(Rgb::new(0, 192, 128));
-    wb.add_cell_style(ce11);
+    wb.add_cellstyle(ce11);
 
     let mut ce13 = CellStyle::new("ce13", &"num4".into());
     ce13.push_stylemap(StyleMap::new(
@@ -39,7 +39,7 @@ fn teststyles() -> Result<(), OdsError> {
         "ce11",
         CellRef::remote("s0", 4, 3),
     ));
-    let ce13 = wb.add_cell_style(ce13);
+    let ce13 = wb.add_cellstyle(ce13);
 
     let mut sh = Sheet::new_with_name("s0");
     sh.set_styled_value(4, 3, "AA", &ce13);

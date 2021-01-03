@@ -130,22 +130,22 @@ pub fn create_default_styles(book: &mut WorkBook) {
     ));
     book.add_format(format::create_time_format(value_time!().to_string()));
 
-    book.add_cell_style(CellStyle::new(style_bool!().to_string(), &value_bool!()));
-    book.add_cell_style(CellStyle::new(style_num!().to_string(), &value_num!()));
-    book.add_cell_style(CellStyle::new(
+    book.add_cellstyle(CellStyle::new(style_bool!().to_string(), &value_bool!()));
+    book.add_cellstyle(CellStyle::new(style_num!().to_string(), &value_num!()));
+    book.add_cellstyle(CellStyle::new(
         style_percent!().to_string(),
         &value_percent!(),
     ));
-    book.add_cell_style(CellStyle::new(
+    book.add_cellstyle(CellStyle::new(
         style_currency!().to_string(),
         &value_currency!(),
     ));
-    book.add_cell_style(CellStyle::new(style_date!().to_string(), &value_date!()));
-    book.add_cell_style(CellStyle::new(
+    book.add_cellstyle(CellStyle::new(style_date!().to_string(), &value_date!()));
+    book.add_cellstyle(CellStyle::new(
         style_datetime!().to_string(),
         &value_datetime!(),
     ));
-    book.add_cell_style(CellStyle::new(style_time!().to_string(), &value_time!()));
+    book.add_cellstyle(CellStyle::new(style_time!().to_string(), &value_time!()));
 
     book.add_def_style(ValueType::Boolean, &style_bool!());
     book.add_def_style(ValueType::Number, &style_num!());

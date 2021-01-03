@@ -54,11 +54,11 @@ pub struct XmlTag {
 }
 
 impl AttrMap2Trait for XmlTag {
-    fn attr_map(&self) -> &AttrMap2 {
+    fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut AttrMap2 {
+    fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 }

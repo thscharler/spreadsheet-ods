@@ -35,8 +35,8 @@ pub struct ParagraphStyle {
     // ignore style:percentage-data-style-name 19.511.
     attr: AttrMap2,
 
-    paragraph_style: AttrMap2,
-    text_style: AttrMap2,
+    paragraphstyle: AttrMap2,
+    textstyle: AttrMap2,
 
     tabstops: Option<Vec<TabStop>>,
 }
@@ -47,8 +47,8 @@ impl ParagraphStyle {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            paragraph_style: Default::default(),
-            text_style: Default::default(),
+            paragraphstyle: Default::default(),
+            textstyle: Default::default(),
             tabstops: None,
         }
     }
@@ -58,8 +58,8 @@ impl ParagraphStyle {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            paragraph_style: Default::default(),
-            text_style: Default::default(),
+            paragraphstyle: Default::default(),
+            textstyle: Default::default(),
             tabstops: None,
         };
         s.set_name(name.into());
@@ -129,41 +129,41 @@ impl ParagraphStyle {
         self.tabstops.as_ref()
     }
 
-    pub fn attr_map(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    pub fn attr_map_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
-    pub fn paragraph_style(&self) -> &AttrMap2 {
-        &self.paragraph_style
+    pub fn paragraphstyle(&self) -> &AttrMap2 {
+        &self.paragraphstyle
     }
 
-    pub fn paragraph_style_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.paragraph_style
+    pub fn paragraphstyle_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.paragraphstyle
     }
 
-    pub fn text_style(&self) -> &AttrMap2 {
-        &self.text_style
+    pub fn textstyle(&self) -> &AttrMap2 {
+        &self.textstyle
     }
 
-    pub fn text_style_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.text_style
+    pub fn textstyle_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.textstyle
     }
 
-    fo_background_color!(paragraph_style_mut);
-    fo_border!(paragraph_style_mut);
-    fo_break!(paragraph_style_mut);
-    fo_keep_together!(paragraph_style_mut);
-    fo_keep_with_next!(paragraph_style_mut);
-    fo_margin!(paragraph_style_mut);
-    fo_padding!(paragraph_style_mut);
-    style_shadow!(paragraph_style_mut);
-    style_writing_mode!(paragraph_style_mut);
+    fo_background_color!(paragraphstyle_mut);
+    fo_border!(paragraphstyle_mut);
+    fo_break!(paragraphstyle_mut);
+    fo_keep_together!(paragraphstyle_mut);
+    fo_keep_with_next!(paragraphstyle_mut);
+    fo_margin!(paragraphstyle_mut);
+    fo_padding!(paragraphstyle_mut);
+    style_shadow!(paragraphstyle_mut);
+    style_writing_mode!(paragraphstyle_mut);
 
-    paragraph!(paragraph_style_mut);
+    paragraph!(paragraphstyle_mut);
 
-    text!(text_style_mut);
+    text!(textstyle_mut);
 }

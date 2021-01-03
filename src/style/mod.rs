@@ -12,17 +12,17 @@
 //! let mut st = CellStyle::new("ce12", &"num2".into());
 //! st.set_color(Rgb::new(192, 128, 0));
 //! st.set_font_bold();
-//! wb.add_cell_style(st);
+//! wb.add_cellstyle(st);
 //!
 //! let mut st = CellStyle::new("ce11", &"num2".into());
 //! st.set_color(Rgb::new(0, 192, 128));
 //! st.set_font_bold();
-//! wb.add_cell_style(st);
+//! wb.add_cellstyle(st);
 //!
 //! let mut st = CellStyle::new("ce13", &"num4".into());
 //! st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::remote("sheet0", 4, 3)));
 //! st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::remote("sheet0", 4, 3)));
-//! wb.add_cell_style(st);
+//! wb.add_cellstyle(st);
 //! ```
 //! Styles can be defined in content.xml or as global styles in styles.xml. This
 //! is reflected as the StyleOrigin. The StyleUse differentiates between automatic
@@ -34,29 +34,29 @@
 //! Styles can also link to a parent style and to a pagelayout.
 //!
 
-mod cell_style;
-mod col_style;
+mod cellstyle;
+mod colstyle;
 mod fontface;
-mod graphic_style;
+mod graphicstyle;
 mod pagelayout;
-mod paragraph_style;
-mod row_style;
+mod paragraphstyle;
+mod rowstyle;
 pub mod stylemap;
-mod table_style;
+mod tablestyle;
 pub mod tabstop;
-mod text_style;
+mod textstyle;
 pub mod units;
 
 pub use crate::attrmap2::*;
-pub use cell_style::*;
-pub use col_style::*;
+pub use cellstyle::*;
+pub use colstyle::*;
 pub use fontface::*;
-pub use graphic_style::*;
+pub use graphicstyle::*;
 pub use pagelayout::*;
-pub use paragraph_style::*;
-pub use row_style::*;
-pub use table_style::*;
-pub use text_style::*;
+pub use paragraphstyle::*;
+pub use rowstyle::*;
+pub use tablestyle::*;
+pub use textstyle::*;
 
 use crate::style::units::{Border, Length};
 use color::Rgb;

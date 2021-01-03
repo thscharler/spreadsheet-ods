@@ -20,12 +20,12 @@ pub struct StyleMap {
 impl StyleMap {
     pub fn new<S: Into<String>, T: Into<String>>(
         condition: S,
-        apply_style: T,
+        applied_style: T,
         cellref: CellRef,
     ) -> Self {
         Self {
             condition: condition.into(),
-            applied_style: apply_style.into(),
+            applied_style: applied_style.into(),
             base_cell: cellref,
         }
     }

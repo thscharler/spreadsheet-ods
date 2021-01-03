@@ -29,7 +29,7 @@ pub struct TextStyle {
     // ok style:parent-style-name 19.510,
     // ignore style:percentage-data-style-name 19.511.
     attr: AttrMap2,
-    text_style: AttrMap2,
+    textstyle: AttrMap2,
 }
 
 impl TextStyle {
@@ -38,7 +38,7 @@ impl TextStyle {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            text_style: Default::default(),
+            textstyle: Default::default(),
         }
     }
 
@@ -47,7 +47,7 @@ impl TextStyle {
             origin: Default::default(),
             styleuse: Default::default(),
             attr: Default::default(),
-            text_style: Default::default(),
+            textstyle: Default::default(),
         };
         s.set_name(name.into());
         s
@@ -98,21 +98,21 @@ impl TextStyle {
             .set_attr("style:parent-style-name", name.to_string());
     }
 
-    pub fn attr_map(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    pub fn attr_map_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
-    pub fn text_style(&self) -> &AttrMap2 {
-        &self.text_style
+    pub fn textstyle(&self) -> &AttrMap2 {
+        &self.textstyle
     }
 
-    pub fn text_style_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.text_style
+    pub fn textstyle_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.textstyle
     }
 
-    text!(text_style_mut);
+    text!(textstyle_mut);
 }

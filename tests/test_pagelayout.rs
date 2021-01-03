@@ -38,10 +38,10 @@ fn crpagelayout() -> Result<(), OdsError> {
 
     pl.set_background_color(Rgb::new(12, 129, 252));
 
-    pl.header_style_mut().set_min_height(cm!(0.75));
-    pl.header_style_mut().set_margin_left(cm!(0.15));
-    pl.header_style_mut().set_margin_right(cm!(0.15));
-    pl.header_style_mut().set_margin_bottom(cm!(0.15));
+    pl.headerstyle_mut().set_min_height(cm!(0.75));
+    pl.headerstyle_mut().set_margin_left(cm!(0.15));
+    pl.headerstyle_mut().set_margin_right(cm!(0.15));
+    pl.headerstyle_mut().set_margin_bottom(cm!(0.15));
 
     pl.header_mut().center_mut().push_text("middle ground");
     pl.header_mut().left_mut().push_text("left wing");

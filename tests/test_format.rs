@@ -134,14 +134,14 @@ fn write_format() -> Result<(), OdsError> {
     v7.push_quarter(FormatNumberStyle::Long, FormatCalendarStyle::Gregorian);
     let v7 = wb.add_format(v7);
 
-    let f1 = wb.add_cell_style(CellStyle::new("f1", &v1));
-    let f2 = wb.add_cell_style(CellStyle::new("f2", &v2));
-    let f3 = wb.add_cell_style(CellStyle::new("f3", &v3));
-    let f31 = wb.add_cell_style(CellStyle::new("f31", &v31));
-    let f4 = wb.add_cell_style(CellStyle::new("f4", &v4));
-    let f5 = wb.add_cell_style(CellStyle::new("f5", &v5));
-    let f6 = wb.add_cell_style(CellStyle::new("f6", &v6));
-    let f7 = wb.add_cell_style(CellStyle::new("f7", &v7));
+    let f1 = wb.add_cellstyle(CellStyle::new("f1", &v1));
+    let f2 = wb.add_cellstyle(CellStyle::new("f2", &v2));
+    let f3 = wb.add_cellstyle(CellStyle::new("f3", &v3));
+    let f31 = wb.add_cellstyle(CellStyle::new("f31", &v31));
+    let f4 = wb.add_cellstyle(CellStyle::new("f4", &v4));
+    let f5 = wb.add_cellstyle(CellStyle::new("f5", &v5));
+    let f6 = wb.add_cellstyle(CellStyle::new("f6", &v6));
+    let f7 = wb.add_cellstyle(CellStyle::new("f7", &v7));
 
     let mut sh = Sheet::new();
     sh.set_styled_value(0, 0, 1.234567f64, &f1);

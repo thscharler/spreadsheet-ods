@@ -421,7 +421,7 @@ fn write_ods_styles(
     xml_out.elem("office:styles")?;
     write_styles(book, StyleOrigin::Styles, StyleUse::Default, &mut xml_out)?;
     write_styles(book, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
-    write_value_styles(
+    write_valuestyles(
         &book.formats,
         StyleOrigin::Styles,
         StyleUse::Named,
@@ -430,9 +430,9 @@ fn write_ods_styles(
     xml_out.end_elem("office:styles")?;
 
     xml_out.elem("office:automatic-styles")?;
-    write_pagelayout(&book.page_layouts, &mut xml_out)?;
+    write_pagelayout(&book.pagelayouts, &mut xml_out)?;
     write_styles(book, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
-    write_value_styles(
+    write_valuestyles(
         &book.formats,
         StyleOrigin::Styles,
         StyleUse::Automatic,
@@ -441,7 +441,7 @@ fn write_ods_styles(
     xml_out.end_elem("office:automatic-styles")?;
 
     xml_out.elem("office:master-styles")?;
-    write_masterpage(&book.page_layouts, &mut xml_out)?;
+    write_masterpage(&book.pagelayouts, &mut xml_out)?;
     xml_out.end_elem("office:master-styles")?;
 
     xml_out.end_elem("office:document-styles")?;
@@ -541,7 +541,7 @@ fn write_ods_content(
         StyleUse::Automatic,
         &mut xml_out,
     )?;
-    write_value_styles(
+    write_valuestyles(
         &book.formats,
         StyleOrigin::Content,
         StyleUse::Automatic,
@@ -794,11 +794,11 @@ fn write_start_current_row(
 
     xml_out.elem("table:table-row")?;
     if let Some(row_header) = sheet.row_header.get(&cur_row) {
-        if let Some(row_style) = row_header.style() {
-            xml_out.attr_esc("table:style-name", row_style.as_str())?;
+        if let Some(rowstyle) = row_header.style() {
+            xml_out.attr_esc("table:style-name", rowstyle.as_str())?;
         }
-        if let Some(cell_style) = row_header.cell_style() {
-            xml_out.attr_esc("table:default-cell-style-name", cell_style.as_str())?;
+        if let Some(cellstyle) = row_header.cellstyle() {
+            xml_out.attr_esc("table:default-cell-style-name", cellstyle.as_str())?;
         }
         if row_header.visible() != Visibility::Visible {
             xml_out.attr_esc(
@@ -926,11 +926,11 @@ fn write_empty_row(
     xml_out.elem("table:table-row")?;
     xml_out.attr("table:number-rows-repeated", &empty_count.to_string())?;
     if let Some(row_header) = sheet.row_header.get(&cur_row) {
-        if let Some(row_style) = row_header.style() {
-            xml_out.attr_esc("table:style-name", row_style.as_str())?;
+        if let Some(rowstyle) = row_header.style() {
+            xml_out.attr_esc("table:style-name", rowstyle.as_str())?;
         }
-        if let Some(cell_style) = row_header.cell_style() {
-            xml_out.attr_esc("table:default-cell-style-name", cell_style.as_str())?;
+        if let Some(cellstyle) = row_header.cellstyle() {
+            xml_out.attr_esc("table:default-cell-style-name", cellstyle.as_str())?;
         }
         if row_header.visible() != Visibility::Visible {
             xml_out.attr_esc(
@@ -956,7 +956,7 @@ fn write_xmltag(x: &XmlTag, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> 
     } else {
         xml_out.elem(x.name())?;
     }
-    for (k, v) in x.attr_map().iter() {
+    for (k, v) in x.attrmap().iter() {
         xml_out.attr_esc(k.as_ref(), v.as_str())?;
     }
 
@@ -997,8 +997,8 @@ fn write_table_columns(
             if let Some(style) = col_header.style() {
                 xml_out.attr_esc("table:style-name", style.as_str())?;
             }
-            if let Some(cell_style) = col_header.cell_style() {
-                xml_out.attr_esc("table:default-cell-style-name", cell_style.as_str())?;
+            if let Some(cellstyle) = col_header.cellstyle() {
+                xml_out.attr_esc("table:default-cell-style-name", cellstyle.as_str())?;
             }
             if col_header.visible() != Visibility::Visible {
                 xml_out.attr_esc(
@@ -1064,7 +1064,7 @@ fn write_cell(
 
     // Might not yield a useful result. Could not exist, or be in styles.xml
     // which I don't read. Defaulting to to_string() seems reasonable.
-    let value_style = if let Some(style_name) = &cell.style {
+    let valuestyle = if let Some(style_name) = &cell.style {
         book.find_value_format(style_name)
     } else {
         None
@@ -1088,8 +1088,8 @@ fn write_cell(
             let value = d.format("%Y-%m-%dT%H:%M:%S%.f").to_string();
             xml_out.attr("office:date-value", value.as_str())?;
             xml_out.elem("text:p")?;
-            if let Some(value_style) = value_style {
-                xml_out.text_esc(value_style.format_datetime(d).as_str())?;
+            if let Some(valuestyle) = valuestyle {
+                xml_out.text_esc(valuestyle.format_datetime(d).as_str())?;
             } else {
                 xml_out.text(d.format("%d.%m.%Y").to_string().as_str())?;
             }
@@ -1111,8 +1111,8 @@ fn write_cell(
             xml_out.attr("office:time-value", value.as_str())?;
 
             xml_out.elem("text:p")?;
-            if let Some(value_style) = value_style {
-                xml_out.text_esc(value_style.format_time_duration(d).as_str())?;
+            if let Some(valuestyle) = valuestyle {
+                xml_out.text_esc(valuestyle.format_time_duration(d).as_str())?;
             } else {
                 xml_out.text(&d.num_hours().to_string())?;
                 xml_out.text(":")?;
@@ -1128,8 +1128,8 @@ fn write_cell(
             xml_out.attr("office:value-type", "boolean")?;
             xml_out.attr("office:boolean-value", if *b { "true" } else { "false" })?;
             xml_out.elem("text:p")?;
-            if let Some(value_style) = value_style {
-                xml_out.text_esc(value_style.format_boolean(*b).as_str())?;
+            if let Some(valuestyle) = valuestyle {
+                xml_out.text_esc(valuestyle.format_boolean(*b).as_str())?;
             } else {
                 xml_out.text(if *b { "true" } else { "false" })?;
             }
@@ -1141,8 +1141,8 @@ fn write_cell(
             let value = v.to_string();
             xml_out.attr("office:value", value.as_str())?;
             xml_out.elem("text:p")?;
-            if let Some(value_style) = value_style {
-                xml_out.text_esc(value_style.format_float(*v).as_str())?;
+            if let Some(valuestyle) = valuestyle {
+                xml_out.text_esc(valuestyle.format_float(*v).as_str())?;
             } else {
                 xml_out.text(c)?;
                 xml_out.text(" ")?;
@@ -1155,8 +1155,8 @@ fn write_cell(
             let value = v.to_string();
             xml_out.attr("office:value", value.as_str())?;
             xml_out.elem("text:p")?;
-            if let Some(value_style) = value_style {
-                xml_out.text_esc(value_style.format_float(*v).as_str())?;
+            if let Some(valuestyle) = valuestyle {
+                xml_out.text_esc(valuestyle.format_float(*v).as_str())?;
             } else {
                 xml_out.text(value.as_str())?;
             }
@@ -1166,8 +1166,8 @@ fn write_cell(
             xml_out.attr("office:value-type", "percentage")?;
             xml_out.attr("office:value", format!("{}%", v).as_str())?;
             xml_out.elem("text:p")?;
-            if let Some(value_style) = value_style {
-                xml_out.text_esc(value_style.format_float(*v * 100.0).as_str())?;
+            if let Some(valuestyle) = valuestyle {
+                xml_out.text_esc(valuestyle.format_float(*v * 100.0).as_str())?;
             } else {
                 xml_out.text(&(v * 100.0).to_string())?;
             }
@@ -1191,7 +1191,7 @@ fn write_font_decl(
     for font in fonts.values().filter(|s| s.origin() == origin) {
         xml_out.empty("style:font-face")?;
         xml_out.attr_esc("style:name", font.name().as_str())?;
-        for (a, v) in font.attr_map().iter() {
+        for (a, v) in font.attrmap().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }
@@ -1204,39 +1204,39 @@ fn write_styles(
     styleuse: StyleUse,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
-    for style in book.table_styles.values() {
+    for style in book.tablestyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
-            write_table_style(style, xml_out)?;
+            write_tablestyle(style, xml_out)?;
         }
     }
-    for style in book.row_styles.values() {
+    for style in book.rowstyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
-            write_tablerow_style(style, xml_out)?;
+            write_rowstyle(style, xml_out)?;
         }
     }
-    for style in book.col_styles.values() {
+    for style in book.colstyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
-            write_tablecolumn_style(style, xml_out)?;
+            write_colstyle(style, xml_out)?;
         }
     }
-    for style in book.cell_styles.values() {
+    for style in book.cellstyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
-            write_tablecell_style(style, xml_out)?;
+            write_cellstyle(style, xml_out)?;
         }
     }
-    for style in book.para_styles.values() {
+    for style in book.paragraphstyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
-            write_paragraph_style(style, xml_out)?;
+            write_paragraphstyle(style, xml_out)?;
         }
     }
-    for style in book.text_styles.values() {
+    for style in book.textstyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
-            write_text_style(style, xml_out)?;
+            write_textstyle(style, xml_out)?;
         }
     }
-    for style in book.graphic_styles.values() {
+    for style in book.graphicstyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
-            write_graphic_style(style, xml_out)?;
+            write_graphicstyle(style, xml_out)?;
         }
     }
 
@@ -1252,7 +1252,7 @@ fn write_styles(
     Ok(())
 }
 
-fn write_table_style(style: &TableStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_tablestyle(style: &TableStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1264,7 +1264,7 @@ fn write_table_style(style: &TableStyle, xml_out: &mut XmlOdsWriter) -> Result<(
         }
     }
     xml_out.attr("style:family", "table")?;
-    for (a, v) in style.attr_map().iter() {
+    for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1274,9 +1274,9 @@ fn write_table_style(style: &TableStyle, xml_out: &mut XmlOdsWriter) -> Result<(
         }
     }
 
-    if !style.table_style().is_empty() {
+    if !style.tablestyle().is_empty() {
         xml_out.empty("style:table-properties")?;
-        for (a, v) in style.table_style().iter() {
+        for (a, v) in style.tablestyle().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }
@@ -1289,7 +1289,7 @@ fn write_table_style(style: &TableStyle, xml_out: &mut XmlOdsWriter) -> Result<(
     Ok(())
 }
 
-fn write_tablerow_style(style: &RowStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_rowstyle(style: &RowStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1301,7 +1301,7 @@ fn write_tablerow_style(style: &RowStyle, xml_out: &mut XmlOdsWriter) -> Result<
         }
     }
     xml_out.attr("style:family", "table-row")?;
-    for (a, v) in style.attr_map().iter() {
+    for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1311,9 +1311,9 @@ fn write_tablerow_style(style: &RowStyle, xml_out: &mut XmlOdsWriter) -> Result<
         }
     }
 
-    if !style.row_style().is_empty() {
+    if !style.rowstyle().is_empty() {
         xml_out.empty("style:table-row-properties")?;
-        for (a, v) in style.row_style().iter() {
+        for (a, v) in style.rowstyle().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }
@@ -1326,7 +1326,7 @@ fn write_tablerow_style(style: &RowStyle, xml_out: &mut XmlOdsWriter) -> Result<
     Ok(())
 }
 
-fn write_tablecolumn_style(style: &ColStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_colstyle(style: &ColStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1338,7 +1338,7 @@ fn write_tablecolumn_style(style: &ColStyle, xml_out: &mut XmlOdsWriter) -> Resu
         }
     }
     xml_out.attr("style:family", "table-column")?;
-    for (a, v) in style.attr_map().iter() {
+    for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1363,7 +1363,7 @@ fn write_tablecolumn_style(style: &ColStyle, xml_out: &mut XmlOdsWriter) -> Resu
     Ok(())
 }
 
-fn write_tablecell_style(style: &CellStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_cellstyle(style: &CellStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1375,7 +1375,7 @@ fn write_tablecell_style(style: &CellStyle, xml_out: &mut XmlOdsWriter) -> Resul
         }
     }
     xml_out.attr("style:family", "table-cell")?;
-    for (a, v) in style.attr_map().iter() {
+    for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1385,21 +1385,21 @@ fn write_tablecell_style(style: &CellStyle, xml_out: &mut XmlOdsWriter) -> Resul
         }
     }
 
-    if !style.cell_style().is_empty() {
+    if !style.cellstyle().is_empty() {
         xml_out.empty("style:table-cell-properties")?;
-        for (a, v) in style.cell_style().iter() {
+        for (a, v) in style.cellstyle().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }
-    if !&style.paragraph_style().is_empty() {
+    if !&style.paragraphstyle().is_empty() {
         xml_out.empty("style:paragraph-properties")?;
-        for (a, v) in style.paragraph_style().iter() {
+        for (a, v) in style.paragraphstyle().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }
-    if !style.text_style().is_empty() {
+    if !style.textstyle().is_empty() {
         xml_out.empty("style:text-properties")?;
-        for (a, v) in style.text_style().iter() {
+        for (a, v) in style.textstyle().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }
@@ -1420,7 +1420,7 @@ fn write_tablecell_style(style: &CellStyle, xml_out: &mut XmlOdsWriter) -> Resul
     Ok(())
 }
 
-fn write_paragraph_style(
+fn write_paragraphstyle(
     style: &ParagraphStyle,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
@@ -1435,7 +1435,7 @@ fn write_paragraph_style(
         }
     }
     xml_out.attr("style:family", "paragraph")?;
-    for (a, v) in style.attr_map().iter() {
+    for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1445,22 +1445,22 @@ fn write_paragraph_style(
         }
     }
 
-    if !style.paragraph_style().is_empty() {
+    if !style.paragraphstyle().is_empty() {
         if style.tabstops().is_none() {
             xml_out.empty("style:paragraph-properties")?;
-            for (a, v) in style.paragraph_style().iter() {
+            for (a, v) in style.paragraphstyle().iter() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         } else {
             xml_out.elem("style:paragraph-properties")?;
-            for (a, v) in style.paragraph_style().iter() {
+            for (a, v) in style.paragraphstyle().iter() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
             xml_out.elem("style:tab-stops")?;
             if let Some(tabstops) = style.tabstops() {
                 for ts in tabstops {
                     xml_out.empty("style:tab-stop")?;
-                    for (a, v) in ts.attr_map().iter() {
+                    for (a, v) in ts.attrmap().iter() {
                         xml_out.attr_esc(a.as_ref(), v.as_str())?;
                     }
                 }
@@ -1469,9 +1469,9 @@ fn write_paragraph_style(
             xml_out.end_elem("style:paragraph-properties")?;
         }
     }
-    if !style.text_style().is_empty() {
+    if !style.textstyle().is_empty() {
         xml_out.empty("style:text-properties")?;
-        for (a, v) in style.text_style().iter() {
+        for (a, v) in style.textstyle().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }
@@ -1484,7 +1484,7 @@ fn write_paragraph_style(
     Ok(())
 }
 
-fn write_text_style(style: &TextStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_textstyle(style: &TextStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1496,7 +1496,7 @@ fn write_text_style(style: &TextStyle, xml_out: &mut XmlOdsWriter) -> Result<(),
         }
     }
     xml_out.attr("style:family", "text")?;
-    for (a, v) in style.attr_map().iter() {
+    for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1506,9 +1506,9 @@ fn write_text_style(style: &TextStyle, xml_out: &mut XmlOdsWriter) -> Result<(),
         }
     }
 
-    if !style.text_style().is_empty() {
+    if !style.textstyle().is_empty() {
         xml_out.empty("style:text-properties")?;
-        for (a, v) in style.text_style().iter() {
+        for (a, v) in style.textstyle().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
     }
@@ -1521,7 +1521,7 @@ fn write_text_style(style: &TextStyle, xml_out: &mut XmlOdsWriter) -> Result<(),
     Ok(())
 }
 
-fn write_graphic_style(style: &GraphicStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+fn write_graphicstyle(style: &GraphicStyle, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1533,7 +1533,7 @@ fn write_graphic_style(style: &GraphicStyle, xml_out: &mut XmlOdsWriter) -> Resu
         }
     }
     xml_out.attr("style:family", "graphic")?;
-    for (a, v) in style.attr_map().iter() {
+    for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
@@ -1543,9 +1543,9 @@ fn write_graphic_style(style: &GraphicStyle, xml_out: &mut XmlOdsWriter) -> Resu
         }
     }
 
-    if !style.graphic_style().is_empty() {
+    if !style.graphicstyle().is_empty() {
         xml_out.empty("style:graphic-properties")?;
-        for (a, v) in style.graphic_style().iter() {
+        for (a, v) in style.graphicstyle().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
         xml_out.end_elem("style:graphic-properties")?;
@@ -1560,7 +1560,7 @@ fn write_graphic_style(style: &GraphicStyle, xml_out: &mut XmlOdsWriter) -> Resu
     Ok(())
 }
 
-fn write_value_styles(
+fn write_valuestyles(
     value_formats: &HashMap<String, ValueFormat>,
     origin: StyleOrigin,
     styleuse: StyleUse,
@@ -1584,13 +1584,13 @@ fn write_value_styles(
 
         xml_out.elem(tag)?;
         xml_out.attr_esc("style:name", value_format.name().as_str())?;
-        for (a, v) in value_format.attr_map().iter() {
+        for (a, v) in value_format.attrmap().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }
 
-        if !value_format.text_style().is_empty() {
+        if !value_format.textstyle().is_empty() {
             xml_out.empty("style:text-properties")?;
-            for (a, v) in value_format.text_style().iter() {
+            for (a, v) in value_format.textstyle().iter() {
                 xml_out.attr_esc(a.as_ref(), v.as_str())?;
             }
         }
@@ -1622,7 +1622,7 @@ fn write_value_styles(
                 || part.part_type() == FormatPartType::CurrencySymbol
             {
                 xml_out.elem(part_tag)?;
-                for (a, v) in part.attr_map().iter() {
+                for (a, v) in part.attrmap().iter() {
                     xml_out.attr_esc(a.as_ref(), v.as_str())?;
                 }
                 if let Some(content) = part.content() {
@@ -1631,7 +1631,7 @@ fn write_value_styles(
                 xml_out.end_elem(part_tag)?;
             } else {
                 xml_out.empty(part_tag)?;
-                for (a, v) in part.attr_map().iter() {
+                for (a, v) in part.attrmap().iter() {
                     xml_out.attr_esc(a.as_ref(), v.as_str())?;
                 }
             }
@@ -1669,8 +1669,8 @@ fn write_pagelayout(
 
         xml_out.elem("style:header-style")?;
         xml_out.empty("style:header-footer-properties")?;
-        if !style.header_style().style().is_empty() {
-            for (k, v) in style.header_style().style().iter() {
+        if !style.headerstyle().style().is_empty() {
+            for (k, v) in style.headerstyle().style().iter() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }
@@ -1678,8 +1678,8 @@ fn write_pagelayout(
 
         xml_out.elem("style:footer-style")?;
         xml_out.empty("style:header-footer-properties")?;
-        if !style.footer_style().style().is_empty() {
-            for (k, v) in style.footer_style().style().iter() {
+        if !style.footerstyle().style().is_empty() {
+            for (k, v) in style.footerstyle().style().iter() {
                 xml_out.attr(k.as_ref(), v.as_str())?;
             }
         }
