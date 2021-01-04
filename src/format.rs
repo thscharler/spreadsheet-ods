@@ -27,15 +27,21 @@
 //! when opening the spreadsheet so typically nobody notices this.
 //!
 
-use std::fmt::{Display, Formatter};
+pub use crate::attrmap2::{AttrMap2, AttrMap2Trait};
 
-use chrono::NaiveDateTime;
-use time::Duration;
-
-use crate::attrmap::{AttrMap, AttrMapType};
-use crate::sealed::Sealed;
-use crate::style::{StyleMap, StyleOrigin, StyleUse, TextAttr};
+use crate::style::stylemap::StyleMap;
+use crate::style::units::{
+    FontStyle, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth, TextPosition,
+    TextRelief, TextTransform,
+};
+use crate::style::{
+    color_string, percent_string, shadow_string, StyleOrigin, StyleUse, TextStyleRef,
+};
 use crate::ValueType;
+use chrono::NaiveDateTime;
+use color::Rgb;
+use std::fmt::{Display, Formatter};
+use time::Duration;
 
 #[derive(Debug)]
 pub enum ValueFormatError {
@@ -55,6 +61,8 @@ impl Display for ValueFormatError {
 
 impl std::error::Error for ValueFormatError {}
 
+style_ref!(ValueFormatRef);
+
 /// Actual textual formatting of values.
 #[derive(Debug, Clone, Default)]
 pub struct ValueFormat {
@@ -70,25 +78,13 @@ pub struct ValueFormat {
     /// Usage of this style.
     styleuse: StyleUse,
     /// Properties of the format.
-    attr: AttrMapType,
+    attr: AttrMap2,
     /// Cell text styles
-    text_attr: TextAttr,
+    textstyle: AttrMap2,
     /// Parts of the format.
     parts: Vec<FormatPart>,
     /// Style map data.
     stylemaps: Option<Vec<StyleMap>>,
-}
-
-impl Sealed for ValueFormat {}
-
-impl AttrMap for ValueFormat {
-    fn attr_map(&self) -> &AttrMapType {
-        &self.attr
-    }
-
-    fn attr_map_mut(&mut self) -> &mut AttrMapType {
-        &mut self.attr
-    }
 }
 
 impl ValueFormat {
@@ -102,8 +98,8 @@ impl ValueFormat {
             v_type: ValueType::Text,
             origin: Default::default(),
             styleuse: Default::default(),
-            attr: None,
-            text_attr: Default::default(),
+            attr: Default::default(),
+            textstyle: Default::default(),
             parts: Default::default(),
             stylemaps: None,
         }
@@ -119,11 +115,16 @@ impl ValueFormat {
             v_type: value_type,
             origin: Default::default(),
             styleuse: Default::default(),
-            attr: None,
-            text_attr: Default::default(),
+            attr: Default::default(),
+            textstyle: Default::default(),
             parts: Default::default(),
             stylemaps: None,
         }
+    }
+
+    /// Returns a reference name for this value format.
+    pub fn format_ref(&self) -> ValueFormatRef {
+        ValueFormatRef::from(self.name().as_str())
     }
 
     /// Sets the name.
@@ -197,14 +198,16 @@ impl ValueFormat {
     }
 
     /// Text style attributes.
-    pub fn text(&self) -> &TextAttr {
-        &self.text_attr
+    pub fn textstyle(&self) -> &AttrMap2 {
+        &self.textstyle
     }
 
     /// Text style attributes.
-    pub fn text_mut(&mut self) -> &mut TextAttr {
-        &mut self.text_attr
+    pub fn textstyle_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.textstyle
     }
+
+    text!(textstyle_mut);
 
     /// Appends a format part.
     pub fn push_boolean(&mut self) {
@@ -330,7 +333,6 @@ impl ValueFormat {
     }
 
     /// Adds all format parts.
-    #[allow(clippy::collapsible_if)]
     pub fn push_parts(&mut self, partvec: &mut Vec<FormatPart>) {
         self.parts.append(partvec);
     }
@@ -347,9 +349,7 @@ impl ValueFormat {
 
     /// Adds a stylemap.
     pub fn push_stylemap(&mut self, stylemap: StyleMap) {
-        self.stylemaps
-            .get_or_insert_with(Vec::new)
-            .push(stylemap);
+        self.stylemaps.get_or_insert_with(Vec::new).push(stylemap);
     }
 
     /// Returns the stylemaps
@@ -421,6 +421,16 @@ impl ValueFormat {
     }
 }
 
+impl AttrMap2Trait for ValueFormat {
+    fn attrmap(&self) -> &AttrMap2 {
+        &self.attr
+    }
+
+    fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.attr
+    }
+}
+
 /// Identifies the structural parts of a value format.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum FormatPartType {
@@ -451,19 +461,17 @@ pub struct FormatPart {
     /// What kind of format part is this?
     part_type: FormatPartType,
     /// Properties of this part.
-    attr: AttrMapType,
+    attr: AttrMap2,
     /// Some content.
     content: Option<String>,
 }
 
-impl Sealed for FormatPart {}
-
-impl AttrMap for FormatPart {
-    fn attr_map(&self) -> &AttrMapType {
+impl AttrMap2Trait for FormatPart {
+    fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut AttrMapType {
+    fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 }
@@ -515,7 +523,7 @@ impl FormatPart {
     pub fn new(ftype: FormatPartType) -> Self {
         FormatPart {
             part_type: ftype,
-            attr: None,
+            attr: Default::default(),
             content: None,
         }
     }
@@ -524,7 +532,7 @@ impl FormatPart {
     pub fn new_with_content<S: Into<String>>(ftype: FormatPartType, content: S) -> Self {
         FormatPart {
             part_type: ftype,
-            attr: None,
+            attr: Default::default(),
             content: Some(content.into()),
         }
     }

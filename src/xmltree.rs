@@ -5,7 +5,7 @@
 //!
 //! ```
 //! use spreadsheet_ods::xmltree::XmlTag;
-//! use spreadsheet_ods::style::AttrMap;
+//! use spreadsheet_ods::xmltree::AttrMap2Trait;
 //!
 //! let tag = XmlTag::new("table:shapes")
 //!         .con_tag(XmlTag::new("draw:frame")
@@ -43,27 +43,22 @@
 //!
 //! ```
 
-use crate::attrmap::{AttrMap, AttrMapIter, AttrMapType};
-use crate::sealed::Sealed;
-use std::collections::HashMap;
-use string_cache::DefaultAtom;
+pub use crate::attrmap2::{AttrMap2, AttrMap2Trait};
 
 /// Defines a XML tag and it's children.
 #[derive(Debug, Clone, Default)]
 pub struct XmlTag {
     name: String,
-    attr: AttrMapType,
+    attr: AttrMap2,
     content: Vec<XmlContent>,
 }
 
-impl Sealed for XmlTag {}
-
-impl AttrMap for XmlTag {
-    fn attr_map(&self) -> &AttrMapType {
+impl AttrMap2Trait for XmlTag {
+    fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    fn attr_map_mut(&mut self) -> &mut AttrMapType {
+    fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 }
@@ -73,7 +68,7 @@ impl XmlTag {
     pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            attr: None,
+            attr: Default::default(),
             content: vec![],
         }
     }
@@ -91,10 +86,6 @@ impl XmlTag {
     /// Any text or child elements?
     pub fn is_empty(&self) -> bool {
         self.content.is_empty()
-    }
-
-    pub fn attr_iter(&self) -> AttrMapIter {
-        AttrMapIter::from(self.attr_map())
     }
 
     /// Add an element.
@@ -143,9 +134,7 @@ impl XmlTag {
         S0: Into<&'a str>,
         S1: Into<String>,
     {
-        self.attr_map_mut()
-            .get_or_insert_with(|| Box::new(HashMap::new()))
-            .insert(DefaultAtom::from(name.into()), value.into());
+        self.attr.set_attr(name.into(), value.into());
         self
     }
 

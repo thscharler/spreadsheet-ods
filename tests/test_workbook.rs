@@ -22,7 +22,7 @@ fn test_workbook() {
 fn test_def_style() {
     let mut wb = WorkBook::new();
 
-    wb.add_def_style(ValueType::Number, "val0");
+    wb.add_def_style(ValueType::Number, &"val0".into());
     assert_eq!(wb.def_style(ValueType::Number), Some(&"val0".to_string()));
     assert!(wb.def_style(ValueType::Text).is_none());
 }
