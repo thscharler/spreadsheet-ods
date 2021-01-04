@@ -168,8 +168,9 @@ pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
 
 use crate::style::{
-    ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, PageLayout, ParagraphStyle,
-    ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle, TableStyleRef, TextStyle, TextStyleRef,
+    ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
+    PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle,
+    TableStyleRef, TextStyle, TextStyleRef,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -220,7 +221,8 @@ pub struct WorkBook {
     def_styles: HashMap<ValueType, String>,
 
     /// Page-layout data.
-    pagelayouts: HashMap<String, PageLayout>,
+    pagestyles: HashMap<String, PageStyle>,
+    masterpages: HashMap<String, MasterPage>,
 
     /// Original file if this book was read from one.
     /// This is used when writing to copy all additional
@@ -264,7 +266,10 @@ impl fmt::Debug for WorkBook {
         for (t, s) in &self.def_styles {
             writeln!(f, "{:?} -> {:?}", t, s)?;
         }
-        for s in self.pagelayouts.values() {
+        for s in self.pagestyles.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for s in self.masterpages.values() {
             writeln!(f, "{:?}", s)?;
         }
         for xtr in &self.extra {
@@ -290,7 +295,8 @@ impl WorkBook {
             graphicstyles: Default::default(),
             formats: Default::default(),
             def_styles: Default::default(),
-            pagelayouts: Default::default(),
+            pagestyles: Default::default(),
+            masterpages: Default::default(),
             file: None,
             extra: vec![],
         }
@@ -571,24 +577,48 @@ impl WorkBook {
         self.formats.get_mut(name)
     }
 
-    /// Pagelayout
-    pub fn add_pagelayout(&mut self, pagelayout: PageLayout) {
-        self.pagelayouts
-            .insert(pagelayout.name().to_string(), pagelayout);
+    /// Adds a value PageStyle.
+    pub fn add_pagestyle(&mut self, pstyle: PageStyle) -> PageStyleRef {
+        let sref = pstyle.style_ref();
+        self.pagestyles.insert(pstyle.name().to_string(), pstyle);
+        sref
     }
 
-    pub fn remove_pagelayout(&mut self, name: &str) -> Option<PageLayout> {
-        self.pagelayouts.remove(name)
+    /// Removes the PageStyle.
+    pub fn remove_pagestyle(&mut self, name: &str) -> Option<PageStyle> {
+        self.pagestyles.remove(name)
     }
 
-    /// Pagelayout
-    pub fn pagelayout(&self, name: &str) -> Option<&PageLayout> {
-        self.pagelayouts.get(name)
+    /// Returns the PageStyle.
+    pub fn pagestyle(&self, name: &str) -> Option<&PageStyle> {
+        self.pagestyles.get(name)
     }
 
-    /// Pagelayout
-    pub fn pagelayout_mut(&mut self, name: &str) -> Option<&mut PageLayout> {
-        self.pagelayouts.get_mut(name)
+    /// Returns the mutable PageStyle.
+    pub fn pagestyle_mut(&mut self, name: &str) -> Option<&mut PageStyle> {
+        self.pagestyles.get_mut(name)
+    }
+
+    /// Adds a value MasterPage.
+    pub fn add_masterpage(&mut self, mpage: MasterPage) -> MasterPageRef {
+        let sref = mpage.masterpage_ref();
+        self.masterpages.insert(mpage.name().to_string(), mpage);
+        sref
+    }
+
+    /// Removes the MasterPage.
+    pub fn remove_masterpage(&mut self, name: &str) -> Option<MasterPage> {
+        self.masterpages.remove(name)
+    }
+
+    /// Returns the MasterPage.
+    pub fn masterpage(&self, name: &str) -> Option<&MasterPage> {
+        self.masterpages.get(name)
+    }
+
+    /// Returns the mutable MasterPage.
+    pub fn masterpage_mut(&mut self, name: &str) -> Option<&mut MasterPage> {
+        self.masterpages.get_mut(name)
     }
 }
 

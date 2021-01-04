@@ -5,12 +5,12 @@ use spreadsheet_ods::style::units::{
     RotationAlign, TextAlignSource, TextKeep, TextPosition, TextRelief, TextTransform, WrapOption,
     WritingMode,
 };
-use spreadsheet_ods::style::{CellStyle, ColStyle, FontFaceDecl, PageLayout, RowStyle, TableStyle};
+use spreadsheet_ods::style::{CellStyle, ColStyle, FontFaceDecl, PageStyle, RowStyle, TableStyle};
 use spreadsheet_ods::{cm, deg, mm, pt};
 
 #[test]
 fn test_attr1() {
-    let mut p0 = PageLayout::new_default();
+    let mut p0 = PageStyle::new("ps1");
 
     p0.set_background_color(Rgb::new(12, 33, 46));
     assert_eq!(

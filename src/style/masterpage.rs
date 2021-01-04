@@ -1,86 +1,85 @@
-use crate::attrmap2::AttrMap2;
-use crate::style::{
-    border_line_width_string, border_string, color_string, percent_string, shadow_string, Border,
-    Length,
-};
+use crate::style::pagestyle::PageStyleRef;
 use crate::text::TextTag;
-use color::Rgb;
 
-/// Page layout.
-/// Contains all header and footer information.
+style_ref!(MasterPageRef);
+
+/// Defines the structure and content for a page.
+/// Refers to a PageStyle for layout information.
+/// It must be attached to a Sheet to be used.
 ///
 /// ```
-/// use spreadsheet_ods::{write_ods, WorkBook};
-/// use spreadsheet_ods::{cm};
-/// use spreadsheet_ods::style::{HeaderFooter, PageLayout};
+/// use spreadsheet_ods::{pt, Length, WorkBook, Sheet};
+/// use spreadsheet_ods::style::{PageStyle, MasterPage, TableStyle};
+/// use spreadsheet_ods::style::units::Border;
 /// use color::Rgb;
-/// use spreadsheet_ods::style::units::Length;
 ///
 /// let mut wb = WorkBook::new();
 ///
-/// let mut pl = PageLayout::new_default();
+/// let mut ps = PageStyle::new("ps1");
+/// ps.set_border(pt!(0.5), Border::Groove, Rgb::new(128,128,128));
+/// ps.headerstyle_mut().set_background_color(Rgb::new(92,92,92));
+/// let ps_ref = wb.add_pagestyle(ps);
 ///
-/// pl.set_background_color(Rgb::new(12, 129, 252));
+/// let mut mp1 = MasterPage::new("mp1");
+/// mp1.set_pagestyle(&ps_ref);
+/// mp1.header_mut().center_mut().push_text("center");
+/// mp1.footer_mut().right_mut().push_text("right");
+/// let mp1_ref = wb.add_masterpage(mp1);
 ///
-/// pl.headerstyle_mut().set_min_height(cm!(0.75));
-/// pl.headerstyle_mut().set_margin_left(cm!(0.15));
-/// pl.headerstyle_mut().set_margin_right(cm!(0.15));
-/// pl.headerstyle_mut().set_margin_bottom(Length::Cm(0.75));
+/// let mut ts = TableStyle::new("ts1");
+/// ts.set_master_page_name(&mp1_ref);
+/// let ts_ref = wb.add_tablestyle(ts);
 ///
-/// pl.header_mut().center_mut().push_text("middle ground");
-/// pl.header_mut().left_mut().push_text("left wing");
-/// pl.header_mut().right_mut().push_text("right wing");
-///
-/// wb.add_pagelayout(pl);
-///
-/// write_ods(&wb, "test_out/hf0.ods").unwrap();
-/// ```
+/// let mut sheet = Sheet::new();
+/// sheet.set_style(&ts_ref);
+/// ```  
 ///
 #[derive(Clone, Debug, Default)]
-pub struct PageLayout {
+pub struct MasterPage {
     name: String,
-    master_page_name: String,
+    pagestyle: String,
 
-    style: AttrMap2,
-
-    headerstyle: HeaderFooterStyle,
     header: HeaderFooter,
+    header_first: HeaderFooter,
     header_left: HeaderFooter,
 
-    footerstyle: HeaderFooterStyle,
     footer: HeaderFooter,
+    footer_first: HeaderFooter,
     footer_left: HeaderFooter,
 }
 
-impl PageLayout {
-    /// Create with name "Mpm1" and masterpage-name "Default".
-    pub fn new_default() -> Self {
+impl MasterPage {
+    /// Empty.
+    pub fn empty() -> Self {
         Self {
-            name: "Mpm1".to_string(),
-            master_page_name: "Default".to_string(),
-            style: Default::default(),
+            name: "".to_string(),
+            pagestyle: "".to_string(),
             header: Default::default(),
+            header_first: Default::default(),
             header_left: Default::default(),
-            headerstyle: Default::default(),
             footer: Default::default(),
+            footer_first: Default::default(),
             footer_left: Default::default(),
-            footerstyle: Default::default(),
         }
     }
 
-    /// Create with name "Mpm2" and masterpage-name "Report".
-    pub fn new_report() -> Self {
+    /// New MasterPage
+    pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
-            name: "Mpm2".to_string(),
-            master_page_name: "Report".to_string(),
-            style: Default::default(),
+            name: name.into(),
+            pagestyle: "".to_string(),
             header: Default::default(),
+            header_first: Default::default(),
             header_left: Default::default(),
-            headerstyle: Default::default(),
             footer: Default::default(),
+            footer_first: Default::default(),
             footer_left: Default::default(),
-            footerstyle: Default::default(),
         }
+    }
+
+    /// Style reference.
+    pub fn masterpage_ref(&self) -> MasterPageRef {
+        MasterPageRef::from(self.name())
     }
 
     /// Name.
@@ -93,51 +92,13 @@ impl PageLayout {
         &self.name
     }
 
-    /// In the xml pagelayout is split in two pieces. Each has a name.
-    pub fn set_master_page_name(&mut self, name: String) {
-        self.master_page_name = name;
+    pub fn set_pagestyle(&mut self, name: &PageStyleRef) {
+        self.pagestyle = name.to_string();
     }
 
-    /// In the xml pagelayout is split in two pieces. Each has a name.
-    pub fn master_page_name(&self) -> &String {
-        &self.master_page_name
+    pub fn pagestyle(&self) -> &String {
+        &self.pagestyle
     }
-
-    /// Access to all style attributes.
-    pub fn style(&self) -> &AttrMap2 {
-        &self.style
-    }
-
-    /// Access to all style attributes.
-    pub fn style_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.style
-    }
-
-    // TODO: more attributes
-    // fo:page-height 20.215, fo:page-width 20.216, style:border-line-width 20.248,
-    // style:border-line-width-bottom 20.249, style:border-line-width-left 20.250,
-    // style:border-line-width-right 20.251, style:border-line-width-top 20.252,
-    // style:first-page-number 20.266, style:footnote-max-height 20.296,
-    // style:layout-grid-base-height 20.304, style:layout-grid-base-width 20.305,
-    // style:layout-grid-color 20.306, style:layout-grid-display 20.307,
-    // style:layout-grid-lines 20.308, style:layout-grid-mode 20.309,
-    // style:layoutgrid-print 20.310, style:layout-grid-ruby-below 20.311,
-    // style:layout-gridruby-height 20.312, style:layout-grid-snap-to 20.313,
-    // style:layout-gridstandard-mode 20.314,
-    // style:num-format 20.322, style:num-letter-sync 20.323,
-    // style:num-prefix 20.324, style:num-suffix 20.325, style:paper-tray-name
-    // 20.329, style:print 20.330, style:print-orientation 20.333, style:print-pageorder 20.332,
-    // style:register-truth-ref-style-name 20.337, style:scale-to
-    // 20.352, style:scale-to-X 20.354, style:scale-to-Y 20.355, style:scale-to-pages
-    // 20.353, style:shadow 20.359, style:table-centering 20.363 and style:writingmode 20.404.
-
-    fo_background_color!(style_mut);
-    fo_border!(style_mut);
-    fo_margin!(style_mut);
-    fo_padding!(style_mut);
-    style_dynamic_spacing!(style_mut);
-    style_shadow!(style_mut);
-    svg_height!(style_mut);
 
     /// Left side header.
     pub fn set_header(&mut self, header: HeaderFooter) {
@@ -152,6 +113,21 @@ impl PageLayout {
     /// Header.
     pub fn header_mut(&mut self) -> &mut HeaderFooter {
         &mut self.header
+    }
+
+    /// First page header.
+    pub fn set_header_first(&mut self, header: HeaderFooter) {
+        self.header_first = header;
+    }
+
+    /// First page header.
+    pub fn header_first(&self) -> &HeaderFooter {
+        &self.header_first
+    }
+
+    /// First page header.
+    pub fn header_first_mut(&mut self) -> &mut HeaderFooter {
+        &mut self.header_first
     }
 
     /// Left side header.
@@ -169,16 +145,6 @@ impl PageLayout {
         &mut self.header_left
     }
 
-    /// Attributes for header.
-    pub fn headerstyle(&self) -> &HeaderFooterStyle {
-        &self.headerstyle
-    }
-
-    /// Attributes for header.
-    pub fn headerstyle_mut(&mut self) -> &mut HeaderFooterStyle {
-        &mut self.headerstyle
-    }
-
     /// Footer.
     pub fn set_footer(&mut self, footer: HeaderFooter) {
         self.footer = footer;
@@ -192,6 +158,21 @@ impl PageLayout {
     /// Footer.
     pub fn footer_mut(&mut self) -> &mut HeaderFooter {
         &mut self.footer
+    }
+
+    /// First page footer.
+    pub fn set_footer_first(&mut self, footer: HeaderFooter) {
+        self.footer_first = footer;
+    }
+
+    /// First page footer.
+    pub fn footer_first(&self) -> &HeaderFooter {
+        &self.footer_first
+    }
+
+    /// First page footer.
+    pub fn footer_first_mut(&mut self) -> &mut HeaderFooter {
+        &mut self.footer_first
     }
 
     /// Left side footer.
@@ -208,46 +189,6 @@ impl PageLayout {
     pub fn footer_left_mut(&mut self) -> &mut HeaderFooter {
         &mut self.footer_left
     }
-
-    /// Attributes for footer.
-    pub fn footerstyle(&self) -> &HeaderFooterStyle {
-        &self.footerstyle
-    }
-
-    /// Attributes for footer.
-    pub fn footerstyle_mut(&mut self) -> &mut HeaderFooterStyle {
-        &mut self.footerstyle
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct HeaderFooterStyle {
-    style: AttrMap2,
-}
-
-impl HeaderFooterStyle {
-    pub fn style(&self) -> &AttrMap2 {
-        &self.style
-    }
-
-    pub fn style_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.style
-    }
-
-    // more
-    // style:border-line-width 20.248,
-    // style:border-linewidth-bottom 20.249,
-    // style:border-line-width-left 20.250,
-    // style:border-linewidth-right 20.251,
-    // style:border-line-width-top 20.252,
-    fo_background_color!(style_mut);
-    fo_border!(style_mut);
-    fo_margin!(style_mut);
-    fo_min_height!(style_mut);
-    fo_padding!(style_mut);
-    style_dynamic_spacing!(style_mut);
-    style_shadow!(style_mut);
-    svg_height!(style_mut);
 }
 
 /// Header/Footer data.
@@ -285,6 +226,13 @@ impl HeaderFooter {
     /// Display
     pub fn display(&self) -> bool {
         self.display
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.region_left.is_none()
+            && self.region_center.is_none()
+            && self.region_right.is_none()
+            && self.content.is_none()
     }
 
     /// Left region.
