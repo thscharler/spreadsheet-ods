@@ -1,6 +1,6 @@
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak, TextKeep, WritingMode};
-use crate::style::{color_string, shadow_string, StyleOrigin, StyleUse};
+use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
 use color::Rgb;
 
 style_ref!(TableStyleRef);
@@ -91,8 +91,9 @@ impl TableStyle {
     }
 
     /// Sets the reference to the pageformat.
-    pub fn set_master_page_name<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:master-page-name", name.into());
+    pub fn set_master_page_name(&mut self, name: &MasterPageRef) {
+        self.attr
+            .set_attr("style:master-page-name", name.to_string());
     }
 
     /// Reference to the pageformat.

@@ -14,8 +14,8 @@ use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::refs::{cellranges_string, CellRange};
 use crate::style::{
-    CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle,
-    RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
+    CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
+    ParagraphStyle, RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{ucell, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
@@ -430,7 +430,7 @@ fn write_ods_styles(
     xml_out.end_elem("office:styles")?;
 
     xml_out.elem("office:automatic-styles")?;
-    write_pagelayout(&book.pagelayouts, &mut xml_out)?;
+    write_pagestyles(&book.pagestyles, &mut xml_out)?;
     write_styles(book, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
     write_valuestyles(
         &book.formats,
@@ -441,7 +441,7 @@ fn write_ods_styles(
     xml_out.end_elem("office:automatic-styles")?;
 
     xml_out.elem("office:master-styles")?;
-    write_masterpage(&book.pagelayouts, &mut xml_out)?;
+    write_masterpage(&book.masterpages, &mut xml_out)?;
     xml_out.end_elem("office:master-styles")?;
 
     xml_out.end_elem("office:document-styles")?;
@@ -1652,8 +1652,8 @@ fn write_valuestyles(
     Ok(())
 }
 
-fn write_pagelayout(
-    styles: &HashMap<String, PageLayout>,
+fn write_pagestyles(
+    styles: &HashMap<String, PageStyle>,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
     for style in styles.values() {
@@ -1692,13 +1692,13 @@ fn write_pagelayout(
 }
 
 fn write_masterpage<'a>(
-    styles: &'a HashMap<String, PageLayout>,
+    styles: &'a HashMap<String, MasterPage>,
     xml_out: &mut XmlOdsWriter<'a>,
 ) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:master-page")?;
-        xml_out.attr("style:name", &style.master_page_name())?;
-        xml_out.attr("style:page-layout-name", &style.name())?;
+        xml_out.attr("style:name", &style.name())?;
+        xml_out.attr("style:page-layout-name", &style.pagestyle())?;
 
         xml_out.elem("style:header")?;
         if !style.header().display() {
@@ -1707,8 +1707,17 @@ fn write_masterpage<'a>(
         write_regions(&style.header(), xml_out)?;
         xml_out.end_elem("style:header")?;
 
+        if !style.header_first().is_empty() {
+            xml_out.elem("style:header_first")?;
+            if !style.header_first().display() {
+                xml_out.attr("style:display", "false")?;
+            }
+            write_regions(&style.header_first(), xml_out)?;
+            xml_out.end_elem("style:header_first")?;
+        }
+
         xml_out.elem("style:header_left")?;
-        if !style.header_left().display() {
+        if !style.header_left().display() || style.header_left().is_empty() {
             xml_out.attr("style:display", "false")?;
         }
         write_regions(&style.header_left(), xml_out)?;
@@ -1721,8 +1730,17 @@ fn write_masterpage<'a>(
         write_regions(&style.footer(), xml_out)?;
         xml_out.end_elem("style:footer")?;
 
+        if !style.footer_first().is_empty() {
+            xml_out.elem("style:footer_first")?;
+            if !style.footer_first().display() {
+                xml_out.attr("style:display", "false")?;
+            }
+            write_regions(&style.footer_first(), xml_out)?;
+            xml_out.end_elem("style:footer_first")?;
+        }
+
         xml_out.elem("style:footer_left")?;
-        if !style.footer_left().display() {
+        if !style.footer_left().display() || style.footer_left().is_empty() {
             xml_out.attr("style:display", "false")?;
         }
         write_regions(&style.footer_left(), xml_out)?;

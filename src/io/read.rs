@@ -13,8 +13,8 @@ use crate::refs::{parse_cellranges, parse_cellref, CellRef};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
-    ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle, RowStyle,
-    StyleOrigin, StyleUse, TableStyle, TextStyle,
+    ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle, ParagraphStyle,
+    RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
@@ -882,14 +882,14 @@ fn read_fonts(
 }
 
 // reads the page-layout tag
-fn read_page_layout(
+fn read_page_style(
     book: &mut WorkBook,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     xml_tag: &BytesStart,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut pl = PageLayout::new_default();
+    let mut pl = PageStyle::new("");
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:name" => {
@@ -963,7 +963,7 @@ fn read_page_layout(
         buf.clear();
     }
 
-    book.add_pagelayout(pl);
+    book.add_pagestyle(pl);
 
     Ok(())
 }
@@ -1021,15 +1021,16 @@ fn read_master_page(
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
-    let mut masterpage_name = "".to_string();
-    let mut pagelayout_name = "".to_string();
+    let mut masterpage = MasterPage::empty();
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:name" => {
-                masterpage_name = attr.unescape_and_decode_value(&xml)?;
+                let name = attr.unescape_and_decode_value(&xml)?;
+                masterpage.set_name(name);
             }
             attr if attr.key == b"style:page-layout-name" => {
-                pagelayout_name = attr.unescape_and_decode_value(&xml)?;
+                let name = attr.unescape_and_decode_value(&xml)?;
+                masterpage.set_pagestyle(&name.into());
             }
             attr => {
                 if cfg!(feature = "dump_unused") {
@@ -1042,16 +1043,6 @@ fn read_master_page(
         }
     }
 
-    // may not exist? but should
-    if book.pagelayout(&pagelayout_name).is_none() {
-        let mut p = PageLayout::new_default();
-        p.set_name(pagelayout_name.clone());
-        book.add_pagelayout(p);
-    }
-
-    let pl = book.pagelayout_mut(&pagelayout_name).unwrap();
-    pl.set_master_page_name(masterpage_name);
-
     loop {
         let evt = xml.read_event(&mut buf)?;
         if cfg!(feature = "dump_xml") {
@@ -1060,16 +1051,22 @@ fn read_master_page(
         match evt {
             Event::Start(ref xml_tag) => match xml_tag.name() {
                 b"style:header" => {
-                    pl.set_header(read_headerfooter(b"style:header", xml)?);
+                    masterpage.set_header(read_headerfooter(b"style:header", xml)?);
+                }
+                b"style:header-first" => {
+                    masterpage.set_header_first(read_headerfooter(b"style:header-first", xml)?);
                 }
                 b"style:header-left" => {
-                    pl.set_header_left(read_headerfooter(b"style:header-left", xml)?);
+                    masterpage.set_header_left(read_headerfooter(b"style:header-left", xml)?);
                 }
                 b"style:footer" => {
-                    pl.set_footer(read_headerfooter(b"style:footer", xml)?);
+                    masterpage.set_footer(read_headerfooter(b"style:footer", xml)?);
+                }
+                b"style:footer-first" => {
+                    masterpage.set_footer_first(read_headerfooter(b"style:footer-first", xml)?);
                 }
                 b"style:footer-left" => {
-                    pl.set_footer_left(read_headerfooter(b"style:footer-left", xml)?);
+                    masterpage.set_footer_left(read_headerfooter(b"style:footer-left", xml)?);
                 }
                 _ => {
                     if cfg!(feature = "dump_unused") {
@@ -1098,6 +1095,8 @@ fn read_master_page(
 
         buf.clear();
     }
+
+    book.add_masterpage(masterpage);
 
     Ok(())
 }
@@ -1286,7 +1285,7 @@ fn read_auto_styles(
                     }
                     // style:default-page-layout
                     b"style:page-layout" => {
-                        read_page_layout(book, xml, xml_tag)?;
+                        read_page_style(book, xml, xml_tag)?;
                     }
                     _ => {
                         if cfg!(feature = "dump_unused") {

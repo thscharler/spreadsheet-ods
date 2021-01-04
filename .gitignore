@@ -10,3 +10,4 @@ Cargo.lock
 /tryout.ods
 /test_spreadsheet/target
 .gradle
+/tests/validation.ods

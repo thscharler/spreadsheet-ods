@@ -1,10 +1,20 @@
 
+# 0.5.1
+- Split up the unwieldy PageLayout into PageStyle and MasterPage, and add
+  an example how to use those bastards. 
+
+# 0.5.0
+- Major reorg of styles. Replaced Styles with separate CellStyle, ColStyle, 
+  RowStyle etc.
+- Create CellStyleRef, ColStyleRef, etc to be used when relating to styles.
+  Should add a little bit of safety here.
+- Introduced submodules for style: stylemap, tabstop, units
+
 # 0.4.2
 
 - Allow the ODS version to be specified. This adds support for 
   ODS 1.3. 
 -- Default version set to 1.3. 
-
 
 # 0.4.1 
 
