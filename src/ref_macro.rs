@@ -1,5 +1,7 @@
+/// Generates a name reference for a style.
 macro_rules! style_ref {
     ($l:ident) => {
+        /// Refers to a $l.
         #[derive(Debug, Clone)]
         pub struct $l {
             name: String,

@@ -5,6 +5,8 @@ use color::Rgb;
 
 style_ref!(TableStyleRef);
 
+/// Describes the style information for a table.
+///
 #[derive(Debug, Clone)]
 pub struct TableStyle {
     /// From where did we get this style.
@@ -31,6 +33,7 @@ pub struct TableStyle {
 }
 
 impl TableStyle {
+    /// empty
     pub fn empty() -> Self {
         Self {
             origin: Default::default(),
@@ -40,6 +43,7 @@ impl TableStyle {
         }
     }
 
+    /// Creates a new Style.
     pub fn new<S: Into<String>>(name: S) -> Self {
         let mut s = Self {
             origin: Default::default(),
@@ -51,64 +55,84 @@ impl TableStyle {
         s
     }
 
+    /// Style reference.
     pub fn style_ref(&self) -> TableStyleRef {
         TableStyleRef::from(self.name().unwrap().clone())
     }
 
+    /// Origin of the style.
     pub fn origin(&self) -> StyleOrigin {
         self.origin
     }
 
+    /// Origin of the style.
     pub fn set_origin(&mut self, origin: StyleOrigin) {
         self.origin = origin;
     }
 
+    /// Designation of the style.
     pub fn styleuse(&self) -> StyleUse {
         self.styleuse
     }
 
+    /// Designation of the style.
     pub fn set_styleuse(&mut self, styleuse: StyleUse) {
         self.styleuse = styleuse;
     }
 
+    /// Style name
     pub fn name(&self) -> Option<&String> {
         self.attr.attr("style:name")
     }
 
+    /// Style name
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
         self.attr.set_attr("style:name", name.into());
     }
 
-    /// Sets the value format.
+    /// Sets the reference to the pageformat.
     pub fn set_master_page_name<S: Into<String>>(&mut self, name: S) {
         self.attr.set_attr("style:master-page-name", name.into());
     }
 
-    /// Returns the value format.
+    /// Reference to the pageformat.
     pub fn master_page_name(&self) -> Option<&String> {
         self.attr.attr("style:master-page-name")
     }
 
+    /// Access to all stored attributes.
     pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
+    /// Access to all stored attributes.
     pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
+    /// Access to all style attributes.
     pub fn tablestyle(&self) -> &AttrMap2 {
         &self.tablestyle
     }
 
+    /// Access to all style attributes.
     pub fn tablestyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.tablestyle
     }
 
+    // style:may-break-between-rows 20.319,
+    // style:page-number 20.328,
+    // style:rel-width 20.340,
+    // style:width 20.399,
+    // table:align 20.414,
+    // table:border-model 20.415,
+    // table:display 20.416
+    // table:tab-color 19.731.
+
     fo_background_color!(tablestyle_mut);
-    fo_margin!(tablestyle_mut);
     fo_break!(tablestyle_mut);
     fo_keep_with_next!(tablestyle_mut);
+    fo_margin!(tablestyle_mut);
     style_shadow!(tablestyle_mut);
     style_writing_mode!(tablestyle_mut);
 }

@@ -103,13 +103,16 @@ impl PageLayout {
         &self.master_page_name
     }
 
+    /// Access to all style attributes.
     pub fn style(&self) -> &AttrMap2 {
         &self.style
     }
 
+    /// Access to all style attributes.
     pub fn style_mut(&mut self) -> &mut AttrMap2 {
         &mut self.style
     }
+
     // TODO: more attributes
     // fo:page-height 20.215, fo:page-width 20.216, style:border-line-width 20.248,
     // style:border-line-width-bottom 20.249, style:border-line-width-left 20.250,
@@ -127,6 +130,7 @@ impl PageLayout {
     // style:register-truth-ref-style-name 20.337, style:scale-to
     // 20.352, style:scale-to-X 20.354, style:scale-to-Y 20.355, style:scale-to-pages
     // 20.353, style:shadow 20.359, style:table-centering 20.363 and style:writingmode 20.404.
+
     fo_background_color!(style_mut);
     fo_border!(style_mut);
     fo_margin!(style_mut);
@@ -230,10 +234,12 @@ impl HeaderFooterStyle {
         &mut self.style
     }
 
-    // TODO: more of this ...
+    // more
     // style:border-line-width 20.248,
-    // style:border-linewidth-bottom 20.249, style:border-line-width-left 20.250,
-    // style:border-linewidth-right 20.251, style:border-line-width-top 20.252,
+    // style:border-linewidth-bottom 20.249,
+    // style:border-line-width-left 20.250,
+    // style:border-linewidth-right 20.251,
+    // style:border-line-width-top 20.252,
     fo_background_color!(style_mut);
     fo_border!(style_mut);
     fo_margin!(style_mut);

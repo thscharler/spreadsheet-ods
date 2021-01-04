@@ -2,6 +2,10 @@ use crate::format::ValueFormatRef;
 use crate::style::CellStyle;
 use crate::{format, CellStyleRef, ValueType, WorkBook};
 
+///
+/// Allows access to the value-format names for the default formats
+/// as created by create_default_styles.
+///
 pub struct DefaultFormat {}
 
 impl DefaultFormat {
@@ -38,6 +42,10 @@ impl DefaultFormat {
     }
 }
 
+///
+/// Allows access to the names of the default styles as created by
+/// create_default_styles.
+///
 pub struct DefaultStyle {}
 
 impl DefaultStyle {

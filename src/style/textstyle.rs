@@ -8,6 +8,9 @@ use color::Rgb;
 
 style_ref!(TextStyleRef);
 
+/// Text style.
+/// This is not used for cell-formatting. Use CellStyle instead.
+///
 #[derive(Debug, Clone)]
 pub struct TextStyle {
     /// From where did we get this style.

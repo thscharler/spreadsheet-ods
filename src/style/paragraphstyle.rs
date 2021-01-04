@@ -7,12 +7,15 @@ use crate::style::units::{
 };
 use crate::style::{
     border_line_width_string, border_string, color_string, percent_string, shadow_string,
-    StyleOrigin, StyleUse,
+    StyleOrigin, StyleUse, TextStyleRef,
 };
 use color::Rgb;
 
 style_ref!(ParagraphStyleRef);
 
+/// Paragraph style.
+/// This is not used for cell-formatting. Use CellStyle instead.
+///
 #[derive(Debug, Clone)]
 pub struct ParagraphStyle {
     /// From where did we get this style.
@@ -162,7 +165,6 @@ impl ParagraphStyle {
     fo_padding!(paragraphstyle_mut);
     style_shadow!(paragraphstyle_mut);
     style_writing_mode!(paragraphstyle_mut);
-
     paragraph!(paragraphstyle_mut);
 
     text!(textstyle_mut);

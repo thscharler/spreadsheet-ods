@@ -21,7 +21,7 @@
 //!
 //! if wb.num_sheets() == 0 {
 //!     let mut sheet = Sheet::new();
-//!     sheet.cell_mut(0, 0).set_value(Value::Boolean(true));
+//!     sheet.cell_mut(0, 0).set_value(true);
 //!     wb.push_sheet(sheet);
 //! }
 //!
@@ -44,12 +44,12 @@
 //! date_style.set_font_bold();
 //! date_style.set_font_relief(TextRelief::Engraved);
 //! date_style.set_border(mm!(0.2), Border::Dashed, Rgb::new(192, 72, 72));
-//! let date_style = wb.add_cellstyle(date_style);
+//! let date_style_ref = wb.add_cellstyle(date_style);
 //!
 //! let mut sheet = wb.sheet_mut(1);
 //! sheet.set_value(0, 0, 21.4f32);
 //! sheet.set_value(0, 1, "foo");
-//! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), &date_style);
+//! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), &date_style_ref);
 //! sheet.set_formula(0, 3, format!("of:={}+1", formula::fcellref(0,0)));
 //!
 //! let mut sheet = Sheet::new_with_name("sample");
@@ -155,7 +155,7 @@ pub mod error;
 pub mod format;
 pub mod formula;
 mod io;
-mod refs;
+pub mod refs;
 pub mod style;
 pub mod text;
 pub mod xmltree;
@@ -165,14 +165,11 @@ pub use crate::format::{ValueFormat, ValueFormatRef};
 pub use crate::io::{read_ods, write_ods};
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 pub use crate::style::units::{Angle, Length};
-pub use crate::style::{
-    CellStyle, CellStyleRef, ColStyle, ColStyleRef, RowStyle, RowStyleRef, TableStyle,
-    TableStyleRef,
-};
+pub use crate::style::{CellStyle, CellStyleRef};
 
 use crate::style::{
-    FontFaceDecl, GraphicStyle, GraphicStyleRef, PageLayout, ParagraphStyle, ParagraphStyleRef,
-    TextStyle, TextStyleRef,
+    ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, PageLayout, ParagraphStyle,
+    ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle, TableStyleRef, TextStyle, TextStyleRef,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;

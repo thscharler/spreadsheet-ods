@@ -3,6 +3,9 @@ use crate::style::{StyleOrigin, StyleUse};
 
 style_ref!(GraphicStyleRef);
 
+/// Styles of this type can occur in an odt file.
+/// This is only used as a place to put this stuff when reading the ods.
+///
 #[derive(Debug, Clone)]
 pub struct GraphicStyle {
     /// From where did we get this style.

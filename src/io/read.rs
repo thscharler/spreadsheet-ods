@@ -13,14 +13,14 @@ use crate::refs::{parse_cellranges, parse_cellref, CellRef};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
-    FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle, StyleOrigin, StyleUse,
-    TextStyle,
+    ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, PageLayout, ParagraphStyle, RowStyle,
+    StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
 use crate::{
-    ucell, CellStyle, ColRange, ColStyle, RowRange, RowStyle, SCell, Sheet, TableStyle, Value,
-    ValueFormat, ValueType, Visibility, WorkBook,
+    ucell, CellStyle, ColRange, RowRange, SCell, Sheet, Value, ValueFormat, ValueType, Visibility,
+    WorkBook,
 };
 
 /// Reads an ODS-file.

@@ -34,7 +34,9 @@ use crate::style::units::{
     FontStyle, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth, TextPosition,
     TextRelief, TextTransform,
 };
-use crate::style::{color_string, percent_string, shadow_string, StyleOrigin, StyleUse};
+use crate::style::{
+    color_string, percent_string, shadow_string, StyleOrigin, StyleUse, TextStyleRef,
+};
 use crate::ValueType;
 use chrono::NaiveDateTime;
 use color::Rgb;
@@ -120,6 +122,7 @@ impl ValueFormat {
         }
     }
 
+    /// Returns a reference name for this value format.
     pub fn format_ref(&self) -> ValueFormatRef {
         ValueFormatRef::from(self.name().as_str())
     }

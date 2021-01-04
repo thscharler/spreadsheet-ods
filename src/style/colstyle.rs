@@ -4,6 +4,10 @@ use crate::style::{rel_width_string, StyleOrigin, StyleUse};
 
 style_ref!(ColStyleRef);
 
+/// Describes the style information for a table column.
+/// Hardly ever used. It's easier to set the col_width via
+/// Sheet::set_col_width
+///
 #[derive(Debug, Clone)]
 pub struct ColStyle {
     /// From where did we get this style.
@@ -30,6 +34,7 @@ pub struct ColStyle {
 }
 
 impl ColStyle {
+    /// empty
     pub fn empty() -> Self {
         Self {
             origin: Default::default(),
@@ -39,6 +44,7 @@ impl ColStyle {
         }
     }
 
+    /// New Style.
     pub fn new<S: Into<String>>(name: S) -> Self {
         let mut s = Self {
             origin: Default::default(),
@@ -50,46 +56,57 @@ impl ColStyle {
         s
     }
 
+    /// Returns a reference.
     pub fn style_ref(&self) -> ColStyleRef {
         ColStyleRef::from(self.name().unwrap().clone())
     }
 
+    /// Origin. Should always be Content.
     pub fn origin(&self) -> StyleOrigin {
         self.origin
     }
 
+    /// Origin. Should always be Content.
     pub fn set_origin(&mut self, origin: StyleOrigin) {
         self.origin = origin;
     }
 
+    /// Should always be Automatic.
     pub fn styleuse(&self) -> StyleUse {
         self.styleuse
     }
 
+    /// Should always be Automatic.
     pub fn set_styleuse(&mut self, styleuse: StyleUse) {
         self.styleuse = styleuse;
     }
 
+    /// Name.
     pub fn name(&self) -> Option<&String> {
         self.attr.attr("style:name")
     }
 
+    /// Name.
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
         self.attr.set_attr("style:name", name.into());
     }
 
+    /// Attributes
     pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
+    /// Attributes
     pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
+    /// Style attributes
     pub fn colstyle(&self) -> &AttrMap2 {
         &self.colstyle
     }
 
+    /// Style attributes
     pub fn colstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.colstyle
     }
