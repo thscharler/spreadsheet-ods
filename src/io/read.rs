@@ -17,7 +17,7 @@ use crate::style::{
     RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::text::TextTag;
-use crate::xmltree::XmlTag;
+use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
     ucell, CellStyle, ColRange, RowRange, SCell, Sheet, Value, ValueFormat, ValueType, Visibility,
     WorkBook,
@@ -2182,7 +2182,18 @@ fn read_xml_content(
     xml_tag: &BytesStart,
     empty_tag: bool,
 ) -> Result<Option<XmlTag>, OdsError> {
-    Ok(read_xml(end_tag, xml, xml_tag, empty_tag)?.pop_tag())
+    let mut xml = read_xml(end_tag, xml, xml_tag, empty_tag)?;
+    match xml.content().get(0) {
+        None => Ok(None),
+        Some(XmlContent::Tag(_)) => {
+            if let XmlContent::Tag(tag) = xml.content_mut().pop().unwrap() {
+                Ok(Some(tag))
+            } else {
+                unreachable!()
+            }
+        }
+        Some(XmlContent::Text(_)) => Ok(None),
+    }
 }
 
 // Reads a part of the XML as XmlTag's.
@@ -2218,7 +2229,7 @@ fn read_xml(
                     } else {
                         let tag = stack.pop().unwrap();
                         if let Some(parent) = stack.last_mut() {
-                            parent.push_tag(tag);
+                            parent.add_tag(tag);
                         } else {
                             unreachable!()
                         }
@@ -2230,7 +2241,7 @@ fn read_xml(
                     copy_attr2(emptytag.attrmap_mut(), xml, &xmlbytes)?;
 
                     if let Some(parent) = stack.last_mut() {
-                        parent.push_tag(emptytag);
+                        parent.add_tag(emptytag);
                     } else {
                         unreachable!()
                     }
@@ -2238,7 +2249,7 @@ fn read_xml(
 
                 Event::Text(xmlbytes) => {
                     if let Some(parent) = stack.last_mut() {
-                        parent.push_text(xmlbytes.unescape_and_decode(xml).unwrap());
+                        parent.add_text(xmlbytes.unescape_and_decode(xml).unwrap());
                     } else {
                         unreachable!()
                     }
@@ -2287,7 +2298,7 @@ fn read_text_or_tag(
                     if !stack.is_empty() {
                         // There is already a tag. Append the text to its children.
                         if let Some(parent_tag) = stack.last_mut() {
-                            parent_tag.push_text(text);
+                            parent_tag.add_text(text);
                         }
                     } else if let Some(tmp_str) = &mut str {
                         // We have a previous plain text string. Append to it.
@@ -2305,7 +2316,7 @@ fn read_text_or_tag(
                         copy_attr2(toplevel.attrmap_mut(), xml, xml_tag)?;
                         // Previous plain text strings are added.
                         if let Some(s) = &str {
-                            toplevel.push_text(s.as_str());
+                            toplevel.add_text(s.as_str());
                             str = None;
                         }
                         // Push to the stack.
@@ -2331,7 +2342,7 @@ fn read_text_or_tag(
                         // Get the tag from the stack and add it to it's parent.
                         let tag = stack.pop().unwrap();
                         if let Some(parent) = stack.last_mut() {
-                            parent.push_tag(tag);
+                            parent.add_tag(tag);
                         } else {
                             unreachable!()
                         }
@@ -2345,7 +2356,7 @@ fn read_text_or_tag(
                         copy_attr2(toplevel.attrmap_mut(), xml, xml_tag)?;
                         // Previous plain text strings are added.
                         if let Some(s) = &str {
-                            toplevel.push_text(s.as_str());
+                            toplevel.add_text(s.as_str());
                             str = None;
                         }
                         // Push to the stack.
@@ -2357,7 +2368,7 @@ fn read_text_or_tag(
                     copy_attr2(emptytag.attrmap_mut(), xml, &xmlbytes)?;
 
                     if let Some(parent) = stack.last_mut() {
-                        parent.push_tag(emptytag);
+                        parent.add_tag(emptytag);
                     } else {
                         unreachable!()
                     }

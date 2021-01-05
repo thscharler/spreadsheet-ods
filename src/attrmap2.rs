@@ -22,7 +22,7 @@ pub trait AttrMap2Trait {
     }
 
     /// Add from Vec
-    fn add_all(&mut self, data: Vec<(&str, String)>) {
+    fn add_all(&mut self, data: &[(&str, String)]) {
         self.attrmap_mut().add_all(data);
     }
 
@@ -59,11 +59,11 @@ impl AttrMap2 {
         self.map.is_none()
     }
 
-    /// Add from Vec
-    pub fn add_all(&mut self, data: Vec<(&str, String)>) {
+    /// Add from Slice
+    pub fn add_all(&mut self, data: &[(&str, String)]) {
         let attr = self.map.get_or_insert_with(|| Box::new(HashMap::new()));
-        for (name, val) in data {
-            attr.insert(DefaultAtom::from(name), val);
+        for (name, value) in data {
+            attr.insert(DefaultAtom::from(*name), value.to_string());
         }
     }
 

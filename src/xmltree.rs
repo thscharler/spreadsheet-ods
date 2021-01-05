@@ -8,23 +8,23 @@
 //! use spreadsheet_ods::xmltree::AttrMap2Trait;
 //!
 //! let tag = XmlTag::new("table:shapes")
-//!         .con_tag(XmlTag::new("draw:frame")
-//!             .con_attr("draw:z", "0")
-//!             .con_attr("draw:name", "Bild 1")
-//!             .con_attr("draw:style:name", "gr1")
-//!             .con_attr("draw:text-style-name", "P1")
-//!             .con_attr("svg:width", "10.198cm")
-//!             .con_attr("svg:height", "1.75cm")
-//!             .con_attr("svg:x", "0cm")
-//!             .con_attr("svg:y", "0cm")
-//!             .con_tag(XmlTag::new("draw:image")
-//!                 .con_attr("xlink:href", "Pictures/10000000000011D7000003105281DD09B0E0B8D4.jpg")
-//!                 .con_attr("xlink:type", "simple")
-//!                 .con_attr("xlink:show", "embed")
-//!                 .con_attr("xlink:actuate", "onLoad")
-//!                 .con_attr("loext:mime-type", "image/jpeg")
-//!                 .con_tag(XmlTag::new("text:p")
-//!                     .con_text("sometext")
+//!         .tag(XmlTag::new("draw:frame")
+//!             .attr("draw:z", "0")
+//!             .attr("draw:name", "Bild 1")
+//!             .attr("draw:style:name", "gr1")
+//!             .attr("draw:text-style-name", "P1")
+//!             .attr("svg:width", "10.198cm")
+//!             .attr("svg:height", "1.75cm")
+//!             .attr("svg:x", "0cm")
+//!             .attr("svg:y", "0cm")
+//!             .tag(XmlTag::new("draw:image")
+//!                 .attr("xlink:href", "Pictures/10000000000011D7000003105281DD09B0E0B8D4.jpg")
+//!                 .attr("xlink:type", "simple")
+//!                 .attr("xlink:show", "embed")
+//!                 .attr("xlink:actuate", "onLoad")
+//!                 .attr("loext:mime-type", "image/jpeg")
+//!                 .tag(XmlTag::new("text:p")
+//!                     .text("sometext")
 //!                 )
 //!             )
 //!         );
@@ -38,8 +38,8 @@
 //! let mut tag2 = XmlTag::new("draw:image");
 //! tag2.set_attr("xlink:type", "simple".to_string());
 //! tag2.set_attr("xlink:show", "embed".to_string());
-//! tag2.push_text("some text");
-//! tag.push_tag(tag2);
+//! tag2.add_text("some text");
+//! tag.add_tag(tag2);
 //!
 //! ```
 
@@ -60,6 +60,18 @@ impl AttrMap2Trait for XmlTag {
 
     fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
+    }
+}
+
+impl From<&str> for XmlTag {
+    fn from(name: &str) -> Self {
+        XmlTag::new(name)
+    }
+}
+
+impl From<String> for XmlTag {
+    fn from(name: String) -> Self {
+        XmlTag::new(name)
     }
 }
 
@@ -88,9 +100,19 @@ impl XmlTag {
         self.content.is_empty()
     }
 
+    /// Sets an attribute
+    pub fn set_attr<'a, S: Into<&'a str>, T: Into<String>>(&mut self, name: S, value: T) {
+        self.attr.set_attr(name.into(), value.into());
+    }
+
+    /// Adds more attributes.
+    pub fn add_attr_slice(&mut self, attr: &[(&str, String)]) {
+        self.attr.add_all(attr);
+    }
+
     /// Add an element.
-    pub fn push_tag(&mut self, xmltag: XmlTag) {
-        self.content.push(XmlContent::Tag(xmltag));
+    pub fn add_tag<T: Into<XmlTag>>(&mut self, tag: T) {
+        self.content.push(XmlContent::Tag(tag.into()));
     }
 
     /// Retrieves the first tag, if any.
@@ -109,50 +131,42 @@ impl XmlTag {
     }
 
     /// Add text.
-    pub fn push_text<S: Into<String>>(&mut self, text: S) {
+    pub fn add_text<S: Into<String>>(&mut self, text: S) {
         self.content.push(XmlContent::Text(text.into()));
     }
 
-    /// Retrieves the first text element.
-    pub fn pop_text(&mut self) -> Option<String> {
-        match self.content.get(0) {
-            None => None,
-            Some(XmlContent::Text(_)) => {
-                if let XmlContent::Text(text) = self.content.pop().unwrap() {
-                    Some(text)
-                } else {
-                    unreachable!()
-                }
-            }
-            Some(XmlContent::Tag(_)) => None,
-        }
+    /// Sets an attribute. Allows for cascading.
+    pub fn attr<'a, S: Into<&'a str>, T: Into<String>>(mut self, name: S, value: T) -> Self {
+        self.set_attr(name, value);
+        self
     }
 
-    /// Sets an attribute. Allows for cascading.
-    pub fn con_attr<'a, S0, S1>(mut self, name: S0, value: S1) -> Self
-    where
-        S0: Into<&'a str>,
-        S1: Into<String>,
-    {
-        self.attr.set_attr(name.into(), value.into());
+    /// Adds more attributes.
+    pub fn attr_slice(mut self, attr: &[(&str, String)]) -> Self {
+        self.add_attr_slice(attr);
         self
     }
 
     /// Adds an element. Allows for cascading.
-    pub fn con_tag(mut self, xmltag: XmlTag) -> Self {
-        self.content.push(XmlContent::Tag(xmltag));
+    pub fn tag<T: Into<XmlTag>>(mut self, tag: T) -> Self {
+        self.add_tag(tag);
         self
     }
 
     /// Adds text. Allows for cascading.
-    pub fn con_text<S: Into<String>>(mut self, text: S) -> Self {
-        self.content.push(XmlContent::Text(text.into()));
+    pub fn text<S: Into<String>>(mut self, text: S) -> Self {
+        self.add_text(text);
         self
     }
 
     /// Returns the content vec.
     pub fn content(&self) -> &Vec<XmlContent> {
         &self.content
+    }
+
+    /// Returns the content vec.
+    pub fn content_mut(&mut self) -> &mut Vec<XmlContent> {
+        &mut self.content
     }
 }
 

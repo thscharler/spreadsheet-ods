@@ -44,9 +44,9 @@ fn crpagelayout() -> Result<(), OdsError> {
 
     let mut mp = MasterPage::new("mp1");
     mp.set_pagestyle(&ps);
-    mp.header_mut().center_mut().push_text("middle ground");
-    mp.header_mut().left_mut().push_text("left wing");
-    mp.header_mut().right_mut().push_text("right wing");
+    mp.header_mut().center_mut().add_text("middle ground");
+    mp.header_mut().left_mut().add_text("left wing");
+    mp.header_mut().right_mut().add_text("right wing");
     let mp = wb.add_masterpage(mp);
 
     let mut ts = TableStyle::new("ts1");
