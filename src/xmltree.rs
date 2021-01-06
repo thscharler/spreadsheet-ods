@@ -18,11 +18,13 @@
 //!             .attr("svg:x", "0cm")
 //!             .attr("svg:y", "0cm")
 //!             .tag(XmlTag::new("draw:image")
-//!                 .attr("xlink:href", "Pictures/10000000000011D7000003105281DD09B0E0B8D4.jpg")
-//!                 .attr("xlink:type", "simple")
-//!                 .attr("xlink:show", "embed")
-//!                 .attr("xlink:actuate", "onLoad")
-//!                 .attr("loext:mime-type", "image/jpeg")
+//!                 .attr_slice(&[
+//!                     ("xlink:href", "Pictures/10000000000011D7000003105281DD09B0E0B8D4.jpg".into()),
+//!                     ("xlink:type", "simple".into()),
+//!                     ("xlink:show", "embed".into()),
+//!                     ("xlink:actuate", "onLoad".into()),
+//!                     ("loext:mime-type", "image/jpeg".into()),
+//!                 ])
 //!                 .tag(XmlTag::new("text:p")
 //!                     .text("sometext")
 //!                 )

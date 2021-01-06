@@ -54,6 +54,12 @@ macro_rules! text_tag {
             }
         }
 
+        impl Default for $tag {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+
         impl $tag {
             pub fn new() -> Self {
                 $tag {
@@ -69,6 +75,10 @@ macro_rules! text_tag {
             pub fn text<S: Into<String>>(mut self, text: S) -> Self {
                 self.xml.add_text(text);
                 self
+            }
+
+            pub fn into_xmltag(self) -> XmlTag {
+                self.xml
             }
         }
     };

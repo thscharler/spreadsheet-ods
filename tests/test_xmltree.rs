@@ -1,5 +1,5 @@
-use spreadsheet_ods::text;
-use spreadsheet_ods::text::{AuthorName, TextH, TextTag};
+use spreadsheet_ods::style::ParagraphStyleRef;
+use spreadsheet_ods::text::{AuthorName, CreationDate, TextH, TextP, TextS, TextTag};
 use spreadsheet_ods::xmltree::XmlTag;
 
 #[test]
@@ -41,4 +41,19 @@ pub fn test_text() {
         .tag(TextH::new().style_name(&"flfl".into()).text("heyder"));
     println!("{:?}", txt);
     println!("{}", txt);
+}
+
+#[test]
+pub fn test_text2() {
+    let p1_ref = ParagraphStyleRef::from("p1");
+
+    let txt = TextP::new()
+        .style_name(&p1_ref)
+        .text("some text")
+        .tag(AuthorName::new())
+        .tag(TextS::new())
+        .tag(CreationDate::new())
+        .tag(TextS::new())
+        .text("whatever");
+    println!("{}", txt.into_xmltag());
 }

@@ -1,6 +1,27 @@
 //! Text is stored as a simple String whenever possible.
 //! When there is a more complex structure, a TextTag is constructed
 //! which mirrors the Xml tree structure.
+//!
+//! For construction of a new TextTag structure a few helper structs are
+//! defined.
+//!
+//! ```
+//! use spreadsheet_ods::text::{TextP, TextTag, AuthorName, CreationDate, TextS};
+//! use spreadsheet_ods::style::ParagraphStyleRef;
+//!
+//! let p1_ref = ParagraphStyleRef::from("p1");
+//!
+//! let txt = TextP::new()
+//!             .style_name(&p1_ref)
+//!             .text("some text")
+//!             .tag(AuthorName::new())
+//!             .tag(TextS::new())
+//!             .tag(CreationDate::new())
+//!             .tag(TextS::new())
+//!             .text("whatever");
+//! println!("{}", txt.into_xmltag());
+//! ```
+//!
 
 use crate::style::{ParagraphStyleRef, TextStyleRef};
 use crate::xmltree::{XmlContent, XmlTag};
@@ -9,6 +30,7 @@ pub type TextTag = XmlTag;
 pub type TextContent = XmlContent;
 
 text_tag!(TextH, "text:h");
+
 impl TextH {
     pub fn class_names(mut self, class_names: &[&ParagraphStyleRef]) -> Self {
         let mut buf = String::new();
@@ -30,7 +52,7 @@ impl TextH {
         self
     }
 
-    pub fn is_list_header(mut self, lh: bool) -> Self {
+    pub fn list_header(mut self, lh: bool) -> Self {
         self.xml.set_attr("text:is-list-header", lh.to_string());
         self
     }
@@ -96,6 +118,7 @@ impl TextP {
 }
 
 text_tag!(TextSpan, "text:span");
+
 impl TextSpan {
     pub fn class_names(mut self, class_names: &[&TextStyleRef]) -> Self {
         let mut buf = String::new();
@@ -114,6 +137,7 @@ impl TextSpan {
 }
 
 text_tag!(TextA, "text:a");
+
 impl TextA {
     pub fn href(mut self, uri: String) -> Self {
         self.xml.set_attr("xlink:href", uri);
