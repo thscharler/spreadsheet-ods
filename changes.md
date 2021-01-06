@@ -1,3 +1,6 @@
+# 0.5.2
+- Add useability for XmlTag and TextTag.
+- Implement a few standard TextTag Wrappers for common text elements.
 
 # 0.5.1
 - Split up the unwieldy PageLayout into PageStyle and MasterPage, and add
