@@ -44,6 +44,7 @@
 //! ```
 
 pub use crate::attrmap2::{AttrMap2, AttrMap2Trait};
+use std::fmt::{Display, Formatter};
 
 /// Defines a XML tag and it's children.
 #[derive(Debug, Clone, Default)]
@@ -167,6 +168,35 @@ impl XmlTag {
     /// Returns the content vec.
     pub fn content_mut(&mut self) -> &mut Vec<XmlContent> {
         &mut self.content
+    }
+}
+
+impl Display for XmlTag {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "<{}", self.name)?;
+        for (n, v) in self.attr.iter() {
+            write!(f, " {}=\"{}\"", n, v)?;
+        }
+        if self.content.is_empty() {
+            writeln!(f, "/>")?;
+        } else {
+            writeln!(f, ">")?;
+
+            for c in &self.content {
+                match c {
+                    XmlContent::Text(t) => {
+                        writeln!(f, "{}", t)?;
+                    }
+                    XmlContent::Tag(t) => {
+                        t.fmt(f)?;
+                    }
+                }
+            }
+
+            writeln!(f, "</{}>", self.name)?;
+        }
+
+        Ok(())
     }
 }
 
