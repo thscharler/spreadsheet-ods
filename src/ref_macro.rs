@@ -30,8 +30,55 @@ macro_rules! style_ref {
         }
 
         impl $l {
+            pub fn as_str(&self) -> &str {
+                self.name.as_str()
+            }
+
             pub fn to_string(&self) -> String {
                 self.name.clone()
+            }
+        }
+    };
+}
+
+/// Generates a name reference for a style.
+macro_rules! text_tag {
+    ($tag:ident, $xml:literal) => {
+        pub struct $tag {
+            xml: XmlTag,
+        }
+
+        impl Into<XmlTag> for $tag {
+            fn into(self) -> XmlTag {
+                self.xml
+            }
+        }
+
+        impl Default for $tag {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+
+        impl $tag {
+            pub fn new() -> Self {
+                $tag {
+                    xml: XmlTag::new($xml),
+                }
+            }
+
+            pub fn tag<T: Into<XmlTag>>(mut self, tag: T) -> Self {
+                self.xml.add_tag(tag);
+                self
+            }
+
+            pub fn text<S: Into<String>>(mut self, text: S) -> Self {
+                self.xml.add_text(text);
+                self
+            }
+
+            pub fn into_xmltag(self) -> XmlTag {
+                self.xml
             }
         }
     };

@@ -170,7 +170,7 @@ fn read_text() -> Result<(), OdsError> {
 #[test]
 fn read_orders() -> Result<(), OdsError> {
     let wb = read_ods("tests/orders.ods")?;
-    println!("{:?}", wb);
+    // println!("{:?}", wb);
     write_ods(&wb, "test_out/orders.ods")?;
     Ok(())
 }

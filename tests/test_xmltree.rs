@@ -1,29 +1,59 @@
+use spreadsheet_ods::style::ParagraphStyleRef;
+use spreadsheet_ods::text::{AuthorName, CreationDate, TextH, TextP, TextS, TextTag};
 use spreadsheet_ods::xmltree::XmlTag;
 
 #[test]
 pub fn test_tree() {
-    let _tag = XmlTag::new("table:shapes").con_tag(
+    let tag = XmlTag::new("table:shapes").tag(
         XmlTag::new("draw:frame")
-            .con_attr("draw:z", "0")
-            .con_attr("draw:name", "Bild 1")
-            .con_attr("draw:styl:name", "gr1")
-            .con_attr("draw:text-style-name", "P1")
-            .con_attr("svg:width", "10.198cm")
-            .con_attr("svg:height", "1.75cm")
-            .con_attr("svg:x", "0cm")
-            .con_attr("svg:y", "0cm")
-            .con_tag(
+            .attr_slice(&[
+                ("draw:z", "0".into()),
+                ("draw:name", "Bild 1".into()),
+                ("draw:styl:name", "gr1".into()),
+                ("draw:text-style-name", "P1".into()),
+                ("svg:width", "10.198cm".into()),
+                ("svg:height", "1.75cm".into()),
+                ("svg:x", "0cm".into()),
+                ("svg:y", "0cm".into()),
+            ])
+            .tag(
                 XmlTag::new("draw:image")
-                    .con_attr(
-                        "xlink:href",
-                        "Pictures/10000000000011D7000003105281DD09B0E0B8D4.jpg",
-                    )
-                    .con_attr("xlink:type", "simple")
-                    .con_attr("xlink:show", "embed")
-                    .con_attr("xlink:actuate", "onLoad")
-                    .con_attr("loext:mime-type", "image/jpeg")
-                    .con_tag(XmlTag::new("text:p")),
+                    .attr_slice(&[
+                        (
+                            "xlink:href",
+                            "Pictures/10000000000011D7000003105281DD09B0E0B8D4.jpg".into(),
+                        ),
+                        ("xlink:type", "simple".into()),
+                        ("xlink:show", "embed".into()),
+                        ("xlink:actuate", "onLoad".into()),
+                        ("loext:mime-type", "image/jpeg".into()),
+                    ])
+                    .tag(XmlTag::new("text:p")),
             ),
     );
-    // println!("{:?}", tag);
+    println!("{}", tag);
+}
+
+#[test]
+pub fn test_text() {
+    let txt = TextTag::new("text:p")
+        .tag(AuthorName::new())
+        .tag(TextH::new().style_name(&"flfl".into()).text("heyder"));
+    println!("{:?}", txt);
+    println!("{}", txt);
+}
+
+#[test]
+pub fn test_text2() {
+    let p1_ref = ParagraphStyleRef::from("p1");
+
+    let txt = TextP::new()
+        .style_name(&p1_ref)
+        .text("some text")
+        .tag(AuthorName::new())
+        .tag(TextS::new())
+        .tag(CreationDate::new())
+        .tag(TextS::new())
+        .text("whatever");
+    println!("{}", txt.into_xmltag());
 }

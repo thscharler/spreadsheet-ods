@@ -22,8 +22,8 @@ style_ref!(MasterPageRef);
 ///
 /// let mut mp1 = MasterPage::new("mp1");
 /// mp1.set_pagestyle(&ps_ref);
-/// mp1.header_mut().center_mut().push_text("center");
-/// mp1.footer_mut().right_mut().push_text("right");
+/// mp1.header_mut().center_mut().add_text("center");
+/// mp1.footer_mut().right_mut().add_text("right");
 /// let mp1_ref = wb.add_masterpage(mp1);
 ///
 /// let mut ts = TableStyle::new("ts1");

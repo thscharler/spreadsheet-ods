@@ -20,7 +20,7 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-spreadsheet-ods = "0.4"
+spreadsheet-ods = "0.5.1"
 ```
 
 ## Features
