@@ -427,6 +427,12 @@ fn write_ods_styles(
         StyleUse::Named,
         &mut xml_out,
     )?;
+    write_valuestyles(
+        &book.formats,
+        StyleOrigin::Styles,
+        StyleUse::Default,
+        &mut xml_out,
+    )?;
     xml_out.end_elem("office:styles")?;
 
     xml_out.elem("office:automatic-styles")?;
@@ -524,6 +530,10 @@ fn write_ods_content(
     xml_out.attr(
         "xmlns:presentation",
         "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:number",
+        "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
     )?;
 
     xml_out.attr("office:version", book.version())?;
@@ -1019,7 +1029,7 @@ fn write_table_columns(
     Ok(())
 }
 
-#[allow(clippy::single_char_push_str)]
+#[allow(clippy::single_char_add_str)]
 fn write_cell(
     book: &WorkBook,
     cell: &SCell,

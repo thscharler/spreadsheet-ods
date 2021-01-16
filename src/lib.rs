@@ -1556,6 +1556,26 @@ impl From<TextTag> for Value {
     }
 }
 
+impl From<Option<&str>> for Value {
+    fn from(s: Option<&str>) -> Self {
+        if let Some(s) = s {
+            Value::Text(s.to_string())
+        } else {
+            Value::Empty
+        }
+    }
+}
+
+impl From<Option<&String>> for Value {
+    fn from(s: Option<&String>) -> Self {
+        if let Some(s) = s {
+            Value::Text(s.to_string())
+        } else {
+            Value::Empty
+        }
+    }
+}
+
 impl From<Option<String>> for Value {
     fn from(s: Option<String>) -> Self {
         if let Some(s) = s {
@@ -1596,6 +1616,16 @@ macro_rules! from_number {
             fn from(f: Option<$l>) -> Self {
                 if let Some(f) = f {
                     Value::Number(f as f64)
+                } else {
+                    Value::Empty
+                }
+            }
+        }
+
+        impl From<Option<&$l>> for Value {
+            fn from(f: Option<&$l>) -> Self {
+                if let Some(f) = f {
+                    Value::Number(*f as f64)
                 } else {
                     Value::Empty
                 }

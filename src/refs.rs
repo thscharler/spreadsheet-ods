@@ -418,6 +418,7 @@ impl RowRange {
 
 /// Parse the colname.
 /// Stops when the colname ends and returns the byte position in end.
+#[allow(clippy::manual_range_contains)]
 pub(crate) fn parse_colname(buf: &str, pos: &mut usize) -> Option<ucell> {
     let mut col = 0u32;
 
@@ -453,6 +454,7 @@ pub(crate) fn parse_colname(buf: &str, pos: &mut usize) -> Option<ucell> {
 
 /// Parse the rowname.
 /// Stops when the rowname ends and returns the byte position in end.
+#[allow(clippy::manual_range_contains)]
 pub(crate) fn parse_rowname(buf: &str, pos: &mut usize) -> Option<ucell> {
     let mut row = 0u32;
 

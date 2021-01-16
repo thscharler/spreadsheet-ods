@@ -96,8 +96,8 @@ impl ValueFormat {
             language: None,
             script: None,
             v_type: ValueType::Text,
-            origin: Default::default(),
-            styleuse: Default::default(),
+            origin: StyleOrigin::Styles,
+            styleuse: StyleUse::Default,
             attr: Default::default(),
             textstyle: Default::default(),
             parts: Default::default(),
@@ -113,8 +113,8 @@ impl ValueFormat {
             language: None,
             script: None,
             v_type: value_type,
-            origin: Default::default(),
-            styleuse: Default::default(),
+            origin: StyleOrigin::Styles,
+            styleuse: StyleUse::Default,
             attr: Default::default(),
             textstyle: Default::default(),
             parts: Default::default(),
@@ -263,8 +263,8 @@ impl ValueFormat {
     }
 
     /// Appends a format part.
-    pub fn push_month(&mut self, number: FormatNumberStyle) {
-        self.push_part(FormatPart::new_month(number));
+    pub fn push_month(&mut self, number: FormatNumberStyle, text: bool) {
+        self.push_part(FormatPart::new_month(number, text));
     }
 
     /// Appends a format part.
@@ -547,7 +547,7 @@ impl FormatPart {
         let mut p = FormatPart::new(FormatPartType::Number);
         p.set_attr("number:min-integer-digits", 1.to_string());
         p.set_attr("number:decimal-places", decimal.to_string());
-        p.set_attr("loext:min-decimal-places", 0.to_string());
+        p.set_attr("number:min-decimal-places", 0.to_string());
         if grouping {
             p.set_attr("number:grouping", String::from("true"));
         }
@@ -559,7 +559,7 @@ impl FormatPart {
         let mut p = Self::new(FormatPartType::Number);
         p.set_attr("number:min-integer-digits", 1.to_string());
         p.set_attr("number:decimal-places", decimal.to_string());
-        p.set_attr("loext:min-decimal-places", decimal.to_string());
+        p.set_attr("number:min-decimal-places", decimal.to_string());
         if grouping {
             p.set_attr("number:grouping", String::from("true"));
         }
@@ -611,9 +611,10 @@ impl FormatPart {
         p
     }
 
-    pub fn new_month(number: FormatNumberStyle) -> Self {
+    pub fn new_month(number: FormatNumberStyle, text: bool) -> Self {
         let mut p = Self::new(FormatPartType::Month);
         p.set_attr("number:style", number.to_string());
+        p.set_attr("number:textual", text.to_string());
         p
     }
 
@@ -982,7 +983,7 @@ pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::new_with_name(name.into(), ValueType::DateTime);
     v.push_day(FormatNumberStyle::Long);
     v.push_text(".");
-    v.push_month(FormatNumberStyle::Long);
+    v.push_month(FormatNumberStyle::Long, false);
     v.push_text(".");
     v.push_year(FormatNumberStyle::Long);
     v
@@ -991,7 +992,7 @@ pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormat {
 /// Creates a new date format M/D/Y
 pub fn create_date_mdy_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::new_with_name(name.into(), ValueType::DateTime);
-    v.push_month(FormatNumberStyle::Long);
+    v.push_month(FormatNumberStyle::Long, false);
     v.push_text("/");
     v.push_day(FormatNumberStyle::Long);
     v.push_text("/");
@@ -1004,7 +1005,7 @@ pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::new_with_name(name.into(), ValueType::DateTime);
     v.push_day(FormatNumberStyle::Long);
     v.push_text(".");
-    v.push_month(FormatNumberStyle::Long);
+    v.push_month(FormatNumberStyle::Long, false);
     v.push_text(".");
     v.push_year(FormatNumberStyle::Long);
     v.push_text(" ");
