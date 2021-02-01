@@ -820,6 +820,7 @@ fn read_fonts(
     book: &mut WorkBook,
     origin: StyleOrigin,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    // no attributes
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
@@ -973,6 +974,7 @@ fn read_master_styles(
     book: &mut WorkBook,
     origin: StyleOrigin,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    // no attributes
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
@@ -1051,22 +1053,38 @@ fn read_master_page(
         match evt {
             Event::Start(ref xml_tag) => match xml_tag.name() {
                 b"style:header" => {
-                    masterpage.set_header(read_headerfooter(b"style:header", xml)?);
+                    masterpage.set_header(read_headerfooter(b"style:header", xml, xml_tag)?);
                 }
                 b"style:header-first" => {
-                    masterpage.set_header_first(read_headerfooter(b"style:header-first", xml)?);
+                    masterpage.set_header_first(read_headerfooter(
+                        b"style:header-first",
+                        xml,
+                        xml_tag,
+                    )?);
                 }
                 b"style:header-left" => {
-                    masterpage.set_header_left(read_headerfooter(b"style:header-left", xml)?);
+                    masterpage.set_header_left(read_headerfooter(
+                        b"style:header-left",
+                        xml,
+                        xml_tag,
+                    )?);
                 }
                 b"style:footer" => {
-                    masterpage.set_footer(read_headerfooter(b"style:footer", xml)?);
+                    masterpage.set_footer(read_headerfooter(b"style:footer", xml, xml_tag)?);
                 }
                 b"style:footer-first" => {
-                    masterpage.set_footer_first(read_headerfooter(b"style:footer-first", xml)?);
+                    masterpage.set_footer_first(read_headerfooter(
+                        b"style:footer-first",
+                        xml,
+                        xml_tag,
+                    )?);
                 }
                 b"style:footer-left" => {
-                    masterpage.set_footer_left(read_headerfooter(b"style:footer-left", xml)?);
+                    masterpage.set_footer_left(read_headerfooter(
+                        b"style:footer-left",
+                        xml,
+                        xml_tag,
+                    )?);
                 }
                 _ => {
                     if cfg!(feature = "dump_unused") {
@@ -1105,10 +1123,28 @@ fn read_master_page(
 fn read_headerfooter(
     end_tag: &[u8],
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
 ) -> Result<HeaderFooter, OdsError> {
     let mut buf = Vec::new();
 
     let mut hf = HeaderFooter::new();
+
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key == b"style:display" => {
+                let display = attr.unescape_and_decode_value(&xml)?;
+                hf.set_display(display == "true");
+            }
+            attr => {
+                if cfg!(feature = "dump_unused") {
+                    let n = xml.decode(xml_tag.name())?;
+                    let k = xml.decode(attr.key)?;
+                    let v = attr.unescape_and_decode_value(xml)?;
+                    println!(" read_headerfooter unused {} {} {}", n, k, v);
+                }
+            }
+        }
+    }
 
     loop {
         let evt = xml.read_event(&mut buf)?;
@@ -1175,6 +1211,7 @@ fn read_styles_tag(
     book: &mut WorkBook,
     origin: StyleOrigin,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    // not attributes
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
@@ -1251,6 +1288,7 @@ fn read_auto_styles(
     book: &mut WorkBook,
     origin: StyleOrigin,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    // no attributes
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 

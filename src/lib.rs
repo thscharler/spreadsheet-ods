@@ -823,20 +823,37 @@ impl Sheet {
         }
     }
 
-    // New, empty, but with a name.
+    /// New, empty, but with a name.
     pub fn new_with_name<S: Into<String>>(name: S) -> Self {
         Sheet {
             name: name.into(),
-            data: BTreeMap::new(),
-            col_header: Default::default(),
             style: None,
-            header_rows: None,
-            header_cols: None,
-            print_ranges: None,
-            extra: vec![],
+            data: Default::default(),
+            col_header: Default::default(),
             row_header: Default::default(),
             display: true,
             print: true,
+            header_rows: None,
+            header_cols: None,
+            print_ranges: None,
+            extra: Default::default(),
+        }
+    }
+
+    /// Copy all the attributes but not the actual data.
+    pub fn new_no_data(sheet: &Sheet) -> Self {
+        Self {
+            name: sheet.name.clone(),
+            style: sheet.style.clone(),
+            data: Default::default(),
+            col_header: sheet.col_header.clone(),
+            row_header: sheet.row_header.clone(),
+            display: sheet.display,
+            print: sheet.print,
+            header_rows: sheet.header_rows.clone(),
+            header_cols: sheet.header_cols.clone(),
+            print_ranges: sheet.print_ranges.clone(),
+            extra: sheet.extra.clone(),
         }
     }
 
