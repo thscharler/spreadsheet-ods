@@ -22,6 +22,8 @@ pub struct ParagraphStyle {
     origin: StyleOrigin,
     /// Which tag contains this style.
     styleuse: StyleUse,
+    /// Style name
+    name: String,
     /// General attributes
     // ??? style:auto-update 19.467,
     // ??? style:class 19.470,
@@ -49,6 +51,7 @@ impl ParagraphStyle {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: Default::default(),
             attr: Default::default(),
             paragraphstyle: Default::default(),
             textstyle: Default::default(),
@@ -57,20 +60,19 @@ impl ParagraphStyle {
     }
 
     pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
-        let mut s = Self {
+        Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: name.into(),
             attr: Default::default(),
             paragraphstyle: Default::default(),
             textstyle: Default::default(),
             tabstops: None,
-        };
-        s.set_name(name.into());
-        s
+        }
     }
 
     pub fn style_ref(&self) -> ParagraphStyleRef {
-        ParagraphStyleRef::from(self.name().unwrap().clone())
+        ParagraphStyleRef::from(self.name())
     }
 
     pub fn origin(&self) -> StyleOrigin {
@@ -89,12 +91,12 @@ impl ParagraphStyle {
         self.styleuse = styleuse;
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.attr.attr("style:name")
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:name", name.into());
+        self.name = name.into()
     }
 
     pub fn display_name(&self) -> Option<&String> {

@@ -17,6 +17,8 @@ pub struct TextStyle {
     origin: StyleOrigin,
     /// Which tag contains this style.
     styleuse: StyleUse,
+    /// Style name
+    name: String,
     /// General attributes
     // ??? style:auto-update 19.467,
     // ??? style:class 19.470,
@@ -40,24 +42,24 @@ impl TextStyle {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: Default::default(),
             attr: Default::default(),
             textstyle: Default::default(),
         }
     }
 
     pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
-        let mut s = Self {
+        Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: name.into(),
             attr: Default::default(),
             textstyle: Default::default(),
-        };
-        s.set_name(name.into());
-        s
+        }
     }
 
     pub fn style_ref(&self) -> TextStyleRef {
-        TextStyleRef::from(self.name().unwrap().clone())
+        TextStyleRef::from(self.name())
     }
 
     pub fn origin(&self) -> StyleOrigin {
@@ -76,12 +78,12 @@ impl TextStyle {
         self.styleuse = styleuse;
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.attr.attr("style:name")
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:name", name.into());
+        self.name = name.into();
     }
 
     pub fn display_name(&self) -> Option<&String> {

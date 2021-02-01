@@ -14,6 +14,8 @@ pub struct ColStyle {
     origin: StyleOrigin,
     /// Which tag contains this style.
     styleuse: StyleUse,
+    /// Style name
+    name: String,
     /// General attributes
     // ??? style:auto-update 19.467,
     // ??? style:class 19.470,
@@ -39,6 +41,7 @@ impl ColStyle {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: Default::default(),
             attr: Default::default(),
             colstyle: Default::default(),
         }
@@ -46,19 +49,18 @@ impl ColStyle {
 
     /// New Style.
     pub fn new<S: Into<String>>(name: S) -> Self {
-        let mut s = Self {
+        Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: name.into(),
             attr: Default::default(),
             colstyle: Default::default(),
-        };
-        s.set_name(name.into());
-        s
+        }
     }
 
     /// Returns a reference.
     pub fn style_ref(&self) -> ColStyleRef {
-        ColStyleRef::from(self.name().unwrap().clone())
+        ColStyleRef::from(self.name())
     }
 
     /// Origin. Should always be Content.
@@ -82,13 +84,13 @@ impl ColStyle {
     }
 
     /// Name.
-    pub fn name(&self) -> Option<&String> {
-        self.attr.attr("style:name")
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Name.
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:name", name.into());
+        self.name = name.into();
     }
 
     /// Attributes

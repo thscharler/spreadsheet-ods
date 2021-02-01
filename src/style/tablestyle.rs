@@ -13,6 +13,8 @@ pub struct TableStyle {
     origin: StyleOrigin,
     /// Which tag contains this style.
     styleuse: StyleUse,
+    /// Style name
+    name: String,
     /// General attributes
     // ??? style:auto-update 19.467,
     // ??? style:class 19.470,
@@ -38,6 +40,7 @@ impl TableStyle {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: Default::default(),
             attr: Default::default(),
             tablestyle: Default::default(),
         }
@@ -45,19 +48,18 @@ impl TableStyle {
 
     /// Creates a new Style.
     pub fn new<S: Into<String>>(name: S) -> Self {
-        let mut s = Self {
+        Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: name.into(),
             attr: Default::default(),
             tablestyle: Default::default(),
-        };
-        s.set_name(name.into());
-        s
+        }
     }
 
     /// Style reference.
     pub fn style_ref(&self) -> TableStyleRef {
-        TableStyleRef::from(self.name().unwrap().clone())
+        TableStyleRef::from(self.name())
     }
 
     /// Origin of the style.
@@ -81,13 +83,13 @@ impl TableStyle {
     }
 
     /// Style name
-    pub fn name(&self) -> Option<&String> {
-        self.attr.attr("style:name")
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Style name
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:name", name.into());
+        self.name = name.into();
     }
 
     /// Sets the reference to the pageformat.

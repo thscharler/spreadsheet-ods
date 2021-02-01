@@ -1591,8 +1591,8 @@ fn read_tablestyle(
     let mut style = TableStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-
-    copy_attr2(style.attrmap_mut(), xml, xml_tag)?;
+    style.set_name(style_name(xml, xml_tag)?);
+    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -1652,8 +1652,8 @@ fn read_rowstyle(
     let mut style = RowStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-
-    copy_attr2(style.attrmap_mut(), xml, xml_tag)?;
+    style.set_name(style_name(xml, xml_tag)?);
+    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -1715,8 +1715,8 @@ fn read_colstyle(
     let mut style = ColStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-
-    copy_attr2(style.attrmap_mut(), xml, xml_tag)?;
+    style.set_name(style_name(xml, xml_tag)?);
+    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -1778,11 +1778,8 @@ fn read_cellstyle(
     let mut style = CellStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-    if styleuse == StyleUse::Default {
-        style.set_name("");
-    }
-
-    copy_attr2(style.attrmap_mut(), xml, xml_tag)?;
+    style.set_name(style_name(xml, xml_tag)?);
+    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -1859,8 +1856,8 @@ fn read_paragraphstyle(
     let mut style = ParagraphStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-
-    copy_attr2(style.attrmap_mut(), xml, xml_tag)?;
+    style.set_name(style_name(xml, xml_tag)?);
+    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -1935,8 +1932,8 @@ fn read_textstyle(
     let mut style = TextStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-
-    copy_attr2(style.attrmap_mut(), xml, xml_tag)?;
+    style.set_name(style_name(xml, xml_tag)?);
+    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -1996,8 +1993,8 @@ fn read_graphicstyle(
     let mut style = GraphicStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-
-    copy_attr2(style.attrmap_mut(), xml, xml_tag)?;
+    style.set_name(style_name(xml, xml_tag)?);
+    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -2107,6 +2104,42 @@ fn read_family_attr(
     Err(OdsError::Ods("no style:family".to_string()))
 }
 
+/// extract the "style:name" attr
+fn style_name(
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
+) -> Result<String, OdsError> {
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key == b"style:name" => return Ok(attr.unescape_and_decode_value(&xml)?),
+            _ => {}
+        }
+    }
+
+    Ok("".to_string())
+}
+
+/// Copies all attributes to the given map, excluding "style:name"
+fn copy_style_attr(
+    attrmap: &mut AttrMap2,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
+) -> Result<(), OdsError> {
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key == b"style:name" => {}
+            attr => {
+                let k = xml.decode(&attr.key)?;
+                let v = attr.unescape_and_decode_value(&xml)?;
+                attrmap.set_attr(k, v);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Copies all attributes to the given map.
 fn copy_attr2(
     attrmap: &mut AttrMap2,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,

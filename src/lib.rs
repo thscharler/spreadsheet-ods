@@ -397,8 +397,7 @@ impl WorkBook {
     /// Adds a style.
     pub fn add_tablestyle(&mut self, style: TableStyle) -> TableStyleRef {
         let sref = style.style_ref();
-        self.tablestyles
-            .insert(style.name().unwrap().to_string(), style);
+        self.tablestyles.insert(style.name().to_string(), style);
         sref
     }
 
@@ -420,8 +419,7 @@ impl WorkBook {
     /// Adds a style.
     pub fn add_rowstyle(&mut self, style: RowStyle) -> RowStyleRef {
         let sref = style.style_ref();
-        self.rowstyles
-            .insert(style.name().unwrap().to_string(), style);
+        self.rowstyles.insert(style.name().to_string(), style);
         sref
     }
 
@@ -443,8 +441,7 @@ impl WorkBook {
     /// Adds a style.
     pub fn add_colstyle(&mut self, style: ColStyle) -> ColStyleRef {
         let sref = style.style_ref();
-        self.colstyles
-            .insert(style.name().unwrap().to_string(), style);
+        self.colstyles.insert(style.name().to_string(), style);
         sref
     }
 
@@ -466,8 +463,7 @@ impl WorkBook {
     /// Adds a style.
     pub fn add_cellstyle(&mut self, style: CellStyle) -> CellStyleRef {
         let sref = style.style_ref();
-        self.cellstyles
-            .insert(style.name().unwrap().to_string(), style);
+        self.cellstyles.insert(style.name().to_string(), style);
         sref
     }
 
@@ -489,8 +485,7 @@ impl WorkBook {
     /// Adds a style.
     pub fn add_paragraphstyle(&mut self, style: ParagraphStyle) -> ParagraphStyleRef {
         let sref = style.style_ref();
-        self.paragraphstyles
-            .insert(style.name().unwrap().to_string(), style);
+        self.paragraphstyles.insert(style.name().to_string(), style);
         sref
     }
 
@@ -512,8 +507,7 @@ impl WorkBook {
     /// Adds a style.
     pub fn add_textstyle(&mut self, style: TextStyle) -> TextStyleRef {
         let sref = style.style_ref();
-        self.textstyles
-            .insert(style.name().unwrap().to_string(), style);
+        self.textstyles.insert(style.name().to_string(), style);
         sref
     }
 
@@ -535,8 +529,7 @@ impl WorkBook {
     /// Adds a style.
     pub fn add_graphicstyle(&mut self, style: GraphicStyle) -> GraphicStyleRef {
         let sref = style.style_ref();
-        self.graphicstyles
-            .insert(style.name().unwrap().to_string(), style);
+        self.graphicstyles.insert(style.name().to_string(), style);
         sref
     }
 
