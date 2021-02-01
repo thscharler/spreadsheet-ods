@@ -44,6 +44,8 @@ pub struct CellStyle {
     origin: StyleOrigin,
     /// Which tag contains this style.
     styleuse: StyleUse,
+    /// Style name.
+    name: String,
     /// General attributes
     attr: AttrMap2,
     //
@@ -60,6 +62,7 @@ impl CellStyle {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: Default::default(),
             attr: Default::default(),
             cellstyle: Default::default(),
             paragraphstyle: Default::default(),
@@ -74,20 +77,20 @@ impl CellStyle {
         let mut s = Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: name.into(),
             attr: Default::default(),
             cellstyle: Default::default(),
             paragraphstyle: Default::default(),
             textstyle: Default::default(),
             stylemaps: None,
         };
-        s.set_name(name.into());
         s.set_value_format(value_format);
         s
     }
 
     /// Returns the name as a CellStyleRef.
     pub fn style_ref(&self) -> CellStyleRef {
-        CellStyleRef::from(self.name().unwrap().clone())
+        CellStyleRef::from(self.name())
     }
 
     /// Origin of the style, either styles.xml oder content.xml
@@ -109,13 +112,13 @@ impl CellStyle {
     }
 
     /// Stylename
-    pub fn name(&self) -> Option<&String> {
-        self.attr.attr("style:name")
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Stylename
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:name", name.into());
+        self.name = name.into();
     }
 
     /// Reference to the value format.

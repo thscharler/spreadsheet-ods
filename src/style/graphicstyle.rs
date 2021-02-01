@@ -12,6 +12,8 @@ pub struct GraphicStyle {
     origin: StyleOrigin,
     /// Which tag contains this style.
     styleuse: StyleUse,
+    /// Style name
+    name: String,
     /// General attributes
     // ??? style:auto-update 19.467,
     // ??? style:class 19.470,
@@ -36,24 +38,24 @@ impl GraphicStyle {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: Default::default(),
             attr: Default::default(),
             graphicstyle: Default::default(),
         }
     }
 
     pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
-        let mut s = Self {
+        Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: name.into(),
             attr: Default::default(),
             graphicstyle: Default::default(),
-        };
-        s.set_name(name.into());
-        s
+        }
     }
 
     pub fn style_ref(&self) -> GraphicStyleRef {
-        GraphicStyleRef::from(self.name().unwrap().clone())
+        GraphicStyleRef::from(self.name())
     }
 
     pub fn origin(&self) -> StyleOrigin {
@@ -72,12 +74,12 @@ impl GraphicStyle {
         self.styleuse = styleuse;
     }
 
-    pub fn name(&self) -> Option<&String> {
-        self.attr.attr("style:name")
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:name", name.into());
+        self.name = name.into();
     }
 
     pub fn attrmap(&self) -> &AttrMap2 {

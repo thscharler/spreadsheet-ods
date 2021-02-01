@@ -15,6 +15,8 @@ pub struct RowStyle {
     origin: StyleOrigin,
     /// Which tag contains this style.
     styleuse: StyleUse,
+    /// Style name
+    name: String,
     /// General attributes
     // ??? style:auto-update 19.467,
     // ??? style:class 19.470,
@@ -40,6 +42,7 @@ impl RowStyle {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: Default::default(),
             attr: Default::default(),
             rowstyle: Default::default(),
         }
@@ -47,19 +50,18 @@ impl RowStyle {
 
     /// New Style.
     pub fn new<S: Into<String>>(name: S) -> Self {
-        let mut s = Self {
+        Self {
             origin: Default::default(),
             styleuse: Default::default(),
+            name: name.into(),
             attr: Default::default(),
             rowstyle: Default::default(),
-        };
-        s.set_name(name.into());
-        s
+        }
     }
 
     /// Reference to the style.
     pub fn style_ref(&self) -> RowStyleRef {
-        RowStyleRef::from(self.name().unwrap().clone())
+        RowStyleRef::from(self.name())
     }
 
     /// Origin. Should always be Content.
@@ -83,13 +85,13 @@ impl RowStyle {
     }
 
     /// Name
-    pub fn name(&self) -> Option<&String> {
-        self.attr.attr("style:name")
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Name
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:name", name.into());
+        self.name = name.into();
     }
 
     /// General attributes.
