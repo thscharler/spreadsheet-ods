@@ -30,14 +30,14 @@ check_xml = []
 use_decimal = []
 
 [dependencies]
-rust_decimal = "^1.2.1"
-rust_decimal_macros = "^1.2.1"
-chrono = "^0.4"
+rust_decimal = "1.2"
+rust_decimal_macros = "1.2"
+chrono = "0.4"
 #num-format = "^0.4"
-time = "^0.1.42"
-zip = "^0.5.4"
-quick-xml = "^0.17.2"
-color-rs = "^0.5.0"
-string_cache = "^0.8.0"
-mktemp = "^0.4.0"
+time = "0.1"
+zip = "0.5"
+quick-xml = "0.17"
+color-rs = "0.6"
+string_cache = "0.8"
+mktemp = "0.4"
 
