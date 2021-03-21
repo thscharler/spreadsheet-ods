@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use time::OutOfRangeError;
 
 #[derive(Debug)]
 pub enum OdsError {
@@ -10,7 +11,7 @@ pub enum OdsError {
     ParseBool(std::str::ParseBoolError),
     ParseFloat(std::num::ParseFloatError),
     Chrono(chrono::format::ParseError),
-    Duration(time::OutOfRangeError),
+    Duration(OutOfRangeError),
     SystemTime(std::time::SystemTimeError),
 }
 
@@ -50,8 +51,8 @@ impl std::error::Error for OdsError {
     }
 }
 
-impl From<time::OutOfRangeError> for OdsError {
-    fn from(err: time::OutOfRangeError) -> OdsError {
+impl From<OutOfRangeError> for OdsError {
+    fn from(err: OutOfRangeError) -> OdsError {
         OdsError::Duration(err)
     }
 }

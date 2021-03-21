@@ -38,10 +38,10 @@ use crate::style::{
     color_string, percent_string, shadow_string, StyleOrigin, StyleUse, TextStyleRef,
 };
 use crate::ValueType;
+use chrono::Duration;
 use chrono::NaiveDateTime;
 use color::Rgb;
 use std::fmt::{Display, Formatter};
-use time::Duration;
 
 #[derive(Debug)]
 pub enum ValueFormatError {

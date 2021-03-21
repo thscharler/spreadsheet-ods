@@ -174,6 +174,7 @@ use crate::style::{
 };
 use crate::text::TextTag;
 use crate::xmltree::XmlTag;
+use chrono::Duration;
 use chrono::{NaiveDate, NaiveDateTime};
 #[cfg(feature = "use_decimal")]
 use rust_decimal::prelude::*;
@@ -184,7 +185,6 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::str::FromStr;
-use time::Duration;
 
 /// Cell index type for row/column indexes.
 #[allow(non_camel_case_types)]
