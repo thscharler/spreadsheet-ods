@@ -841,19 +841,19 @@ impl Sheet {
     }
 
     /// Copy all the attributes but not the actual data.
-    pub fn new_no_data(sheet: &Sheet) -> Self {
+    pub fn clone_no_data(&self) -> Self {
         Self {
-            name: sheet.name.clone(),
-            style: sheet.style.clone(),
+            name: self.name.clone(),
+            style: self.style.clone(),
             data: Default::default(),
-            col_header: sheet.col_header.clone(),
-            row_header: sheet.row_header.clone(),
-            display: sheet.display,
-            print: sheet.print,
-            header_rows: sheet.header_rows.clone(),
-            header_cols: sheet.header_cols.clone(),
-            print_ranges: sheet.print_ranges.clone(),
-            extra: sheet.extra.clone(),
+            col_header: self.col_header.clone(),
+            row_header: self.row_header.clone(),
+            display: self.display,
+            print: self.print,
+            header_rows: self.header_rows.clone(),
+            header_cols: self.header_cols.clone(),
+            print_ranges: self.print_ranges.clone(),
+            extra: self.extra.clone(),
         }
     }
 
