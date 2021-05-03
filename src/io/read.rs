@@ -735,13 +735,13 @@ fn parse_value(
                             'P' | 'T' => {}
                             '0'..='9' => {
                                 if !have_hour {
-                                    hour = hour * 10 + (c as u32 - '0' as u32);
+                                    hour = hour * 10 + (c as i32 - '0' as i32);
                                 } else if !have_min {
-                                    min = min * 10 + (c as u32 - '0' as u32);
+                                    min = min * 10 + (c as i32 - '0' as i32);
                                 } else if !have_sec {
-                                    sec = sec * 10 + (c as u32 - '0' as u32);
+                                    sec = sec * 10 + (c as i32 - '0' as i32);
                                 } else {
-                                    nanos = nanos * 10 + (c as u32 - '0' as u32);
+                                    nanos = nanos * 10 + (c as i64 - '0' as i64);
                                     nanos_digits += 1;
                                 }
                             }
