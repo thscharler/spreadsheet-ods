@@ -721,13 +721,13 @@ fn parse_value(
             }
             ValueType::TimeDuration => {
                 if let Some(mut cell_value) = cell_value {
-                    let mut hour: u32 = 0;
+                    let mut hour: i32 = 0;
                     let mut have_hour = false;
-                    let mut min: u32 = 0;
+                    let mut min: i32 = 0;
                     let mut have_min = false;
-                    let mut sec: u32 = 0;
+                    let mut sec: i32 = 0;
                     let mut have_sec = false;
-                    let mut nanos: u32 = 0;
+                    let mut nanos: i64 = 0;
                     let mut nanos_digits: u8 = 0;
 
                     for c in cell_value.drain(..) {
@@ -758,8 +758,8 @@ fn parse_value(
                         nanos_digits += 1;
                     }
 
-                    let secs: u64 = hour as u64 * 3600 + min as u64 * 60 + sec as u64;
-                    let dur = Duration::from_std(std::time::Duration::new(secs, nanos))?;
+                    let secs = (hour * 3600 + min * 60 + sec) as i64;
+                    let dur = Duration::seconds(secs) + Duration::nanoseconds(nanos);
 
                     Ok(Value::TimeDuration(dur))
                 } else {
