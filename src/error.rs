@@ -1,3 +1,4 @@
+use crate::style::units::ParseError;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
@@ -12,6 +13,7 @@ pub enum OdsError {
     Chrono(chrono::format::ParseError),
     Duration(time::OutOfRangeError),
     SystemTime(std::time::SystemTimeError),
+    Parse(crate::style::units::ParseError),
 }
 
 impl Display for OdsError {
@@ -27,6 +29,7 @@ impl Display for OdsError {
             OdsError::Chrono(e) => write!(f, "Chrono {}", e)?,
             OdsError::Duration(e) => write!(f, "Duration {}", e)?,
             OdsError::SystemTime(e) => write!(f, "SystemTime {}", e)?,
+            OdsError::Parse(e) => write!(f, "Parse {}", e)?,
         }
 
         Ok(())
@@ -46,7 +49,14 @@ impl std::error::Error for OdsError {
             OdsError::Chrono(e) => Some(e),
             OdsError::Duration(e) => Some(e),
             OdsError::SystemTime(e) => Some(e),
+            OdsError::Parse(e) => Some(e),
         }
+    }
+}
+
+impl From<crate::style::units::ParseError> for OdsError {
+    fn from(e: ParseError) -> Self {
+        OdsError::Parse(e)
     }
 }
 

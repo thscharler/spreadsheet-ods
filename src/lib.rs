@@ -199,8 +199,11 @@ pub struct WorkBook {
     // ODS Version
     version: String,
 
-    //// FontDecl hold the style:font-face elements
+    /// FontDecl hold the style:font-face elements
     fonts: HashMap<String, FontFaceDecl>,
+
+    /// Auto-Styles. Maps the prefix to a number.
+    autonum: HashMap<String, u32>,
 
     /// Styles hold the style:style elements.
     tablestyles: HashMap<String, TableStyle>,
@@ -280,12 +283,39 @@ impl fmt::Debug for WorkBook {
     }
 }
 
+/// Autogenerate a stylename. Runs a counter with the prefix and
+/// checks for existence.
+fn auto_style_name<T>(
+    autonum: &mut HashMap<String, u32>,
+    prefix: &str,
+    styles: &HashMap<String, T>,
+) -> String {
+    let mut cnt = if let Some(n) = autonum.get(prefix) {
+        n + 1
+    } else {
+        0
+    };
+
+    let style_name = loop {
+        let style_name = format!("{}{}", prefix, cnt);
+        if !styles.contains_key(&style_name) {
+            break style_name;
+        }
+        cnt += 1;
+    };
+
+    autonum.insert(prefix.to_string(), cnt);
+
+    style_name
+}
+
 impl WorkBook {
     pub fn new() -> Self {
         WorkBook {
             sheets: Default::default(),
             version: "1.3".to_string(),
             fonts: Default::default(),
+            autonum: Default::default(),
             tablestyles: Default::default(),
             rowstyles: Default::default(),
             colstyles: Default::default(),
@@ -395,7 +425,10 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_tablestyle(&mut self, style: TableStyle) -> TableStyleRef {
+    pub fn add_tablestyle(&mut self, mut style: TableStyle) -> TableStyleRef {
+        if style.name().is_empty() {
+            style.set_name(auto_style_name(&mut self.autonum, "ta", &self.tablestyles));
+        }
         let sref = style.style_ref();
         self.tablestyles.insert(style.name().to_string(), style);
         sref
@@ -417,7 +450,10 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_rowstyle(&mut self, style: RowStyle) -> RowStyleRef {
+    pub fn add_rowstyle(&mut self, mut style: RowStyle) -> RowStyleRef {
+        if style.name().is_empty() {
+            style.set_name(auto_style_name(&mut self.autonum, "ro", &self.rowstyles));
+        }
         let sref = style.style_ref();
         self.rowstyles.insert(style.name().to_string(), style);
         sref
@@ -439,7 +475,10 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_colstyle(&mut self, style: ColStyle) -> ColStyleRef {
+    pub fn add_colstyle(&mut self, mut style: ColStyle) -> ColStyleRef {
+        if style.name().is_empty() {
+            style.set_name(auto_style_name(&mut self.autonum, "co", &self.colstyles));
+        }
         let sref = style.style_ref();
         self.colstyles.insert(style.name().to_string(), style);
         sref
@@ -461,7 +500,10 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_cellstyle(&mut self, style: CellStyle) -> CellStyleRef {
+    pub fn add_cellstyle(&mut self, mut style: CellStyle) -> CellStyleRef {
+        if style.name().is_empty() {
+            style.set_name(auto_style_name(&mut self.autonum, "ce", &self.cellstyles));
+        }
         let sref = style.style_ref();
         self.cellstyles.insert(style.name().to_string(), style);
         sref
@@ -483,7 +525,14 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_paragraphstyle(&mut self, style: ParagraphStyle) -> ParagraphStyleRef {
+    pub fn add_paragraphstyle(&mut self, mut style: ParagraphStyle) -> ParagraphStyleRef {
+        if style.name().is_empty() {
+            style.set_name(auto_style_name(
+                &mut self.autonum,
+                "pa",
+                &self.paragraphstyles,
+            ));
+        }
         let sref = style.style_ref();
         self.paragraphstyles.insert(style.name().to_string(), style);
         sref
@@ -505,7 +554,10 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_textstyle(&mut self, style: TextStyle) -> TextStyleRef {
+    pub fn add_textstyle(&mut self, mut style: TextStyle) -> TextStyleRef {
+        if style.name().is_empty() {
+            style.set_name(auto_style_name(&mut self.autonum, "te", &self.textstyles));
+        }
         let sref = style.style_ref();
         self.textstyles.insert(style.name().to_string(), style);
         sref
@@ -527,7 +579,14 @@ impl WorkBook {
     }
 
     /// Adds a style.
-    pub fn add_graphicstyle(&mut self, style: GraphicStyle) -> GraphicStyleRef {
+    pub fn add_graphicstyle(&mut self, mut style: GraphicStyle) -> GraphicStyleRef {
+        if style.name().is_empty() {
+            style.set_name(auto_style_name(
+                &mut self.autonum,
+                "gr",
+                &self.graphicstyles,
+            ));
+        }
         let sref = style.style_ref();
         self.graphicstyles.insert(style.name().to_string(), style);
         sref
@@ -956,15 +1015,19 @@ impl Sheet {
 
     /// Creates a col style and sets the col width.
     pub fn set_col_width(&mut self, workbook: &mut WorkBook, col: ucell, width: Length) {
-        let style_name = format!("co{}", col);
-
-        let mut colstyle = if let Some(style) = workbook.remove_colstyle(&style_name) {
-            style
+        let mut colstyle = if let Some(style_name) = self.colstyle(col) {
+            if let Some(style) = workbook.remove_colstyle(style_name) {
+                style
+            } else {
+                ColStyle::empty()
+            }
         } else {
-            ColStyle::new(&style_name)
+            ColStyle::empty()
         };
+
         colstyle.set_col_width(width);
         colstyle.set_use_optimal_col_width(false);
+
         let colstyle = workbook.add_colstyle(colstyle);
 
         self.set_colstyle(col, &colstyle);
@@ -1059,15 +1122,19 @@ impl Sheet {
 
     /// Creates a row-style and sets the row height.
     pub fn set_row_height(&mut self, workbook: &mut WorkBook, row: ucell, height: Length) {
-        let style_name = format!("ro{}", row);
-
-        let mut rowstyle = if let Some(style) = workbook.remove_rowstyle(&style_name) {
-            style
+        let mut rowstyle = if let Some(style_name) = self.rowstyle(row) {
+            if let Some(style) = workbook.remove_rowstyle(style_name) {
+                style
+            } else {
+                RowStyle::empty()
+            }
         } else {
-            RowStyle::new(&style_name)
+            RowStyle::empty()
         };
+
         rowstyle.set_row_height(height);
         rowstyle.set_use_optimal_row_height(false);
+
         let rowstyle = workbook.add_rowstyle(rowstyle);
 
         self.set_rowstyle(row, &rowstyle);

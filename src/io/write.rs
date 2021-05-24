@@ -10,7 +10,6 @@ use zip::write::FileOptions;
 use crate::attrmap2::AttrMap2Trait;
 use crate::error::OdsError;
 use crate::format::FormatPartType;
-use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
 use crate::io::zip_out::{ZipOut, ZipWrite};
 use crate::refs::{cellranges_string, CellRange};

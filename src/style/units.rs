@@ -1,4 +1,27 @@
+use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::num::ParseFloatError;
+use std::str::FromStr;
+
+#[derive(Debug)]
+pub enum ParseError {
+    General(String),
+    Float(ParseFloatError),
+}
+
+impl From<ParseFloatError> for ParseError {
+    fn from(e: ParseFloatError) -> Self {
+        ParseError::Float(e)
+    }
+}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "ParseError")
+    }
+}
+
+impl Error for ParseError {}
 
 /// Value type for angles.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -38,6 +61,28 @@ impl Display for Length {
             Length::Pt(v) => write!(f, "{}pt", v),
             Length::Pc(v) => write!(f, "{}pc", v),
             Length::Em(v) => write!(f, "{}em", v),
+        }
+    }
+}
+
+impl FromStr for Length {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.ends_with("cm") {
+            Ok(Length::Cm(s.split_at(s.len() - 2).0.parse()?))
+        } else if s.ends_with("mm") {
+            Ok(Length::Mm(s.split_at(s.len() - 2).0.parse()?))
+        } else if s.ends_with("in") {
+            Ok(Length::In(s.split_at(s.len() - 2).0.parse()?))
+        } else if s.ends_with("pt") {
+            Ok(Length::Pt(s.split_at(s.len() - 2).0.parse()?))
+        } else if s.ends_with("pc") {
+            Ok(Length::Pc(s.split_at(s.len() - 2).0.parse()?))
+        } else if s.ends_with("em") {
+            Ok(Length::Em(s.split_at(s.len() - 2).0.parse()?))
+        } else {
+            Err(ParseError::General(s.to_string()))
         }
     }
 }

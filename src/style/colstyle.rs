@@ -1,5 +1,5 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::units::{Length, PageBreak};
+use crate::style::units::{Length, PageBreak, ParseError};
 use crate::style::{rel_width_string, StyleOrigin, StyleUse};
 
 style_ref!(ColStyleRef);
