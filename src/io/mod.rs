@@ -7,3 +7,4 @@ mod read;
 mod tmp2zip;
 mod write;
 mod xmlwriter;
+mod zip_out;

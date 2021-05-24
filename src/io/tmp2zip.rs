@@ -6,9 +6,13 @@ use mktemp::Temp;
 use std::collections::HashSet;
 use std::fs::{create_dir_all, File};
 use std::io::{BufWriter, Write};
+use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
+use zip::write::FileOptions;
 
-/// Data for the ZIP archive.
+/// A ZipWriter that writes to a temp-file first,
+/// and zips everything as a final step.
+#[allow(dead_code)]
 pub struct TempZip {
     zipped: PathBuf,
     temp_path: Temp,
@@ -16,16 +20,17 @@ pub struct TempZip {
 }
 
 pub struct TempWrite<'a> {
-    _temp_zip: &'a TempZip,
     temp_file: BufWriter<File>,
+    _dummy: PhantomData<&'a TempZip>,
 }
-
+#[allow(dead_code)]
 struct TempZipEntry {
     name: String,
     is_dir: bool,
     fopt: zip::write::FileOptions,
 }
 
+#[allow(dead_code)]
 impl TempZip {
     /// Final ZIP is this file. The temporary files are written to a
     /// new random subdirectory.
@@ -38,19 +43,20 @@ impl TempZip {
     }
 
     /// Adds this directory.
-    pub fn add_directory(
+    pub fn add_directory<S: Into<String>>(
         &mut self,
-        name: &str,
-        fopt: zip::write::FileOptions,
+        name: S,
+        options: FileOptions,
     ) -> Result<(), std::io::Error> {
-        let add = self.temp_path.join(name);
+        let name = name.into();
+        let add = self.temp_path.join(&name);
 
         create_dir_all(&add)?;
 
         self.entries.push(TempZipEntry {
             is_dir: true,
-            name: name.to_string(),
-            fopt,
+            name,
+            fopt: options,
         });
 
         Ok(())
@@ -61,7 +67,7 @@ impl TempZip {
         &'a mut self,
         name: &'_ str,
         fopt: zip::write::FileOptions,
-    ) -> Result<TempWrite<'a>, std::io::Error> {
+    ) -> Result<TempWrite, std::io::Error> {
         let file = self.temp_path.join(name);
         let path = file.parent().unwrap();
 
@@ -74,8 +80,8 @@ impl TempZip {
         });
 
         Ok(TempWrite {
-            _temp_zip: self,
             temp_file: BufWriter::new(File::create(file)?),
+            _dummy: Default::default(),
         })
     }
 

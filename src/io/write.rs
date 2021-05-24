@@ -12,6 +12,7 @@ use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::tmp2zip::{TempWrite, TempZip};
 use crate::io::xmlwriter::XmlWriter;
+use crate::io::zip_out::{ZipOut, ZipWrite};
 use crate::refs::{cellranges_string, CellRange};
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
@@ -20,15 +21,15 @@ use crate::style::{
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{ucell, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
 
-type OdsWriter = TempZip;
-type XmlOdsWriter<'a> = XmlWriter<TempWrite<'a>>;
+type OdsWriter = ZipOut;
+type XmlOdsWriter<'a> = XmlWriter<ZipWrite<'a>>;
 
 /// Writes the ODS file.
 ///
 /// All the parts are written to a temp directory and then zipped together.
 ///
 pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
-    let mut zip_writer = TempZip::new(ods_path.as_ref())?;
+    let mut zip_writer = ZipOut::new(ods_path.as_ref())?;
 
     let mut file_set = HashSet::<String>::new();
 
@@ -931,7 +932,7 @@ fn write_empty_row(
     cur_row: ucell,
     empty_count: u32,
     max_cell: (u32, u32),
-    xml_out: &mut XmlWriter<TempWrite>,
+    xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table-row")?;
     xml_out.attr("table:number-rows-repeated", &empty_count.to_string())?;
