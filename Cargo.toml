@@ -32,11 +32,16 @@ use_decimal = []
 [dependencies]
 rust_decimal = "1.10"
 rust_decimal_macros = "1.10"
-quick-xml = "0.17"
+#quick-xml = "0.17"
 color-rs = "0.6"
 string_cache = "0.8"
 mktemp = "0.4"
 time = "0.1"
+
+[dependencies.quick-xml]
+version = "0.22"
+# ?? Should be UTF-8, no need for encoding related stuff.
+#features = ["encoding"]
 
 [dependencies.zip]
 version = "0.5"

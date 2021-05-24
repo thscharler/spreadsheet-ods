@@ -698,9 +698,6 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
             *cur_col - last_c
         };
 
-        // println!("cell first={} {},{} < *{},{}* < {},{} ", first_cell, last_r, last_c, cur_row, cur_col, next_r, next_c);
-        // println!("     backward {},{} forward {},{}", backward_dr, backward_dc, forward_dr, forward_dc);
-
         // After the first cell there is always an open row tag that
         // needs to be closed.
         if backward_dr > 0 && !first_cell {
@@ -804,6 +801,9 @@ fn write_start_current_row(
 
     xml_out.elem("table:table-row")?;
     if let Some(row_header) = sheet.row_header.get(&cur_row) {
+        if row_header.repeat > 1 {
+            xml_out.attr_esc("table:number-rows-repeated", &row_header.repeat.to_string())?;
+        }
         if let Some(rowstyle) = row_header.style() {
             xml_out.attr_esc("table:style-name", rowstyle.as_str())?;
         }

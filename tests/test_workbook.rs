@@ -1,4 +1,6 @@
-use spreadsheet_ods::{currency, percent, SCell, Sheet, Value, ValueType, WorkBook};
+use spreadsheet_ods::{
+    currency, percent, read_ods, write_ods, OdsError, SCell, Sheet, Value, ValueType, WorkBook,
+};
 
 #[test]
 fn test_workbook() {
@@ -43,6 +45,24 @@ fn test_cell() {
     let mut x = SCell::new();
     std::mem::swap(c, &mut x);
     assert_eq!(x.value().as_f64_or(0.0), 3.0);
+}
+
+#[test]
+fn test_row_repeat() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new();
+    let mut sh = Sheet::new();
+
+    sh.set_value(2, 2, 1);
+    sh.set_value(4, 4, 2);
+    sh.set_row_repeat(4, 2);
+
+    wb.push_sheet(sh);
+    write_ods(&wb, "test_out/row_repeat.ods")?;
+
+    let wb = read_ods("test_out/row_repeat.ods")?;
+    assert_eq!(wb.sheet(0).row_repeat(4), 2);
+
+    Ok(())
 }
 
 #[test]

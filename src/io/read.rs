@@ -261,17 +261,9 @@ fn read_table(
 
             Event::End(xml_tag)
             if xml_tag.name() == b"table:table-row" => {
-                // There is often a strange repeat count for the last
-                // row of the table that is in the millions.
-                // That hits the break quite thoroughly, for now I ignore
-                // this. Removes the row style for empty rows, I can live
-                // with that for now.
-                //
-                // if let Some(style) = row_style {
-                //     for r in row..row + row_repeat {
-                //         sheet.set_row_style(r, style.clone());
-                //     }
-                // }
+                if row_repeat > 1 {
+                    sheet.set_row_repeat(row, row_repeat);
+                }
                 if let Some(rowstyle) = rowstyle {
                     sheet.set_rowstyle(row, &rowstyle.into());
                 }
@@ -280,7 +272,9 @@ fn read_table(
                     sheet.set_row_cellstyle(row, &row_cellstyle.into());
                 }
                 row_cellstyle = None;
-                sheet.set_row_visible(row, row_visible);
+                if row_visible != Visibility::Visible {
+                    sheet.set_row_visible(row, row_visible);
+                }
                 row_visible = Default::default();
 
                 row += row_repeat;
@@ -2120,13 +2114,11 @@ fn read_family_attr(
         match attr? {
             attr if attr.key == b"style:family" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                match v.as_ref() {
+                return match v.as_ref() {
                     "table" | "table-column" | "table-row" | "table-cell" | "graphic"
-                    | "paragraph" | "text" => return Ok(v.as_str().to_string()),
-                    _ => {
-                        return Err(OdsError::Ods(format!("style:family unknown {} ", v)));
-                    }
-                }
+                    | "paragraph" | "text" => Ok(v.as_str().to_string()),
+                    _ => Err(OdsError::Ods(format!("style:family unknown {} ", v))),
+                };
             }
             attr => {
                 if cfg!(feature = "dump_unused") {

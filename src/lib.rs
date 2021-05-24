@@ -661,6 +661,7 @@ struct RowHeader {
     style: Option<String>,
     cellstyle: Option<String>,
     visible: Visibility,
+    repeat: u32,
 }
 
 impl RowHeader {
@@ -669,6 +670,7 @@ impl RowHeader {
             style: None,
             cellstyle: None,
             visible: Default::default(),
+            repeat: 1,
         }
     }
 
@@ -702,6 +704,14 @@ impl RowHeader {
 
     pub fn visible(&self) -> Visibility {
         self.visible
+    }
+
+    pub fn set_repeat(&mut self, repeat: u32) {
+        self.repeat = repeat;
+    }
+
+    pub fn repeat(&self) -> u32 {
+        self.repeat
     }
 }
 
@@ -961,24 +971,24 @@ impl Sheet {
     }
 
     /// Row style.
-    pub fn set_rowstyle(&mut self, col: ucell, style: &RowStyleRef) {
+    pub fn set_rowstyle(&mut self, row: ucell, style: &RowStyleRef) {
         self.row_header
-            .entry(col)
+            .entry(row)
             .or_insert_with(RowHeader::new)
             .set_style(style);
     }
 
     /// Remove the style.
-    pub fn clear_rowstyle(&mut self, col: ucell) {
+    pub fn clear_rowstyle(&mut self, row: ucell) {
         self.row_header
-            .entry(col)
+            .entry(row)
             .or_insert_with(RowHeader::new)
             .clear_style();
     }
 
     /// Returns the row style.
-    pub fn rowstyle(&self, col: ucell) -> Option<&String> {
-        if let Some(row_header) = self.row_header.get(&col) {
+    pub fn rowstyle(&self, row: ucell) -> Option<&String> {
+        if let Some(row_header) = self.row_header.get(&row) {
             row_header.style()
         } else {
             None
@@ -986,24 +996,24 @@ impl Sheet {
     }
 
     /// Default cell style for this row.
-    pub fn set_row_cellstyle(&mut self, col: ucell, style: &CellStyleRef) {
+    pub fn set_row_cellstyle(&mut self, row: ucell, style: &CellStyleRef) {
         self.row_header
-            .entry(col)
+            .entry(row)
             .or_insert_with(RowHeader::new)
             .set_cellstyle(style);
     }
 
     /// Remove the style.
-    pub fn clear_row_cellstyle(&mut self, col: ucell) {
+    pub fn clear_row_cellstyle(&mut self, row: ucell) {
         self.row_header
-            .entry(col)
+            .entry(row)
             .or_insert_with(RowHeader::new)
             .clear_cellstyle();
     }
 
     /// Returns the default cell style for this row.
-    pub fn row_cellstyle(&self, col: ucell) -> Option<&String> {
-        if let Some(row_header) = self.row_header.get(&col) {
+    pub fn row_cellstyle(&self, row: ucell) -> Option<&String> {
+        if let Some(row_header) = self.row_header.get(&row) {
             row_header.cellstyle()
         } else {
             None
@@ -1011,17 +1021,37 @@ impl Sheet {
     }
 
     /// Visibility of the row
-    pub fn set_row_visible(&mut self, col: ucell, visible: Visibility) {
+    pub fn set_row_visible(&mut self, row: ucell, visible: Visibility) {
         self.row_header
-            .entry(col)
+            .entry(row)
             .or_insert_with(RowHeader::new)
             .set_visible(visible);
     }
 
     /// Returns the default cell style for this row.
-    pub fn row_visible(&self, col: ucell) -> Visibility {
-        if let Some(row_header) = self.row_header.get(&col) {
+    pub fn row_visible(&self, row: ucell) -> Visibility {
+        if let Some(row_header) = self.row_header.get(&row) {
             row_header.visible()
+        } else {
+            Default::default()
+        }
+    }
+
+    /// Sets the repeat count for this row. Usually this is the last row
+    /// with data in a sheet. Setting the repeat count will not change
+    /// the row number of following rows. But they will be changed after
+    /// writing to an ODS file and reading it again.
+    pub fn set_row_repeat(&mut self, row: ucell, repeat: u32) {
+        self.row_header
+            .entry(row)
+            .or_insert_with(RowHeader::new)
+            .set_repeat(repeat)
+    }
+
+    /// Returns the repeat count for this row.
+    pub fn row_repeat(&self, row: ucell) -> u32 {
+        if let Some(row_header) = self.row_header.get(&row) {
+            row_header.repeat()
         } else {
             Default::default()
         }
