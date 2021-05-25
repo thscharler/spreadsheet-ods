@@ -58,7 +58,7 @@
 //!
 
 //!
-//! spreadsheet_ods::write_ods(&wb, "test_out/tryout.ods");
+//! spreadsheet_ods::write_ods(&mut wb, "test_out/tryout.ods");
 //!
 //! ```
 //! This does not cover the entire ODS spec.
@@ -151,6 +151,7 @@ mod unit_macro;
 mod ref_macro;
 mod attrmap2;
 pub mod defaultstyles;
+mod ds;
 pub mod error;
 pub mod format;
 pub mod formula;
@@ -160,6 +161,7 @@ pub mod style;
 pub mod text;
 pub mod xmltree;
 
+pub use crate::ds::Detached;
 pub use crate::error::OdsError;
 pub use crate::format::{ValueFormat, ValueFormatRef};
 pub use crate::io::{read_ods, write_ods};
@@ -167,6 +169,7 @@ pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
 
+use crate::ds::Detach;
 use crate::style::{
     ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
     PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle,
@@ -194,7 +197,7 @@ pub type ucell = u32;
 #[derive(Clone, Default)]
 pub struct WorkBook {
     /// The data.
-    sheets: Vec<Sheet>,
+    sheets: Vec<Detach<Sheet>>,
 
     // ODS Version
     version: String,
@@ -347,37 +350,66 @@ impl WorkBook {
         self.sheets.len()
     }
 
+    /// Detaches a sheet.
+    /// Useful if you have to make mutating calls to the workbook and
+    /// the sheet intermixed.
+    ///
+    /// Warning
+    ///
+    /// The sheet has to be re-attached before saving the workbook.
+    ///
+    /// Panics
+    ///
+    /// Panics if the sheet has already been detached.
+    /// Panics if n is out of bounds.
+    pub fn detach_sheet(&mut self, n: usize) -> Detached<usize, Sheet> {
+        self.sheets[n].detach(n)
+    }
+
+    /// Reattaches the sheet in the place it was before.
+    ///
+    /// Panics
+    ///
+    /// Panics if n is out of bounds.
+    pub fn attach_sheet(&mut self, sheet: Detached<usize, Sheet>) {
+        self.sheets[Detached::key(&sheet)].attach(sheet)
+    }
+
+    /// Returns a certain sheet.
+    ///
+    /// Panics
+    ///
+    /// Panics if n is out of bounds.
+    pub fn sheet(&self, n: usize) -> &Sheet {
+        &self.sheets[n].as_ref()
+    }
+
     /// Returns a certain sheet.
     ///
     /// Panics
     ///
     /// Panics if n does not exist.
-    pub fn sheet(&self, n: usize) -> &Sheet {
-        &self.sheets[n]
-    }
-
-    /// Returns a certain sheet.
-    ///
-    /// Panic
-    ///
-    /// Panics if n does not exist.
     pub fn sheet_mut(&mut self, n: usize) -> &mut Sheet {
-        &mut self.sheets[n]
+        self.sheets[n].as_mut()
     }
 
     /// Inserts the sheet at the given position.
     pub fn insert_sheet(&mut self, i: usize, sheet: Sheet) {
-        self.sheets.insert(i, sheet);
+        self.sheets.insert(i, sheet.into());
     }
 
     /// Appends a sheet.
     pub fn push_sheet(&mut self, sheet: Sheet) {
-        self.sheets.push(sheet);
+        self.sheets.push(sheet.into());
     }
 
     /// Removes a sheet from the table.
+    ///
+    /// Panics
+    ///
+    /// Panics if the sheet was detached.
     pub fn remove_sheet(&mut self, n: usize) -> Sheet {
-        self.sheets.remove(n)
+        self.sheets.remove(n).take()
     }
 
     /// Adds a default-style for all new values.
@@ -674,37 +706,6 @@ impl WorkBook {
     }
 }
 
-/// Dimensions for columns and rows.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum LengthOpt {
-    Optimal,
-    Cm(f64),
-    Mm(f64),
-    In(f64),
-    Pt(f64),
-    Pc(f64),
-    Em(f64),
-}
-
-impl Default for LengthOpt {
-    fn default() -> Self {
-        LengthOpt::Optimal
-    }
-}
-
-impl From<Length> for LengthOpt {
-    fn from(l: Length) -> Self {
-        match l {
-            Length::Cm(v) => LengthOpt::Cm(v),
-            Length::Mm(v) => LengthOpt::Mm(v),
-            Length::In(v) => LengthOpt::In(v),
-            Length::Pt(v) => LengthOpt::Pt(v),
-            Length::Pc(v) => LengthOpt::Pc(v),
-            Length::Em(v) => LengthOpt::Em(v),
-        }
-    }
-}
-
 /// Visibility of a column or row.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Visibility {
@@ -811,7 +812,7 @@ struct ColHeader {
     style: Option<String>,
     cellstyle: Option<String>,
     visible: Visibility,
-    width: LengthOpt,
+    width: Length,
 }
 
 impl ColHeader {
@@ -856,11 +857,11 @@ impl ColHeader {
         self.visible
     }
 
-    pub fn set_width(&mut self, width: LengthOpt) {
+    pub fn set_width(&mut self, width: Length) {
         self.width = width;
     }
 
-    pub fn width(&self) -> LengthOpt {
+    pub fn width(&self) -> Length {
         self.width
     }
 }
@@ -1055,31 +1056,19 @@ impl Sheet {
     }
 
     /// Sets the column width for this column.
-    pub fn set_col_width2(&mut self, col: ucell, width: LengthOpt) {
+    pub fn set_col_width(&mut self, col: ucell, width: Length) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
             .set_width(width);
     }
 
-    /// Creates a col style and sets the col width.
-    pub fn set_col_width(&mut self, workbook: &mut WorkBook, col: ucell, width: Length) {
-        let mut colstyle = if let Some(style_name) = self.colstyle(col) {
-            if let Some(style) = workbook.remove_colstyle(style_name) {
-                style
-            } else {
-                ColStyle::empty()
-            }
+    pub fn col_width(&self, col: ucell) -> Length {
+        if let Some(ch) = self.col_header.get(&col) {
+            ch.width()
         } else {
-            ColStyle::empty()
-        };
-
-        colstyle.set_col_width(width);
-        colstyle.set_use_optimal_col_width(false);
-
-        let colstyle = workbook.add_colstyle(colstyle);
-
-        self.set_colstyle(col, &colstyle);
+            Length::Default
+        }
     }
 
     /// Row style.

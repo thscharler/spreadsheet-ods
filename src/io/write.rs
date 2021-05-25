@@ -18,7 +18,7 @@ use crate::style::{
     ParagraphStyle, RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::xmltree::{XmlContent, XmlTag};
-use crate::{ucell, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
+use crate::{ucell, Length, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
 
 type OdsWriter = ZipOut;
 type XmlOdsWriter<'a> = XmlWriter<ZipWrite<'a>>;
@@ -27,7 +27,9 @@ type XmlOdsWriter<'a> = XmlWriter<ZipWrite<'a>>;
 ///
 /// All the parts are written to a temp directory and then zipped together.
 ///
-pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), OdsError> {
+pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(), OdsError> {
+    store_derived(book)?;
+
     let mut zip_writer = ZipOut::new(ods_path.as_ref())?;
 
     let mut file_set = HashSet::<String>::new();
@@ -46,6 +48,39 @@ pub fn write_ods<P: AsRef<Path>>(book: &WorkBook, ods_path: P) -> Result<(), Ods
     write_ods_content(&book, &mut zip_writer, &mut file_set)?;
 
     zip_writer.zip()?;
+
+    Ok(())
+}
+
+fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
+    for i in 0..book.num_sheets() {
+        let mut sheet = book.detach_sheet(i);
+
+        // Set the column widths.
+        for ch in sheet.col_header.values_mut() {
+            // Any non default values?
+            if ch.width() != Length::Default {
+                if ch.style().is_none() {
+                    let colstyle = book.add_colstyle(ColStyle::empty());
+                    ch.set_style(&colstyle);
+                }
+            }
+
+            // Write back to the style.
+            if let Some(style_name) = ch.style() {
+                if let Some(style) = book.colstyle_mut(style_name) {
+                    if ch.width() == Length::Default {
+                        style.set_use_optimal_col_width(true);
+                        style.set_col_width(Length::Default);
+                    } else {
+                        style.set_col_width(ch.width());
+                    }
+                }
+            }
+        }
+
+        book.attach_sheet(sheet);
+    }
 
     Ok(())
 }
@@ -580,7 +615,7 @@ fn write_ods_content(
     }
 
     for sheet in &book.sheets {
-        write_sheet(&book, &sheet, &mut xml_out)?;
+        write_sheet(&book, sheet.as_ref(), &mut xml_out)?;
     }
 
     // extra tags. pass through only

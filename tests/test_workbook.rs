@@ -57,7 +57,7 @@ fn test_row_repeat() -> Result<(), OdsError> {
     sh.set_row_repeat(4, 2);
 
     wb.push_sheet(sh);
-    write_ods(&wb, "test_out/row_repeat.ods")?;
+    write_ods(&mut wb, "test_out/row_repeat.ods")?;
 
     let wb = read_ods("test_out/row_repeat.ods")?;
     assert_eq!(wb.sheet(0).row_repeat(4), 2);

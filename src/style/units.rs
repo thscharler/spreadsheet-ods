@@ -44,12 +44,19 @@ impl Display for Angle {
 /// Value type for lengths.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Length {
+    Default,
     Cm(f64),
     Mm(f64),
     In(f64),
     Pt(f64),
     Pc(f64),
     Em(f64),
+}
+
+impl Default for Length {
+    fn default() -> Self {
+        Length::Default
+    }
 }
 
 impl Display for Length {
@@ -61,6 +68,7 @@ impl Display for Length {
             Length::Pt(v) => write!(f, "{}pt", v),
             Length::Pc(v) => write!(f, "{}pc", v),
             Length::Em(v) => write!(f, "{}em", v),
+            Length::Default => write!(f, ""),
         }
     }
 }

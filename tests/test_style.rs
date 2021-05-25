@@ -48,7 +48,7 @@ fn teststyles() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    write_ods(&wb, "test_out/styles.ods")?;
+    write_ods(&mut wb, "test_out/styles.ods")?;
 
     Ok(())
 }

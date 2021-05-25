@@ -7,7 +7,7 @@ use spreadsheet_ods::{cm, read_ods, write_ods, OdsError, WorkBook};
 #[test]
 fn pagelayout() -> Result<(), OdsError> {
     let path = std::path::Path::new("test_out/format.ods");
-    let ods;
+    let mut ods;
 
     if path.exists() {
         ods = read_ods(path)?;
@@ -20,11 +20,11 @@ fn pagelayout() -> Result<(), OdsError> {
     let path = std::path::Path::new("test_out/rexp.ods");
 
     if path.exists() {
-        write_ods(&ods, path)?;
+        write_ods(&mut ods, path)?;
     } else {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::File::create(path)?;
-        write_ods(&ods, path)?;
+        write_ods(&mut ods, path)?;
     }
 
     Ok(())
@@ -53,7 +53,7 @@ fn crpagelayout() -> Result<(), OdsError> {
     ts.set_master_page_name(&mp);
     let _ts = wb.add_tablestyle(ts);
 
-    write_ods(&wb, "test_out/hf0.ods")?;
+    write_ods(&mut wb, "test_out/hf0.ods")?;
 
     Ok(())
 }

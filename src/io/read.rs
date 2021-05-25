@@ -19,7 +19,7 @@ use crate::style::{
 use crate::text::TextTag;
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
-    ucell, CellStyle, ColRange, LengthOpt, RowRange, SCell, Sheet, Value, ValueFormat, ValueType,
+    ucell, CellStyle, ColRange, Length, RowRange, SCell, Sheet, Value, ValueFormat, ValueType,
     Visibility, WorkBook,
 };
 
@@ -35,7 +35,34 @@ pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
     read_content(&mut book, &mut zip.by_name("content.xml")?)?;
     read_styles(&mut book, &mut zip.by_name("styles.xml")?)?;
 
+    // We do some data duplication here, to make everything easier to use.
+    calc_derived(&mut book)?;
+
     Ok(book)
+}
+
+// Sets some values from the styles on the corresponding data fields.
+fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
+    for i in 0..book.num_sheets() {
+        let mut sheet = book.detach_sheet(i);
+
+        // Set the column widths.
+        for ch in sheet.col_header.values_mut() {
+            if let Some(style_name) = &ch.style {
+                if let Some(style) = book.colstyle(style_name) {
+                    if style.optimal_col_width()? {
+                        ch.set_width(Length::Default);
+                    } else {
+                        ch.set_width(style.col_width()?);
+                    }
+                }
+            }
+        }
+
+        book.attach_sheet(sheet);
+    }
+
+    Ok(())
 }
 
 // Reads the content.xml

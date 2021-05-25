@@ -124,16 +124,20 @@ impl ColStyle {
 
     /// Column width
     pub fn set_col_width(&mut self, width: Length) {
-        self.colstyle
-            .set_attr("style:column-width", width.to_string());
+        if width == Length::Default {
+            self.colstyle.clear_attr("style:column-width");
+        } else {
+            self.colstyle
+                .set_attr("style:column-width", width.to_string());
+        }
     }
 
     /// Parses the column width
-    pub fn col_width(&self) -> Result<Option<Length>, ParseError> {
-        if let Some(s) = self.colstyle.attr("style:column_width") {
-            Ok(Some(Length::from_str(&s)?))
+    pub fn col_width(&self) -> Result<Length, ParseError> {
+        if let Some(s) = self.colstyle.attr("style:column-width") {
+            Ok(Length::from_str(&s)?)
         } else {
-            Ok(None)
+            Ok(Length::Default)
         }
     }
 
@@ -144,11 +148,11 @@ impl ColStyle {
     }
 
     /// Parses the flag.
-    pub fn optimal_col_width(&self) -> Result<Option<bool>, ParseBoolError> {
+    pub fn optimal_col_width(&self) -> Result<bool, ParseBoolError> {
         if let Some(s) = self.colstyle.attr("style:use-optimal-column-width") {
-            Ok(Some(bool::from_str(s)?))
+            Ok(bool::from_str(s)?)
         } else {
-            Ok(None)
+            Ok(false)
         }
     }
 }

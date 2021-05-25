@@ -10,7 +10,7 @@ fn test_0() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    write_ods(&wb, "test_out/test_0.ods")?;
+    write_ods(&mut wb, "test_out/test_0.ods")?;
 
     let wi = read_ods("test_out/test_0.ods")?;
     let si = wi.sheet(0);
@@ -61,7 +61,7 @@ fn test_span() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    write_ods(&wb, "test_out/test_span.ods")?;
+    write_ods(&mut wb, "test_out/test_span.ods")?;
     let wi = read_ods("test_out/test_span.ods")?;
 
     let si = wi.sheet(0);
@@ -109,7 +109,7 @@ fn test_header() -> Result<(), OdsError> {
     sh.set_header_rows(2, 9);
     wb.push_sheet(sh);
 
-    write_ods(&wb, "test_out/test_header0.ods")?;
+    write_ods(&mut wb, "test_out/test_header0.ods")?;
 
     let wb = read_ods("test_out/test_header0.ods")?;
 
@@ -138,7 +138,7 @@ fn test_print_range() -> Result<(), OdsError> {
     sh.add_print_range(CellRange::local(11, 11, 19, 19));
     wb.push_sheet(sh);
 
-    write_ods(&wb, "test_out/test_print_range.ods")?;
+    write_ods(&mut wb, "test_out/test_print_range.ods")?;
 
     let wb = read_ods("test_out/test_print_range.ods")?;
     let sh = wb.sheet(0);
@@ -169,9 +169,9 @@ fn read_text() -> Result<(), OdsError> {
 
 #[test]
 fn read_orders() -> Result<(), OdsError> {
-    let wb = read_ods("tests/orders.ods")?;
+    let mut wb = read_ods("tests/orders.ods")?;
     // println!("{:?}", wb);
-    write_ods(&wb, "test_out/orders.ods")?;
+    write_ods(&mut wb, "test_out/orders.ods")?;
     Ok(())
 }
 
@@ -188,7 +188,7 @@ fn display_print() -> Result<(), OdsError> {
     s1.set_print(false);
     wb.push_sheet(s1);
 
-    write_ods(&wb, "test_out/display_print.ods")?;
+    write_ods(&mut wb, "test_out/display_print.ods")?;
 
     Ok(())
 }

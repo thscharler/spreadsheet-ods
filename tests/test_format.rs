@@ -163,10 +163,10 @@ fn write_format() -> Result<(), OdsError> {
     wb.push_sheet(sh);
     let path = std::path::Path::new("test_out/format.ods");
     if path.exists() {
-        write_ods(&wb, path)
+        write_ods(&mut wb, path)
     } else {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::File::create(path)?;
-        write_ods(&wb, path)
+        write_ods(&mut wb, path)
     }
 }

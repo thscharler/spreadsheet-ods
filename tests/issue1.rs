@@ -14,12 +14,12 @@ fn issue1() {
 
     let mut sheet = spreadsheet_ods::Sheet::new_with_name("test");
     sheet.set_row_height(&mut wb, 1, cm!(10));
-    sheet.set_col_width(&mut wb, 1, cm!(10));
+    sheet.set_col_width(1, cm!(10));
     sheet.set_value(1, 1, ());
     //sheet.cell_mut(1, 1).set_style("Square style");
     wb.push_sheet(sheet);
 
-    if let Err(x) = spreadsheet_ods::write_ods(&wb, output_file) {
+    if let Err(x) = spreadsheet_ods::write_ods(&mut wb, output_file) {
         println!("Error: {}", x)
     }
 }
