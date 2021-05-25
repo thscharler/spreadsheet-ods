@@ -148,7 +148,7 @@ impl ColStyle {
     }
 
     /// Parses the flag.
-    pub fn optimal_col_width(&self) -> Result<bool, ParseBoolError> {
+    pub fn use_optimal_col_width(&self) -> Result<bool, ParseBoolError> {
         if let Some(s) = self.colstyle.attr("style:use-optimal-column-width") {
             Ok(bool::from_str(s)?)
         } else {

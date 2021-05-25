@@ -753,6 +753,7 @@ struct RowHeader {
     cellstyle: Option<String>,
     visible: Visibility,
     repeat: u32,
+    height: Length,
 }
 
 impl RowHeader {
@@ -762,6 +763,7 @@ impl RowHeader {
             cellstyle: None,
             visible: Default::default(),
             repeat: 1,
+            height: Default::default(),
         }
     }
 
@@ -803,6 +805,14 @@ impl RowHeader {
 
     pub fn repeat(&self) -> u32 {
         self.repeat
+    }
+
+    pub fn set_height(&mut self, height: Length) {
+        self.height = height;
+    }
+
+    pub fn height(&self) -> Length {
+        self.height
     }
 }
 
@@ -1063,6 +1073,7 @@ impl Sheet {
             .set_width(width);
     }
 
+    /// Returns the column-width.
     pub fn col_width(&self, col: ucell) -> Length {
         if let Some(ch) = self.col_header.get(&col) {
             ch.width()
@@ -1158,24 +1169,21 @@ impl Sheet {
         }
     }
 
-    /// Creates a row-style and sets the row height.
-    pub fn set_row_height(&mut self, workbook: &mut WorkBook, row: ucell, height: Length) {
-        let mut rowstyle = if let Some(style_name) = self.rowstyle(row) {
-            if let Some(style) = workbook.remove_rowstyle(style_name) {
-                style
-            } else {
-                RowStyle::empty()
-            }
+    /// Sets the row-height.
+    pub fn set_row_height(&mut self, row: ucell, height: Length) {
+        self.row_header
+            .entry(row)
+            .or_insert_with(RowHeader::new)
+            .set_height(height);
+    }
+
+    /// Returns the row-height
+    pub fn row_height(&self, row: ucell) -> Length {
+        if let Some(rh) = self.row_header.get(&row) {
+            rh.height()
         } else {
-            RowStyle::empty()
-        };
-
-        rowstyle.set_row_height(height);
-        rowstyle.set_use_optimal_row_height(false);
-
-        let rowstyle = workbook.add_rowstyle(rowstyle);
-
-        self.set_rowstyle(row, &rowstyle);
+            Length::Default
+        }
     }
 
     /// Returns a tuple of (max(row)+1, max(col)+1)

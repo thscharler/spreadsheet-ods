@@ -50,10 +50,23 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
         for ch in sheet.col_header.values_mut() {
             if let Some(style_name) = &ch.style {
                 if let Some(style) = book.colstyle(style_name) {
-                    if style.optimal_col_width()? {
+                    if style.use_optimal_col_width()? {
                         ch.set_width(Length::Default);
                     } else {
                         ch.set_width(style.col_width()?);
+                    }
+                }
+            }
+        }
+
+        // Set the row heights
+        for rh in sheet.row_header.values_mut() {
+            if let Some(style_name) = &rh.style {
+                if let Some(style) = book.rowstyle(style_name) {
+                    if style.use_optimal_row_height()? {
+                        rh.set_height(Length::Default);
+                    } else {
+                        rh.set_height(style.row_height()?);
                     }
                 }
             }

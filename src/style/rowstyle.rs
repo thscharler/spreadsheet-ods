@@ -1,7 +1,8 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::units::{Length, PageBreak, TextKeep};
+use crate::style::units::{Length, PageBreak, ParseError, TextKeep};
 use crate::style::{color_string, StyleOrigin, StyleUse};
 use color::Rgb;
+use std::str::{FromStr, ParseBoolError};
 
 style_ref!(RowStyleRef);
 
@@ -130,9 +131,27 @@ impl RowStyle {
             .set_attr("style:row-height", height.to_string());
     }
 
+    /// Parses the row height
+    pub fn row_height(&self) -> Result<Length, ParseError> {
+        if let Some(s) = self.rowstyle.attr("style:row-height") {
+            Ok(Length::from_str(&s)?)
+        } else {
+            Ok(Length::Default)
+        }
+    }
+
     /// Optimal row-height.
     pub fn set_use_optimal_row_height(&mut self, opt: bool) {
         self.rowstyle
             .set_attr("style:use-optimal-row-height", opt.to_string());
+    }
+
+    /// Parses the flag.
+    pub fn use_optimal_row_height(&self) -> Result<bool, ParseBoolError> {
+        if let Some(s) = self.rowstyle.attr("style:use-optimal-row-height") {
+            Ok(bool::from_str(s)?)
+        } else {
+            Ok(false)
+        }
     }
 }

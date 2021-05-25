@@ -13,7 +13,7 @@ fn issue1() {
     // wb.add_style(style);
 
     let mut sheet = spreadsheet_ods::Sheet::new_with_name("test");
-    sheet.set_row_height(&mut wb, 1, cm!(10));
+    sheet.set_row_height(1, cm!(10));
     sheet.set_col_width(1, cm!(10));
     sheet.set_value(1, 1, ());
     //sheet.cell_mut(1, 1).set_style("Square style");

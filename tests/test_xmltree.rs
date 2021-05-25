@@ -31,7 +31,7 @@ pub fn test_tree() {
                     .tag(XmlTag::new("text:p")),
             ),
     );
-    println!("{}", tag);
+    //println!("{}", tag);
 }
 
 #[test]
@@ -39,8 +39,8 @@ pub fn test_text() {
     let txt = TextTag::new("text:p")
         .tag(AuthorName::new())
         .tag(TextH::new().style_name(&"flfl".into()).text("heyder"));
-    println!("{:?}", txt);
-    println!("{}", txt);
+    // println!("{:?}", txt);
+    // println!("{}", txt);
 }
 
 #[test]
@@ -55,5 +55,5 @@ pub fn test_text2() {
         .tag(CreationDate::new())
         .tag(TextS::new())
         .text("whatever");
-    println!("{}", txt.into_xmltag());
+    // println!("{}", txt.into_xmltag());
 }

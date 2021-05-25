@@ -79,6 +79,26 @@ fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
             }
         }
 
+        for rh in sheet.row_header.values_mut() {
+            if rh.height() != Length::Default {
+                if rh.style().is_none() {
+                    let rowstyle = book.add_rowstyle(RowStyle::empty());
+                    rh.set_style(&rowstyle);
+                }
+            }
+
+            if let Some(style_name) = rh.style() {
+                if let Some(style) = book.rowstyle_mut(style_name) {
+                    if rh.height() == Length::Default {
+                        style.set_use_optimal_row_height(true);
+                        style.set_row_height(Length::Default);
+                    } else {
+                        style.set_row_height(rh.height());
+                    }
+                }
+            }
+        }
+
         book.attach_sheet(sheet);
     }
 
