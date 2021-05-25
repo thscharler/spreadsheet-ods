@@ -8,7 +8,7 @@
 //! let mut v = ValueFormat::new_with_name("dt0", ValueType::DateTime);
 //! v.push_day(FormatNumberStyle::Long);
 //! v.push_text(".");
-//! v.push_month(FormatNumberStyle::Long);
+//! v.push_month(FormatNumberStyle::Long, false);
 //! v.push_text(".");
 //! v.push_year(FormatNumberStyle::Long);
 //! v.push_text(" ");

@@ -19,8 +19,8 @@ use crate::style::{
 use crate::text::TextTag;
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
-    ucell, CellStyle, ColRange, RowRange, SCell, Sheet, Value, ValueFormat, ValueType, Visibility,
-    WorkBook,
+    ucell, CellStyle, ColRange, LengthOpt, RowRange, SCell, Sheet, Value, ValueFormat, ValueType,
+    Visibility, WorkBook,
 };
 
 /// Reads an ODS-file.

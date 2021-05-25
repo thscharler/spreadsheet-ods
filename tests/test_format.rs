@@ -42,7 +42,7 @@ pub fn value_format() {
     f5.push_text(" ");
     f5.push_day(FormatNumberStyle::Short);
     f5.push_text(" ");
-    f5.push_month(FormatNumberStyle::Long);
+    f5.push_month(FormatNumberStyle::Long, false);
     f5.push_text(" ");
     f5.push_year(FormatNumberStyle::Long);
     // todo: should be 'AD 12 02 2009'
@@ -123,7 +123,7 @@ fn write_format() -> Result<(), OdsError> {
     v7.push_text(" ");
     v7.push_year(FormatNumberStyle::Long);
     v7.push_text(" ");
-    v7.push_month(FormatNumberStyle::Long);
+    v7.push_month(FormatNumberStyle::Long, true);
     v7.push_text(" ");
     v7.push_day(FormatNumberStyle::Long);
     v7.push_text(" ");

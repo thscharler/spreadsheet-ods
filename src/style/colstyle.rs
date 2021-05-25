@@ -1,6 +1,7 @@
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak, ParseError};
 use crate::style::{rel_width_string, StyleOrigin, StyleUse};
+use std::str::{FromStr, ParseBoolError};
 
 style_ref!(ColStyleRef);
 
@@ -127,9 +128,27 @@ impl ColStyle {
             .set_attr("style:column-width", width.to_string());
     }
 
+    /// Parses the column width
+    pub fn col_width(&self) -> Result<Option<Length>, ParseError> {
+        if let Some(s) = self.colstyle.attr("style:column_width") {
+            Ok(Some(Length::from_str(&s)?))
+        } else {
+            Ok(None)
+        }
+    }
+
     /// Override switch for the column width.
     pub fn set_use_optimal_col_width(&mut self, opt: bool) {
         self.colstyle
             .set_attr("style:use-optimal-column-width", opt.to_string());
+    }
+
+    /// Parses the flag.
+    pub fn optimal_col_width(&self) -> Result<Option<bool>, ParseBoolError> {
+        if let Some(s) = self.colstyle.attr("style:use-optimal-column-width") {
+            Ok(Some(bool::from_str(s)?))
+        } else {
+            Ok(None)
+        }
     }
 }

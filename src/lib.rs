@@ -674,6 +674,37 @@ impl WorkBook {
     }
 }
 
+/// Dimensions for columns and rows.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LengthOpt {
+    Optimal,
+    Cm(f64),
+    Mm(f64),
+    In(f64),
+    Pt(f64),
+    Pc(f64),
+    Em(f64),
+}
+
+impl Default for LengthOpt {
+    fn default() -> Self {
+        LengthOpt::Optimal
+    }
+}
+
+impl From<Length> for LengthOpt {
+    fn from(l: Length) -> Self {
+        match l {
+            Length::Cm(v) => LengthOpt::Cm(v),
+            Length::Mm(v) => LengthOpt::Mm(v),
+            Length::In(v) => LengthOpt::In(v),
+            Length::Pt(v) => LengthOpt::Pt(v),
+            Length::Pc(v) => LengthOpt::Pc(v),
+            Length::Em(v) => LengthOpt::Em(v),
+        }
+    }
+}
+
 /// Visibility of a column or row.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Visibility {
@@ -780,6 +811,7 @@ struct ColHeader {
     style: Option<String>,
     cellstyle: Option<String>,
     visible: Visibility,
+    width: LengthOpt,
 }
 
 impl ColHeader {
@@ -788,6 +820,7 @@ impl ColHeader {
             style: None,
             cellstyle: None,
             visible: Default::default(),
+            width: Default::default(),
         }
     }
 
@@ -821,6 +854,14 @@ impl ColHeader {
 
     pub fn visible(&self) -> Visibility {
         self.visible
+    }
+
+    pub fn set_width(&mut self, width: LengthOpt) {
+        self.width = width;
+    }
+
+    pub fn width(&self) -> LengthOpt {
+        self.width
     }
 }
 
@@ -1011,6 +1052,14 @@ impl Sheet {
         } else {
             Default::default()
         }
+    }
+
+    /// Sets the column width for this column.
+    pub fn set_col_width2(&mut self, col: ucell, width: LengthOpt) {
+        self.col_header
+            .entry(col)
+            .or_insert_with(ColHeader::new)
+            .set_width(width);
     }
 
     /// Creates a col style and sets the col width.
