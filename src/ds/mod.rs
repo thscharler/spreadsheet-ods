@@ -120,3 +120,33 @@ impl<K, T> DerefMut for Detached<K, T> {
         &mut self.val
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::ds::Detach;
+
+    #[test]
+    fn test_detach() {
+        let mut dd = Detach::new("fop");
+
+        assert_eq!(dd.is_detached(), false);
+
+        assert_eq!(*dd.as_ref(), "fop");
+        assert_eq!(*dd.as_mut(), "fop");
+
+        let d = dd.detach(0u32);
+
+        assert_eq!(*d, "fop");
+        assert_eq!(d.trim(), "fop");
+
+        assert_eq!(dd.is_detached(), true);
+
+        dd.attach(d);
+
+        assert_eq!(dd.is_detached(), false);
+
+        let tt = dd.take();
+
+        assert_eq!(tt, "fop");
+    }
+}
