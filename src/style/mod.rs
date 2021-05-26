@@ -48,7 +48,6 @@ pub mod tabstop;
 mod textstyle;
 pub mod units;
 
-pub use crate::attrmap2::*;
 pub use cellstyle::*;
 pub use colstyle::*;
 pub use fontface::*;

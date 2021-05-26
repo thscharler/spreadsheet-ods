@@ -4,7 +4,7 @@ use spreadsheet_ods::xmltree::XmlTag;
 
 #[test]
 pub fn test_tree() {
-    let tag = XmlTag::new("table:shapes").tag(
+    let _tag = XmlTag::new("table:shapes").tag(
         XmlTag::new("draw:frame")
             .attr_slice(&[
                 ("draw:z", "0".into()),
@@ -36,7 +36,7 @@ pub fn test_tree() {
 
 #[test]
 pub fn test_text() {
-    let txt = TextTag::new("text:p")
+    let _txt = TextTag::new("text:p")
         .tag(AuthorName::new())
         .tag(TextH::new().style_name(&"flfl".into()).text("heyder"));
     // println!("{:?}", txt);
@@ -47,7 +47,7 @@ pub fn test_text() {
 pub fn test_text2() {
     let p1_ref = ParagraphStyleRef::from("p1");
 
-    let txt = TextP::new()
+    let _txt = TextP::new()
         .style_name(&p1_ref)
         .text("some text")
         .tag(AuthorName::new())

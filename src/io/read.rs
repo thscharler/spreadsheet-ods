@@ -6,7 +6,7 @@ use chrono::{Duration, NaiveDate, NaiveDateTime};
 use quick_xml::events::{BytesStart, Event};
 use zip::read::ZipFile;
 
-use crate::attrmap2::{AttrMap2, AttrMap2Trait};
+use crate::attrmap2::AttrMap2;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};

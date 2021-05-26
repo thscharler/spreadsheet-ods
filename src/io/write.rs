@@ -7,7 +7,6 @@ use std::path::{Path, PathBuf};
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
-use crate::attrmap2::AttrMap2Trait;
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::xmlwriter::XmlWriter;

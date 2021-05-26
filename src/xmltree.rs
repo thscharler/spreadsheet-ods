@@ -5,7 +5,6 @@
 //!
 //! ```
 //! use spreadsheet_ods::xmltree::XmlTag;
-//! use spreadsheet_ods::xmltree::AttrMap2Trait;
 //!
 //! let tag = XmlTag::new("table:shapes")
 //!         .tag(XmlTag::new("draw:frame")
@@ -45,7 +44,7 @@
 //!
 //! ```
 
-pub use crate::attrmap2::{AttrMap2, AttrMap2Trait};
+use crate::attrmap2::AttrMap2;
 use std::fmt::{Display, Formatter};
 
 /// Defines a XML tag and it's children.
@@ -54,16 +53,6 @@ pub struct XmlTag {
     name: String,
     attr: AttrMap2,
     content: Vec<XmlContent>,
-}
-
-impl AttrMap2Trait for XmlTag {
-    fn attrmap(&self) -> &AttrMap2 {
-        &self.attr
-    }
-
-    fn attrmap_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.attr
-    }
 }
 
 impl From<&str> for XmlTag {
@@ -101,6 +90,14 @@ impl XmlTag {
     /// Any text or child elements?
     pub fn is_empty(&self) -> bool {
         self.content.is_empty()
+    }
+
+    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+        &self.attr
+    }
+
+    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.attr
     }
 
     /// Sets an attribute

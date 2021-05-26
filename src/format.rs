@@ -27,7 +27,7 @@
 //! when opening the spreadsheet so typically nobody notices this.
 //!
 
-pub use crate::attrmap2::{AttrMap2, AttrMap2Trait};
+use crate::attrmap2::AttrMap2;
 
 use crate::style::stylemap::StyleMap;
 use crate::style::units::{
@@ -195,6 +195,14 @@ impl ValueFormat {
     /// Returns the usage.
     pub fn styleuse(&self) -> StyleUse {
         self.styleuse
+    }
+
+    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+        &self.attr
+    }
+
+    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.attr
     }
 
     /// Text style attributes.
@@ -421,16 +429,6 @@ impl ValueFormat {
     }
 }
 
-impl AttrMap2Trait for ValueFormat {
-    fn attrmap(&self) -> &AttrMap2 {
-        &self.attr
-    }
-
-    fn attrmap_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.attr
-    }
-}
-
 /// Identifies the structural parts of a value format.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum FormatPartType {
@@ -464,16 +462,6 @@ pub struct FormatPart {
     attr: AttrMap2,
     /// Some content.
     content: Option<String>,
-}
-
-impl AttrMap2Trait for FormatPart {
-    fn attrmap(&self) -> &AttrMap2 {
-        &self.attr
-    }
-
-    fn attrmap_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.attr
-    }
 }
 
 /// Flag for several PartTypes.
@@ -700,13 +688,26 @@ impl FormatPart {
         self.part_type
     }
 
+    pub fn attrmap(&self) -> &AttrMap2 {
+        &self.attr
+    }
+
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+        &mut self.attr
+    }
+
+    /// Adds an attribute.
+    pub fn set_attr(&mut self, name: &str, value: String) {
+        self.attr.set_attr(name, value);
+    }
+
     /// Returns a property or a default.
     pub fn attr_def<'a0, 'a1, S0, S1>(&'a1 self, name: S0, default: S1) -> &'a1 str
     where
         S0: Into<&'a0 str>,
         S1: Into<&'a1 str>,
     {
-        if let Some(v) = self.attr(name.into()) {
+        if let Some(v) = self.attr.attr(name.into()) {
             v
         } else {
             default.into()

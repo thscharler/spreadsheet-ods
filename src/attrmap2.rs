@@ -7,45 +7,10 @@
 use std::collections::{hash_map, HashMap};
 use string_cache::DefaultAtom;
 
-type MapType = Option<Box<HashMap<DefaultAtom, String>>>;
-
-/// Allows forwarding for structs that contain an AttrMap2
-pub trait AttrMap2Trait {
-    /// Reference to the map of actual attributes.
-    fn attrmap(&self) -> &AttrMap2;
-    /// Reference to the map of actual attributes.
-    fn attrmap_mut(&mut self) -> &mut AttrMap2;
-
-    /// Are there any attributes?
-    fn is_empty(&self) -> bool {
-        self.attrmap().is_empty()
-    }
-
-    /// Add from Vec
-    fn add_all(&mut self, data: &[(&str, String)]) {
-        self.attrmap_mut().add_all(data);
-    }
-
-    /// Adds an attribute.
-    fn set_attr(&mut self, name: &str, value: String) {
-        self.attrmap_mut().set_attr(name, value);
-    }
-
-    /// Removes an attribute.
-    fn clear_attr(&mut self, name: &str) -> Option<String> {
-        self.attrmap_mut().clear_attr(name)
-    }
-
-    /// Returns the attribute.
-    fn attr(&self, name: &str) -> Option<&String> {
-        self.attrmap().attr(name)
-    }
-}
-
 /// Container type for attributes.
 #[derive(Default, Clone, Debug)]
 pub struct AttrMap2 {
-    map: MapType,
+    map: Option<Box<HashMap<DefaultAtom, String>>>,
 }
 
 impl AttrMap2 {
@@ -54,6 +19,7 @@ impl AttrMap2 {
             map: Default::default(),
         }
     }
+
     /// Are there any attributes?
     pub fn is_empty(&self) -> bool {
         self.map.is_none()
@@ -123,5 +89,28 @@ impl<'a> Iterator for AttrMapIter<'a> {
         } else {
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::attrmap2::AttrMap2;
+
+    #[test]
+    fn test_attrmap2() {
+        let mut m = AttrMap2::new();
+
+        m.add_all(&[
+            ("foo", "baz".to_string()),
+            ("lol", "now".to_string()),
+            ("ful", "uuu".to_string()),
+        ]);
+        assert_eq!(m.attr("foo").unwrap(), "baz");
+
+        m.set_attr("lol", "loud!".to_string());
+        assert_eq!(m.attr("lol").unwrap(), "loud!");
+
+        m.clear_attr("ful");
+        assert_eq!(m.attr("ful"), None);
     }
 }
