@@ -161,7 +161,7 @@ pub mod style;
 pub mod text;
 pub mod xmltree;
 
-pub use crate::ds::Detached;
+pub use crate::ds::detach::Detached;
 pub use crate::error::OdsError;
 pub use crate::format::{ValueFormat, ValueFormatRef};
 pub use crate::io::{read_ods, write_ods};
@@ -169,7 +169,7 @@ pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
 
-use crate::ds::Detach;
+use crate::ds::detach::Detach;
 use crate::style::{
     ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
     PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle,

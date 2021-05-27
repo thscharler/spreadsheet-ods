@@ -11,3 +11,4 @@ Cargo.lock
 /test_spreadsheet/target
 .gradle
 /tests/validation.ods
+/.idea/shelf/read_config_xml_need_to_clear_the_data-structure_first_/shelved.patch
