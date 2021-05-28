@@ -25,6 +25,7 @@
 
 use crate::style::{ParagraphStyleRef, TextStyleRef};
 use crate::xmltree::{XmlContent, XmlTag};
+use std::fmt::{Display, Formatter};
 
 pub type TextTag = XmlTag;
 pub type TextContent = XmlContent;
@@ -130,7 +131,7 @@ impl TextSpan {
         self
     }
 
-    pub fn style_name(mut self, name: &ParagraphStyleRef) -> Self {
+    pub fn style_name(mut self, name: &TextStyleRef) -> Self {
         self.xml.set_attr("text:style-name", name.to_string());
         self
     }
@@ -139,24 +140,41 @@ impl TextSpan {
 text_tag!(TextA, "text:a");
 
 impl TextA {
-    pub fn href(mut self, uri: String) -> Self {
-        self.xml.set_attr("xlink:href", uri);
+    pub fn href<S: Into<String>>(mut self, uri: S) -> Self {
+        self.xml.set_attr("xlink:href", uri.into());
         self
     }
 
-    pub fn style_name(mut self, style: String) -> Self {
-        self.xml.set_attr("text:style-name", style);
+    pub fn style_name(mut self, style: &TextStyleRef) -> Self {
+        self.xml.set_attr("text:style-name", style.to_string());
         self
     }
 
-    pub fn visited_style_name(mut self, style: String) -> Self {
-        self.xml.set_attr("text:visitedstyle-name", style);
+    pub fn visited_style_name(mut self, style: &TextStyleRef) -> Self {
+        self.xml
+            .set_attr("text:visited-style-name", style.to_string());
         self
     }
 }
 
 text_tag!(TextS, "text:s");
+
+impl TextS {
+    pub fn count(mut self, count: u32) -> Self {
+        self.xml.set_attr("text:c", count.to_string());
+        self
+    }
+}
+
 text_tag!(TextTab, "text:tab");
+
+impl TextTab {
+    pub fn tab_ref(mut self, tab_ref: u32) -> Self {
+        self.xml.set_attr("text:tab-ref", tab_ref.to_string());
+        self
+    }
+}
+
 text_tag!(TextLineBreak, "text:line-break");
 text_tag!(SoftPageBreak, "text:soft-page-break");
 

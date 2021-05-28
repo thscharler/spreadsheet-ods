@@ -485,7 +485,7 @@ impl Display for FormatNumberStyle {
 pub enum FormatCalendarStyle {
     Gregorian,
     Gengou,
-    ROC,
+    Roc,
     Hanja,
     Hijri,
     Jewish,
@@ -497,7 +497,7 @@ impl Display for FormatCalendarStyle {
         match self {
             FormatCalendarStyle::Gregorian => write!(f, "gregorian"),
             FormatCalendarStyle::Gengou => write!(f, "gengou"),
-            FormatCalendarStyle::ROC => write!(f, "ROC"),
+            FormatCalendarStyle::Roc => write!(f, "ROC"),
             FormatCalendarStyle::Hanja => write!(f, "hanja"),
             FormatCalendarStyle::Hijri => write!(f, "hijri"),
             FormatCalendarStyle::Jewish => write!(f, "jewish"),
@@ -787,7 +787,7 @@ impl FormatPart {
     /// Tries to format the given DateTime, and appends the result to buf.
     /// Uses chrono::strftime for the implementation.
     /// If this part does'nt match does nothing
-    #[allow(clippy::collapsible_if)]
+    #[allow(clippy::collapsible_else_if)]
     fn format_datetime(&self, buf: &mut String, d: &NaiveDateTime, h12: bool) {
         match self.part_type {
             FormatPartType::Day => {

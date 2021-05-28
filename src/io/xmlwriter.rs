@@ -88,11 +88,11 @@ pub struct XmlWriter<W: Write> {
 
 impl<W: Write> fmt::Debug for XmlWriter<W> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        Ok(write!(
+        write!(
             f,
             "XmlWriter {{ stack: {:?}, opened: {} }}",
             self.stack, self.open
-        )?)
+        )
     }
 }
 

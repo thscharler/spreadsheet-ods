@@ -1,7 +1,7 @@
 /// Generates a name reference for a style.
 macro_rules! style_ref {
     ($l:ident) => {
-        /// Refers to a $l.
+        /// Reference
         #[derive(Debug, Clone)]
         pub struct $l {
             name: String,
@@ -48,9 +48,21 @@ macro_rules! text_tag {
             xml: XmlTag,
         }
 
-        impl Into<XmlTag> for $tag {
-            fn into(self) -> XmlTag {
-                self.xml
+        impl From<$tag> for XmlTag {
+            fn from(t: $tag) -> XmlTag {
+                t.xml
+            }
+        }
+
+        // impl Into<XmlTag> for $tag {
+        //     fn into(self) -> XmlTag {
+        //         self.xml
+        //     }
+        // }
+
+        impl Display for $tag {
+            fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+                write!(f, "{}", self.xml)
             }
         }
 

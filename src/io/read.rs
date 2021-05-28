@@ -1648,7 +1648,7 @@ fn read_style_style(
 }
 
 // style:style tag
-#[allow(clippy::collapsible_if)]
+#[allow(clippy::collapsible_else_if)]
 fn read_tablestyle(
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -1709,7 +1709,7 @@ fn read_tablestyle(
 }
 
 // style:style tag
-#[allow(clippy::collapsible_if)]
+#[allow(clippy::collapsible_else_if)]
 fn read_rowstyle(
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -1772,7 +1772,7 @@ fn read_rowstyle(
 }
 
 // style:style tag
-#[allow(clippy::collapsible_if)]
+#[allow(clippy::collapsible_else_if)]
 fn read_colstyle(
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -1835,7 +1835,7 @@ fn read_colstyle(
 }
 
 // style:style tag
-#[allow(clippy::collapsible_if)]
+#[allow(clippy::collapsible_else_if)]
 fn read_cellstyle(
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -1913,7 +1913,7 @@ fn read_cellstyle(
 }
 
 // style:style tag
-#[allow(clippy::collapsible_if)]
+#[allow(clippy::collapsible_else_if)]
 fn read_paragraphstyle(
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -1989,7 +1989,7 @@ fn read_paragraphstyle(
 }
 
 // style:style tag
-#[allow(clippy::collapsible_if)]
+#[allow(clippy::collapsible_else_if)]
 fn read_textstyle(
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -2050,7 +2050,7 @@ fn read_textstyle(
 }
 
 // style:style tag
-#[allow(clippy::collapsible_if)]
+#[allow(clippy::collapsible_else_if)]
 fn read_graphicstyle(
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -2215,12 +2215,10 @@ fn copy_attr2(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     xml_tag: &BytesStart,
 ) -> Result<(), OdsError> {
-    for attr in xml_tag.attributes().with_checks(false) {
-        if let Ok(attr) = attr {
-            let k = xml.decode(&attr.key)?;
-            let v = attr.unescape_and_decode_value(&xml)?;
-            attrmap.set_attr(k, v);
-        }
+    for attr in xml_tag.attributes().with_checks(false).flatten() {
+        let k = xml.decode(&attr.key)?;
+        let v = attr.unescape_and_decode_value(&xml)?;
+        attrmap.set_attr(k, v);
     }
 
     Ok(())

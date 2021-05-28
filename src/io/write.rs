@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io;
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
@@ -51,6 +51,8 @@ pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(),
     Ok(())
 }
 
+#[allow(clippy::collapsible_else_if)]
+#[allow(clippy::collapsible_if)]
 fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
     for i in 0..book.num_sheets() {
         let mut sheet = book.detach_sheet(i);
@@ -105,7 +107,7 @@ fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
 }
 
 fn copy_workbook(
-    ods_orig_name: &PathBuf,
+    ods_orig_name: &Path,
     file_set: &mut HashSet<String>,
     zip_writer: &mut OdsWriter,
 ) -> Result<(), OdsError> {

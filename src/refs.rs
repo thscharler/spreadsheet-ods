@@ -15,7 +15,7 @@ use crate::{ucell, OdsError};
 ///
 /// let c1 = CellRef::local(5, 2);
 /// let c2 = CellRef::remote("spreadsheet-2", 7, 4);
-/// let c3 = CellRef::try_from("A5");
+/// let c3 = CellRef::try_from(".A5");
 /// ```
 ///
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -483,11 +483,16 @@ pub(crate) fn parse_rowname(buf: &str, pos: &mut usize) -> Option<ucell> {
 }
 
 /// Parse a table-name in a reference
-#[allow(clippy::collapsible_if)]
+#[allow(clippy::collapsible_else_if)]
 pub(crate) fn parse_tablename(buf: &str, pos: &mut usize) -> Result<Option<String>, OdsError> {
     let mut dot_idx = None;
     let mut any_quote = false;
     let mut state_quote = false;
+
+    let abs_sheet = buf[*pos..].starts_with('$');
+    if abs_sheet {
+        *pos += 1;
+    }
 
     for (p, c) in buf[*pos..].char_indices() {
         if !state_quote {
@@ -532,11 +537,6 @@ pub(crate) fn parse_tablename(buf: &str, pos: &mut usize) -> Result<Option<Strin
 
 /// Parse a cell reference.
 pub(crate) fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, OdsError> {
-    let abs_table = buf[*pos..].starts_with('$');
-    if abs_table {
-        *pos += 1;
-    }
-
     let table = parse_tablename(buf, pos)?;
 
     let abs_col = buf[*pos..].starts_with('$');
@@ -577,11 +577,6 @@ pub(crate) fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, OdsEr
 /// Parse a range ref.
 pub(crate) fn parse_cellrange(buf: &str, pos: &mut usize) -> Result<CellRange, OdsError> {
     let cell = {
-        let abs_table = buf[*pos..].starts_with('$');
-        if abs_table {
-            *pos += 1;
-        }
-
         let table = parse_tablename(buf, pos)?;
 
         let abs_col = buf[*pos..].starts_with('$');
@@ -623,10 +618,6 @@ pub(crate) fn parse_cellrange(buf: &str, pos: &mut usize) -> Result<CellRange, O
     let to_cell = if colon {
         *pos += 1;
 
-        let abs_to_table = buf[*pos..].starts_with('$');
-        if abs_to_table {
-            *pos += 1;
-        }
         let to_table = parse_tablename(buf, pos)?;
 
         let abs_to_col = buf[*pos..].starts_with('$');
@@ -773,7 +764,7 @@ pub(crate) fn push_rowname(buf: &mut String, row: ucell) {
 /// Appends the table-name
 pub(crate) fn push_tablename(buf: &mut String, table: Option<&String>) {
     if let Some(table) = table {
-        if table.contains(|c| c == '\'' || c == ' ') {
+        if table.contains(|c| c == '\'' || c == ' ' || c == '.') {
             buf.push('\'');
             buf.push_str(&table.replace('\'', "''"));
             buf.push('\'');
@@ -839,280 +830,293 @@ pub(crate) fn cellranges_string(v: &[CellRange]) -> String {
     buf
 }
 
-#[test]
-fn test_names() {
-    let mut buf = String::new();
+#[cfg(test)]
+mod tests {
+    use crate::refs::{
+        parse_cellrange, parse_cellranges, parse_cellref, parse_colname, parse_rowname,
+        push_cellrange, push_cellref, push_colname, push_rowname, push_tablename,
+    };
+    use crate::{ucell, CellRange, CellRef, OdsError};
 
-    push_colname(&mut buf, 0);
-    assert_eq!(buf, "A");
-    buf.clear();
+    #[test]
+    fn test_names() {
+        let mut buf = String::new();
 
-    push_colname(&mut buf, 1);
-    assert_eq!(buf, "B");
-    buf.clear();
+        push_colname(&mut buf, 0);
+        assert_eq!(buf, "A");
+        buf.clear();
 
-    push_colname(&mut buf, 26);
-    assert_eq!(buf, "AA");
-    buf.clear();
+        push_colname(&mut buf, 1);
+        assert_eq!(buf, "B");
+        buf.clear();
 
-    push_colname(&mut buf, 675);
-    assert_eq!(buf, "YZ");
-    buf.clear();
+        push_colname(&mut buf, 26);
+        assert_eq!(buf, "AA");
+        buf.clear();
 
-    push_colname(&mut buf, 676);
-    assert_eq!(buf, "ZA");
-    buf.clear();
+        push_colname(&mut buf, 675);
+        assert_eq!(buf, "YZ");
+        buf.clear();
 
-    push_colname(&mut buf, ucell::max_value() - 1);
-    assert_eq!(buf, "MWLQKWU");
-    buf.clear();
+        push_colname(&mut buf, 676);
+        assert_eq!(buf, "ZA");
+        buf.clear();
 
-    push_colname(&mut buf, ucell::max_value());
-    assert_eq!(buf, "MWLQKWV");
-    buf.clear();
+        push_colname(&mut buf, ucell::max_value() - 1);
+        assert_eq!(buf, "MWLQKWU");
+        buf.clear();
 
-    push_rowname(&mut buf, 0);
-    assert_eq!(buf, "1");
-    buf.clear();
+        push_colname(&mut buf, ucell::max_value());
+        assert_eq!(buf, "MWLQKWV");
+        buf.clear();
 
-    push_rowname(&mut buf, 927);
-    assert_eq!(buf, "928");
-    buf.clear();
+        push_rowname(&mut buf, 0);
+        assert_eq!(buf, "1");
+        buf.clear();
 
-    push_rowname(&mut buf, ucell::max_value() - 1);
-    assert_eq!(buf, "4294967295");
-    buf.clear();
+        push_rowname(&mut buf, 927);
+        assert_eq!(buf, "928");
+        buf.clear();
 
-    push_rowname(&mut buf, ucell::max_value());
-    assert_eq!(buf, "4294967296");
-    buf.clear();
+        push_rowname(&mut buf, ucell::max_value() - 1);
+        assert_eq!(buf, "4294967295");
+        buf.clear();
 
-    push_tablename(&mut buf, Some(&"fable".to_string()));
-    assert_eq!(buf, "fable.");
-    buf.clear();
+        push_rowname(&mut buf, ucell::max_value());
+        assert_eq!(buf, "4294967296");
+        buf.clear();
 
-    push_tablename(&mut buf, Some(&"fa le".to_string()));
-    assert_eq!(buf, "'fa le'.");
-    buf.clear();
+        push_tablename(&mut buf, Some(&"fable".to_string()));
+        assert_eq!(buf, "fable.");
+        buf.clear();
 
-    push_tablename(&mut buf, Some(&"fa'le".to_string()));
-    assert_eq!(buf, "'fa''le'.");
-    buf.clear();
+        push_tablename(&mut buf, Some(&"fa le".to_string()));
+        assert_eq!(buf, "'fa le'.");
+        buf.clear();
 
-    push_tablename(&mut buf, None);
-    assert_eq!(buf, ".");
-    buf.clear();
+        push_tablename(&mut buf, Some(&"fa'le".to_string()));
+        assert_eq!(buf, "'fa''le'.");
+        buf.clear();
 
-    push_cellref(&mut buf, &CellRef::local(5, 6));
-    assert_eq!(buf, ".G6");
-    buf.clear();
+        push_tablename(&mut buf, Some(&"fa.le".to_string()));
+        assert_eq!(buf, "'fa.le'.");
+        buf.clear();
 
-    push_cellrange(&mut buf, &CellRange::local(5, 6, 7, 8));
-    assert_eq!(buf, ".G6:.I8");
-    buf.clear();
+        push_tablename(&mut buf, None);
+        assert_eq!(buf, ".");
+        buf.clear();
 
-    push_cellrange(&mut buf, &CellRange::remote("blame", 5, 6, 7, 8));
-    assert_eq!(buf, "blame.G6:.I8");
-    buf.clear();
-}
+        push_cellref(&mut buf, &CellRef::local(5, 6));
+        assert_eq!(buf, ".G6");
+        buf.clear();
 
-#[test]
-fn test_parse() -> Result<(), OdsError> {
-    fn rowname(row: ucell) -> String {
-        let mut row_str = String::new();
-        push_rowname(&mut row_str, row);
-        row_str
+        push_cellrange(&mut buf, &CellRange::local(5, 6, 7, 8));
+        assert_eq!(buf, ".G6:.I8");
+        buf.clear();
+
+        push_cellrange(&mut buf, &CellRange::remote("blame", 5, 6, 7, 8));
+        assert_eq!(buf, "blame.G6:.I8");
+        buf.clear();
     }
-    fn colname(col: ucell) -> String {
-        let mut col_str = String::new();
-        push_colname(&mut col_str, col);
-        col_str
-    }
 
-    for i in 0..704 {
+    #[test]
+    fn test_parse() -> Result<(), OdsError> {
+        fn rowname(row: ucell) -> String {
+            let mut row_str = String::new();
+            push_rowname(&mut row_str, row);
+            row_str
+        }
+        fn colname(col: ucell) -> String {
+            let mut col_str = String::new();
+            push_colname(&mut col_str, col);
+            col_str
+        }
+
+        for i in 0..704 {
+            let mut pos = 0usize;
+            let cn = colname(i);
+            let ccc = parse_colname(&cn, &mut pos);
+            assert_eq!(Some(i), ccc);
+            assert_eq!(cn.len(), pos);
+        }
+
+        for i in 0..101 {
+            let mut pos = 0usize;
+            let cn = rowname(i);
+            let cr = parse_rowname(&cn, &mut pos);
+            assert_eq!(Some(i), cr);
+            assert_eq!(cn.len(), pos);
+        }
+
         let mut pos = 0usize;
-        let cn = colname(i);
-        let ccc = parse_colname(&cn, &mut pos);
-        assert_eq!(Some(i), ccc);
-        assert_eq!(cn.len(), pos);
-    }
+        let cn = "A32";
+        let cc = parse_colname(cn, &mut pos);
+        assert_eq!(Some(0), cc);
+        assert_eq!(1, pos);
 
-    for i in 0..101 {
         let mut pos = 0usize;
-        let cn = rowname(i);
-        let cr = parse_rowname(&cn, &mut pos);
-        assert_eq!(Some(i), cr);
-        assert_eq!(cn.len(), pos);
+        let cn = "AAAA32 ";
+        let cc = parse_colname(cn, &mut pos);
+        assert_eq!(Some(18278), cc);
+        assert_eq!(4, pos);
+        let cr = parse_rowname(cn, &mut pos);
+        assert_eq!(Some(31), cr);
+        assert_eq!(6, pos);
+
+        let mut pos = 0usize;
+        let cn = ".A3";
+        let cr = parse_cellref(cn, &mut pos)?;
+        assert_eq!(cr, CellRef::local(2, 0));
+
+        let mut pos = 0usize;
+        let cn = ".$A3";
+        let cr = parse_cellref(cn, &mut pos)?;
+        assert_eq!(
+            cr,
+            CellRef {
+                table: None,
+                row: 2,
+                row_abs: false,
+                col: 0,
+                col_abs: true,
+            }
+        );
+
+        let mut pos = 0usize;
+        let cn = ".A$3";
+        let cr = parse_cellref(cn, &mut pos)?;
+        assert_eq!(
+            cr,
+            CellRef {
+                table: None,
+                row: 2,
+                row_abs: true,
+                col: 0,
+                col_abs: false,
+            }
+        );
+
+        let mut pos = 0usize;
+        let cn = "fufufu.A3";
+        let cr = parse_cellref(cn, &mut pos)?;
+        assert_eq!(
+            cr,
+            CellRef {
+                table: Some("fufufu".to_string()),
+                row: 2,
+                row_abs: false,
+                col: 0,
+                col_abs: false,
+            }
+        );
+
+        let mut pos = 0usize;
+        let cn = "'lak.moi'.A3";
+        let cr = parse_cellref(cn, &mut pos)?;
+        assert_eq!(
+            cr,
+            CellRef {
+                table: Some("lak.moi".to_string()),
+                row: 2,
+                row_abs: false,
+                col: 0,
+                col_abs: false,
+            }
+        );
+
+        let mut pos = 0usize;
+        let cn = "'lak''moi'.A3";
+        let cr = parse_cellref(cn, &mut pos)?;
+        assert_eq!(
+            cr,
+            CellRef {
+                table: Some("lak'moi".to_string()),
+                row: 2,
+                row_abs: false,
+                col: 0,
+                col_abs: false,
+            }
+        );
+
+        let mut pos = 4usize;
+        let cn = "****.B4";
+        let cr = parse_cellref(cn, &mut pos)?;
+        assert_eq!(
+            cr,
+            CellRef {
+                table: None,
+                row: 3,
+                row_abs: false,
+                col: 1,
+                col_abs: false,
+            }
+        );
+
+        let mut pos = 0usize;
+        let cn = ".A3:.F9";
+        let cr = parse_cellrange(cn, &mut pos)?;
+        assert_eq!(
+            cr,
+            CellRange {
+                table: None,
+                row_abs: false,
+                row: 2,
+                col_abs: false,
+                col: 0,
+                to_row_abs: false,
+                to_row: 8,
+                to_col_abs: false,
+                to_col: 5,
+            }
+        );
+
+        let mut pos = 0usize;
+        let cn = "table.A3:.F9";
+        let cr = parse_cellrange(cn, &mut pos)?;
+        assert_eq!(
+            cr,
+            CellRange {
+                table: Some("table".to_string()),
+                row_abs: false,
+                row: 2,
+                col_abs: false,
+                col: 0,
+                to_row_abs: false,
+                to_row: 8,
+                to_col_abs: false,
+                to_col: 5,
+            }
+        );
+
+        let mut pos = 0usize;
+        let cn = "table.A3:.F9";
+        let cr = parse_cellrange(cn, &mut pos)?;
+        assert_eq!(
+            cr,
+            CellRange {
+                table: Some("table".to_string()),
+                row_abs: false,
+                row: 2,
+                col_abs: false,
+                col: 0,
+                to_row_abs: false,
+                to_row: 8,
+                to_col_abs: false,
+                to_col: 5,
+            }
+        );
+
+        let mut pos = 0usize;
+        let cn = "table.A3:.F9 table.A4:.F10";
+        let cr = parse_cellranges(cn, &mut pos)?;
+        assert_eq!(
+            cr,
+            Some(vec![
+                CellRange::remote("table", 2, 0, 8, 5),
+                CellRange::remote("table", 3, 0, 9, 5),
+            ])
+        );
+
+        Ok(())
     }
-
-    let mut pos = 0usize;
-    let cn = "A32";
-    let cc = parse_colname(cn, &mut pos);
-    assert_eq!(Some(0), cc);
-    assert_eq!(1, pos);
-
-    let mut pos = 0usize;
-    let cn = "AAAA32 ";
-    let cc = parse_colname(cn, &mut pos);
-    assert_eq!(Some(18278), cc);
-    assert_eq!(4, pos);
-    let cr = parse_rowname(cn, &mut pos);
-    assert_eq!(Some(31), cr);
-    assert_eq!(6, pos);
-
-    let mut pos = 0usize;
-    let cn = ".A3";
-    let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(cr, CellRef::local(2, 0));
-
-    let mut pos = 0usize;
-    let cn = ".$A3";
-    let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(
-        cr,
-        CellRef {
-            table: None,
-            row: 2,
-            row_abs: false,
-            col: 0,
-            col_abs: true,
-        }
-    );
-
-    let mut pos = 0usize;
-    let cn = ".A$3";
-    let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(
-        cr,
-        CellRef {
-            table: None,
-            row: 2,
-            row_abs: true,
-            col: 0,
-            col_abs: false,
-        }
-    );
-
-    let mut pos = 0usize;
-    let cn = "fufufu.A3";
-    let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(
-        cr,
-        CellRef {
-            table: Some("fufufu".to_string()),
-            row: 2,
-            row_abs: false,
-            col: 0,
-            col_abs: false,
-        }
-    );
-
-    let mut pos = 0usize;
-    let cn = "'lak.moi'.A3";
-    let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(
-        cr,
-        CellRef {
-            table: Some("lak.moi".to_string()),
-            row: 2,
-            row_abs: false,
-            col: 0,
-            col_abs: false,
-        }
-    );
-
-    let mut pos = 0usize;
-    let cn = "'lak''moi'.A3";
-    let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(
-        cr,
-        CellRef {
-            table: Some("lak'moi".to_string()),
-            row: 2,
-            row_abs: false,
-            col: 0,
-            col_abs: false,
-        }
-    );
-
-    let mut pos = 4usize;
-    let cn = "****.B4";
-    let cr = parse_cellref(cn, &mut pos)?;
-    assert_eq!(
-        cr,
-        CellRef {
-            table: None,
-            row: 3,
-            row_abs: false,
-            col: 1,
-            col_abs: false,
-        }
-    );
-
-    let mut pos = 0usize;
-    let cn = ".A3:.F9";
-    let cr = parse_cellrange(cn, &mut pos)?;
-    assert_eq!(
-        cr,
-        CellRange {
-            table: None,
-            row_abs: false,
-            row: 2,
-            col_abs: false,
-            col: 0,
-            to_row_abs: false,
-            to_row: 8,
-            to_col_abs: false,
-            to_col: 5,
-        }
-    );
-
-    let mut pos = 0usize;
-    let cn = "table.A3:.F9";
-    let cr = parse_cellrange(cn, &mut pos)?;
-    assert_eq!(
-        cr,
-        CellRange {
-            table: Some("table".to_string()),
-            row_abs: false,
-            row: 2,
-            col_abs: false,
-            col: 0,
-            to_row_abs: false,
-            to_row: 8,
-            to_col_abs: false,
-            to_col: 5,
-        }
-    );
-
-    let mut pos = 0usize;
-    let cn = "table.A3:.F9";
-    let cr = parse_cellrange(cn, &mut pos)?;
-    assert_eq!(
-        cr,
-        CellRange {
-            table: Some("table".to_string()),
-            row_abs: false,
-            row: 2,
-            col_abs: false,
-            col: 0,
-            to_row_abs: false,
-            to_row: 8,
-            to_col_abs: false,
-            to_col: 5,
-        }
-    );
-
-    let mut pos = 0usize;
-    let cn = "table.A3:.F9 table.A4:.F10";
-    let cr = parse_cellranges(cn, &mut pos)?;
-    assert_eq!(
-        cr,
-        Some(vec![
-            CellRange::remote("table", 2, 0, 8, 5),
-            CellRange::remote("table", 3, 0, 9, 5),
-        ])
-    );
-
-    Ok(())
 }

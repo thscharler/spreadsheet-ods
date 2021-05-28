@@ -5,7 +5,7 @@ use spreadsheet_ods::style::{MasterPage, PageStyle, TableStyle};
 use spreadsheet_ods::{cm, read_ods, write_ods, OdsError, WorkBook};
 
 #[test]
-fn pagelayout() -> Result<(), OdsError> {
+fn test_pagelayout() -> Result<(), OdsError> {
     let path = std::path::Path::new("test_out/format.ods");
     let mut ods;
 
@@ -31,7 +31,7 @@ fn pagelayout() -> Result<(), OdsError> {
 }
 
 #[test]
-fn crpagelayout() -> Result<(), OdsError> {
+fn test_crpagelayout() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
 
     let mut ps = PageStyle::new("ps1");

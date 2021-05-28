@@ -242,10 +242,7 @@ impl HeaderFooter {
 
     /// Left region.
     pub fn left(&self) -> Option<&TextTag> {
-        match &self.region_left {
-            None => None,
-            Some(v) => Some(v.as_ref()),
-        }
+        self.region_left.as_ref().map(|v| v.as_ref())
     }
 
     /// Left region.
@@ -267,10 +264,7 @@ impl HeaderFooter {
 
     /// Center region.
     pub fn center(&self) -> Option<&TextTag> {
-        match &self.region_center {
-            None => None,
-            Some(v) => Some(v.as_ref()),
-        }
+        self.region_center.as_ref().map(|v| v.as_ref())
     }
 
     /// Center region.
@@ -292,10 +286,7 @@ impl HeaderFooter {
 
     /// Right region.
     pub fn right(&self) -> Option<&TextTag> {
-        match &self.region_right {
-            None => None,
-            Some(v) => Some(v.as_ref()),
-        }
+        self.region_right.as_ref().map(|v| v.as_ref())
     }
 
     /// Right region.
@@ -317,10 +308,7 @@ impl HeaderFooter {
 
     /// Header content, if there are no regions.
     pub fn content(&self) -> Option<&TextTag> {
-        match &self.content {
-            None => None,
-            Some(v) => Some(v.as_ref()),
-        }
+        self.content.as_ref().map(|v| v.as_ref())
     }
 
     /// Header content, if there are no regions.
