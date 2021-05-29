@@ -157,6 +157,7 @@ pub mod format;
 pub mod formula;
 mod io;
 pub mod refs;
+mod settings;
 pub mod style;
 pub mod text;
 pub mod xmltree;
@@ -170,6 +171,7 @@ pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
 
 use crate::ds::detach::Detach;
+use crate::settings::Config;
 use crate::style::{
     ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
     PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle,
@@ -229,6 +231,11 @@ pub struct WorkBook {
     /// Page-layout data.
     pagestyles: HashMap<String, PageStyle>,
     masterpages: HashMap<String, MasterPage>,
+
+    /// Configuration data. Internal cache for all values.
+    /// Mapped into WorkBookConfig, SheetConfig.
+    config: Config,
+    workbook_config: WorkBookConfig,
 
     /// Original file if this book was read from one.
     /// This is used when writing to copy all additional
@@ -330,6 +337,8 @@ impl WorkBook {
             def_styles: Default::default(),
             pagestyles: Default::default(),
             masterpages: Default::default(),
+            config: Default::default(),
+            workbook_config: Default::default(),
             file: None,
             extra: vec![],
         }
@@ -343,6 +352,14 @@ impl WorkBook {
     /// ODS version.
     pub fn set_version(&mut self, version: String) {
         self.version = version;
+    }
+
+    pub fn config(&self) -> &WorkBookConfig {
+        &self.workbook_config
+    }
+
+    pub fn config_mut(&mut self) -> &mut WorkBookConfig {
+        &mut self.workbook_config
     }
 
     /// Number of sheets.
@@ -706,6 +723,25 @@ impl WorkBook {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct WorkBookConfig {
+    active_table: String,
+    show_grid: bool,
+    show_page_breaks: bool,
+    has_sheet_tabs: bool,
+}
+
+impl Default for WorkBookConfig {
+    fn default() -> Self {
+        Self {
+            active_table: "".to_string(),
+            show_grid: true,
+            show_page_breaks: false,
+            has_sheet_tabs: true,
+        }
+    }
+}
+
 /// Visibility of a column or row.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Visibility {
@@ -898,6 +934,8 @@ pub struct Sheet {
     header_cols: Option<ColRange>,
     print_ranges: Option<Vec<CellRange>>,
 
+    sheet_config: SheetConfig,
+
     extra: Vec<XmlTag>,
 }
 
@@ -937,6 +975,7 @@ impl Sheet {
             header_rows: None,
             header_cols: None,
             print_ranges: None,
+            sheet_config: Default::default(),
             extra: vec![],
             row_header: Default::default(),
             display: true,
@@ -957,6 +996,7 @@ impl Sheet {
             header_rows: None,
             header_cols: None,
             print_ranges: None,
+            sheet_config: Default::default(),
             extra: Default::default(),
         }
     }
@@ -974,6 +1014,7 @@ impl Sheet {
             header_rows: self.header_rows.clone(),
             header_cols: self.header_cols.clone(),
             print_ranges: self.print_ranges.clone(),
+            sheet_config: Default::default(),
             extra: self.extra.clone(),
         }
     }
@@ -986,6 +1027,14 @@ impl Sheet {
     /// Sheet name.
     pub fn name(&self) -> &String {
         &self.name
+    }
+
+    pub fn config(&self) -> &SheetConfig {
+        &self.sheet_config
+    }
+
+    pub fn config_mut(&mut self) -> &mut SheetConfig {
+        &mut self.sheet_config
     }
 
     /// Sets the table-style
@@ -1375,6 +1424,37 @@ impl Sheet {
     /// Return the print ranges.
     pub fn print_ranges(&self) -> Option<&Vec<CellRange>> {
         self.print_ranges.as_ref()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SheetConfig {
+    cursor_x: ucell,
+    cursor_y: ucell,
+    hor_split_mode: i16,
+    vert_split_mode: i16,
+    hor_split_pos: ucell,
+    vert_split_pos: ucell,
+    active_split_range: i16,
+    zoom_type: i16,
+    zoom_value: i32,
+    show_grid: bool,
+}
+
+impl Default for SheetConfig {
+    fn default() -> Self {
+        Self {
+            cursor_x: 0,
+            cursor_y: 0,
+            hor_split_mode: 0,
+            vert_split_mode: 0,
+            hor_split_pos: 0,
+            vert_split_pos: 0,
+            active_split_range: 2,
+            zoom_type: 0,
+            zoom_value: 100,
+            show_grid: true,
+        }
     }
 }
 

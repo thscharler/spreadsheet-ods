@@ -34,6 +34,10 @@ fn read_text() -> Result<(), OdsError> {
 #[test]
 fn read_orders() -> Result<(), OdsError> {
     let mut wb = read_ods("tests/orders.ods")?;
+
+    dbg!(wb.config());
+    dbg!(wb.sheet(0).config());
+
     write_ods(&mut wb, "test_out/orders.ods")?;
     Ok(())
 }

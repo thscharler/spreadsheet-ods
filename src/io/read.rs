@@ -10,6 +10,7 @@ use crate::attrmap2::AttrMap2;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
+use crate::settings::{Config, ConfigItem, ConfigMap, ConfigSet, ConfigValue, ConfigVec};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
@@ -22,6 +23,7 @@ use crate::{
     ucell, CellStyle, ColRange, Length, RowRange, SCell, Sheet, Value, ValueFormat, ValueType,
     Visibility, WorkBook,
 };
+use std::collections::HashMap;
 
 /// Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
@@ -34,6 +36,7 @@ pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
 
     read_content(&mut book, &mut zip.by_name("content.xml")?)?;
     read_styles(&mut book, &mut zip.by_name("styles.xml")?)?;
+    read_settings(&mut book, &mut zip.by_name("settings.xml")?)?;
 
     // We do some data duplication here, to make everything easier to use.
     calc_derived(&mut book)?;
@@ -43,6 +46,31 @@ pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
 
 // Sets some values from the styles on the corresponding data fields.
 fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
+    let v = book
+        .config
+        .get_value(&["ooo:view-settings", "Views", "0", "ActiveTable"]);
+    if let Some(ConfigValue::String(n)) = v {
+        book.config_mut().active_table = n.clone();
+    }
+    let v = book
+        .config
+        .get_value(&["ooo:view-settings", "Views", "0", "HasSheetTabs"]);
+    if let Some(ConfigValue::Boolean(n)) = v {
+        book.config_mut().has_sheet_tabs = *n;
+    }
+    let v = book
+        .config
+        .get_value(&["ooo:view-settings", "Views", "0", "ShowGrid"]);
+    if let Some(ConfigValue::Boolean(n)) = v {
+        book.config_mut().show_grid = *n;
+    }
+    let v = book
+        .config
+        .get_value(&["ooo:view-settings", "Views", "0", "ShowPageBreaks"]);
+    if let Some(ConfigValue::Boolean(n)) = v {
+        book.config_mut().show_page_breaks = *n;
+    }
+
     for i in 0..book.num_sheets() {
         let mut sheet = book.detach_sheet(i);
 
@@ -69,6 +97,57 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
                         rh.set_height(style.row_height()?);
                     }
                 }
+            }
+        }
+
+        let v = book.config.get(&[
+            "ooo:view-settings",
+            "Views",
+            "0",
+            "Tables",
+            sheet.name().as_str(),
+        ]);
+
+        dbg!(book.config.get(&["ooo:view-settings"]));
+        // dbg!(sheet.name().as_str());
+        // dbg!(book.config.get(&[
+        //     "ooo:view-settings",
+        //     "Views",
+        //     "0",
+        //     "Tables",
+        //     sheet.name().as_str()
+        // ]));
+
+        if let Some(cc) = v {
+            if let Some(ConfigValue::Int(n)) = cc.get_value(&["CursorPositionX"]) {
+                sheet.config_mut().cursor_x = *n as ucell;
+            }
+            if let Some(ConfigValue::Int(n)) = cc.get_value(&["CursorPositionY"]) {
+                sheet.config_mut().cursor_y = *n as ucell;
+            }
+            if let Some(ConfigValue::Short(n)) = cc.get_value(&["HorizontalSplitMode"]) {
+                sheet.config_mut().hor_split_mode = *n;
+            }
+            if let Some(ConfigValue::Short(n)) = cc.get_value(&["VerticalSplitMode"]) {
+                sheet.config_mut().vert_split_mode = *n;
+            }
+            if let Some(ConfigValue::Int(n)) = cc.get_value(&["HorizontalSplitPosition"]) {
+                sheet.config_mut().hor_split_pos = *n as ucell;
+            }
+            if let Some(ConfigValue::Int(n)) = cc.get_value(&["VerticalSplitPosition"]) {
+                sheet.config_mut().vert_split_pos = *n as ucell;
+            }
+            if let Some(ConfigValue::Short(n)) = cc.get_value(&["ActiveSplitRange"]) {
+                sheet.config_mut().active_split_range = *n;
+            }
+            if let Some(ConfigValue::Short(n)) = cc.get_value(&["ZoomType"]) {
+                sheet.config_mut().zoom_type = *n;
+            }
+            if let Some(ConfigValue::Int(n)) = cc.get_value(&["ZoomValue"]) {
+                sheet.config_mut().zoom_value = *n;
+            }
+            if let Some(ConfigValue::Boolean(n)) = cc.get_value(&["ShowGrid"]) {
+                sheet.config_mut().show_grid = *n;
             }
         }
 
@@ -2274,6 +2353,464 @@ fn read_styles(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsErr
     }
 
     Ok(())
+}
+
+fn read_settings(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsError> {
+    let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
+    xml.trim_text(true);
+
+    let mut buf = Vec::new();
+    loop {
+        let evt = xml.read_event(&mut buf)?;
+        if cfg!(feature = "dump_xml") {
+            println!(" read_settings {:?}", evt);
+        }
+
+        match evt {
+            Event::Decl(_) => {}
+
+            Event::Start(xml_tag) if xml_tag.name() == b"office:document-settings" => {
+                // noop
+            }
+            Event::End(xml_tag) if xml_tag.name() == b"office:document-settings" => {
+                // noop
+            }
+
+            Event::Start(xml_tag) if xml_tag.name() == b"office:settings" => {
+                book.config = read_office_settings(&mut xml)?;
+            }
+
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                if cfg!(feature = "dump_unused") {
+                    println!(" read_settings unused {:?}", evt);
+                }
+            }
+        }
+
+        buf.clear();
+    }
+
+    Ok(())
+}
+
+// read the automatic-styles tag
+fn read_office_settings(
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    // no attributes
+) -> Result<Config, OdsError> {
+    let mut buf = Vec::new();
+
+    let mut config = Config::new();
+
+    loop {
+        let evt = xml.read_event(&mut buf)?;
+        if cfg!(feature = "dump_xml") {
+            println!(" read_office_settings {:?}", evt);
+        }
+        match evt {
+            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-set" => {
+                let (name, set) = read_config_item_set(xml_tag, xml)?;
+                config.insert(name, set);
+            }
+            Event::End(ref e) if e.name() == b"office:settings" => {
+                break;
+            }
+            Event::Eof => break,
+            _ => {
+                if cfg!(feature = "dump_unused") {
+                    println!(" read_auto_styles unused {:?}", evt);
+                }
+            }
+        }
+
+        buf.clear();
+    }
+
+    Ok(config)
+}
+
+// read the automatic-styles tag
+fn read_config_item_set(
+    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    // no attributes
+) -> Result<(String, ConfigSet), OdsError> {
+    let mut buf = Vec::new();
+
+    let mut name = None;
+    let mut config_set = ConfigSet::new();
+
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key == b"config:name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                name = Some(v);
+            }
+            _ => {
+                // noop
+            }
+        }
+    }
+
+    let name = if name.is_none() {
+        return Err(OdsError::Ods("config-item-set without name".to_string()));
+    } else {
+        name.unwrap()
+    };
+
+    loop {
+        let evt = xml.read_event(&mut buf)?;
+        if cfg!(feature = "dump_xml") {
+            println!(" read_office_item_set {:?}", evt);
+        }
+        match evt {
+            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item" => {
+                let (name, val) = read_config_item(xml_tag, xml)?;
+                config_set.insert(name, val);
+            }
+            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-set" => {
+                let (name, val) = read_config_item_set(xml_tag, xml)?;
+                config_set.insert(name, val);
+            }
+            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-indexed" => {
+                let (name, val) = read_config_item_map_indexed(xml_tag, xml)?;
+                config_set.insert(name, val);
+            }
+            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-named" => {
+                let (name, val) = read_config_item_map_named(xml_tag, xml)?;
+                config_set.insert(name, val);
+            }
+            Event::End(ref e) if e.name() == b"config:config-item-set" => {
+                break;
+            }
+            Event::Eof => break,
+            _ => {
+                if cfg!(feature = "dump_unused") {
+                    println!(" read_office_item_set unused {:?}", evt);
+                }
+            }
+        }
+
+        buf.clear();
+    }
+
+    Ok((name, config_set))
+}
+
+// read the automatic-styles tag
+fn read_config_item_map_indexed(
+    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    // no attributes
+) -> Result<(String, ConfigVec), OdsError> {
+    let mut buf = Vec::new();
+
+    let mut name = None;
+    let mut config_vec = ConfigVec::new();
+
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key == b"config:name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                name = Some(v);
+            }
+            _ => {
+                // noop
+            }
+        }
+    }
+
+    let name = if name.is_none() {
+        return Err(OdsError::Ods(
+            "config-item-map-indexed without name".to_string(),
+        ));
+    } else {
+        name.unwrap()
+    };
+
+    let mut index = 0;
+
+    loop {
+        let evt = xml.read_event(&mut buf)?;
+        if cfg!(feature = "dump_xml") {
+            println!(" read_office_item_set {:?}", evt);
+        }
+        match evt {
+            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-entry" => {
+                let (_, entry) = read_config_item_map_entry(xml_tag, xml)?;
+
+                for (n, i) in entry {
+                    config_vec.insert(index.to_string(), n, i);
+                }
+
+                index += 1;
+            }
+            Event::End(ref e) if e.name() == b"config:config-item-map-indexed" => {
+                break;
+            }
+            Event::Eof => break,
+            _ => {
+                if cfg!(feature = "dump_unused") {
+                    println!(" read_office_item_set unused {:?}", evt);
+                }
+            }
+        }
+
+        buf.clear();
+    }
+
+    Ok((name, config_vec))
+}
+
+// read the automatic-styles tag
+fn read_config_item_map_named(
+    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    // no attributes
+) -> Result<(String, ConfigMap), OdsError> {
+    let mut buf = Vec::new();
+
+    let mut name = None;
+    let mut config_map = ConfigMap::new();
+
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key == b"config:name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                name = Some(v);
+            }
+            _ => {
+                // noop
+            }
+        }
+    }
+
+    let name = if name.is_none() {
+        return Err(OdsError::Ods(
+            "config-item-map-named without name".to_string(),
+        ));
+    } else {
+        name.unwrap()
+    };
+
+    loop {
+        let evt = xml.read_event(&mut buf)?;
+        if cfg!(feature = "dump_xml") {
+            println!(" read_config_item_map_named {:?}", evt);
+        }
+        match evt {
+            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-entry" => {
+                let (name, entry) = read_config_item_map_entry(xml_tag, xml)?;
+
+                let name = if name.is_none() {
+                    return Err(OdsError::Ods(
+                        "config-item-map-entry without name".to_string(),
+                    ));
+                } else {
+                    name.unwrap()
+                };
+
+                for (n, i) in entry {
+                    config_map.insert(name.clone(), n, i);
+                }
+            }
+            Event::End(ref e) if e.name() == b"config:config-item-map-named" => {
+                break;
+            }
+            Event::Eof => break,
+            _ => {
+                if cfg!(feature = "dump_unused") {
+                    println!(" read_config_item_map_named unused {:?}", evt);
+                }
+            }
+        }
+
+        buf.clear();
+    }
+
+    Ok((name, config_map))
+}
+
+// read the automatic-styles tag
+fn read_config_item_map_entry(
+    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    // no attributes
+) -> Result<(Option<String>, HashMap<String, ConfigItem>), OdsError> {
+    let mut buf = Vec::new();
+
+    let mut name = None;
+    let mut config_map = HashMap::new();
+
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key == b"config:name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                name = Some(v);
+            }
+            _ => {
+                // noop
+            }
+        }
+    }
+
+    loop {
+        let evt = xml.read_event(&mut buf)?;
+        if cfg!(feature = "dump_xml") {
+            println!(" read_config_item_map_entry {:?}", evt);
+        }
+        match evt {
+            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item" => {
+                let (name, val) = read_config_item(xml_tag, xml)?;
+                config_map.insert(name, ConfigItem::from(val));
+            }
+            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-set" => {
+                let (name, val) = read_config_item_set(xml_tag, xml)?;
+                config_map.insert(name, ConfigItem::from(val));
+            }
+            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-indexed" => {
+                let (name, val) = read_config_item_map_indexed(xml_tag, xml)?;
+                config_map.insert(name, ConfigItem::from(val));
+            }
+            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-named" => {
+                let (name, val) = read_config_item_map_named(xml_tag, xml)?;
+                config_map.insert(name, ConfigItem::from(val));
+            }
+            Event::End(ref e) if e.name() == b"config:config-item-map-entry" => {
+                break;
+            }
+            Event::Eof => break,
+            _ => {
+                if cfg!(feature = "dump_unused") {
+                    println!(" read_config_item_map_entry unused {:?}", evt);
+                }
+            }
+        }
+
+        buf.clear();
+    }
+
+    Ok((name, config_map))
+}
+
+// read the automatic-styles tag
+fn read_config_item(
+    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    // no attributes
+) -> Result<(String, ConfigValue), OdsError> {
+    let mut buf = Vec::new();
+
+    let mut name = None;
+    let mut val_type = None;
+    let mut config_val = None;
+
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key == b"config:name" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                name = Some(v);
+            }
+            attr if attr.key == b"config:type" => {
+                let v = attr.unescape_and_decode_value(&xml)?;
+                val_type = Some(v);
+            }
+            _ => {
+                // noop
+            }
+        }
+    }
+
+    let name = if name.is_none() {
+        return Err(OdsError::Ods(
+            "config value without config:name".to_string(),
+        ));
+    } else {
+        name.unwrap()
+    };
+
+    let valtype = if val_type.is_none() {
+        return Err(OdsError::Ods(
+            "config value without config:type".to_string(),
+        ));
+    } else {
+        val_type.unwrap()
+    };
+
+    loop {
+        let evt = xml.read_event(&mut buf)?;
+        match evt {
+            Event::Text(ref txt) => {
+                let txt = txt.unescape_and_decode(xml)?;
+                match valtype.as_str() {
+                    "base64Binary" => {
+                        config_val = Some(ConfigValue::Base64Binary(txt));
+                    }
+                    "boolean" => {
+                        let f = txt.parse::<bool>()?;
+                        config_val = Some(ConfigValue::Boolean(f));
+                    }
+                    "datetime" => {
+                        let dt = if txt.len() == 10 {
+                            NaiveDate::parse_from_str(txt.as_str(), "%Y-%m-%d")?.and_hms(0, 0, 0)
+                        } else {
+                            NaiveDateTime::parse_from_str(txt.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?
+                        };
+                        config_val = Some(ConfigValue::DateTime(dt));
+                    }
+                    "double" => {
+                        let f = txt.parse::<f64>()?;
+                        config_val = Some(ConfigValue::Double(f));
+                    }
+                    "int" => {
+                        let f = txt.parse::<i32>()?;
+                        config_val = Some(ConfigValue::Int(f));
+                    }
+                    "long" => {
+                        let f = txt.parse::<i64>()?;
+                        config_val = Some(ConfigValue::Long(f));
+                    }
+                    "short" => {
+                        let f = txt.parse::<i16>()?;
+                        config_val = Some(ConfigValue::Short(f));
+                    }
+                    "string" => {
+                        config_val = Some(ConfigValue::String(txt));
+                    }
+                    x => {
+                        return Err(OdsError::Ods(format!("unknown config:type {}", x)));
+                    }
+                }
+            }
+            Event::End(ref e) if e.name() == b"config:config-item" => {
+                break;
+            }
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                if cfg!(feature = "dump_unused") {
+                    println!(" read_config_item unused {:?}", evt);
+                }
+            }
+        }
+
+        if cfg!(feature = "dump_xml") {
+            println!(" read_config_item {:?}", evt);
+        }
+        buf.clear();
+    }
+
+    let config_val = if config_val.is_none() {
+        return Err(OdsError::Ods("config-item without value???".to_string()));
+    } else {
+        config_val.unwrap()
+    };
+
+    Ok((name, config_val))
 }
 
 // Reads a part of the XML as XmlTag's, and returns the first content XmlTag.
