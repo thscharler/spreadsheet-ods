@@ -1,6 +1,7 @@
 use chrono::NaiveDateTime;
 use std::collections::HashMap;
 
+/// The possible value types for the configuration.
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub enum ConfigValue {
     Base64Binary(String),
@@ -63,6 +64,7 @@ impl From<i64> for ConfigValue {
     }
 }
 
+/// Conserves the structure of the configuration.
 #[derive(Debug, Clone, Copy)]
 pub enum ConfigSetType {
     Set,
@@ -71,6 +73,10 @@ pub enum ConfigSetType {
     Entry,
 }
 
+/// The tree structure of the configuration is mapped to maps of maps ...
+/// The original map-type is conserved via stype.
+/// It is not intended to make this public, so the subtleties which
+/// set can contain what is not mapped into types.
 #[derive(Debug, Clone)]
 pub struct ConfigSet {
     stype: ConfigSetType,
@@ -119,6 +125,7 @@ impl ConfigSet {
         }
     }
 
+    /// Adds a new ConfigItem
     pub fn insert<S, V>(&mut self, name: S, item: V)
     where
         S: Into<String>,
@@ -127,6 +134,7 @@ impl ConfigSet {
         self.set.insert(name.into(), item.into());
     }
 
+    /// Returns a ConfigItem
     pub fn get<S>(&self, name: S) -> Option<&ConfigItem>
     where
         S: AsRef<str>,
@@ -135,12 +143,15 @@ impl ConfigSet {
     }
 }
 
+/// Unifies values and sets of values. The branch structure of the tree.
 #[derive(Debug, Clone)]
 pub enum ConfigItem {
     Value(ConfigValue),
     Set(ConfigSet),
 }
 
+/// Nice conversion for everything that can be converted to a ConfigValue
+/// can directly be converted to a ConfigItem too.
 impl<T> From<T> for ConfigItem
 where
     ConfigValue: From<T>,
@@ -157,6 +168,7 @@ impl From<ConfigSet> for ConfigItem {
 }
 
 impl ConfigItem {
+    /// Recursive get for any ConfigItem.
     pub fn get<S>(&self, names: &[S]) -> Option<&ConfigItem>
     where
         S: AsRef<str>,
@@ -184,6 +196,7 @@ impl ConfigItem {
         }
     }
 
+    /// Recursive get for only the ConfigValue leafs.
     pub fn get_value<S>(&self, names: &[S]) -> Option<&ConfigValue>
     where
         S: AsRef<str>,
@@ -212,6 +225,7 @@ impl ConfigItem {
     }
 }
 
+/// Basic wrapper around a ConfigSet. Root of the config tree.
 #[derive(Debug, Clone)]
 pub struct Config {
     config: ConfigSet,
@@ -230,6 +244,7 @@ impl Config {
         }
     }
 
+    /// Add an item.
     pub fn insert<S, V>(&mut self, name: S, item: V)
     where
         S: Into<String>,
@@ -238,6 +253,7 @@ impl Config {
         self.config.insert(name.into(), item.into());
     }
 
+    /// Recursive get.
     pub fn get<S>(&self, names: &[S]) -> Option<&ConfigItem>
     where
         S: AsRef<str>,
@@ -253,6 +269,7 @@ impl Config {
         }
     }
 
+    /// Recursive get, only for ConfigValue leafs.
     pub fn get_value<S>(&self, names: &[S]) -> Option<&ConfigValue>
     where
         S: AsRef<str>,
@@ -271,37 +288,40 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::settings::{Config, ConfigMap, ConfigSet, ConfigValue};
+    use crate::settings::{Config, ConfigSet, ConfigValue};
 
     #[test]
     fn test_config() {
         let mut config = Config::new();
-
-        let mut view_settings = ConfigSet::new();
-        view_settings.insert("VisibleAreaTop", 903);
-        config.insert("ooo:view-settings", view_settings);
-
-        let mut configuration_settings = ConfigSet::new();
-        configuration_settings.insert("HasSheetTabs".to_string(), true);
-        configuration_settings.insert("ShowNotes", true);
-        configuration_settings.insert("GridColor", 12632256);
-        configuration_settings.insert("LinkUpdateMode", 3i16);
-        configuration_settings.insert("PrinterSetup", ConfigValue::base64("unknowgarbage"));
-
-        let mut script_configuration = ConfigMap::new();
-        script_configuration.insert("Tabelle1", "CodeName", "Tabelle1");
-        configuration_settings.insert("ScriptConfiguration", script_configuration);
-
-        config.insert("ooo:configuration-settings", configuration_settings);
+        {
+            let mut view_settings = ConfigSet::new_set();
+            view_settings.insert("VisibleAreaTop", 903);
+            config.insert("ooo:view-settings", view_settings);
+        }
+        {
+            let mut configuration_settings = ConfigSet::new_set();
+            configuration_settings.insert("HasSheetTabs".to_string(), true);
+            configuration_settings.insert("ShowNotes", true);
+            configuration_settings.insert("GridColor", 12632256);
+            configuration_settings.insert("LinkUpdateMode", 3i16);
+            configuration_settings.insert(
+                "PrinterSetup",
+                ConfigValue::Base64Binary("unknowgarbage".to_string()),
+            );
+            {
+                let mut script_configuration = ConfigSet::new_map();
+                {
+                    let mut tabelle1 = ConfigSet::new_entry();
+                    tabelle1.insert("CodeName", "Tabelle1");
+                    script_configuration.insert("Tabelle1", tabelle1);
+                }
+                configuration_settings.insert("ScriptConfiguration", script_configuration);
+            }
+            config.insert("ooo:configuration-settings", configuration_settings);
+        }
 
         assert_eq!(config.get_value(&["ooo:view-settings", "ShowNotes"]), None);
-        assert_eq!(
-            config.get_value_or(
-                &["ooo:view-settings", "ShowNotes"],
-                &ConfigValue::from(true)
-            ),
-            &ConfigValue::Boolean(true)
-        );
+        assert_eq!(config.get_value(&["ooo:view-settings", "ShowNotes"]), None);
         assert_eq!(
             config.get_value(&["ooo:view-settings", "VisibleAreaTop"]),
             Some(&ConfigValue::Int(903))
