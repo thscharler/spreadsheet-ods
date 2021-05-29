@@ -10,7 +10,7 @@ use crate::attrmap2::AttrMap2;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
-use crate::settings::{Config, ConfigItem, ConfigMap, ConfigSet, ConfigValue, ConfigVec};
+use crate::settings::{Config, ConfigItem, ConfigSet, ConfigValue};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
@@ -23,7 +23,6 @@ use crate::{
     ucell, CellStyle, ColRange, Length, RowRange, SCell, Sheet, Value, ValueFormat, ValueType,
     Visibility, WorkBook,
 };
-use std::collections::HashMap;
 
 /// Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
@@ -108,15 +107,14 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
             sheet.name().as_str(),
         ]);
 
-        dbg!(book.config.get(&["ooo:view-settings"]));
-        // dbg!(sheet.name().as_str());
-        // dbg!(book.config.get(&[
-        //     "ooo:view-settings",
-        //     "Views",
-        //     "0",
-        //     "Tables",
-        //     sheet.name().as_str()
-        // ]));
+        dbg!(sheet.name().as_str());
+        dbg!(book.config.get(&[
+            "ooo:view-settings",
+            "Views",
+            "0",
+            "Tables",
+            sheet.name().as_str()
+        ]));
 
         if let Some(cc) = v {
             if let Some(ConfigValue::Int(n)) = cc.get_value(&["CursorPositionX"]) {
@@ -2441,7 +2439,7 @@ fn read_config_item_set(
     let mut buf = Vec::new();
 
     let mut name = None;
-    let mut config_set = ConfigSet::new();
+    let mut config_set = ConfigSet::new_set();
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -2505,11 +2503,11 @@ fn read_config_item_map_indexed(
     xml_tag: &BytesStart,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     // no attributes
-) -> Result<(String, ConfigVec), OdsError> {
+) -> Result<(String, ConfigSet), OdsError> {
     let mut buf = Vec::new();
 
     let mut name = None;
-    let mut config_vec = ConfigVec::new();
+    let mut config_vec = ConfigSet::new_vec();
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -2541,11 +2539,7 @@ fn read_config_item_map_indexed(
         match evt {
             Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-entry" => {
                 let (_, entry) = read_config_item_map_entry(xml_tag, xml)?;
-
-                for (n, i) in entry {
-                    config_vec.insert(index.to_string(), n, i);
-                }
-
+                config_vec.insert(index.to_string(), entry);
                 index += 1;
             }
             Event::End(ref e) if e.name() == b"config:config-item-map-indexed" => {
@@ -2570,11 +2564,11 @@ fn read_config_item_map_named(
     xml_tag: &BytesStart,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     // no attributes
-) -> Result<(String, ConfigMap), OdsError> {
+) -> Result<(String, ConfigSet), OdsError> {
     let mut buf = Vec::new();
 
     let mut name = None;
-    let mut config_map = ConfigMap::new();
+    let mut config_map = ConfigSet::new_map();
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -2613,9 +2607,7 @@ fn read_config_item_map_named(
                     name.unwrap()
                 };
 
-                for (n, i) in entry {
-                    config_map.insert(name.clone(), n, i);
-                }
+                config_map.insert(name, entry);
             }
             Event::End(ref e) if e.name() == b"config:config-item-map-named" => {
                 break;
@@ -2639,11 +2631,11 @@ fn read_config_item_map_entry(
     xml_tag: &BytesStart,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     // no attributes
-) -> Result<(Option<String>, HashMap<String, ConfigItem>), OdsError> {
+) -> Result<(Option<String>, ConfigSet), OdsError> {
     let mut buf = Vec::new();
 
     let mut name = None;
-    let mut config_map = HashMap::new();
+    let mut config_set = ConfigSet::new_entry();
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -2665,19 +2657,19 @@ fn read_config_item_map_entry(
         match evt {
             Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item" => {
                 let (name, val) = read_config_item(xml_tag, xml)?;
-                config_map.insert(name, ConfigItem::from(val));
+                config_set.insert(name, ConfigItem::from(val));
             }
             Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-set" => {
                 let (name, val) = read_config_item_set(xml_tag, xml)?;
-                config_map.insert(name, ConfigItem::from(val));
+                config_set.insert(name, ConfigItem::from(val));
             }
             Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-indexed" => {
                 let (name, val) = read_config_item_map_indexed(xml_tag, xml)?;
-                config_map.insert(name, ConfigItem::from(val));
+                config_set.insert(name, ConfigItem::from(val));
             }
             Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-named" => {
                 let (name, val) = read_config_item_map_named(xml_tag, xml)?;
-                config_map.insert(name, ConfigItem::from(val));
+                config_set.insert(name, ConfigItem::from(val));
             }
             Event::End(ref e) if e.name() == b"config:config-item-map-entry" => {
                 break;
@@ -2693,7 +2685,7 @@ fn read_config_item_map_entry(
         buf.clear();
     }
 
-    Ok((name, config_map))
+    Ok((name, config_set))
 }
 
 // read the automatic-styles tag
