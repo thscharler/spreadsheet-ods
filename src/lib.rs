@@ -143,6 +143,37 @@
 
 #![doc(html_root_url = "https://docs.rs/spreadsheet-ods/0.4.0")]
 
+use std::collections::{BTreeMap, HashMap};
+use std::convert::TryFrom;
+use std::fmt;
+use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
+use std::str::FromStr;
+
+use chrono::Duration;
+use chrono::{NaiveDate, NaiveDateTime};
+#[cfg(feature = "use_decimal")]
+use rust_decimal::prelude::*;
+#[cfg(feature = "use_decimal")]
+use rust_decimal::Decimal;
+
+use crate::ds::detach::Detach;
+pub use crate::ds::detach::Detached;
+pub use crate::error::OdsError;
+pub use crate::format::{ValueFormat, ValueFormatRef};
+pub use crate::io::{read_ods, write_ods};
+pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
+use crate::settings::Config;
+pub use crate::style::units::{Angle, Length};
+pub use crate::style::{CellStyle, CellStyleRef};
+use crate::style::{
+    ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
+    PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle,
+    TableStyleRef, TextStyle, TextStyleRef,
+};
+use crate::text::TextTag;
+use crate::xmltree::XmlTag;
+
 #[macro_use]
 mod attr_macro;
 #[macro_use]
@@ -161,35 +192,6 @@ mod settings;
 pub mod style;
 pub mod text;
 pub mod xmltree;
-
-pub use crate::ds::detach::Detached;
-pub use crate::error::OdsError;
-pub use crate::format::{ValueFormat, ValueFormatRef};
-pub use crate::io::{read_ods, write_ods};
-pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
-pub use crate::style::units::{Angle, Length};
-pub use crate::style::{CellStyle, CellStyleRef};
-
-use crate::ds::detach::Detach;
-use crate::settings::Config;
-use crate::style::{
-    ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
-    PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle,
-    TableStyleRef, TextStyle, TextStyleRef,
-};
-use crate::text::TextTag;
-use crate::xmltree::XmlTag;
-use chrono::Duration;
-use chrono::{NaiveDate, NaiveDateTime};
-#[cfg(feature = "use_decimal")]
-use rust_decimal::prelude::*;
-#[cfg(feature = "use_decimal")]
-use rust_decimal::Decimal;
-use std::collections::{BTreeMap, HashMap};
-use std::fmt;
-use std::fmt::{Display, Formatter};
-use std::path::PathBuf;
-use std::str::FromStr;
 
 /// Cell index type for row/column indexes.
 #[allow(non_camel_case_types)]
@@ -234,7 +236,8 @@ pub struct WorkBook {
 
     /// Configuration data. Internal cache for all values.
     /// Mapped into WorkBookConfig, SheetConfig.
-    config: Config,
+    config: Detach<Config>,
+    /// User modifiable config.
     workbook_config: WorkBookConfig,
 
     /// Original file if this book was read from one.
@@ -1427,14 +1430,35 @@ impl Sheet {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum SheetSplitMode {
+    None = 0,
+    Pixel = 1,
+    Cell = 2,
+}
+
+impl TryFrom<i16> for SheetSplitMode {
+    type Error = OdsError;
+
+    fn try_from(n: i16) -> Result<Self, Self::Error> {
+        match n {
+            0 => Ok(SheetSplitMode::None),
+            1 => Ok(SheetSplitMode::Pixel),
+            2 => Ok(SheetSplitMode::Cell),
+            _ => Err(OdsError::Ods(format!("Invalid split mode {}", n))),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct SheetConfig {
     pub cursor_x: ucell,
     pub cursor_y: ucell,
-    pub hor_split_mode: i16,
-    pub vert_split_mode: i16,
+    pub hor_split_mode: SheetSplitMode,
+    pub vert_split_mode: SheetSplitMode,
     pub hor_split_pos: ucell,
     pub vert_split_pos: ucell,
+    /// 0 - 4 indicates the quadrant where the focus should be.
     pub active_split_range: i16,
     pub zoom_type: i16,
     pub zoom_value: i32,
@@ -1446,8 +1470,8 @@ impl Default for SheetConfig {
         Self {
             cursor_x: 0,
             cursor_y: 0,
-            hor_split_mode: 0,
-            vert_split_mode: 0,
+            hor_split_mode: SheetSplitMode::None,
+            vert_split_mode: SheetSplitMode::None,
             hor_split_pos: 0,
             vert_split_pos: 0,
             active_split_range: 2,

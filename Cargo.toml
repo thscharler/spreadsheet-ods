@@ -17,7 +17,7 @@ exclude = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = [ ]
+default = ["check_xml"]
 # Dump all XML while reading.
 dump_xml = [ ]
 # Dump unprocessed XML tags and attributes when reading the ODS.

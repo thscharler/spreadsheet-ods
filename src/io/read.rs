@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -7,10 +8,11 @@ use quick_xml::events::{BytesStart, Event};
 use zip::read::ZipFile;
 
 use crate::attrmap2::AttrMap2;
+use crate::ds::detach::Detach;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
-use crate::settings::{Config, ConfigItem, ConfigSet, ConfigValue};
+use crate::settings::{Config, ConfigItem, ConfigValue};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
@@ -20,8 +22,8 @@ use crate::style::{
 use crate::text::TextTag;
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
-    ucell, CellStyle, ColRange, Length, RowRange, SCell, Sheet, Value, ValueFormat, ValueType,
-    Visibility, WorkBook,
+    ucell, CellStyle, ColRange, Length, RowRange, SCell, Sheet, SheetSplitMode, Value, ValueFormat,
+    ValueType, Visibility, WorkBook,
 };
 
 /// Reads an ODS-file.
@@ -108,34 +110,34 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
         ]);
 
         if let Some(cc) = v {
-            if let Some(ConfigValue::Int(n)) = cc.get_value(&["CursorPositionX"]) {
+            if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["CursorPositionX"]) {
                 sheet.config_mut().cursor_x = *n as ucell;
             }
-            if let Some(ConfigValue::Int(n)) = cc.get_value(&["CursorPositionY"]) {
+            if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["CursorPositionY"]) {
                 sheet.config_mut().cursor_y = *n as ucell;
             }
-            if let Some(ConfigValue::Short(n)) = cc.get_value(&["HorizontalSplitMode"]) {
-                sheet.config_mut().hor_split_mode = *n;
+            if let Some(ConfigValue::Short(n)) = cc.get_value_rec(&["HorizontalSplitMode"]) {
+                sheet.config_mut().hor_split_mode = SheetSplitMode::try_from(*n)?;
             }
-            if let Some(ConfigValue::Short(n)) = cc.get_value(&["VerticalSplitMode"]) {
-                sheet.config_mut().vert_split_mode = *n;
+            if let Some(ConfigValue::Short(n)) = cc.get_value_rec(&["VerticalSplitMode"]) {
+                sheet.config_mut().vert_split_mode = SheetSplitMode::try_from(*n)?;
             }
-            if let Some(ConfigValue::Int(n)) = cc.get_value(&["HorizontalSplitPosition"]) {
+            if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["HorizontalSplitPosition"]) {
                 sheet.config_mut().hor_split_pos = *n as ucell;
             }
-            if let Some(ConfigValue::Int(n)) = cc.get_value(&["VerticalSplitPosition"]) {
+            if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["VerticalSplitPosition"]) {
                 sheet.config_mut().vert_split_pos = *n as ucell;
             }
-            if let Some(ConfigValue::Short(n)) = cc.get_value(&["ActiveSplitRange"]) {
+            if let Some(ConfigValue::Short(n)) = cc.get_value_rec(&["ActiveSplitRange"]) {
                 sheet.config_mut().active_split_range = *n;
             }
-            if let Some(ConfigValue::Short(n)) = cc.get_value(&["ZoomType"]) {
+            if let Some(ConfigValue::Short(n)) = cc.get_value_rec(&["ZoomType"]) {
                 sheet.config_mut().zoom_type = *n;
             }
-            if let Some(ConfigValue::Int(n)) = cc.get_value(&["ZoomValue"]) {
+            if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["ZoomValue"]) {
                 sheet.config_mut().zoom_value = *n;
             }
-            if let Some(ConfigValue::Boolean(n)) = cc.get_value(&["ShowGrid"]) {
+            if let Some(ConfigValue::Boolean(n)) = cc.get_value_rec(&["ShowGrid"]) {
                 sheet.config_mut().show_grid = *n;
             }
         }
@@ -2366,7 +2368,7 @@ fn read_settings(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsE
             }
 
             Event::Start(xml_tag) if xml_tag.name() == b"office:settings" => {
-                book.config = read_office_settings(&mut xml)?;
+                book.config = Detach::new(read_office_settings(&mut xml)?);
             }
 
             Event::Eof => {
@@ -2426,11 +2428,11 @@ fn read_config_item_set(
     xml_tag: &BytesStart,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     // no attributes
-) -> Result<(String, ConfigSet), OdsError> {
+) -> Result<(String, ConfigItem), OdsError> {
     let mut buf = Vec::new();
 
     let mut name = None;
-    let mut config_set = ConfigSet::new_set();
+    let mut config_set = ConfigItem::new_set();
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -2494,11 +2496,11 @@ fn read_config_item_map_indexed(
     xml_tag: &BytesStart,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     // no attributes
-) -> Result<(String, ConfigSet), OdsError> {
+) -> Result<(String, ConfigItem), OdsError> {
     let mut buf = Vec::new();
 
     let mut name = None;
-    let mut config_vec = ConfigSet::new_vec();
+    let mut config_vec = ConfigItem::new_vec();
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -2555,11 +2557,11 @@ fn read_config_item_map_named(
     xml_tag: &BytesStart,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     // no attributes
-) -> Result<(String, ConfigSet), OdsError> {
+) -> Result<(String, ConfigItem), OdsError> {
     let mut buf = Vec::new();
 
     let mut name = None;
-    let mut config_map = ConfigSet::new_map();
+    let mut config_map = ConfigItem::new_map();
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -2622,11 +2624,11 @@ fn read_config_item_map_entry(
     xml_tag: &BytesStart,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     // no attributes
-) -> Result<(Option<String>, ConfigSet), OdsError> {
+) -> Result<(Option<String>, ConfigItem), OdsError> {
     let mut buf = Vec::new();
 
     let mut name = None;
-    let mut config_set = ConfigSet::new_entry();
+    let mut config_set = ConfigItem::new_entry();
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {

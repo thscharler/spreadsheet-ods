@@ -12,7 +12,7 @@ use crate::format::FormatPartType;
 use crate::io::xmlwriter::XmlWriter;
 use crate::io::zip_out::{ZipOut, ZipWrite};
 use crate::refs::{cellranges_string, CellRange};
-use crate::settings::{ConfigItem, ConfigSet, ConfigSetType, ConfigValue};
+use crate::settings::{ConfigItem, ConfigItemType, ConfigValue};
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
     ParagraphStyle, RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
@@ -33,6 +33,10 @@ pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(),
     let mut zip_writer = ZipOut::new(ods_path.as_ref())?;
 
     let mut file_set = HashSet::<String>::new();
+    // never copy these
+    file_set.insert(String::from("settings.xml"));
+    file_set.insert(String::from("styles.xml"));
+    file_set.insert(String::from("content.xml"));
 
     if let Some(orig) = &book.file {
         copy_workbook(&orig, &mut file_set, &mut zip_writer)?;
@@ -42,10 +46,11 @@ pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(),
     write_manifest(&book, &mut zip_writer, &mut file_set)?;
     write_manifest_rdf(&book, &mut zip_writer, &mut file_set)?;
     write_meta(&book, &mut zip_writer, &mut file_set)?;
-    write_settings(&book, &mut zip_writer, &mut file_set)?;
-    //write_configurations(&mut zip_writer, &mut file_set)?;
-    write_ods_styles(&book, &mut zip_writer, &mut file_set)?;
-    write_ods_content(&book, &mut zip_writer, &mut file_set)?;
+    write_settings(&book, &mut zip_writer)?;
+    // not in use any more, just ignore
+    // write_configurations(&mut zip_writer, &mut file_set)?;
+    write_ods_styles(&book, &mut zip_writer)?;
+    write_ods_content(&book, &mut zip_writer)?;
 
     zip_writer.zip()?;
 
@@ -55,15 +60,17 @@ pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(),
 #[allow(clippy::collapsible_else_if)]
 #[allow(clippy::collapsible_if)]
 fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
-    book.config.create_path(&[
-        ("ooo:view-settings", ConfigSetType::Set),
-        ("Views", ConfigSetType::Vec),
-        ("0", ConfigSetType::Entry),
+    let mut config = book.config.detach(0);
+
+    let bc = config.create_path(&[
+        ("ooo:view-settings", ConfigItemType::Set),
+        ("Views", ConfigItemType::Vec),
+        ("0", ConfigItemType::Entry),
     ]);
-    book.config.set_value(
-        &["ooo:view-settings", "Views", "0", "ActiveTable"],
-        &book.config().active_table,
-    );
+    bc.insert("ActiveTable", book.config().active_table.clone());
+    bc.insert("HasSheetTabs", book.config().has_sheet_tabs);
+    bc.insert("ShowGrid", book.config().show_grid);
+    bc.insert("ShowPageBreaks", book.config().show_page_breaks);
 
     for i in 0..book.num_sheets() {
         let mut sheet = book.detach_sheet(i);
@@ -111,8 +118,29 @@ fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
             }
         }
 
+        let bc = config.create_path(&[
+            ("ooo:view-settings", ConfigItemType::Set),
+            ("Views", ConfigItemType::Vec),
+            ("0", ConfigItemType::Entry),
+            ("Tables", ConfigItemType::Map),
+            (sheet.name().as_str(), ConfigItemType::Entry),
+        ]);
+
+        bc.insert("CursorPositionX", sheet.config().cursor_x);
+        bc.insert("CursorPositionY", sheet.config().cursor_y);
+        bc.insert("HorizontalSplitMode", sheet.config().hor_split_mode as i16);
+        bc.insert("VerticalSplitMode", sheet.config().vert_split_mode as i16);
+        bc.insert("HorizontalSplitPosition", sheet.config().hor_split_pos);
+        bc.insert("VerticalSplitPosition", sheet.config().vert_split_pos);
+        bc.insert("ActiveSplitRange", sheet.config().active_split_range);
+        bc.insert("ZoomType", sheet.config().zoom_type);
+        bc.insert("ZoomValue", sheet.config().zoom_value);
+        bc.insert("ShowGrid", sheet.config().show_grid);
+
         book.attach_sheet(sheet);
     }
+
+    book.config.attach(config);
 
     Ok(())
 }
@@ -343,65 +371,55 @@ fn write_meta(
     Ok(())
 }
 
-fn write_settings(
-    book: &WorkBook,
-    zip_out: &mut OdsWriter,
-    file_set: &mut HashSet<String>,
-) -> Result<(), OdsError> {
-    if !file_set.contains("settings.xml") {
-        file_set.insert(String::from("settings.xml"));
+fn write_settings(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsError> {
+    let w = zip_out.start_file("settings.xml", FileOptions::default())?;
 
-        let w = zip_out.start_file("settings.xml", FileOptions::default())?;
+    let mut xml_out = XmlWriter::new(w);
 
-        let mut xml_out = XmlWriter::new(w);
+    xml_out.dtd("UTF-8")?;
 
-        xml_out.dtd("UTF-8")?;
+    xml_out.elem("office:document-settings")?;
+    xml_out.attr(
+        "xmlns:office",
+        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+    )?;
+    xml_out.attr("xmlns:ooo", "http://openoffice.org/2004/office")?;
+    xml_out.attr(
+        "xmlns:config",
+        "urn:oasis:names:tc:opendocument:xmlns:config:1.0",
+    )?;
+    xml_out.attr("office:version", book.version())?;
+    xml_out.elem("office:settings")?;
 
-        xml_out.elem("office:document-settings")?;
-        xml_out.attr(
-            "xmlns:office",
-            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-        )?;
-        xml_out.attr("xmlns:ooo", "http://openoffice.org/2004/office")?;
-        xml_out.attr(
-            "xmlns:config",
-            "urn:oasis:names:tc:opendocument:xmlns:config:1.0",
-        )?;
-        xml_out.attr("office:version", book.version())?;
-        xml_out.elem("office:settings")?;
-
-        for (name, item) in book.config.iter() {
-            match item {
-                ConfigItem::Value(_) => {
-                    panic!("office-settings must not contain config-item");
-                }
-                ConfigItem::Set(set) => match set.stype() {
-                    ConfigSetType::Set => write_config_item_set(name, &set, &mut xml_out)?,
-                    ConfigSetType::Vec => {
-                        panic!("office-settings must not contain config-item-map-index")
-                    }
-                    ConfigSetType::Map => {
-                        panic!("office-settings must not contain config-item-map-named")
-                    }
-                    ConfigSetType::Entry => {
-                        panic!("office-settings must not contain config-item-map-entry")
-                    }
-                },
+    for (name, item) in book.config.iter() {
+        match item {
+            ConfigItem::Value(_) => {
+                panic!("office-settings must not contain config-item");
+            }
+            ConfigItem::Set(_) => write_config_item_set(name, item, &mut xml_out)?,
+            ConfigItem::Vec(_) => {
+                panic!("office-settings must not contain config-item-map-index")
+            }
+            ConfigItem::Map(_) => {
+                panic!("office-settings must not contain config-item-map-named")
+            }
+            ConfigItem::Entry(_) => {
+                panic!("office-settings must not contain config-item-map-entry")
             }
         }
-
-        xml_out.end_elem("office:settings")?;
-        xml_out.end_elem("office:document-settings")?;
-
-        xml_out.close()?;
     }
+
+    xml_out.end_elem("office:settings")?;
+    xml_out.end_elem("office:document-settings")?;
+
+    xml_out.close()?;
 
     Ok(())
 }
 
 fn write_config_item_set(
     name: &String,
-    set: &ConfigSet,
+    set: &ConfigItem,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-set")?;
@@ -409,17 +427,13 @@ fn write_config_item_set(
 
     for (name, item) in set.iter() {
         match item {
-            ConfigItem::Value(value) => {
-                write_config_item(name, &value, xml_out)?;
+            ConfigItem::Value(value) => write_config_item(name, &value, xml_out)?,
+            ConfigItem::Set(_) => write_config_item_set(name, &item, xml_out)?,
+            ConfigItem::Vec(_) => write_config_item_map_indexed(name, &item, xml_out)?,
+            ConfigItem::Map(_) => write_config_item_map_named(name, &item, xml_out)?,
+            ConfigItem::Entry(_) => {
+                panic!("config-item-set must not contain config-item-map-entry")
             }
-            ConfigItem::Set(set) => match set.stype() {
-                ConfigSetType::Set => write_config_item_set(name, &set, xml_out)?,
-                ConfigSetType::Vec => write_config_item_map_indexed(name, &set, xml_out)?,
-                ConfigSetType::Map => write_config_item_map_named(name, &set, xml_out)?,
-                ConfigSetType::Entry => {
-                    panic!("config-item-set must not contain config-item-map-entry")
-                }
-            },
         }
     }
 
@@ -430,7 +444,7 @@ fn write_config_item_set(
 
 fn write_config_item_map_indexed(
     name: &String,
-    set: &ConfigSet,
+    vec: &ConfigItem,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-indexed")?;
@@ -439,23 +453,19 @@ fn write_config_item_map_indexed(
     let mut index = 0;
     loop {
         let index_str = index.to_string();
-        if let Some(item) = set.get(index_str) {
+        if let Some(item) = vec.get(&index_str) {
             match item {
-                ConfigItem::Value(value) => {
-                    write_config_item(name, &value, xml_out)?;
+                ConfigItem::Value(value) => write_config_item(name, &value, xml_out)?,
+                ConfigItem::Set(_) => {
+                    panic!("config-item-map-index must not contain config-item-set")
                 }
-                ConfigItem::Set(set) => match set.stype() {
-                    ConfigSetType::Set => {
-                        panic!("config-item-map-index must not contain config-item-set")
-                    }
-                    ConfigSetType::Vec => {
-                        panic!("config-item-map-index must not contain config-item-map-index")
-                    }
-                    ConfigSetType::Map => {
-                        panic!("config-item-map-index must not contain config-item-map-named")
-                    }
-                    ConfigSetType::Entry => write_config_item_map_entry(None, &set, xml_out)?,
-                },
+                ConfigItem::Vec(_) => {
+                    panic!("config-item-map-index must not contain config-item-map-index")
+                }
+                ConfigItem::Map(_) => {
+                    panic!("config-item-map-index must not contain config-item-map-named")
+                }
+                ConfigItem::Entry(_) => write_config_item_map_entry(None, &item, xml_out)?,
             }
         } else {
             break;
@@ -471,29 +481,25 @@ fn write_config_item_map_indexed(
 
 fn write_config_item_map_named(
     name: &String,
-    set: &ConfigSet,
+    map: &ConfigItem,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-named")?;
     xml_out.attr("config:name", name)?;
 
-    for (name, item) in set.iter() {
+    for (name, item) in map.iter() {
         match item {
-            ConfigItem::Value(value) => {
-                write_config_item(name, &value, xml_out)?;
+            ConfigItem::Value(value) => write_config_item(name, &value, xml_out)?,
+            ConfigItem::Set(_) => {
+                panic!("config-item-map-index must not contain config-item-set")
             }
-            ConfigItem::Set(set) => match set.stype() {
-                ConfigSetType::Set => {
-                    panic!("config-item-map-index must not contain config-item-set")
-                }
-                ConfigSetType::Vec => {
-                    panic!("config-item-map-index must not contain config-item-map-index")
-                }
-                ConfigSetType::Map => {
-                    panic!("config-item-map-index must not contain config-item-map-named")
-                }
-                ConfigSetType::Entry => write_config_item_map_entry(Some(name), &set, xml_out)?,
-            },
+            ConfigItem::Vec(_) => {
+                panic!("config-item-map-index must not contain config-item-map-index")
+            }
+            ConfigItem::Map(_) => {
+                panic!("config-item-map-index must not contain config-item-map-named")
+            }
+            ConfigItem::Entry(_) => write_config_item_map_entry(Some(name), &item, xml_out)?,
         }
     }
 
@@ -504,7 +510,7 @@ fn write_config_item_map_named(
 
 fn write_config_item_map_entry(
     name: Option<&String>,
-    set: &ConfigSet,
+    map_entry: &ConfigItem,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-entry")?;
@@ -512,19 +518,15 @@ fn write_config_item_map_entry(
         xml_out.attr("config:name", name)?;
     }
 
-    for (name, item) in set.iter() {
+    for (name, item) in map_entry.iter() {
         match item {
-            ConfigItem::Value(value) => {
-                write_config_item(name, &value, xml_out)?;
+            ConfigItem::Value(value) => write_config_item(name, &value, xml_out)?,
+            ConfigItem::Set(_) => write_config_item_set(name, &item, xml_out)?,
+            ConfigItem::Vec(_) => write_config_item_map_indexed(name, &item, xml_out)?,
+            ConfigItem::Map(_) => write_config_item_map_named(name, &item, xml_out)?,
+            ConfigItem::Entry(_) => {
+                panic!("config:config-item-map-entry must not contain config-item-map-entry")
             }
-            ConfigItem::Set(set) => match set.stype() {
-                ConfigSetType::Set => write_config_item_set(name, &set, xml_out)?,
-                ConfigSetType::Vec => write_config_item_map_indexed(name, &set, xml_out)?,
-                ConfigSetType::Map => write_config_item_map_named(name, &set, xml_out)?,
-                ConfigSetType::Entry => {
-                    panic!("config:config-item-map-entry must not contain config-item-map-entry")
-                }
-            },
         }
     }
 
@@ -576,6 +578,8 @@ fn write_config_item(
         }
     }
 
+    xml_out.end_elem("config:config-item")?;
+
     Ok(())
 }
 
@@ -609,13 +613,7 @@ fn write_config_item(
 //    Ok(())
 //}
 
-fn write_ods_styles(
-    book: &WorkBook,
-    zip_out: &mut OdsWriter,
-    file_set: &mut HashSet<String>,
-) -> Result<(), OdsError> {
-    file_set.insert(String::from("styles.xml"));
-
+fn write_ods_styles(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsError> {
     let w = zip_out.start_file("styles.xml", FileOptions::default())?;
 
     let mut xml_out = XmlWriter::new(w);
@@ -733,13 +731,7 @@ fn write_ods_styles(
     Ok(())
 }
 
-fn write_ods_content(
-    book: &WorkBook,
-    zip_out: &mut OdsWriter,
-    file_set: &mut HashSet<String>,
-) -> Result<(), OdsError> {
-    file_set.insert(String::from("content.xml"));
-
+fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsError> {
     let w = zip_out.start_file("content.xml", FileOptions::default())?;
     let mut xml_out = XmlWriter::new(w);
 
@@ -856,7 +848,7 @@ fn write_ods_content(
     }
 
     for sheet in &book.sheets {
-        write_sheet(&book, sheet.as_ref(), &mut xml_out)?;
+        write_sheet(&book, sheet, &mut xml_out)?;
     }
 
     // extra tags. pass through only

@@ -3,7 +3,13 @@ use std::ops::{Deref, DerefMut};
 
 #[derive(Debug)]
 pub struct Detach<T> {
-    val: Option<T>,
+    val: Option<Box<T>>,
+}
+
+impl<T> Default for Detach<T> {
+    fn default() -> Self {
+        Self { val: None }
+    }
 }
 
 impl<T> Clone for Detach<T>
@@ -21,10 +27,26 @@ where
     }
 }
 
+impl<T> Deref for Detach<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.val.as_ref().expect("already detached")
+    }
+}
+
+impl<T> DerefMut for Detach<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.val.as_mut().expect("already detached")
+    }
+}
+
 impl<T> Detach<T> {
     #[allow(dead_code)]
     pub fn new(val: T) -> Self {
-        Self { val: Some(val) }
+        Self {
+            val: Some(Box::new(val)),
+        }
     }
 
     /// No data contained.
@@ -75,13 +97,15 @@ impl<T> Detach<T> {
     ///
     /// Panics if the data was detached.
     pub fn take(mut self) -> T {
-        self.val.take().expect("already detached")
+        *self.val.take().expect("already detached")
     }
 }
 
 impl<T> From<T> for Detach<T> {
     fn from(val: T) -> Self {
-        Self { val: Some(val) }
+        Self {
+            val: Some(Box::new(val)),
+        }
     }
 }
 
@@ -90,14 +114,14 @@ impl<T> From<T> for Detach<T> {
 #[derive(Debug)]
 pub struct Detached<K, T> {
     key: K,
-    val: T,
+    val: Box<T>,
 }
 
 impl<K, T> Detached<K, T>
 where
     K: Copy,
 {
-    fn new(key: K, val: T) -> Self {
+    fn new(key: K, val: Box<T>) -> Self {
         Self { key, val }
     }
 
@@ -111,13 +135,13 @@ impl<K, T> Deref for Detached<K, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.val
+        self.val.as_ref()
     }
 }
 
 impl<K, T> DerefMut for Detached<K, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.val
+        self.val.as_mut()
     }
 }
 
