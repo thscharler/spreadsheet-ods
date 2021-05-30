@@ -1,6 +1,6 @@
 [package]
 name = "spreadsheet-ods"
-version = "0.5.3"
+version = "0.6.0"
 authors = ["thomasscharler <thscharler@gmail.com>"]
 edition = "2018"
 description = "Read and write ODS files"
@@ -17,7 +17,7 @@ exclude = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["check_xml"]
+default = []
 # Dump all XML while reading.
 dump_xml = [ ]
 # Dump unprocessed XML tags and attributes when reading the ODS.
@@ -32,7 +32,6 @@ use_decimal = []
 [dependencies]
 rust_decimal = "1.10"
 rust_decimal_macros = "1.10"
-#quick-xml = "0.17"
 color-rs = "0.6"
 string_cache = "0.8"
 mktemp = "0.4"
