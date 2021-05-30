@@ -125,6 +125,18 @@ impl ConfigSet {
         }
     }
 
+    /// What kind of set is it.
+    pub fn stype(&self) -> ConfigSetType {
+        self.stype
+    }
+
+    /// Iterate over (k,v) pairs.
+    pub fn iter(&self) -> ConfigSetIter {
+        ConfigSetIter {
+            set: self.set.iter(),
+        }
+    }
+
     /// Adds a new ConfigItem
     pub fn insert<S, V>(&mut self, name: S, item: V)
     where
@@ -140,6 +152,18 @@ impl ConfigSet {
         S: AsRef<str>,
     {
         self.set.get(name.as_ref())
+    }
+}
+
+pub struct ConfigSetIter<'a> {
+    set: std::collections::hash_map::Iter<'a, String, ConfigItem>,
+}
+
+impl<'a> Iterator for ConfigSetIter<'a> {
+    type Item = (&'a String, &'a ConfigItem);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.set.next()
     }
 }
 
@@ -244,11 +268,16 @@ impl Config {
         }
     }
 
+    /// Iterate over the (k,v) pairs.
+    pub fn iter(&self) -> ConfigSetIter {
+        self.config.iter()
+    }
+
     /// Add an item.
     pub fn insert<S, V>(&mut self, name: S, item: V)
     where
         S: Into<String>,
-        V: Into<ConfigItem>,
+        V: Into<ConfigSet>,
     {
         self.config.insert(name.into(), item.into());
     }

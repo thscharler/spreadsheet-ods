@@ -725,10 +725,10 @@ impl WorkBook {
 
 #[derive(Clone, Debug)]
 pub struct WorkBookConfig {
-    active_table: String,
-    show_grid: bool,
-    show_page_breaks: bool,
-    has_sheet_tabs: bool,
+    pub active_table: String,
+    pub show_grid: bool,
+    pub show_page_breaks: bool,
+    pub has_sheet_tabs: bool,
 }
 
 impl Default for WorkBookConfig {
@@ -1429,16 +1429,16 @@ impl Sheet {
 
 #[derive(Clone, Debug)]
 pub struct SheetConfig {
-    cursor_x: ucell,
-    cursor_y: ucell,
-    hor_split_mode: i16,
-    vert_split_mode: i16,
-    hor_split_pos: ucell,
-    vert_split_pos: ucell,
-    active_split_range: i16,
-    zoom_type: i16,
-    zoom_value: i32,
-    show_grid: bool,
+    pub cursor_x: ucell,
+    pub cursor_y: ucell,
+    pub hor_split_mode: i16,
+    pub vert_split_mode: i16,
+    pub hor_split_pos: ucell,
+    pub vert_split_pos: ucell,
+    pub active_split_range: i16,
+    pub zoom_type: i16,
+    pub zoom_value: i32,
+    pub show_grid: bool,
 }
 
 impl Default for SheetConfig {

@@ -107,15 +107,6 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
             sheet.name().as_str(),
         ]);
 
-        dbg!(sheet.name().as_str());
-        dbg!(book.config.get(&[
-            "ooo:view-settings",
-            "Views",
-            "0",
-            "Tables",
-            sheet.name().as_str()
-        ]));
-
         if let Some(cc) = v {
             if let Some(ConfigValue::Int(n)) = cc.get_value(&["CursorPositionX"]) {
                 sheet.config_mut().cursor_x = *n as ucell;
