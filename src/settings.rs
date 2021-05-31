@@ -73,6 +73,70 @@ impl From<i64> for ConfigValue {
     }
 }
 
+///
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConfigMap {
+    m: HashMap<String, ConfigItem>,
+}
+
+impl ConfigMap {
+    pub fn new() -> Self {
+        Self {
+            m: Default::default(),
+        }
+    }
+
+    pub fn iter(&self) -> ConfigIter {
+        ConfigIter {
+            it: Some(self.m.iter()),
+        }
+    }
+
+    /// Adds a new ConfigItem
+    pub fn insert<S, V>(&mut self, name: S, item: V)
+    where
+        S: Into<String>,
+        V: Into<ConfigItem>,
+    {
+        self.m.insert(name.into(), item.into());
+    }
+
+    /// Returns a ConfigItem
+    pub fn get<S>(&self, name: S) -> Option<&ConfigItem>
+    where
+        S: AsRef<str>,
+    {
+        self.m.get(name.as_ref())
+    }
+
+    /// Returns a ConfigItem or creates it.
+    pub fn get_or<S, F>(&mut self, name: S, default: F) -> &mut ConfigItem
+    where
+        S: AsRef<str>,
+        F: Fn() -> ConfigItem,
+    {
+        self.m
+            .entry(name.as_ref().to_string())
+            .or_insert_with(default)
+    }
+}
+
+pub struct ConfigIter<'a> {
+    it: Option<std::collections::hash_map::Iter<'a, String, ConfigItem>>,
+}
+
+impl<'a> Iterator for ConfigIter<'a> {
+    type Item = (&'a String, &'a ConfigItem);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(it) = &mut self.it {
+            it.next()
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum ConfigItemType {
     Value,
@@ -143,10 +207,10 @@ impl PartialEq<ConfigItemType> for ConfigItem {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConfigItem {
     Value(ConfigValue),
-    Set(HashMap<String, ConfigItem>),
-    Vec(HashMap<String, ConfigItem>),
-    Map(HashMap<String, ConfigItem>),
-    Entry(HashMap<String, ConfigItem>),
+    Set(ConfigMap),
+    Vec(ConfigMap),
+    Map(ConfigMap),
+    Entry(ConfigMap),
 }
 
 /// Nice conversion for everything that can be converted to a ConfigValue
@@ -170,27 +234,27 @@ impl ConfigItem {
     pub fn new(itype: ConfigItemType) -> Self {
         match itype {
             ConfigItemType::Value => panic!("new with type works only for map-types"),
-            ConfigItemType::Set => ConfigItem::Set(HashMap::new()),
-            ConfigItemType::Vec => ConfigItem::Vec(HashMap::new()),
-            ConfigItemType::Map => ConfigItem::Map(HashMap::new()),
-            ConfigItemType::Entry => ConfigItem::Entry(HashMap::new()),
+            ConfigItemType::Set => ConfigItem::Set(ConfigMap::new()),
+            ConfigItemType::Vec => ConfigItem::Vec(ConfigMap::new()),
+            ConfigItemType::Map => ConfigItem::Map(ConfigMap::new()),
+            ConfigItemType::Entry => ConfigItem::Entry(ConfigMap::new()),
         }
     }
 
     pub fn new_set() -> Self {
-        Self::Set(HashMap::new())
+        Self::Set(ConfigMap::new())
     }
 
     pub fn new_vec() -> Self {
-        Self::Vec(HashMap::new())
+        Self::Vec(ConfigMap::new())
     }
 
     pub fn new_map() -> Self {
-        Self::Map(HashMap::new())
+        Self::Map(ConfigMap::new())
     }
 
     pub fn new_entry() -> Self {
-        Self::Entry(HashMap::new())
+        Self::Entry(ConfigMap::new())
     }
 
     fn as_value(&self) -> Option<&ConfigValue> {
@@ -213,7 +277,7 @@ impl ConfigItem {
         }
     }
 
-    fn as_map(&self) -> Option<&HashMap<String, ConfigItem>> {
+    fn as_map(&self) -> Option<&ConfigMap> {
         match self {
             ConfigItem::Value(_) => None,
             ConfigItem::Set(m) => Some(m),
@@ -223,7 +287,7 @@ impl ConfigItem {
         }
     }
 
-    fn as_map_mut(&mut self) -> Option<&mut HashMap<String, ConfigItem>> {
+    fn as_map_mut(&mut self) -> Option<&mut ConfigMap> {
         match self {
             ConfigItem::Value(_) => None,
             ConfigItem::Set(m) => Some(m),
@@ -236,7 +300,7 @@ impl ConfigItem {
     /// Iterate over (k,v) pairs.
     pub fn iter(&self) -> ConfigIter {
         if let Some(m) = self.as_map() {
-            ConfigIter { it: Some(m.iter()) }
+            m.iter()
         } else {
             ConfigIter { it: None }
         }
@@ -279,8 +343,7 @@ impl ConfigItem {
                 let item = self
                     .as_map_mut()
                     .unwrap()
-                    .entry(name.as_ref().to_string())
-                    .or_insert_with(|| ConfigItem::new(*itype));
+                    .get_or(name, || ConfigItem::new(*itype));
 
                 if !(item == itype) {
                     // close, but not good enough
@@ -354,22 +417,6 @@ impl ConfigItem {
     }
 }
 
-pub struct ConfigIter<'a> {
-    it: Option<std::collections::hash_map::Iter<'a, String, ConfigItem>>,
-}
-
-impl<'a> Iterator for ConfigIter<'a> {
-    type Item = (&'a String, &'a ConfigItem);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(it) = &mut self.it {
-            it.next()
-        } else {
-            None
-        }
-    }
-}
-
 /// Basic wrapper around a ConfigSet. Root of the config tree.
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -431,7 +478,7 @@ impl Config {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::settings::{Config, ConfigItem, ConfigItemType, ConfigValue};
+    use crate::settings::{Config, ConfigItem, ConfigItemType, ConfigMap, ConfigValue};
 
     fn setup_config() -> Config {
         let mut config = Config::new();
@@ -494,7 +541,7 @@ mod tests {
             ("ScriptConfiguration", ConfigItemType::Map),
             ("Tabelle2", ConfigItemType::Entry),
         ]);
-        assert_eq!(v, &ConfigItem::Entry(HashMap::new()));
+        assert_eq!(v, &ConfigItem::Entry(ConfigMap::new()));
     }
 
     #[test]
