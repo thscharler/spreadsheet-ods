@@ -1,6 +1,12 @@
 # 0.6.1
 
-- Missed something.
+- F'd up some tests with 0.6.0, and the new configuration features broke a lot.
+  Fixed now.
+- Reworked Config
+    - Now the order of the configuration entries is kept between load/stores.
+      Makes comparisons easier.
+    - Added a few more configuration flags to be visible.
+    - Added functions to sheet to set table-splits.
 
 # 0.6.0
 

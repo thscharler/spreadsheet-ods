@@ -216,3 +216,28 @@ fn display_print() -> Result<(), OdsError> {
 
     Ok(())
 }
+
+#[test]
+fn split_table() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new();
+
+    let mut sh = Sheet::new_with_name("Split0");
+    sh.set_value(0, 0, 1);
+    sh.set_value(0, 1, 2);
+    sh.set_value(1, 0, 3);
+    sh.set_value(1, 1, 4);
+    sh.split_hor_cell(3);
+    wb.push_sheet(sh);
+
+    let mut sh = Sheet::new_with_name("Split1");
+    sh.set_value(0, 0, 1);
+    sh.set_value(0, 1, 2);
+    sh.set_value(1, 0, 3);
+    sh.set_value(1, 1, 4);
+    sh.split_hor_pixel(250);
+    wb.push_sheet(sh);
+
+    write_ods(&mut wb, "test_out/split_table.ods")?;
+
+    Ok(())
+}

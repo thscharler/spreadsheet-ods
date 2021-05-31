@@ -500,8 +500,6 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use crate::settings::{Config, ConfigItem, ConfigItemType, ConfigMap, ConfigValue};
 
     fn setup_config() -> Config {

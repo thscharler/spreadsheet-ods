@@ -145,15 +145,14 @@ fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
         bc.insert("HorizontalSplitPosition", sheet.config().hor_split_pos);
         bc.insert("VerticalSplitPosition", sheet.config().vert_split_pos);
         bc.insert("ActiveSplitRange", sheet.config().active_split_range);
-        bc.insert("PositionLeft", 0);
-        bc.insert("PositionRight", 0);
-        bc.insert("PositionTop", 0);
-        bc.insert("PositionBottom", 0);
+        bc.insert("PositionLeft", sheet.config().position_left);
+        bc.insert("PositionRight", sheet.config().position_right);
+        bc.insert("PositionTop", sheet.config().position_top);
+        bc.insert("PositionBottom", sheet.config().position_bottom);
         bc.insert("ZoomType", sheet.config().zoom_type);
         bc.insert("ZoomValue", sheet.config().zoom_value);
-        bc.insert("PageViewZoomValue", 60);
+        bc.insert("PageViewZoomValue", sheet.config().page_view_zoom_value);
         bc.insert("ShowGrid", sheet.config().show_grid);
-        bc.insert("AnchoredTextOverflowLegacy", false);
 
         let bc = config.create_path(&[
             ("ooo:configuration-settings", ConfigItemType::Set),

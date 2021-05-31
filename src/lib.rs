@@ -726,11 +726,16 @@ impl WorkBook {
     }
 }
 
+/// Subset of the Workbook wide configurations.
 #[derive(Clone, Debug)]
 pub struct WorkBookConfig {
+    /// Which table is active when opening.    
     pub active_table: String,
+    /// Show grid in general. Per sheet definition take priority.
     pub show_grid: bool,
+    /// Show page-breaks.
     pub show_page_breaks: bool,
+    /// Are the sheet-tabs shown or not.
     pub has_sheet_tabs: bool,
 }
 
@@ -1428,6 +1433,36 @@ impl Sheet {
     pub fn print_ranges(&self) -> Option<&Vec<CellRange>> {
         self.print_ranges.as_ref()
     }
+
+    /// Split horizontally on a cell boundary. The splitting is fixed in
+    /// position.
+    pub fn split_hor_cell(&mut self, col: ucell) {
+        self.config_mut().hor_split_mode = SheetSplitMode::Cell;
+        self.config_mut().hor_split_pos = col;
+        self.config_mut().position_right = col;
+    }
+
+    /// Split vertically on a cell boundary. The splitting is fixed in
+    /// position.
+    pub fn split_vert_cell(&mut self, row: ucell) {
+        self.config_mut().vert_split_mode = SheetSplitMode::Cell;
+        self.config_mut().vert_split_pos = row;
+        self.config_mut().position_bottom = row;
+    }
+
+    /// Split horizontally with a pixel width. The split can be moved around.
+    /// For more control look at SheetConfig.
+    pub fn split_hor_pixel(&mut self, col: u32) {
+        self.config_mut().hor_split_mode = SheetSplitMode::Pixel;
+        self.config_mut().hor_split_pos = col;
+    }
+
+    /// Split vertically with a pixel width. The split can be moved around.
+    /// For more control look at SheetConfig.
+    pub fn split_vert_pixel(&mut self, col: u32) {
+        self.config_mut().vert_split_mode = SheetSplitMode::Pixel;
+        self.config_mut().vert_split_pos = col;
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -1450,18 +1485,56 @@ impl TryFrom<i16> for SheetSplitMode {
     }
 }
 
+/// Per sheet configurations.
 #[derive(Clone, Debug)]
 pub struct SheetConfig {
+    /// Active column.
     pub cursor_x: ucell,
+    /// Active row.
     pub cursor_y: ucell,
+    /// Splitting the table.
     pub hor_split_mode: SheetSplitMode,
+    /// Splitting the table.
     pub vert_split_mode: SheetSplitMode,
+    /// Position of the split.
     pub hor_split_pos: ucell,
+    /// Position of the split.
     pub vert_split_pos: ucell,
-    /// 0 - 4 indicates the quadrant where the focus should be.
+    /// SplitMode is Pixel
+    /// - 0-4 indicates the quadrant where the focus is.
+    /// SplitMode is Cell
+    /// - No real function.
     pub active_split_range: i16,
+    /// SplitMode is Pixel
+    /// - First visible column in the left quadrant.
+    /// SplitMode is Cell
+    /// - The first visible column in the left quadrant.
+    ///   AND every column left of this one is simply invisible.
+    pub position_left: u32,
+    /// SplitMode is Pixel
+    /// - First visible column in the right quadrant.
+    /// SplitMode is Cell
+    /// - The first visible column in the right quadrant.
+    pub position_right: u32,
+    /// SplitMode is Pixel
+    /// - First visible row in the top quadrant.
+    /// SplitMode is Cell
+    /// - The first visible row in the top quadrant.
+    ///   AND every row up from this one is simply invisible.
+    pub position_top: u32,
+    /// SplitMode is Pixel
+    /// - The first visible row in teh right quadrant.
+    /// SplitMode is Cell
+    /// - The first visible row in the bottom quadrant.
+    pub position_bottom: u32,
+    /// If 0 then zoom_value denotes a percentage.
+    /// If 2 then zoom_value is 50%???
     pub zoom_type: i16,
+    /// Value of zoom.
     pub zoom_value: i32,
+    /// Value of pageview zoom.
+    pub page_view_zoom_value: i32,
+    /// Grid is showing.
     pub show_grid: bool,
 }
 
@@ -1475,8 +1548,13 @@ impl Default for SheetConfig {
             hor_split_pos: 0,
             vert_split_pos: 0,
             active_split_range: 2,
+            position_left: 0,
+            position_right: 0,
+            position_top: 0,
+            position_bottom: 0,
             zoom_type: 0,
             zoom_value: 100,
+            page_view_zoom_value: 60,
             show_grid: true,
         }
     }
