@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::NaiveDateTime;
 
 use crate::ucell;
@@ -74,19 +76,21 @@ impl From<i64> for ConfigValue {
 /// Configuration mappings.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConfigMap {
-    m: Vec<(String, ConfigItem)>,
+    ki: HashMap<String, usize>,
+    vl: Vec<(String, ConfigItem)>,
 }
 
 impl ConfigMap {
     pub fn new() -> Self {
         Self {
-            m: Default::default(),
+            ki: Default::default(),
+            vl: Default::default(),
         }
     }
 
     pub fn iter(&self) -> ConfigIter {
         ConfigIter {
-            it: Some(self.m.iter()),
+            it: Some(self.vl.iter()),
         }
     }
 
@@ -96,19 +100,14 @@ impl ConfigMap {
         S: AsRef<str>,
         V: Into<ConfigItem>,
     {
-        let found = self
-            .m
-            .iter()
-            .enumerate()
-            .find(|(_, v)| v.0 == name.as_ref())
-            .map(|(idx, _)| idx);
+        let idx = self.ki.get(name.as_ref());
 
-        if found.is_some() {
-            let entry = self.m.get_mut(found.unwrap()).unwrap();
-            entry.1 = item.into();
+        if let Some(idx) = idx {
+            self.vl.get_mut(*idx).unwrap().1 = item.into();
         } else {
-            self.m.push((name.as_ref().to_string(), item.into()));
-        };
+            self.vl.push((name.as_ref().to_string(), item.into()));
+            self.ki.insert(name.as_ref().to_string(), self.vl.len() - 1);
+        }
     }
 
     /// Returns a ConfigItem
@@ -116,7 +115,13 @@ impl ConfigMap {
     where
         S: AsRef<str>,
     {
-        self.m.iter().find(|v| v.0 == name.as_ref()).map(|v| &v.1)
+        let idx = self.ki.get(name.as_ref());
+
+        if let Some(idx) = idx {
+            self.vl.get(*idx).map(|v| &v.1)
+        } else {
+            None
+        }
     }
 
     /// Returns a ConfigItem or creates it.
@@ -125,21 +130,18 @@ impl ConfigMap {
         S: AsRef<str>,
         F: Fn() -> ConfigItem,
     {
-        let found = self
-            .m
-            .iter()
-            .enumerate()
-            .find(|(_, v)| v.0 == name.as_ref())
-            .map(|(idx, _)| idx);
+        let idx = self.ki.get(name.as_ref());
 
-        let found = if found.is_some() {
-            found.unwrap()
+        let idx = if let Some(idx) = idx {
+            *idx
         } else {
-            self.m.push((name.as_ref().to_string(), default()));
-            self.m.len() - 1
+            self.vl.push((name.as_ref().to_string(), default()));
+            self.ki.insert(name.as_ref().to_string(), self.vl.len() - 1);
+
+            self.vl.len() - 1
         };
 
-        &mut self.m.get_mut(found).unwrap().1
+        &mut self.vl.get_mut(idx).unwrap().1
     }
 }
 
