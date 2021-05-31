@@ -340,7 +340,7 @@ impl WorkBook {
             def_styles: Default::default(),
             pagestyles: Default::default(),
             masterpages: Default::default(),
-            config: Default::default(),
+            config: io::default_settings(),
             workbook_config: Default::default(),
             file: None,
             extra: vec![],

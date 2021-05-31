@@ -12,7 +12,7 @@ use crate::ds::detach::Detach;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
-use crate::settings::{Config, ConfigItem, ConfigValue};
+use crate::settings::{Config, ConfigItem, ConfigItemType, ConfigValue};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
@@ -37,7 +37,12 @@ pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
 
     read_content(&mut book, &mut zip.by_name("content.xml")?)?;
     read_styles(&mut book, &mut zip.by_name("styles.xml")?)?;
-    read_settings(&mut book, &mut zip.by_name("settings.xml")?)?;
+    // may not exist.
+    if let Ok(mut z) = zip.by_name("settings.xml") {
+        read_settings(&mut book, &mut z)?;
+    } else {
+        book.config = default_settings();
+    }
 
     // We do some data duplication here, to make everything easier to use.
     calc_derived(&mut book)?;
@@ -2346,6 +2351,97 @@ fn read_styles(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsErr
     Ok(())
 }
 
+#[allow(unused_variables)]
+pub fn default_settings() -> Detach<Config> {
+    let mut dc = Detach::new(Config::new());
+    let p0 = dc.create_path(&[("ooo:view-settings", ConfigItemType::Set)]);
+    p0.insert("VisibleAreaTop", 0);
+    p0.insert("VisibleAreaLeft", 0);
+    p0.insert("VisibleAreaWidth", 2540);
+    p0.insert("VisibleAreaHeight", 1270);
+
+    let p0 = dc.create_path(&[
+        ("ooo:view-settings", ConfigItemType::Set),
+        ("Views", ConfigItemType::Vec),
+        ("0", ConfigItemType::Entry),
+    ]);
+    p0.insert("ViewId", "view1");
+    let p0 = dc.create_path(&[
+        ("ooo:view-settings", ConfigItemType::Set),
+        ("Views", ConfigItemType::Vec),
+        ("0", ConfigItemType::Entry),
+        ("Tables", ConfigItemType::Map),
+    ]);
+    let p0 = dc.create_path(&[
+        ("ooo:view-settings", ConfigItemType::Set),
+        ("Views", ConfigItemType::Vec),
+        ("0", ConfigItemType::Entry),
+    ]);
+    p0.insert("ActiveTable", "");
+    p0.insert("HorizontalScrollbarWidth", 702);
+    p0.insert("ZoomType", 0i16);
+    p0.insert("ZoomValue", 100);
+    p0.insert("PageViewZoomValue", 60);
+    p0.insert("ShowPageBreakPreview", false);
+    p0.insert("ShowZeroValues", true);
+    p0.insert("ShowNotes", true);
+    p0.insert("ShowGrid", true);
+    p0.insert("GridColor", 12632256);
+    p0.insert("ShowPageBreaks", false);
+    p0.insert("HasColumnRowHeaders", true);
+    p0.insert("HasSheetTabs", true);
+    p0.insert("IsOutlineSymbolsSet", true);
+    p0.insert("IsValueHighlightingEnabled", false);
+    p0.insert("IsSnapToRaster", false);
+    p0.insert("RasterIsVisible", false);
+    p0.insert("RasterResolutionX", 1000);
+    p0.insert("RasterResolutionY", 1000);
+    p0.insert("RasterSubdivisionX", 1);
+    p0.insert("RasterSubdivisionY", 1);
+    p0.insert("IsRasterAxisSynchronized", true);
+    p0.insert("AnchoredTextOverflowLegacy", false);
+
+    let p0 = dc.create_path(&[("ooo:configuration-settings", ConfigItemType::Set)]);
+    p0.insert("HasSheetTabs", true);
+    p0.insert("ShowNotes", true);
+    p0.insert("EmbedComplexScriptFonts", true);
+    p0.insert("ShowZeroValues", true);
+    p0.insert("ShowGrid", true);
+    p0.insert("GridColor", 12632256);
+    p0.insert("ShowPageBreaks", false);
+    p0.insert("IsKernAsianPunctuation", false);
+    p0.insert("LinkUpdateMode", 3i16);
+    p0.insert("HasColumnRowHeaders", true);
+    p0.insert("EmbedLatinScriptFonts", true);
+    p0.insert("IsOutlineSymbolsSet", true);
+    p0.insert("EmbedLatinScriptFonts", true);
+    p0.insert("IsOutlineSymbolsSet", true);
+    p0.insert("IsSnapToRaster", false);
+    p0.insert("RasterIsVisible", false);
+    p0.insert("RasterResolutionX", 1000);
+    p0.insert("RasterResolutionY", 1000);
+    p0.insert("RasterSubdivisionX", 1);
+    p0.insert("RasterSubdivisionY", 1);
+    p0.insert("IsRasterAxisSynchronized", true);
+    p0.insert("AutoCalculate", true);
+    p0.insert("ApplyUserData", true);
+    p0.insert("PrinterName", "");
+    p0.insert("PrinterSetup", ConfigValue::Base64Binary("".to_string()));
+    p0.insert("SaveThumbnail", true);
+    p0.insert("CharacterCompressionType", 0i16);
+    p0.insert("SaveVersionOnClose", false);
+    p0.insert("UpdateFromTemplate", true);
+    p0.insert("AllowPrintJobCancel", true);
+    p0.insert("LoadReadonly", false);
+    p0.insert("IsDocumentShared", false);
+    p0.insert("EmbedFonts", false);
+    p0.insert("EmbedOnlyUsedFonts", false);
+    p0.insert("EmbedAsianScriptFonts", true);
+    p0.insert("SyntaxStringRef", 7i16);
+
+    dc
+}
+
 fn read_settings(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsError> {
     let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
     xml.trim_text(true);
@@ -2725,52 +2821,55 @@ fn read_config_item(
         val_type.unwrap()
     };
 
+    let mut value = String::new();
+
     loop {
         let evt = xml.read_event(&mut buf)?;
         match evt {
             Event::Text(ref txt) => {
                 let txt = txt.unescape_and_decode(xml)?;
+                value.push_str(txt.as_str());
+            }
+            Event::End(ref e) if e.name() == b"config:config-item" => {
                 match valtype.as_str() {
                     "base64Binary" => {
-                        config_val = Some(ConfigValue::Base64Binary(txt));
+                        config_val = Some(ConfigValue::Base64Binary(value));
                     }
                     "boolean" => {
-                        let f = txt.parse::<bool>()?;
+                        let f = value.parse::<bool>()?;
                         config_val = Some(ConfigValue::Boolean(f));
                     }
                     "datetime" => {
-                        let dt = if txt.len() == 10 {
-                            NaiveDate::parse_from_str(txt.as_str(), "%Y-%m-%d")?.and_hms(0, 0, 0)
+                        let dt = if value.len() == 10 {
+                            NaiveDate::parse_from_str(value.as_str(), "%Y-%m-%d")?.and_hms(0, 0, 0)
                         } else {
-                            NaiveDateTime::parse_from_str(txt.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?
+                            NaiveDateTime::parse_from_str(value.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?
                         };
                         config_val = Some(ConfigValue::DateTime(dt));
                     }
                     "double" => {
-                        let f = txt.parse::<f64>()?;
+                        let f = value.parse::<f64>()?;
                         config_val = Some(ConfigValue::Double(f));
                     }
                     "int" => {
-                        let f = txt.parse::<i32>()?;
+                        let f = value.parse::<i32>()?;
                         config_val = Some(ConfigValue::Int(f));
                     }
                     "long" => {
-                        let f = txt.parse::<i64>()?;
+                        let f = value.parse::<i64>()?;
                         config_val = Some(ConfigValue::Long(f));
                     }
                     "short" => {
-                        let f = txt.parse::<i16>()?;
+                        let f = value.parse::<i16>()?;
                         config_val = Some(ConfigValue::Short(f));
                     }
                     "string" => {
-                        config_val = Some(ConfigValue::String(txt));
+                        config_val = Some(ConfigValue::String(value));
                     }
                     x => {
                         return Err(OdsError::Ods(format!("unknown config:type {}", x)));
                     }
                 }
-            }
-            Event::End(ref e) if e.name() == b"config:config-item" => {
                 break;
             }
             Event::Eof => {

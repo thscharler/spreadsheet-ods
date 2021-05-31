@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use chrono::NaiveDateTime;
 
 use crate::ucell;
@@ -73,10 +71,10 @@ impl From<i64> for ConfigValue {
     }
 }
 
-///
+/// Configuration mappings.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConfigMap {
-    m: HashMap<String, ConfigItem>,
+    m: Vec<(String, ConfigItem)>,
 }
 
 impl ConfigMap {
@@ -95,10 +93,22 @@ impl ConfigMap {
     /// Adds a new ConfigItem
     pub fn insert<S, V>(&mut self, name: S, item: V)
     where
-        S: Into<String>,
+        S: AsRef<str>,
         V: Into<ConfigItem>,
     {
-        self.m.insert(name.into(), item.into());
+        let found = self
+            .m
+            .iter()
+            .enumerate()
+            .find(|(_, v)| v.0 == name.as_ref())
+            .map(|(idx, _)| idx);
+
+        if found.is_some() {
+            let entry = self.m.get_mut(found.unwrap()).unwrap();
+            entry.1 = item.into();
+        } else {
+            self.m.push((name.as_ref().to_string(), item.into()));
+        };
     }
 
     /// Returns a ConfigItem
@@ -106,7 +116,7 @@ impl ConfigMap {
     where
         S: AsRef<str>,
     {
-        self.m.get(name.as_ref())
+        self.m.iter().find(|v| v.0 == name.as_ref()).map(|v| &v.1)
     }
 
     /// Returns a ConfigItem or creates it.
@@ -115,14 +125,26 @@ impl ConfigMap {
         S: AsRef<str>,
         F: Fn() -> ConfigItem,
     {
-        self.m
-            .entry(name.as_ref().to_string())
-            .or_insert_with(default)
+        let found = self
+            .m
+            .iter()
+            .enumerate()
+            .find(|(_, v)| v.0 == name.as_ref())
+            .map(|(idx, _)| idx);
+
+        let found = if found.is_some() {
+            found.unwrap()
+        } else {
+            self.m.push((name.as_ref().to_string(), default()));
+            self.m.len() - 1
+        };
+
+        &mut self.m.get_mut(found).unwrap().1
     }
 }
 
 pub struct ConfigIter<'a> {
-    it: Option<std::collections::hash_map::Iter<'a, String, ConfigItem>>,
+    it: Option<core::slice::Iter<'a, (String, ConfigItem)>>,
 }
 
 impl<'a> Iterator for ConfigIter<'a> {
@@ -130,7 +152,7 @@ impl<'a> Iterator for ConfigIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(it) = &mut self.it {
-            it.next()
+            it.next().map(|v| (&v.0, &v.1))
         } else {
             None
         }

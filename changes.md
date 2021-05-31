@@ -1,3 +1,7 @@
+# 0.6.1
+
+- Missed something.
+
 # 0.6.0
 
 Breaking:
@@ -47,8 +51,7 @@ Changes:
 
 # 0.4.2
 
-- Allow the ODS version to be specified. This adds support for ODS 1.3.
-  -- Default version set to 1.3.
+- Allow the ODS version to be specified. This adds support for ODS 1.3. -- Default version set to 1.3.
 
 # 0.4.1 
 

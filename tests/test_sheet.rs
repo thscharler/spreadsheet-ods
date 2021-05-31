@@ -7,7 +7,7 @@ use spreadsheet_ods::{
 fn test_colwidth() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
 
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new_with_name("Sheet1");
     sh.set_value(0, 0, 1234);
     sh.set_col_width(0, cm!(2.54));
     sh.set_row_height(0, cm!(1.27));

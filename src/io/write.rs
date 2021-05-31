@@ -28,6 +28,8 @@ type XmlOdsWriter<'a> = XmlWriter<ZipWrite<'a>>;
 /// All the parts are written to a temp directory and then zipped together.
 ///
 pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(), OdsError> {
+    sanity_checks(book)?;
+
     store_derived(book)?;
 
     let mut zip_writer = ZipOut::new(ods_path.as_ref())?;
@@ -57,6 +59,13 @@ pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(),
     Ok(())
 }
 
+fn sanity_checks(book: &mut WorkBook) -> Result<(), OdsError> {
+    if book.sheets.is_empty() {
+        return Err(OdsError::Ods("Workbook contains no sheets.".to_string()));
+    }
+    Ok(())
+}
+
 #[allow(clippy::collapsible_else_if)]
 #[allow(clippy::collapsible_if)]
 fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
@@ -67,6 +76,9 @@ fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
         ("Views", ConfigItemType::Vec),
         ("0", ConfigItemType::Entry),
     ]);
+    if book.config().active_table.is_empty() {
+        book.config_mut().active_table = book.sheet(0).name().clone();
+    }
     bc.insert("ActiveTable", book.config().active_table.clone());
     bc.insert("HasSheetTabs", book.config().has_sheet_tabs);
     bc.insert("ShowGrid", book.config().show_grid);
@@ -133,9 +145,22 @@ fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
         bc.insert("HorizontalSplitPosition", sheet.config().hor_split_pos);
         bc.insert("VerticalSplitPosition", sheet.config().vert_split_pos);
         bc.insert("ActiveSplitRange", sheet.config().active_split_range);
+        bc.insert("PositionLeft", 0);
+        bc.insert("PositionRight", 0);
+        bc.insert("PositionTop", 0);
+        bc.insert("PositionBottom", 0);
         bc.insert("ZoomType", sheet.config().zoom_type);
         bc.insert("ZoomValue", sheet.config().zoom_value);
+        bc.insert("PageViewZoomValue", 60);
         bc.insert("ShowGrid", sheet.config().show_grid);
+        bc.insert("AnchoredTextOverflowLegacy", false);
+
+        let bc = config.create_path(&[
+            ("ooo:configuration-settings", ConfigItemType::Set),
+            ("ScriptConfiguration", ConfigItemType::Map),
+            (sheet.name().as_str(), ConfigItemType::Entry),
+        ]);
+        bc.insert("CodeName", sheet.name().as_str().to_string());
 
         book.attach_sheet(sheet);
     }
@@ -249,10 +274,9 @@ fn write_manifest(
         xml_out.attr("manifest:full-path", "content.xml")?;
         xml_out.attr("manifest:media-type", "text/xml")?;
 
-        //        xml_out.write_event(xml::xml_empty_a("manifest:file-entry", vec![
-        //            ("manifest:full-path", String::from("settings.xml")),
-        //            ("manifest:media-type", String::from("text/xml")),
-        //        ]))?;
+        xml_out.empty("manifest:file-entry")?;
+        xml_out.attr("manifest:full-path", "settings.xml")?;
+        xml_out.attr("manifest:media-type", "text/xml")?;
 
         xml_out.end_elem("manifest:manifest")?;
 
@@ -540,7 +564,18 @@ fn write_config_item(
     value: &ConfigValue,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
-    xml_out.elem("config:config-item")?;
+    let is_empty = match value {
+        ConfigValue::Base64Binary(t) => t.is_empty(),
+        ConfigValue::String(t) => t.is_empty(),
+        _ => false,
+    };
+
+    if is_empty {
+        xml_out.empty("config:config-item")?;
+    } else {
+        xml_out.elem("config:config-item")?;
+    }
+
     xml_out.attr("config:name", name)?;
 
     match value {
@@ -578,7 +613,9 @@ fn write_config_item(
         }
     }
 
-    xml_out.end_elem("config:config-item")?;
+    if !is_empty {
+        xml_out.end_elem("config:config-item")?;
+    }
 
     Ok(())
 }
