@@ -1440,6 +1440,7 @@ impl Sheet {
         self.config_mut().hor_split_mode = SheetSplitMode::Cell;
         self.config_mut().hor_split_pos = col;
         self.config_mut().position_right = col;
+        self.config_mut().cursor_x = col;
     }
 
     /// Split vertically on a cell boundary. The splitting is fixed in
@@ -1448,6 +1449,7 @@ impl Sheet {
         self.config_mut().vert_split_mode = SheetSplitMode::Cell;
         self.config_mut().vert_split_pos = row;
         self.config_mut().position_bottom = row;
+        self.config_mut().cursor_y = row;
     }
 
     /// Split horizontally with a pixel width. The split can be moved around.
