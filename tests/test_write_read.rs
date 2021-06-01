@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use spreadsheet_ods::{read_ods, write_ods, OdsError, Sheet, SheetSplitMode, ValueType, WorkBook};
 
 #[test]
@@ -43,5 +45,27 @@ fn read_orders() -> Result<(), OdsError> {
     cc.vert_split_mode = SheetSplitMode::Cell;
 
     write_ods(&mut wb, "test_out/orders.ods")?;
+    Ok(())
+}
+
+#[test]
+fn test_write_read_write_read() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new();
+    let mut sh = Sheet::new();
+
+    sh.set_value(0, 0, "A");
+    wb.push_sheet(sh);
+
+    let path = Path::new("tests/rw.ods");
+    let temp = Path::new("test_out/rw.ods");
+
+    std::fs::copy(path, temp)?;
+
+    let _ods = read_ods(temp)?;
+
+    write_ods(&mut wb, temp)?;
+
+    let _ods = read_ods(temp)?;
+
     Ok(())
 }

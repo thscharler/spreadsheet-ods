@@ -147,7 +147,6 @@ use std::collections::{BTreeMap, HashMap};
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::path::PathBuf;
 use std::str::FromStr;
 
 use chrono::Duration;
@@ -161,6 +160,7 @@ use crate::ds::detach::Detach;
 pub use crate::ds::detach::Detached;
 pub use crate::error::OdsError;
 pub use crate::format::{ValueFormat, ValueFormatRef};
+use crate::io::FileBuf;
 pub use crate::io::{read_ods, write_ods};
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 use crate::settings::Config;
@@ -240,10 +240,8 @@ pub struct WorkBook {
     /// User modifiable config.
     workbook_config: WorkBookConfig,
 
-    /// Original file if this book was read from one.
-    /// This is used when writing to copy all additional
-    /// files except content.xml
-    file: Option<PathBuf>,
+    /// All extra files from the original ODS are copied here.
+    filebuf: FileBuf,
 
     /// other stuff ...
     extra: Vec<XmlTag>,
@@ -291,7 +289,7 @@ impl fmt::Debug for WorkBook {
         for xtr in &self.extra {
             writeln!(f, "extras {:?}", xtr)?;
         }
-        writeln!(f, "{:?}", self.file)?;
+        writeln!(f, "{:#?}", self.filebuf)?;
         Ok(())
     }
 }
@@ -342,8 +340,8 @@ impl WorkBook {
             masterpages: Default::default(),
             config: io::default_settings(),
             workbook_config: Default::default(),
-            file: None,
             extra: vec![],
+            filebuf: Default::default(),
         }
     }
 
@@ -357,10 +355,12 @@ impl WorkBook {
         self.version = version;
     }
 
+    /// Configuration flags.
     pub fn config(&self) -> &WorkBookConfig {
         &self.workbook_config
     }
 
+    /// Configuration flags.
     pub fn config_mut(&mut self) -> &mut WorkBookConfig {
         &mut self.workbook_config
     }
