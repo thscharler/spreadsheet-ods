@@ -1,7 +1,6 @@
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
+use std::collections::HashMap;
 use std::io;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::Path;
 
 use chrono::NaiveDateTime;
@@ -11,6 +10,7 @@ use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::xmlwriter::XmlWriter;
 use crate::io::zip_out::{ZipOut, ZipWrite};
+use crate::io::FileBufEntry;
 use crate::refs::{cellranges_string, CellRange};
 use crate::settings::{ConfigItem, ConfigItemType, ConfigValue};
 use crate::style::{
@@ -32,25 +32,19 @@ pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(),
 
     store_derived(book)?;
 
-    let mut zip_writer = ZipOut::new(ods_path.as_ref())?;
+    let mut zip_writer = OdsWriter::new(ods_path.as_ref())?;
+    // let mut zip_writer = TempZip::new(ods_path.as_ref())?;
 
-    let mut file_set = HashSet::<String>::new();
-    // never copy these
-    file_set.insert(String::from("settings.xml"));
-    file_set.insert(String::from("styles.xml"));
-    file_set.insert(String::from("content.xml"));
-
-    if let Some(orig) = &book.file {
-        copy_workbook(&orig, &mut file_set, &mut zip_writer)?;
-    }
-
-    write_mimetype(&mut zip_writer, &mut file_set)?;
-    write_manifest(&book, &mut zip_writer, &mut file_set)?;
-    write_manifest_rdf(&book, &mut zip_writer, &mut file_set)?;
-    write_meta(&book, &mut zip_writer, &mut file_set)?;
-    write_settings(&book, &mut zip_writer)?;
+    // copy all buffered data from the original.
+    copy_workbook(&book, &mut zip_writer)?;
+    // write the rest, if necessary.
+    write_mimetype(&book, &mut zip_writer)?;
+    write_manifest(&book, &mut zip_writer)?;
+    write_manifest_rdf(&book, &mut zip_writer)?;
+    write_meta(&book, &mut zip_writer)?;
     // not in use any more, just ignore
     // write_configurations(&mut zip_writer, &mut file_set)?;
+    write_settings(&book, &mut zip_writer)?;
     write_ods_styles(&book, &mut zip_writer)?;
     write_ods_content(&book, &mut zip_writer)?;
 
@@ -169,33 +163,15 @@ fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
     Ok(())
 }
 
-fn copy_workbook(
-    ods_orig_name: &Path,
-    file_set: &mut HashSet<String>,
-    zip_writer: &mut OdsWriter,
-) -> Result<(), OdsError> {
-    let ods_orig = File::open(ods_orig_name)?;
-    let mut zip_orig = zip::ZipArchive::new(ods_orig)?;
-
-    for i in 0..zip_orig.len() {
-        let mut zip_entry = zip_orig.by_index(i)?;
-
-        if zip_entry.is_dir() {
-            if !file_set.contains(zip_entry.name()) {
-                file_set.insert(zip_entry.name().to_string());
-                zip_writer.add_directory(zip_entry.name(), FileOptions::default())?;
+fn copy_workbook(book: &WorkBook, zip_writer: &mut OdsWriter) -> Result<(), OdsError> {
+    for filebuf in book.filebuf.iter() {
+        match filebuf {
+            FileBufEntry::Dir(name) => {
+                zip_writer.add_directory(name, FileOptions::default())?;
             }
-        } else if !file_set.contains(zip_entry.name()) {
-            file_set.insert(zip_entry.name().to_string());
-            let mut wr = zip_writer.start_file(zip_entry.name(), FileOptions::default())?;
-            let mut buf = [0u8; 1024];
-            loop {
-                let n = zip_entry.read(&mut buf)?;
-                if n == 0 {
-                    break;
-                } else {
-                    wr.write_all(&buf[0..n])?;
-                }
+            FileBufEntry::File(name, buf) => {
+                let mut wr = zip_writer.start_file(name, FileOptions::default())?;
+                wr.write_all(buf.as_slice())?;
             }
         }
     }
@@ -203,13 +179,8 @@ fn copy_workbook(
     Ok(())
 }
 
-fn write_mimetype(
-    zip_out: &mut OdsWriter,
-    file_set: &mut HashSet<String>,
-) -> Result<(), io::Error> {
-    if !file_set.contains("mimetype") {
-        file_set.insert(String::from("mimetype"));
-
+fn write_mimetype(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), io::Error> {
+    if !book.filebuf.contains("mimetype") {
         let mut w = zip_out.start_file(
             "mimetype",
             FileOptions::default().compression_method(zip::CompressionMethod::Stored),
@@ -222,14 +193,8 @@ fn write_mimetype(
     Ok(())
 }
 
-fn write_manifest(
-    book: &WorkBook,
-    zip_out: &mut OdsWriter,
-    file_set: &mut HashSet<String>,
-) -> Result<(), OdsError> {
-    if !file_set.contains("META-INF/manifest.xml") {
-        file_set.insert(String::from("META-INF/manifest.xml"));
-
+fn write_manifest(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsError> {
+    if !book.filebuf.contains("META-INF/manifest.xml") {
         zip_out.add_directory("META-INF", FileOptions::default())?;
         let w = zip_out.start_file("META-INF/manifest.xml", FileOptions::default())?;
 
@@ -285,14 +250,8 @@ fn write_manifest(
     Ok(())
 }
 
-fn write_manifest_rdf(
-    _book: &WorkBook,
-    zip_out: &mut OdsWriter,
-    file_set: &mut HashSet<String>,
-) -> Result<(), OdsError> {
-    if !file_set.contains("manifest.rdf") {
-        file_set.insert(String::from("manifest.rdf"));
-
+fn write_manifest_rdf(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsError> {
+    if !book.filebuf.contains("manifest.rdf") {
         let w = zip_out.start_file("manifest.rdf", FileOptions::default())?;
 
         let mut xml_out = XmlWriter::new(w);
@@ -344,14 +303,8 @@ fn write_manifest_rdf(
     Ok(())
 }
 
-fn write_meta(
-    book: &WorkBook,
-    zip_out: &mut OdsWriter,
-    file_set: &mut HashSet<String>,
-) -> Result<(), OdsError> {
-    if !file_set.contains("meta.xml") {
-        file_set.insert(String::from("meta.xml"));
-
+fn write_meta(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsError> {
+    if !book.filebuf.contains("meta.xml") {
         let w = zip_out.start_file("meta.xml", FileOptions::default())?;
 
         let mut xml_out = XmlWriter::new(w);

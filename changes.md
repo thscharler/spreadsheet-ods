@@ -1,3 +1,8 @@
+# 0.6.2
+
+- Rewriting an existing ODS was broken after the change to directly writing the
+  ZIP.
+
 # 0.6.1
 
 - F'd up some tests with 0.6.0, and the new configuration features broke a lot.

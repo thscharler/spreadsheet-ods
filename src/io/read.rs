@@ -1,11 +1,12 @@
 use std::convert::TryFrom;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Read};
 use std::path::Path;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime};
 use quick_xml::events::{BytesStart, Event};
 use zip::read::ZipFile;
+use zip::ZipArchive;
 
 use crate::attrmap2::AttrMap2;
 use crate::ds::detach::Detach;
@@ -29,11 +30,11 @@ use crate::{
 /// Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
     let file = File::open(path.as_ref())?;
+
     // ods is a zip-archive, we read content.xml
-    let mut zip = zip::ZipArchive::new(file)?;
+    let mut zip = ZipArchive::new(file)?;
 
     let mut book = WorkBook::new();
-    book.file = Some(path.as_ref().to_path_buf());
 
     read_content(&mut book, &mut zip.by_name("content.xml")?)?;
     read_styles(&mut book, &mut zip.by_name("styles.xml")?)?;
@@ -44,10 +45,34 @@ pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
         book.config = default_settings();
     }
 
+    // read all extras.
+    read_filebuf(&mut book, &mut zip)?;
+
     // We do some data duplication here, to make everything easier to use.
     calc_derived(&mut book)?;
 
     Ok(book)
+}
+
+// Loads all unprocessed files as byte blobs into a buffer.
+fn read_filebuf(book: &mut WorkBook, zip: &mut ZipArchive<File>) -> Result<(), OdsError> {
+    for idx in 0..zip.len() {
+        let mut ze = zip.by_index(idx)?;
+
+        // These three are always interpreted and rewritten from scratch.
+        // They have their own mechanism to cope with unknown data.
+        if !matches!(ze.name(), "settings.xml" | "styles.xml" | "content.xml") {
+            if ze.is_dir() {
+                book.filebuf.push_dir(ze.name());
+            } else if ze.is_file() {
+                let mut buf = Vec::new();
+                ze.read_to_end(&mut buf)?;
+                book.filebuf.push_file(ze.name(), buf);
+            }
+        }
+    }
+
+    Ok(())
 }
 
 // Sets some values from the styles on the corresponding data fields.

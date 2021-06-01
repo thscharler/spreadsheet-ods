@@ -1,11 +1,13 @@
 use std::fs::File;
 use std::io::{Error as IOError, Write};
 use std::path::Path;
+
 use zip::result::ZipError;
 use zip::write::FileOptions;
 use zip::ZipWriter;
 
 /// Reduced Interface for ZipWriter.
+#[allow(dead_code)]
 pub struct ZipOut {
     zip: ZipWriter<File>,
 }
@@ -14,6 +16,7 @@ pub struct ZipWrite<'a> {
     write: &'a mut ZipWriter<File>,
 }
 
+#[allow(dead_code)]
 impl ZipOut {
     pub fn new(zip_file: &Path) -> Result<Self, std::io::Error> {
         let f = File::create(zip_file)?;
