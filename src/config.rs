@@ -203,26 +203,11 @@ impl PartialEq<ConfigItem> for ConfigItemType {
 impl PartialEq<ConfigItemType> for ConfigItem {
     fn eq(&self, other: &ConfigItemType) -> bool {
         match self {
-            ConfigItem::Value(_) => match other {
-                ConfigItemType::Value => true,
-                _ => false,
-            },
-            ConfigItem::Set(_) => match other {
-                ConfigItemType::Set => true,
-                _ => false,
-            },
-            ConfigItem::Vec(_) => match other {
-                ConfigItemType::Vec => true,
-                _ => false,
-            },
-            ConfigItem::Map(_) => match other {
-                ConfigItemType::Map => true,
-                _ => false,
-            },
-            ConfigItem::Entry(_) => match other {
-                ConfigItemType::Entry => true,
-                _ => false,
-            },
+            ConfigItem::Value(_) => matches!(other, ConfigItemType::Value),
+            ConfigItem::Set(_) => matches!(other, ConfigItemType::Set),
+            ConfigItem::Vec(_) => matches!(other, ConfigItemType::Vec),
+            ConfigItem::Map(_) => matches!(other, ConfigItemType::Map),
+            ConfigItem::Entry(_) => matches!(other, ConfigItemType::Entry),
         }
     }
 }
@@ -500,7 +485,7 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::settings::{Config, ConfigItem, ConfigItemType, ConfigMap, ConfigValue};
+    use crate::config::{Config, ConfigItem, ConfigItemType, ConfigMap, ConfigValue};
 
     fn setup_config() -> Config {
         let mut config = Config::new();

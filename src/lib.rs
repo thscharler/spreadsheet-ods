@@ -156,14 +156,14 @@ use rust_decimal::prelude::*;
 #[cfg(feature = "use_decimal")]
 use rust_decimal::Decimal;
 
+use crate::config::Config;
 use crate::ds::detach::Detach;
-pub use crate::ds::detach::Detached;
+use crate::ds::detach::Detached;
 pub use crate::error::OdsError;
 pub use crate::format::{ValueFormat, ValueFormatRef};
 use crate::io::FileBuf;
 pub use crate::io::{read_ods, write_ods};
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
-use crate::settings::Config;
 pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
 use crate::style::{
@@ -181,6 +181,7 @@ mod unit_macro;
 #[macro_use]
 mod ref_macro;
 mod attrmap2;
+mod config;
 pub mod defaultstyles;
 mod ds;
 pub mod error;
@@ -188,7 +189,6 @@ pub mod format;
 pub mod formula;
 mod io;
 pub mod refs;
-mod settings;
 pub mod style;
 pub mod text;
 pub mod xmltree;
@@ -1436,8 +1436,8 @@ impl Sheet {
 
     /// Split horizontally on a cell boundary. The splitting is fixed in
     /// position.
-    pub fn split_hor_cell(&mut self, col: ucell) {
-        self.config_mut().hor_split_mode = SheetSplitMode::Cell;
+    pub fn split_col_header(&mut self, col: ucell) {
+        self.config_mut().hor_split_mode = SplitMode::Heading;
         self.config_mut().hor_split_pos = col;
         self.config_mut().position_right = col;
         self.config_mut().cursor_x = col;
@@ -1445,8 +1445,8 @@ impl Sheet {
 
     /// Split vertically on a cell boundary. The splitting is fixed in
     /// position.
-    pub fn split_vert_cell(&mut self, row: ucell) {
-        self.config_mut().vert_split_mode = SheetSplitMode::Cell;
+    pub fn split_row_header(&mut self, row: ucell) {
+        self.config_mut().vert_split_mode = SplitMode::Heading;
         self.config_mut().vert_split_pos = row;
         self.config_mut().position_bottom = row;
         self.config_mut().cursor_y = row;
@@ -1454,34 +1454,37 @@ impl Sheet {
 
     /// Split horizontally with a pixel width. The split can be moved around.
     /// For more control look at SheetConfig.
-    pub fn split_hor_pixel(&mut self, col: u32) {
-        self.config_mut().hor_split_mode = SheetSplitMode::Pixel;
+    pub fn split_horizontal(&mut self, col: u32) {
+        self.config_mut().hor_split_mode = SplitMode::Split;
         self.config_mut().hor_split_pos = col;
     }
 
     /// Split vertically with a pixel width. The split can be moved around.
     /// For more control look at SheetConfig.
-    pub fn split_vert_pixel(&mut self, col: u32) {
-        self.config_mut().vert_split_mode = SheetSplitMode::Pixel;
+    pub fn split_vertical(&mut self, col: u32) {
+        self.config_mut().vert_split_mode = SplitMode::Split;
         self.config_mut().vert_split_pos = col;
     }
 }
 
+/// There are two ways a sheet can be split. There are fixed column/row header
+/// like splits, and there is a moveable split.
+///
 #[derive(Clone, Copy, Debug)]
-pub enum SheetSplitMode {
+pub enum SplitMode {
     None = 0,
-    Pixel = 1,
-    Cell = 2,
+    Split = 1,
+    Heading = 2,
 }
 
-impl TryFrom<i16> for SheetSplitMode {
+impl TryFrom<i16> for SplitMode {
     type Error = OdsError;
 
     fn try_from(n: i16) -> Result<Self, Self::Error> {
         match n {
-            0 => Ok(SheetSplitMode::None),
-            1 => Ok(SheetSplitMode::Pixel),
-            2 => Ok(SheetSplitMode::Cell),
+            0 => Ok(SplitMode::None),
+            1 => Ok(SplitMode::Split),
+            2 => Ok(SplitMode::Heading),
             _ => Err(OdsError::Ods(format!("Invalid split mode {}", n))),
         }
     }
@@ -1495,9 +1498,9 @@ pub struct SheetConfig {
     /// Active row.
     pub cursor_y: ucell,
     /// Splitting the table.
-    pub hor_split_mode: SheetSplitMode,
+    pub hor_split_mode: SplitMode,
     /// Splitting the table.
-    pub vert_split_mode: SheetSplitMode,
+    pub vert_split_mode: SplitMode,
     /// Position of the split.
     pub hor_split_pos: ucell,
     /// Position of the split.
@@ -1545,8 +1548,8 @@ impl Default for SheetConfig {
         Self {
             cursor_x: 0,
             cursor_y: 0,
-            hor_split_mode: SheetSplitMode::None,
-            vert_split_mode: SheetSplitMode::None,
+            hor_split_mode: SplitMode::None,
+            vert_split_mode: SplitMode::None,
             hor_split_pos: 0,
             vert_split_pos: 0,
             active_split_range: 2,

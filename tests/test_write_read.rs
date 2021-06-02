@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use spreadsheet_ods::{read_ods, write_ods, OdsError, Sheet, SheetSplitMode, ValueType, WorkBook};
+use spreadsheet_ods::{read_ods, write_ods, OdsError, Sheet, SplitMode, ValueType, WorkBook};
 
 #[test]
 fn test_write_read() -> Result<(), OdsError> {
@@ -42,7 +42,7 @@ fn read_orders() -> Result<(), OdsError> {
     let cc = wb.sheet_mut(0).config_mut();
     cc.show_grid = true;
     cc.vert_split_pos = 2;
-    cc.vert_split_mode = SheetSplitMode::Cell;
+    cc.vert_split_mode = SplitMode::Heading;
 
     write_ods(&mut wb, "test_out/orders.ods")?;
     Ok(())

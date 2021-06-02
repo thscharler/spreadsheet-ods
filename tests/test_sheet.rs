@@ -226,7 +226,7 @@ fn split_table() -> Result<(), OdsError> {
     sh.set_value(0, 1, 2);
     sh.set_value(1, 0, 3);
     sh.set_value(1, 1, 4);
-    sh.split_hor_cell(3);
+    sh.split_col_header(3);
     wb.push_sheet(sh);
 
     let mut sh = Sheet::new_with_name("Split1");
@@ -234,7 +234,7 @@ fn split_table() -> Result<(), OdsError> {
     sh.set_value(0, 1, 2);
     sh.set_value(1, 0, 3);
     sh.set_value(1, 1, 4);
-    sh.split_hor_pixel(250);
+    sh.split_horizontal(250);
     wb.push_sheet(sh);
 
     write_ods(&mut wb, "test_out/split_table.ods")?;

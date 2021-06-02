@@ -6,13 +6,13 @@ use std::path::Path;
 use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
+use crate::config::{ConfigItem, ConfigItemType, ConfigValue};
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::xmlwriter::XmlWriter;
 use crate::io::zip_out::{ZipOut, ZipWrite};
 use crate::io::FileBufEntry;
 use crate::refs::{cellranges_string, CellRange};
-use crate::settings::{ConfigItem, ConfigItemType, ConfigValue};
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
     ParagraphStyle, RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
@@ -394,7 +394,7 @@ fn write_settings(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsErr
 }
 
 fn write_config_item_set(
-    name: &String,
+    name: &str,
     set: &ConfigItem,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
@@ -419,7 +419,7 @@ fn write_config_item_set(
 }
 
 fn write_config_item_map_indexed(
-    name: &String,
+    name: &str,
     vec: &ConfigItem,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
@@ -456,7 +456,7 @@ fn write_config_item_map_indexed(
 }
 
 fn write_config_item_map_named(
-    name: &String,
+    name: &str,
     map: &ConfigItem,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {
@@ -512,7 +512,7 @@ fn write_config_item_map_entry(
 }
 
 fn write_config_item(
-    name: &String,
+    name: &str,
     value: &ConfigValue,
     xml_out: &mut XmlOdsWriter,
 ) -> Result<(), OdsError> {

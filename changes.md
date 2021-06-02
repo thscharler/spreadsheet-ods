@@ -1,3 +1,9 @@
+# 0.6.3
+
+- Renamed the split functions to better match their functionality.
+- Clippy brought up some issues.
+- Moved Detached to the ds module. It's not a core concept.
+
 # 0.6.2
 
 - Rewriting an existing ODS was broken after the change to directly writing the

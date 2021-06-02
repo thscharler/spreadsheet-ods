@@ -9,11 +9,11 @@ use zip::read::ZipFile;
 use zip::ZipArchive;
 
 use crate::attrmap2::AttrMap2;
+use crate::config::{Config, ConfigItem, ConfigItemType, ConfigValue};
 use crate::ds::detach::Detach;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
 use crate::refs::{parse_cellranges, parse_cellref, CellRef};
-use crate::settings::{Config, ConfigItem, ConfigItemType, ConfigValue};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
@@ -23,7 +23,7 @@ use crate::style::{
 use crate::text::TextTag;
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
-    ucell, CellStyle, ColRange, Length, RowRange, SCell, Sheet, SheetSplitMode, Value, ValueFormat,
+    ucell, CellStyle, ColRange, Length, RowRange, SCell, Sheet, SplitMode, Value, ValueFormat,
     ValueType, Visibility, WorkBook,
 };
 
@@ -147,10 +147,10 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
                 sheet.config_mut().cursor_y = *n as ucell;
             }
             if let Some(ConfigValue::Short(n)) = cc.get_value_rec(&["HorizontalSplitMode"]) {
-                sheet.config_mut().hor_split_mode = SheetSplitMode::try_from(*n)?;
+                sheet.config_mut().hor_split_mode = SplitMode::try_from(*n)?;
             }
             if let Some(ConfigValue::Short(n)) = cc.get_value_rec(&["VerticalSplitMode"]) {
-                sheet.config_mut().vert_split_mode = SheetSplitMode::try_from(*n)?;
+                sheet.config_mut().vert_split_mode = SplitMode::try_from(*n)?;
             }
             if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["HorizontalSplitPosition"]) {
                 sheet.config_mut().hor_split_pos = *n as ucell;
@@ -2567,10 +2567,10 @@ fn read_config_item_set(
         }
     }
 
-    let name = if name.is_none() {
-        return Err(OdsError::Ods("config-item-set without name".to_string()));
+    let name = if let Some(name) = name {
+        name
     } else {
-        name.unwrap()
+        return Err(OdsError::Ods("config-item-set without name".to_string()));
     };
 
     loop {
@@ -2635,12 +2635,12 @@ fn read_config_item_map_indexed(
         }
     }
 
-    let name = if name.is_none() {
+    let name = if let Some(name) = name {
+        name
+    } else {
         return Err(OdsError::Ods(
             "config-item-map-indexed without name".to_string(),
         ));
-    } else {
-        name.unwrap()
     };
 
     let mut index = 0;
@@ -2696,12 +2696,12 @@ fn read_config_item_map_named(
         }
     }
 
-    let name = if name.is_none() {
+    let name = if let Some(name) = name {
+        name
+    } else {
         return Err(OdsError::Ods(
             "config-item-map-named without name".to_string(),
         ));
-    } else {
-        name.unwrap()
     };
 
     loop {
@@ -2713,12 +2713,12 @@ fn read_config_item_map_named(
             Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-entry" => {
                 let (name, entry) = read_config_item_map_entry(xml_tag, xml)?;
 
-                let name = if name.is_none() {
+                let name = if let Some(name) = name {
+                    name
+                } else {
                     return Err(OdsError::Ods(
                         "config-item-map-entry without name".to_string(),
                     ));
-                } else {
-                    name.unwrap()
                 };
 
                 config_map.insert(name, entry);
@@ -2775,15 +2775,15 @@ fn read_config_item_map_entry(
             }
             Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-set" => {
                 let (name, val) = read_config_item_set(xml_tag, xml)?;
-                config_set.insert(name, ConfigItem::from(val));
+                config_set.insert(name, val);
             }
             Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-indexed" => {
                 let (name, val) = read_config_item_map_indexed(xml_tag, xml)?;
-                config_set.insert(name, ConfigItem::from(val));
+                config_set.insert(name, val);
             }
             Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-named" => {
                 let (name, val) = read_config_item_map_named(xml_tag, xml)?;
-                config_set.insert(name, ConfigItem::from(val));
+                config_set.insert(name, val);
             }
             Event::End(ref e) if e.name() == b"config:config-item-map-entry" => {
                 break;
@@ -2830,20 +2830,20 @@ fn read_config_item(
         }
     }
 
-    let name = if name.is_none() {
+    let name = if let Some(name) = name {
+        name
+    } else {
         return Err(OdsError::Ods(
             "config value without config:name".to_string(),
         ));
-    } else {
-        name.unwrap()
     };
 
-    let valtype = if val_type.is_none() {
+    let valtype = if let Some(val_type) = val_type {
+        val_type
+    } else {
         return Err(OdsError::Ods(
             "config value without config:type".to_string(),
         ));
-    } else {
-        val_type.unwrap()
     };
 
     let mut value = String::new();
@@ -2913,10 +2913,10 @@ fn read_config_item(
         buf.clear();
     }
 
-    let config_val = if config_val.is_none() {
-        return Err(OdsError::Ods("config-item without value???".to_string()));
+    let config_val = if let Some(config_val) = config_val {
+        config_val
     } else {
-        config_val.unwrap()
+        return Err(OdsError::Ods("config-item without value???".to_string()));
     };
 
     Ok((name, config_val))
