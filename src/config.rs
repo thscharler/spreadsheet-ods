@@ -88,6 +88,7 @@ impl ConfigMap {
         }
     }
 
+    /// Iterate over this map.
     pub fn iter(&self) -> ConfigIter {
         ConfigIter {
             it: Some(self.vl.iter()),
@@ -161,6 +162,7 @@ impl<'a> Iterator for ConfigIter<'a> {
     }
 }
 
+/// Bare enumeration for the different classes of ConfigItems.
 #[derive(Debug, Clone, Copy)]
 pub enum ConfigItemType {
     Value,
@@ -240,6 +242,10 @@ impl Default for ConfigItem {
 }
 
 impl ConfigItem {
+    /// New ConfigItem.
+    ///
+    /// Panics
+    /// This doesn't work for ConfigItemType::Value.
     pub fn new(itype: ConfigItemType) -> Self {
         match itype {
             ConfigItemType::Value => panic!("new with type works only for map-types"),
@@ -250,22 +256,27 @@ impl ConfigItem {
         }
     }
 
+    /// New set.
     pub fn new_set() -> Self {
         Self::Set(ConfigMap::new())
     }
 
+    /// New vec.
     pub fn new_vec() -> Self {
         Self::Vec(ConfigMap::new())
     }
 
+    /// New map.
     pub fn new_map() -> Self {
         Self::Map(ConfigMap::new())
     }
 
+    /// New map entry oder vec entry.
     pub fn new_entry() -> Self {
         Self::Entry(ConfigMap::new())
     }
 
+    /// Returns the contained ConfigValue if any.
     fn as_value(&self) -> Option<&ConfigValue> {
         match self {
             ConfigItem::Value(v) => Some(v),
@@ -276,6 +287,7 @@ impl ConfigItem {
         }
     }
 
+    /// Is this any map-like ConfigItem.
     fn is_map(&self) -> bool {
         match self {
             ConfigItem::Value(_) => false,
@@ -286,6 +298,7 @@ impl ConfigItem {
         }
     }
 
+    /// Returns the contained ConfigMap if this is a map-like ConfigItem.
     fn as_map(&self) -> Option<&ConfigMap> {
         match self {
             ConfigItem::Value(_) => None,
@@ -296,6 +309,7 @@ impl ConfigItem {
         }
     }
 
+    /// Returns the contained ConfigMap if this is a map-like ConfigItem.
     fn as_map_mut(&mut self) -> Option<&mut ConfigMap> {
         match self {
             ConfigItem::Value(_) => None,
@@ -315,7 +329,10 @@ impl ConfigItem {
         }
     }
 
-    /// Adds a new ConfigItem
+    /// Adds a new ConfigItem into this map.
+    ///
+    /// Panics
+    /// If this is not a map-like ConfigItem.
     pub fn insert<S, V>(&mut self, name: S, item: V)
     where
         S: Into<String>,
@@ -328,7 +345,10 @@ impl ConfigItem {
         }
     }
 
-    /// Returns a ConfigItem
+    /// Returns a ConfigItem.
+    ///
+    /// Panics
+    /// If this is not a map-like ConfigItem.
     pub fn get<S>(&self, name: S) -> Option<&ConfigItem>
     where
         S: AsRef<str>,
@@ -340,7 +360,13 @@ impl ConfigItem {
         }
     }
 
-    /// Recursive get for any ConfigItem.
+    /// Recursively creates all maps along the given path and
+    /// returns the last map-like ConfigItem.
+    ///
+    /// Panics
+    /// If the given map-types along the path don't match with what
+    /// exists in the structure.
+    /// If the last element in the path is a ConfigValue.
     pub fn create_path<S>(&mut self, names: &[(S, ConfigItemType)]) -> &mut ConfigItem
     where
         S: AsRef<str>,
