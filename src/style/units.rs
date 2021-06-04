@@ -1,27 +1,7 @@
-use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::num::ParseFloatError;
 use std::str::FromStr;
 
-#[derive(Debug)]
-pub enum ParseError {
-    General(String),
-    Float(ParseFloatError),
-}
-
-impl From<ParseFloatError> for ParseError {
-    fn from(e: ParseFloatError) -> Self {
-        ParseError::Float(e)
-    }
-}
-
-impl Display for ParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "ParseError")
-    }
-}
-
-impl Error for ParseError {}
+use crate::OdsError;
 
 /// Value type for angles.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -74,7 +54,7 @@ impl Display for Length {
 }
 
 impl FromStr for Length {
-    type Err = ParseError;
+    type Err = OdsError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.ends_with("cm") {
@@ -90,7 +70,7 @@ impl FromStr for Length {
         } else if s.ends_with("em") {
             Ok(Length::Em(s.split_at(s.len() - 2).0.parse()?))
         } else {
-            Err(ParseError::General(s.to_string()))
+            Err(OdsError::Parse(s.to_string()))
         }
     }
 }

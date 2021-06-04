@@ -1,7 +1,9 @@
-use crate::attrmap2::AttrMap2;
-use crate::style::units::{Length, PageBreak, ParseError};
-use crate::style::{rel_width_string, StyleOrigin, StyleUse};
 use std::str::{FromStr, ParseBoolError};
+
+use crate::attrmap2::AttrMap2;
+use crate::style::units::{Length, PageBreak};
+use crate::style::{rel_width_string, StyleOrigin, StyleUse};
+use crate::OdsError;
 
 style_ref!(ColStyleRef);
 
@@ -133,7 +135,7 @@ impl ColStyle {
     }
 
     /// Parses the column width
-    pub fn col_width(&self) -> Result<Length, ParseError> {
+    pub fn col_width(&self) -> Result<Length, OdsError> {
         if let Some(s) = self.colstyle.attr("style:column-width") {
             Ok(Length::from_str(&s)?)
         } else {

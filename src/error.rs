@@ -1,4 +1,3 @@
-use crate::style::units::ParseError;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
@@ -7,13 +6,13 @@ pub enum OdsError {
     Io(std::io::Error),
     Zip(zip::result::ZipError),
     Xml(quick_xml::Error),
+    Parse(String),
     ParseInt(std::num::ParseIntError),
     ParseBool(std::str::ParseBoolError),
     ParseFloat(std::num::ParseFloatError),
     Chrono(chrono::format::ParseError),
     Duration(time::OutOfRangeError),
     SystemTime(std::time::SystemTimeError),
-    Parse(crate::style::units::ParseError),
 }
 
 impl Display for OdsError {
@@ -23,13 +22,13 @@ impl Display for OdsError {
             OdsError::Io(e) => write!(f, "IO {}", e)?,
             OdsError::Zip(e) => write!(f, "Zip {}", e)?,
             OdsError::Xml(e) => write!(f, "Xml {}", e)?,
+            OdsError::Parse(e) => write!(f, "Parse {}", e)?,
             OdsError::ParseInt(e) => write!(f, "ParseInt {}", e)?,
             OdsError::ParseBool(e) => write!(f, "ParseBool {}", e)?,
             OdsError::ParseFloat(e) => write!(f, "ParseFloat {}", e)?,
             OdsError::Chrono(e) => write!(f, "Chrono {}", e)?,
             OdsError::Duration(e) => write!(f, "Duration {}", e)?,
             OdsError::SystemTime(e) => write!(f, "SystemTime {}", e)?,
-            OdsError::Parse(e) => write!(f, "Parse {}", e)?,
         }
 
         Ok(())
@@ -43,20 +42,14 @@ impl std::error::Error for OdsError {
             OdsError::Io(e) => Some(e),
             OdsError::Zip(e) => Some(e),
             OdsError::Xml(e) => Some(e),
+            OdsError::Parse(_) => None,
             OdsError::ParseInt(e) => Some(e),
             OdsError::ParseBool(e) => Some(e),
             OdsError::ParseFloat(e) => Some(e),
             OdsError::Chrono(e) => Some(e),
             OdsError::Duration(e) => Some(e),
             OdsError::SystemTime(e) => Some(e),
-            OdsError::Parse(e) => Some(e),
         }
-    }
-}
-
-impl From<crate::style::units::ParseError> for OdsError {
-    fn from(e: ParseError) -> Self {
-        OdsError::Parse(e)
     }
 }
 
