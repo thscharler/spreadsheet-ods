@@ -1,5 +1,6 @@
 use spreadsheet_ods::condition::{Condition, ValueCondition};
-use spreadsheet_ods::validation::Validation;
+use spreadsheet_ods::text::TextP;
+use spreadsheet_ods::validation::{Validation, ValidationError, ValidationHelp};
 use spreadsheet_ods::{ucell, write_ods, CellRange, OdsError, Sheet, WorkBook};
 
 #[test]
@@ -93,6 +94,38 @@ fn test_validation0() -> Result<(), OdsError> {
     book.push_sheet(sheet);
 
     write_ods(&mut book, "test_out/validation0.ods")?;
+
+    Ok(())
+}
+
+#[test]
+fn test_validation1() -> Result<(), OdsError> {
+    let mut book = WorkBook::new();
+
+    let mut sheet = Sheet::new_with_name("One");
+
+    let cc: ucell = 0;
+    sheet.set_value(0, cc, "Content Length");
+    let mut valid = Validation::new();
+    valid.set_condition(Condition::content_text_length_lt(5));
+    let mut help = ValidationHelp::new();
+    help.set_text(Some(TextP::new().text("may he help you!").into_xmltag()));
+    valid.set_help(Some(help));
+    let mut err = ValidationError::new();
+    err.set_title(Some("Function disappeared".to_string()));
+    err.set_text(Some(
+        TextP::new()
+            .text("who knows where it's gone?")
+            .into_xmltag(),
+    ));
+    valid.set_err(Some(err));
+
+    let valid = book.add_validation(valid);
+    sheet.set_validation(1, cc, &valid);
+
+    book.push_sheet(sheet);
+
+    write_ods(&mut book, "test_out/validation1.ods")?;
 
     Ok(())
 }

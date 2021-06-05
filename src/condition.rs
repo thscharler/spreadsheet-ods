@@ -176,7 +176,7 @@ impl ValueCondition {
         buf.push_str(from.into().to_string().as_str());
         buf.push_str(", ");
         buf.push_str(to.into().to_string().as_str());
-        buf.push_str(")");
+        buf.push(')');
         ValueCondition { cond: buf }
     }
 
@@ -187,7 +187,7 @@ impl ValueCondition {
         buf.push_str(from.into().to_string().as_str());
         buf.push_str(", ");
         buf.push_str(to.into().to_string().as_str());
-        buf.push_str(")");
+        buf.push(')');
         ValueCondition { cond: buf }
     }
 
@@ -196,7 +196,7 @@ impl ValueCondition {
         let mut buf = String::new();
         buf.push_str("is-true-formula(");
         buf.push_str(formula.as_ref());
-        buf.push_str(")");
+        buf.push(')');
         ValueCondition { cond: buf }
     }
 }
@@ -275,7 +275,7 @@ impl Condition {
         buf.push_str(from.into().to_string().as_str());
         buf.push_str(", ");
         buf.push_str(to.into().to_string().as_str());
-        buf.push_str(")");
+        buf.push(')');
         Condition { cond: buf }
     }
 
@@ -286,7 +286,7 @@ impl Condition {
         buf.push_str(from.into().to_string().as_str());
         buf.push_str(", ");
         buf.push_str(to.into().to_string().as_str());
-        buf.push_str(")");
+        buf.push(')');
         Condition { cond: buf }
     }
 
@@ -301,7 +301,7 @@ impl Condition {
         let mut sep = false;
         for v in list {
             if sep {
-                buf.push_str(";");
+                buf.push(';');
             }
             buf.push('"');
             let vv: Value = v.into();
@@ -368,7 +368,7 @@ impl Condition {
         let mut buf = String::new();
         buf.push_str("is-true-formula(");
         buf.push_str(formula.as_ref());
-        buf.push_str(")");
+        buf.push(')');
         Condition { cond: buf }
     }
 }

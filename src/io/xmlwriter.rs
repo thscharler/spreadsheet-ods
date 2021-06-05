@@ -128,7 +128,7 @@ impl<W: Write> XmlWriter<W> {
     }
 
     /// Write an element with inlined text (not escaped)
-    pub fn elem_text(&mut self, name: &str, text: &str) -> Result {
+    pub fn elem_text<S: AsRef<str>>(&mut self, name: &str, text: S) -> Result {
         self.close_elem()?;
 
         self.indent();
@@ -137,7 +137,7 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push_str(name);
         self.buf.push('>');
 
-        self.buf.push_str(text);
+        self.buf.push_str(text.as_ref());
 
         self.buf.push('<');
         self.buf.push('/');
@@ -149,7 +149,7 @@ impl<W: Write> XmlWriter<W> {
 
     /// Write an element with inlined text (escaped)
     #[allow(dead_code)]
-    pub fn elem_text_esc(&mut self, name: &str, text: &str) -> Result {
+    pub fn elem_text_esc<S: AsRef<str>>(&mut self, name: &str, text: S) -> Result {
         self.close_elem()?;
 
         self.indent();
@@ -158,7 +158,7 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push_str(name);
         self.buf.push('>');
 
-        self.escape(text, false);
+        self.escape(text.as_ref(), false);
 
         self.buf.push('<');
         self.buf.push('/');
@@ -213,7 +213,7 @@ impl<W: Write> XmlWriter<W> {
 
     /// Write an attr, make sure name and value contain only allowed chars.
     /// For an escaping version use `attr_esc`
-    pub fn attr(&mut self, name: &str, value: &str) -> Result {
+    pub fn attr<S: AsRef<str>>(&mut self, name: &str, value: S) -> Result {
         if cfg!(feature = "check_xml") && self.open == Open::None {
             panic!(
                 "Attempted to write attr to elem, when no elem was opened, stack {:?}",
@@ -224,13 +224,13 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push_str(name);
         self.buf.push('=');
         self.buf.push('"');
-        self.buf.push_str(value);
+        self.buf.push_str(value.as_ref());
         self.buf.push('"');
         Ok(())
     }
 
     /// Write an attr, make sure name contains only allowed chars
-    pub fn attr_esc(&mut self, name: &str, value: &str) -> Result {
+    pub fn attr_esc<S: AsRef<str>>(&mut self, name: &str, value: S) -> Result {
         if cfg!(feature = "check_xml") && self.open == Open::None {
             panic!(
                 "Attempted to write attr to elem, when no elem was opened, stack {:?}",
@@ -241,7 +241,7 @@ impl<W: Write> XmlWriter<W> {
         self.escape(name, true);
         self.buf.push('=');
         self.buf.push('"');
-        self.escape(value, false);
+        self.escape(value.as_ref(), false);
         self.buf.push('"');
         Ok(())
     }
@@ -267,16 +267,16 @@ impl<W: Write> XmlWriter<W> {
     }
 
     /// Write a text, doesn't escape the text.
-    pub fn text(&mut self, text: &str) -> Result {
+    pub fn text<S: AsRef<str>>(&mut self, text: S) -> Result {
         self.close_elem()?;
-        self.buf.push_str(text);
+        self.buf.push_str(text.as_ref());
         Ok(())
     }
 
     /// Write a text, escapes the text automatically
-    pub fn text_esc(&mut self, text: &str) -> Result {
+    pub fn text_esc<S: AsRef<str>>(&mut self, text: S) -> Result {
         self.close_elem()?;
-        self.escape(text, false);
+        self.escape(text.as_ref(), false);
         Ok(())
     }
 

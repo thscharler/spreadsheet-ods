@@ -22,7 +22,9 @@ use crate::style::{
     RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::text::TextTag;
-use crate::validation::{Validation, ValidationDisplay};
+use crate::validation::{
+    MessageType, Validation, ValidationDisplay, ValidationError, ValidationHelp,
+};
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
     ucell, CellStyle, ColRange, Length, RowRange, SCell, Sheet, SplitMode, Value, ValueFormat,
@@ -1126,26 +1128,26 @@ fn read_validations(
                     for attr in xml_tag.attributes().with_checks(false) {
                         match attr? {
                             attr if attr.key == b"table:name" => {
-                                let name = attr.unescape_and_decode_value(&xml)?;
-                                valid.set_name(name);
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                valid.set_name(v);
                             }
                             attr if attr.key == b"table:condition" => {
-                                let cond = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(&xml)?;
                                 // split off 'of:' prefix
 
-                                valid.set_condition(Condition::new(cond.split_at(2).1));
+                                valid.set_condition(Condition::new(v.split_at(2).1));
                             }
                             attr if attr.key == b"table:allow-empty-cell" => {
-                                let allow_empty = attr.unescape_and_decode_value(&xml)?;
-                                valid.set_allow_empty(allow_empty.parse()?);
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                valid.set_allow_empty(v.parse()?);
                             }
                             attr if attr.key == b"table:base-cell-address" => {
-                                let base = attr.unescape_and_decode_value(&xml)?;
-                                valid.set_base_cell(CellRef::try_from(base.as_str())?);
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                valid.set_base_cell(CellRef::try_from(v.as_str())?);
                             }
                             attr if attr.key == b"table:display-list" => {
-                                let display = attr.unescape_and_decode_value(&xml)?;
-                                valid.set_display(ValidationDisplay::try_from(display.as_str())?);
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                valid.set_display(ValidationDisplay::try_from(v.as_str())?);
                             }
                             attr => {
                                 if cfg!(feature = "dump_unused") {
@@ -1161,17 +1163,75 @@ fn read_validations(
                     }
                 }
                 b"table:error-message" => {
-                    // todo: should use this too.
-                }
-                b"office:event-listeners" => {
-                    // todo: should use this too.
-                }
-                b"table:error-macro" => {
-                    // todo: should use this too.
+                    let mut ve = ValidationError::new();
+
+                    for attr in xml_tag.attributes().with_checks(false) {
+                        match attr? {
+                            attr if attr.key == b"table:display" => {
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                ve.set_display(v.parse()?);
+                            }
+                            attr if attr.key == b"table:message-type" => {
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let mt = match v.as_str() {
+                                    "stop" => MessageType::Error,
+                                    "warning" => MessageType::Warning,
+                                    "information" => MessageType::Info,
+                                    _ => {
+                                        return Err(OdsError::Parse(format!(
+                                            "unknown message-type {}",
+                                            v
+                                        )))
+                                    }
+                                };
+                                ve.set_msg_type(mt);
+                            }
+                            attr if attr.key == b"table:title" => {
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                ve.set_title(Some(v));
+                            }
+                            attr => {
+                                if cfg!(feature = "dump_unused") {
+                                    println!(" read_validations unused attr {:?}", attr);
+                                }
+                            }
+                        }
+                    }
+                    let (_str, txt) =
+                        read_text_or_tag(b"table:error-message", xml, &xml_tag, false)?;
+                    ve.set_text(txt);
+
+                    valid.set_err(Some(ve));
                 }
                 b"table:help-message" => {
-                    // todo: should use this too.
+                    let mut vh = ValidationHelp::new();
+
+                    for attr in xml_tag.attributes().with_checks(false) {
+                        match attr? {
+                            attr if attr.key == b"table:display" => {
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                vh.set_display(v.parse()?);
+                            }
+                            attr if attr.key == b"table:title" => {
+                                let v = attr.unescape_and_decode_value(&xml)?;
+                                vh.set_title(Some(v));
+                            }
+                            attr => {
+                                if cfg!(feature = "dump_unused") {
+                                    println!(" read_validations unused attr {:?}", attr);
+                                }
+                            }
+                        }
+                    }
+                    let (_str, txt) =
+                        read_text_or_tag(b"table:help-message", xml, &xml_tag, false)?;
+                    vh.set_text(txt);
+
+                    valid.set_help(Some(vh));
                 }
+                // no macros
+                // b"office:event-listeners"
+                // b"table:error-macro"
                 _ => {
                     if cfg!(feature = "dump_unused") {
                         println!(" read_validations unused {:?}", evt);
@@ -1183,18 +1243,9 @@ fn read_validations(
                     book.add_validation(valid);
                     valid = Validation::new();
                 }
-                b"table:error-message" => {
-                    // todo: should use this too.
-                }
-                b"office:event-listeners" => {
-                    // todo: should use this too.
-                }
-                b"table:error-macro" => {
-                    // todo: should use this too.
-                }
-                b"table:help-message" => {
-                    // todo: should use this too.
-                }
+                // no macros
+                // b"office:event-listeners"
+                // b"table:error-macro"
                 b"table:content-validations" => {
                     break;
                 }

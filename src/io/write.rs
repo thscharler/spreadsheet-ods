@@ -866,7 +866,7 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), Ods
 fn write_content_validations(book: &WorkBook, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
     xml_out.elem("table:content-validations")?;
 
-    for (_, valid) in &book.validations {
+    for valid in book.validations.values() {
         xml_out.elem("table:content-validation")?;
         xml_out.attr_esc("table:name", valid.name())?;
         let mut cond = "of:".to_string();
@@ -886,9 +886,41 @@ fn write_content_validations(book: &WorkBook, xml_out: &mut XmlOdsWriter) -> Res
         )?;
         xml_out.attr_esc("table:base-cell-address", &valid.base_cell().to_string())?;
 
-        xml_out.empty("table:error-message")?;
-        xml_out.attr("table:message-type", "stop")?;
-        xml_out.attr("table:display", "true")?;
+        if let Some(err) = valid.err() {
+            if err.text().is_some() {
+                xml_out.elem("table:error-message")?;
+            } else {
+                xml_out.empty("table:error-message")?;
+            }
+            xml_out.attr("table:display", err.display().to_string())?;
+            xml_out.attr("table:message-type", err.msg_type().to_string())?;
+            if let Some(title) = err.title() {
+                xml_out.attr("table:title", title)?;
+            }
+            if let Some(text) = err.text() {
+                write_xmltag(text, xml_out)?;
+            }
+            if err.text().is_some() {
+                xml_out.end_elem("table:error-message")?;
+            }
+        }
+        if let Some(err) = valid.help() {
+            if err.text().is_some() {
+                xml_out.elem("table:help-message")?;
+            } else {
+                xml_out.empty("table:help-message")?;
+            }
+            xml_out.attr("table:display", err.display().to_string())?;
+            if let Some(title) = err.title() {
+                xml_out.attr("table:title", title)?;
+            }
+            if let Some(text) = err.text() {
+                write_xmltag(text, xml_out)?;
+            }
+            if err.text().is_some() {
+                xml_out.end_elem("table:help-message")?;
+            }
+        }
 
         xml_out.end_elem("table:content-validation")?;
     }
