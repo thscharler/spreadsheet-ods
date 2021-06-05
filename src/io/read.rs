@@ -9,6 +9,7 @@ use zip::read::ZipFile;
 use zip::ZipArchive;
 
 use crate::attrmap2::AttrMap2;
+use crate::condition::{Condition, ValueCondition};
 use crate::config::{Config, ConfigItem, ConfigItemType, ConfigValue};
 use crate::ds::detach::Detach;
 use crate::error::OdsError;
@@ -21,6 +22,7 @@ use crate::style::{
     RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::text::TextTag;
+use crate::validation::{Validation, ValidationDisplay};
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
     ucell, CellStyle, ColRange, Length, RowRange, SCell, Sheet, SplitMode, Value, ValueFormat,
@@ -241,6 +243,10 @@ fn read_content(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsEr
                 read_master_styles(book, StyleOrigin::Content, &mut xml)?,
 
             Event::Start(xml_tag)
+            if xml_tag.name() == b"table:content-validations" =>
+                read_validations(book, &mut xml)?,
+
+            Event::Start(xml_tag)
             if xml_tag.name() == b"table:table" =>
                 book.push_sheet(read_table(&mut xml, xml_tag)?),
 
@@ -254,7 +260,6 @@ fn read_content(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsEr
                 xml_tag.name() == b"text:dde-connection-decls" ||
                 // xml_tag.name() == b"text:alphabetical-index-auto-mark-file" ||
                 xml_tag.name() == b"table:calculation-settings" ||
-                xml_tag.name() == b"table:content-validations" ||
                 xml_tag.name() == b"table:label-ranges" ||
                 /* epilogue */
                 xml_tag.name() == b"table:named-expressions" ||
@@ -275,7 +280,6 @@ fn read_content(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsEr
                 xml_tag.name() == b"text:dde-connection-decls" ||
                 // xml_tag.name() == b"text:alphabetical-index-auto-mark-file" ||
                 xml_tag.name() == b"table:calculation-settings" ||
-                xml_tag.name() == b"table:content-validations" ||
                 xml_tag.name() == b"table:label-ranges" ||
                 /* epilogue */
                 xml_tag.name() == b"table:named-expressions" ||
@@ -1100,6 +1104,111 @@ fn read_page_style(
 
     book.add_pagestyle(pl);
 
+    Ok(())
+}
+
+fn read_validations(
+    book: &mut WorkBook,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+) -> Result<(), OdsError> {
+    let mut buf = Vec::new();
+
+    let mut valid = Validation::new();
+    loop {
+        let evt = xml.read_event(&mut buf)?;
+        let empty_tag = matches!(evt, Event::Empty(_));
+        if cfg!(feature = "dump_xml") {
+            println!(" read_master_styles {:?}", evt);
+        }
+        match evt {
+            Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
+                b"table:content-validation" => {
+                    for attr in xml_tag.attributes().with_checks(false) {
+                        match attr? {
+                            attr if attr.key == b"table:name" => {
+                                let name = attr.unescape_and_decode_value(&xml)?;
+                                valid.set_name(name);
+                            }
+                            attr if attr.key == b"table:condition" => {
+                                let cond = attr.unescape_and_decode_value(&xml)?;
+                                // split off 'of:' prefix
+
+                                valid.set_condition(Condition::new(cond.split_at(2).1));
+                            }
+                            attr if attr.key == b"table:allow-empty-cell" => {
+                                let allow_empty = attr.unescape_and_decode_value(&xml)?;
+                                valid.set_allow_empty(allow_empty.parse()?);
+                            }
+                            attr if attr.key == b"table:base-cell-address" => {
+                                let base = attr.unescape_and_decode_value(&xml)?;
+                                valid.set_base_cell(CellRef::try_from(base.as_str())?);
+                            }
+                            attr if attr.key == b"table:display-list" => {
+                                let display = attr.unescape_and_decode_value(&xml)?;
+                                valid.set_display(ValidationDisplay::try_from(display.as_str())?);
+                            }
+                            attr => {
+                                if cfg!(feature = "dump_unused") {
+                                    println!(" read_validations unused attr {:?}", attr);
+                                }
+                            }
+                        }
+                    }
+
+                    if empty_tag {
+                        book.add_validation(valid);
+                        valid = Validation::new();
+                    }
+                }
+                b"table:error-message" => {
+                    // todo: should use this too.
+                }
+                b"office:event-listeners" => {
+                    // todo: should use this too.
+                }
+                b"table:error-macro" => {
+                    // todo: should use this too.
+                }
+                b"table:help-message" => {
+                    // todo: should use this too.
+                }
+                _ => {
+                    if cfg!(feature = "dump_unused") {
+                        println!(" read_validations unused {:?}", evt);
+                    }
+                }
+            },
+            Event::End(ref e) => match e.name() {
+                b"table:content-validation" => {
+                    book.add_validation(valid);
+                    valid = Validation::new();
+                }
+                b"table:error-message" => {
+                    // todo: should use this too.
+                }
+                b"office:event-listeners" => {
+                    // todo: should use this too.
+                }
+                b"table:error-macro" => {
+                    // todo: should use this too.
+                }
+                b"table:help-message" => {
+                    // todo: should use this too.
+                }
+                b"table:content-validations" => {
+                    break;
+                }
+                _ => {}
+            },
+            Event::Text(_) => (),
+            Event::Eof => break,
+            _ => {
+                if cfg!(feature = "dump_unused") {
+                    println!(" read_validations unused {:?}", evt);
+                }
+            }
+        }
+    }
     Ok(())
 }
 
@@ -2221,7 +2330,7 @@ fn read_stylemap(
         match attr? {
             attr if attr.key == b"style:condition" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                sm.set_condition(v);
+                sm.set_condition(ValueCondition::new(v));
             }
             attr if attr.key == b"style:apply-style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;

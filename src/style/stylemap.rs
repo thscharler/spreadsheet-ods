@@ -1,3 +1,4 @@
+use crate::condition::ValueCondition;
 use crate::CellRef;
 
 /// One style mapping.
@@ -18,15 +19,15 @@ pub struct StyleMap {
 }
 
 impl StyleMap {
-    pub fn new<S: Into<String>, T: Into<String>>(
-        condition: S,
+    pub fn new<T: Into<String>>(
+        condition: ValueCondition,
         applied_style: T,
-        cellref: CellRef,
+        base_cell: CellRef,
     ) -> Self {
         Self {
-            condition: condition.into(),
+            condition: condition.to_string(),
             applied_style: applied_style.into(),
-            base_cell: cellref,
+            base_cell,
         }
     }
 
@@ -34,8 +35,8 @@ impl StyleMap {
         &self.condition
     }
 
-    pub fn set_condition<S: Into<String>>(&mut self, cond: S) {
-        self.condition = cond.into();
+    pub fn set_condition(&mut self, cond: ValueCondition) {
+        self.condition = cond.to_string();
     }
 
     pub fn applied_style(&self) -> &String {

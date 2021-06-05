@@ -172,6 +172,7 @@ use crate::style::{
     TableStyleRef, TextStyle, TextStyleRef,
 };
 use crate::text::TextTag;
+use crate::validation::{Validation, ValidationRef};
 use crate::xmltree::XmlTag;
 
 #[macro_use]
@@ -181,6 +182,8 @@ mod unit_macro;
 #[macro_use]
 mod ref_macro;
 mod attrmap2;
+pub mod colnames;
+pub mod condition;
 mod config;
 pub mod defaultstyles;
 mod ds;
@@ -189,8 +192,10 @@ pub mod format;
 pub mod formula;
 mod io;
 pub mod refs;
+pub mod sheetview;
 pub mod style;
 pub mod text;
+pub mod validation;
 pub mod xmltree;
 
 /// Cell index type for row/column indexes.
@@ -233,6 +238,9 @@ pub struct WorkBook {
     /// Page-layout data.
     pagestyles: HashMap<String, PageStyle>,
     masterpages: HashMap<String, MasterPage>,
+
+    /// Validations.
+    validations: HashMap<String, Validation>,
 
     /// Configuration data. Internal cache for all values.
     /// Mapped into WorkBookConfig, SheetConfig.
@@ -284,6 +292,9 @@ impl fmt::Debug for WorkBook {
             writeln!(f, "{:?}", s)?;
         }
         for s in self.masterpages.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for s in self.validations.values() {
             writeln!(f, "{:?}", s)?;
         }
         for xtr in &self.extra {
@@ -338,6 +349,7 @@ impl WorkBook {
             def_styles: Default::default(),
             pagestyles: Default::default(),
             masterpages: Default::default(),
+            validations: Default::default(),
             config: io::default_settings(),
             workbook_config: Default::default(),
             extra: vec![],
@@ -477,6 +489,7 @@ impl WorkBook {
     }
 
     /// Adds a style.
+    /// Unnamed styles will be assigned an automatic name.
     pub fn add_tablestyle(&mut self, mut style: TableStyle) -> TableStyleRef {
         if style.name().is_empty() {
             style.set_name(auto_style_name(&mut self.autonum, "ta", &self.tablestyles));
@@ -502,6 +515,7 @@ impl WorkBook {
     }
 
     /// Adds a style.
+    /// Unnamed styles will be assigned an automatic name.
     pub fn add_rowstyle(&mut self, mut style: RowStyle) -> RowStyleRef {
         if style.name().is_empty() {
             style.set_name(auto_style_name(&mut self.autonum, "ro", &self.rowstyles));
@@ -527,6 +541,7 @@ impl WorkBook {
     }
 
     /// Adds a style.
+    /// Unnamed styles will be assigned an automatic name.
     pub fn add_colstyle(&mut self, mut style: ColStyle) -> ColStyleRef {
         if style.name().is_empty() {
             style.set_name(auto_style_name(&mut self.autonum, "co", &self.colstyles));
@@ -552,6 +567,7 @@ impl WorkBook {
     }
 
     /// Adds a style.
+    /// Unnamed styles will be assigned an automatic name.
     pub fn add_cellstyle(&mut self, mut style: CellStyle) -> CellStyleRef {
         if style.name().is_empty() {
             style.set_name(auto_style_name(&mut self.autonum, "ce", &self.cellstyles));
@@ -577,11 +593,12 @@ impl WorkBook {
     }
 
     /// Adds a style.
+    /// Unnamed styles will be assigned an automatic name.
     pub fn add_paragraphstyle(&mut self, mut style: ParagraphStyle) -> ParagraphStyleRef {
         if style.name().is_empty() {
             style.set_name(auto_style_name(
                 &mut self.autonum,
-                "pa",
+                "para",
                 &self.paragraphstyles,
             ));
         }
@@ -606,9 +623,10 @@ impl WorkBook {
     }
 
     /// Adds a style.
+    /// Unnamed styles will be assigned an automatic name.
     pub fn add_textstyle(&mut self, mut style: TextStyle) -> TextStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "te", &self.textstyles));
+            style.set_name(auto_style_name(&mut self.autonum, "txt", &self.textstyles));
         }
         let sref = style.style_ref();
         self.textstyles.insert(style.name().to_string(), style);
@@ -631,6 +649,7 @@ impl WorkBook {
     }
 
     /// Adds a style.
+    /// Unnamed styles will be assigned an automatic name.
     pub fn add_graphicstyle(&mut self, mut style: GraphicStyle) -> GraphicStyleRef {
         if style.name().is_empty() {
             style.set_name(auto_style_name(
@@ -660,7 +679,11 @@ impl WorkBook {
     }
 
     /// Adds a value format.
-    pub fn add_format(&mut self, vstyle: ValueFormat) -> ValueFormatRef {
+    /// Unnamed formats will be assigned an automatic name.
+    pub fn add_format(&mut self, mut vstyle: ValueFormat) -> ValueFormatRef {
+        if vstyle.name().is_empty() {
+            vstyle.set_name(auto_style_name(&mut self.autonum, "val", &self.formats));
+        }
         let sref = vstyle.format_ref();
         self.formats.insert(vstyle.name().to_string(), vstyle);
         sref
@@ -682,7 +705,11 @@ impl WorkBook {
     }
 
     /// Adds a value PageStyle.
-    pub fn add_pagestyle(&mut self, pstyle: PageStyle) -> PageStyleRef {
+    /// Unnamed formats will be assigned an automatic name.
+    pub fn add_pagestyle(&mut self, mut pstyle: PageStyle) -> PageStyleRef {
+        if pstyle.name().is_empty() {
+            pstyle.set_name(auto_style_name(&mut self.autonum, "page", &self.pagestyles));
+        }
         let sref = pstyle.style_ref();
         self.pagestyles.insert(pstyle.name().to_string(), pstyle);
         sref
@@ -704,7 +731,11 @@ impl WorkBook {
     }
 
     /// Adds a value MasterPage.
-    pub fn add_masterpage(&mut self, mpage: MasterPage) -> MasterPageRef {
+    /// Unnamed formats will be assigned an automatic name.
+    pub fn add_masterpage(&mut self, mut mpage: MasterPage) -> MasterPageRef {
+        if mpage.name().is_empty() {
+            mpage.set_name(auto_style_name(&mut self.autonum, "mp", &self.masterpages));
+        }
         let sref = mpage.masterpage_ref();
         self.masterpages.insert(mpage.name().to_string(), mpage);
         sref
@@ -723,6 +754,32 @@ impl WorkBook {
     /// Returns the mutable MasterPage.
     pub fn masterpage_mut(&mut self, name: &str) -> Option<&mut MasterPage> {
         self.masterpages.get_mut(name)
+    }
+
+    /// Adds a Validation.
+    /// Nameless validations will be assigned a name.
+    pub fn add_validation(&mut self, mut valid: Validation) -> ValidationRef {
+        if valid.name().is_empty() {
+            valid.set_name(auto_style_name(&mut self.autonum, "val", &self.validations));
+        }
+        let vref = valid.validation_ref();
+        self.validations.insert(valid.name().to_string(), valid);
+        vref
+    }
+
+    /// Removes a Validation.
+    pub fn remove_validation(&mut self, name: &str) -> Option<Validation> {
+        self.validations.remove(name)
+    }
+
+    /// Returns the Validation.
+    pub fn validation(&self, name: &str) -> Option<&Validation> {
+        self.validations.get(name)
+    }
+
+    /// Returns a mutable Validation.
+    pub fn validation_mut(&mut self, name: &str) -> Option<&mut Validation> {
+        self.validations.get_mut(name)
     }
 }
 
@@ -1358,6 +1415,21 @@ impl Sheet {
         }
     }
 
+    /// Sets a content-validation for this cell.
+    pub fn set_validation(&mut self, row: ucell, col: ucell, validation: &ValidationRef) {
+        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        cell.validation = Some(validation.to_string());
+    }
+
+    /// Returns a content-validation name for this cell.
+    pub fn validation(&self, row: ucell, col: ucell) -> Option<&String> {
+        if let Some(c) = self.data.get(&(row, col)) {
+            c.validation.as_ref()
+        } else {
+            None
+        }
+    }
+
     /// Sets the rowspan of the cell. Must be greater than 0.
     pub fn set_row_span(&mut self, row: ucell, col: ucell, span: ucell) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
@@ -1573,6 +1645,8 @@ pub struct SCell {
     formula: Option<String>,
     // Cell style name.
     style: Option<String>,
+    // Content validation name.
+    validation: Option<String>,
     // Row/Column span.
     span: (ucell, ucell),
 }
@@ -1584,6 +1658,7 @@ impl SCell {
             value: Value::Empty,
             formula: None,
             style: None,
+            validation: None,
             span: (1, 1),
         }
     }
@@ -1616,6 +1691,16 @@ impl SCell {
     /// Sets the cell style.
     pub fn set_style(&mut self, style: &CellStyleRef) {
         self.style = Some(style.to_string());
+    }
+
+    /// Returns the validation name.
+    pub fn validation(&self) -> Option<&String> {
+        self.validation.as_ref()
+    }
+
+    /// Sets the validation name.
+    pub fn set_validation(&mut self, validation: &ValidationRef) {
+        self.validation = Some(validation.to_string());
     }
 
     /// Sets the row span of this cell.

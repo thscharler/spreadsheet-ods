@@ -6,6 +6,7 @@
 //! use spreadsheet_ods::style::{StyleOrigin, StyleUse, CellStyle};
 //! use color::Rgb;
 //! use spreadsheet_ods::style::stylemap::StyleMap;
+//! use spreadsheet_ods::condition::ValueCondition;
 //!
 //! let mut wb = WorkBook::new();
 //!
@@ -20,8 +21,8 @@
 //! wb.add_cellstyle(st);
 //!
 //! let mut st = CellStyle::new("ce13", &"num4".into());
-//! st.push_stylemap(StyleMap::new("cell-content()=\"BB\"", "ce12", CellRef::remote("sheet0", 4, 3)));
-//! st.push_stylemap(StyleMap::new("cell-content()=\"CC\"", "ce11", CellRef::remote("sheet0", 4, 3)));
+//! st.push_stylemap(StyleMap::new(ValueCondition::content_eq("BB"), "ce12", CellRef::remote("sheet0", 4, 3)));
+//! st.push_stylemap(StyleMap::new(ValueCondition::content_eq("CC"), "ce11", CellRef::remote("sheet0", 4, 3)));
 //! wb.add_cellstyle(st);
 //! ```
 //! Styles can be defined in content.xml or as global styles in styles.xml. This
@@ -33,6 +34,21 @@
 //!
 //! Styles can also link to a parent style and to a pagelayout.
 //!
+
+use color::Rgb;
+
+pub use cellstyle::*;
+pub use colstyle::*;
+pub use fontface::*;
+pub use graphicstyle::*;
+pub use masterpage::*;
+pub use pagestyle::*;
+pub use paragraphstyle::*;
+pub use rowstyle::*;
+pub use tablestyle::*;
+pub use textstyle::*;
+
+use crate::style::units::{Border, Length};
 
 mod cellstyle;
 mod colstyle;
@@ -47,20 +63,6 @@ mod tablestyle;
 pub mod tabstop;
 mod textstyle;
 pub mod units;
-
-pub use cellstyle::*;
-pub use colstyle::*;
-pub use fontface::*;
-pub use graphicstyle::*;
-pub use masterpage::*;
-pub use pagestyle::*;
-pub use paragraphstyle::*;
-pub use rowstyle::*;
-pub use tablestyle::*;
-pub use textstyle::*;
-
-use crate::style::units::{Border, Length};
-use color::Rgb;
 
 /// Origin of a style. Content.xml or Styles.xml.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

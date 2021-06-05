@@ -132,6 +132,27 @@ impl CellRef {
 
         buf
     }
+
+    /// Makes this CellReference into an absolute reference.
+    pub fn absolute(mut self) -> Self {
+        self.col_abs = true;
+        self.row_abs = true;
+        self
+    }
+
+    /// Makes this CellReference into an absolute reference.
+    /// The column remains relative, the row is fixed.
+    pub fn absolute_row(mut self) -> Self {
+        self.row_abs = true;
+        self
+    }
+
+    /// Makes this CellReference into an absolute reference.
+    /// The row remains relative, the column is fixed.
+    pub fn absolute_col(mut self) -> Self {
+        self.col_abs = true;
+        self
+    }
 }
 
 /// A cell-range.
@@ -317,6 +338,31 @@ impl CellRange {
         push_cellrange(&mut buf, self);
         buf.push(']');
         buf
+    }
+
+    /// Makes this CellReference into an absolute reference.
+    pub fn absolute(mut self) -> Self {
+        self.col_abs = true;
+        self.row_abs = true;
+        self.to_col_abs = true;
+        self.to_row_abs = true;
+        self
+    }
+
+    /// Makes this CellReference into an absolute reference.
+    /// The columns remain relative, the rows are fixed.
+    pub fn absolute_rows(mut self) -> Self {
+        self.row_abs = true;
+        self.to_row_abs = true;
+        self
+    }
+
+    /// Makes this CellReference into an absolute reference.
+    /// The rows remain relative, the columns are fixed.
+    pub fn absolute_cols(mut self) -> Self {
+        self.col_abs = true;
+        self.to_col_abs = true;
+        self
     }
 
     /// Does the range contain the cell.

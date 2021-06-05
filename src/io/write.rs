@@ -17,6 +17,7 @@ use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
     ParagraphStyle, RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
+use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{ucell, Length, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
 
@@ -829,12 +830,13 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), Ods
             tag.name() == "text:dde-connection-decls" ||
             // tag.name() == "text:alphabetical-index-auto-mark-file" ||
             tag.name() == "table:calculation-settings" ||
-            tag.name() == "table:content-validations" ||
             tag.name() == "table:label-ranges"
         {
             write_xmltag(tag, &mut xml_out)?;
         }
     }
+
+    write_content_validations(&book, &mut xml_out)?;
 
     for sheet in &book.sheets {
         write_sheet(&book, sheet, &mut xml_out)?;
@@ -857,6 +859,40 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), Ods
     xml_out.end_elem("office:document-content")?;
 
     xml_out.close()?;
+
+    Ok(())
+}
+
+fn write_content_validations(book: &WorkBook, xml_out: &mut XmlOdsWriter) -> Result<(), OdsError> {
+    xml_out.elem("table:content-validations")?;
+
+    for (_, valid) in &book.validations {
+        xml_out.elem("table:content-validation")?;
+        xml_out.attr_esc("table:name", valid.name())?;
+        let mut cond = "of:".to_string();
+        cond.push_str(valid.condition());
+        xml_out.attr_esc("table:condition", cond.as_str())?;
+        xml_out.attr(
+            "table:allow-empty-cell",
+            if valid.allow_empty() { "true" } else { "false" },
+        )?;
+        xml_out.attr(
+            "table:display-list",
+            match valid.display() {
+                ValidationDisplay::NoDisplay => "no",
+                ValidationDisplay::Unsorted => "unsorted",
+                ValidationDisplay::SortAscending => "sort-ascending",
+            },
+        )?;
+        xml_out.attr_esc("table:base-cell-address", &valid.base_cell().to_string())?;
+
+        xml_out.empty("table:error-message")?;
+        xml_out.attr("table:message-type", "stop")?;
+        xml_out.attr("table:display", "true")?;
+
+        xml_out.end_elem("table:content-validation")?;
+    }
+    xml_out.end_elem("table:content-validations")?;
 
     Ok(())
 }
@@ -1313,6 +1349,9 @@ fn write_cell(
         xml_out.attr_esc("table:style-name", style.as_str())?;
     } else if let Some(style) = book.def_style(cell.value.value_type()) {
         xml_out.attr_esc("table:style-name", style.as_str())?;
+    }
+    if let Some(validation) = &cell.validation {
+        xml_out.attr("table:content-validation-name", validation.as_str())?;
     }
 
     // Spans
