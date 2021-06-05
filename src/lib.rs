@@ -182,7 +182,6 @@ mod unit_macro;
 #[macro_use]
 mod ref_macro;
 mod attrmap2;
-pub mod colnames;
 pub mod condition;
 mod config;
 pub mod defaultstyles;
@@ -191,8 +190,8 @@ pub mod error;
 pub mod format;
 pub mod formula;
 mod io;
+mod mapstruct;
 pub mod refs;
-pub mod sheetview;
 pub mod style;
 pub mod text;
 pub mod validation;
