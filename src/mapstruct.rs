@@ -1,10 +1,47 @@
 use std::cell::RefCell;
-use std::collections::BTreeMap;
-use std::fmt::{Debug, Formatter};
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, HashSet};
+use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 
 use crate::{ucell, Sheet, Value};
 
+#[derive(Debug)]
+pub enum MapError<K, V>
+where
+    K: Debug,
+    V: Debug,
+{
+    InsertDuplicate(V),
+    NotUpdated(V),
+    KeyError(K, String),
+    ValueError(V, String),
+}
+
+impl<K, V> Display for MapError<K, V>
+where
+    K: Debug,
+    V: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MapError::InsertDuplicate(v) => {
+                write!(f, "Duplicate key inserted: {:?}", v)
+            }
+            MapError::NotUpdated(v) => {
+                write!(f, "Key already exists. Not inserted: {:?}", v)
+            }
+            MapError::KeyError(k, msg) => {
+                write!(f, "Key error: {} {:?}", msg, k)
+            }
+            MapError::ValueError(v, msg) => {
+                write!(f, "Value error: {} {:?}", msg, v)
+            }
+        }
+    }
+}
+
+/// Provides a basic view into the sheet data. Can shift the index for access.
 #[derive(Debug)]
 pub struct SheetView<'a> {
     sheet: &'a mut Sheet,
@@ -18,12 +55,14 @@ impl<'a> SheetView<'a> {
         Self { sheet, drow, dcol }
     }
 
+    /// Changes the value in the sheet.
     pub fn set_value<V: Into<Value>>(&mut self, row: ucell, col: ucell, value: V) {
         let row = self.drow + row;
         let col = self.dcol + col;
         self.sheet.set_value(row, col, value);
     }
 
+    /// Gets the value from the sheet.
     pub fn value(&self, row: ucell, col: ucell) -> &Value {
         let row = self.drow + row;
         let col = self.dcol + col;
@@ -31,40 +70,62 @@ impl<'a> SheetView<'a> {
     }
 }
 
-pub trait Record<K, V> {
-    fn primary(&self, val: &V) -> K;
+/// Any struct can implement this to load/store data from a row
+/// in a sheet.
+pub trait Recorder<K, V>
+where
+    K: Debug,
+    V: Debug,
+{
+    /// Returns the primary key for the value.
+    fn primary_key(&self, val: &V) -> K;
+
+    /// Returns a header that is used for the sheet.
     fn def_header(&self) -> Option<&'static [&'static str]>;
-    fn load(&self, sheet: &SheetView, n: u32) -> Option<V>;
-    fn store(&self, sheet: &mut SheetView, n: u32, val: &V);
+
+    /// Loads from the sheet. None indicates there is no more data.
+    fn load(&self, sheet: &SheetView, n: u32) -> Result<Option<V>, MapError<K, V>>;
+
+    /// Stores to the sheet.
+    fn store(&self, sheet: &mut SheetView, n: u32, val: &V) -> Result<(), MapError<K, V>>;
 }
 
-pub trait IndexValueToKey<V, K>
+/// Extracts further keys from the data. This is used by Index2 to
+/// allow for extra indizes.
+pub trait ExtractKey<V, K>
 where
     K: Clone,
 {
     fn key<'a>(&self, val: &'a V) -> &'a K;
 }
 
+/// Links the extra indexes to the main storage.
 pub trait IndexBackend<V> {
+    /// Clears the index.
     fn clear(&mut self);
+
+    /// A value has been inserted.
     fn insert(&mut self, value: &V, idx: usize);
-    fn remove(&mut self, value: &V);
+
+    /// A value has been removed.
+    fn remove(&mut self, value: &V, idx: usize);
 }
 
+/// Implements an extra index into the data.
 pub struct Index2<I, K, V>
 where
-    I: IndexValueToKey<V, K> + Debug,
+    I: ExtractKey<V, K> + Debug,
     K: Ord + Clone + Debug,
     V: Debug,
 {
-    indexer: I,
-    index: BTreeMap<K, usize>,
+    extract_key: I,
+    index: BTreeMap<K, HashSet<usize>>,
     data: PhantomData<V>,
 }
 
 impl<I, K, V> Debug for Index2<I, K, V>
 where
-    I: IndexValueToKey<V, K> + Debug,
+    I: ExtractKey<V, K> + Debug,
     K: Ord + Clone + Debug,
     V: Debug,
 {
@@ -77,97 +138,102 @@ where
 
 impl<I, K2, V> Index2<I, K2, V>
 where
-    I: IndexValueToKey<V, K2> + Debug,
+    I: ExtractKey<V, K2> + Debug,
     K2: Ord + Clone + Debug,
     V: Debug,
 {
-    pub fn new(indexer: I) -> RefCell<Index2<I, K2, V>> {
+    /// Creates an extra index for the data.
+    /// The index must be added to the matching MapSheet to be active.
+    pub fn new(extract: I) -> RefCell<Index2<I, K2, V>> {
         RefCell::new(Self {
-            indexer,
+            extract_key: extract,
             index: Default::default(),
             data: Default::default(),
         })
     }
 
-    pub fn find(&self, key: K2) -> Option<usize> {
+    /// Returns the indexes where this key occurs.
+    pub fn find(&self, key: K2) -> Option<&HashSet<usize>> {
         if let Some(idx) = self.index.get(&key) {
-            Some(*idx)
+            Some(idx)
         } else {
             None
         }
     }
 
-    fn clear_impl(&mut self) {
-        self.index.clear();
-    }
-
-    fn insert_impl(&mut self, value: &V, idx: usize) {
-        let key = self.indexer.key(value);
-        self.index.insert(key.clone(), idx);
-    }
-
-    fn remove_impl(&mut self, value: &V) {
-        let key = self.indexer.key(value);
-        self.index.remove(&key);
-    }
+    // todo: more
 }
 
 impl<I, K, V> IndexBackend<V> for Index2<I, K, V>
 where
-    I: IndexValueToKey<V, K> + Debug,
+    I: ExtractKey<V, K> + Debug,
     K: Ord + Clone + Debug,
     V: Debug,
 {
+    /// Function for MapSheet to clear the index.
     fn clear(&mut self) {
-        self.clear_impl();
+        self.index.clear();
     }
 
+    /// Inserts a value to the index.
     fn insert(&mut self, value: &V, idx: usize) {
-        self.insert_impl(value, idx);
+        let key = self.extract_key.key(value);
+        let row_set = self
+            .index
+            .entry(key.clone())
+            .or_insert_with(|| HashSet::new());
+        row_set.insert(idx);
     }
 
-    fn remove(&mut self, value: &V) {
-        self.remove_impl(value);
+    /// Removes a value from the index.
+    fn remove(&mut self, value: &V, idx: usize) {
+        let key = self.extract_key.key(value);
+        let row_set = self.index.get_mut(key);
+        if let Some(row_set) = row_set {
+            row_set.remove(&idx);
+            if row_set.is_empty() {
+                self.index.remove(key);
+            }
+        }
     }
 }
 
-pub fn link_index<'a, I, K1, R, K2, V>(
-    index: &'a RefCell<Index2<I, K1, V>>,
-    mapsheet: &mut MapSheet<'a, R, K2, V>,
-) where
-    I: IndexValueToKey<V, K1> + Debug + 'static,
-    K1: Ord + Clone + Debug + 'static,
-    R: Record<K2, V> + Debug,
-    K2: Ord + Clone + Debug,
-    V: Debug + 'static,
-{
-    let other_self: &RefCell<dyn IndexBackend<V>> = index;
-    mapsheet.add_index(other_self);
-}
-
+/// Allows to access row oriented data in a sheet.
+///
+/// There is a mapping trait Recorder to load/store the data.
+///
+/// A primary index is always kept, and more indexes can be attached.
+///
+/// Constraints
+/// The inserted value can be modified in place, but any value that is
+/// part of a index must not be touched. For those cases a clone should be
+/// made and the update function be called.
+///
 pub struct MapSheet<'a, R, K, V>
 where
-    R: Record<K, V> + Debug,
+    R: Recorder<K, V> + Debug,
     K: Ord + Clone + Debug,
     V: Debug,
 {
-    record: R,
-    load_size: usize,
+    /// Mapping trait.
+    recorder: R,
+    /// Data. Deletes only set the option to None to keep the indexes alive.
     data: Vec<Option<V>>,
+    /// Primary index in the data.
     primary_index: BTreeMap<K, usize>,
+    /// Extra indexes.
     indexes: Vec<&'a RefCell<dyn IndexBackend<V>>>,
 }
 
 impl<'a, R, K, V> Debug for MapSheet<'a, R, K, V>
 where
-    R: Record<K, V> + Debug,
+    R: Recorder<K, V> + Debug,
     K: Ord + Clone + Debug,
     V: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "MapSheet (")?;
-        writeln!(f, "    record {:?}", self.record)?;
-        writeln!(f, "    load_size {:?}", self.load_size)?;
+        writeln!(f, "    record {:?}", self.recorder)?;
         writeln!(f, "    data {:?}", self.data)?;
         writeln!(f, "    primary {:?}", self.primary_index)?;
         writeln!(f, "    indexes {:?}", self.indexes.len())?;
@@ -178,24 +244,25 @@ where
 #[allow(dead_code)]
 impl<'a, R, K, V> MapSheet<'a, R, K, V>
 where
-    R: Record<K, V> + Debug,
+    R: Recorder<K, V> + Debug,
     K: Ord + Clone + Debug,
     V: Debug,
 {
+    /// Creates a new map.
     pub fn new(record: R) -> Self {
         Self {
-            record,
-            load_size: 0,
+            recorder: record,
             primary_index: Default::default(),
             data: Default::default(),
             indexes: vec![],
         }
     }
 
+    /// Links an index.
     pub fn add_index(&mut self, index: &'a RefCell<dyn IndexBackend<V>>) {
         self.indexes.push(index);
 
-        let index = self.indexes.last().unwrap();
+        let index = *self.indexes.last().unwrap();
 
         // Update all other indexes.
         for (idx, val) in self.data.iter().enumerate() {
@@ -205,16 +272,177 @@ where
         }
     }
 
-    pub fn store(&mut self, sheet: &mut Sheet) {
+    /// Returns the number of values in the map.
+    pub fn len(&self) -> usize {
+        self.primary_index.len()
+    }
+
+    /// Returns the length of the underlying data vec. Not the same as
+    /// the number of actual values in this map.
+    pub fn len_vec(&self) -> usize {
+        self.data.len()
+    }
+
+    /// Finds via the primary key.
+    pub fn find_idx(&self, pkey: &K) -> Option<usize> {
+        self.primary_index.get(pkey).map(|v| *v)
+    }
+
+    /// Access to the underlying data vec. May return None if the value
+    /// was deleted.
+    pub fn get_idx(&self, idx: usize) -> Option<&V> {
+        if let Some(value) = self.data.get(idx) {
+            value.as_ref()
+        } else {
+            None
+        }
+    }
+
+    /// Access to the underlying data vec. May return None if the value
+    /// was delete.
+    pub fn get_idx_mut(&mut self, idx: usize) -> Option<&mut V> {
+        if let Some(value) = self.data.get_mut(idx) {
+            value.as_mut()
+        } else {
+            None
+        }
+    }
+
+    /// Removes via the index.
+    pub fn remove_idx(&mut self, idx: usize) -> Option<V> {
+        if let Some(value) = self.data.get_mut(idx) {
+            // changes the value to None
+            if let Some(value) = value.take() {
+                // clear indexes
+                let key = self.recorder.primary_key(&value);
+                self.primary_index.remove(&key);
+
+                for index in &self.indexes {
+                    (*index).borrow_mut().remove(&value, idx);
+                }
+                Some(value)
+            } else {
+                // already removed, fine
+                None
+            }
+        } else {
+            // index error, fine
+            None
+        }
+    }
+
+    /// Finds via the primary key.
+    pub fn get_mut(&mut self, pkey: &K) -> Option<&mut V> {
+        if let Some(idx) = self.primary_index.get(pkey).map(|v| *v) {
+            if let Some(value) = self.data.get_mut(idx) {
+                value.as_mut()
+            } else {
+                panic!("key was already deleted, but could be found?");
+            }
+        } else {
+            // index error, fine
+            None
+        }
+    }
+
+    /// Finds via the primary key.
+    pub fn get(&self, pkey: &K) -> Option<&V> {
+        if let Some(idx) = self.primary_index.get(pkey).map(|v| *v) {
+            if let Some(value) = self.data.get(idx) {
+                value.as_ref()
+            } else {
+                panic!("key was already deleted, but could be found?");
+            }
+        } else {
+            // not found, fine
+            None
+        }
+    }
+
+    /// Adds a new value.
+    /// Fails if the primary key already exists.
+    pub fn insert(&mut self, value: V) -> Result<(), MapError<K, V>> {
+        let key = self.recorder.primary_key(&value);
+        if self.primary_index.contains_key(&key) {
+            return Err(MapError::InsertDuplicate(value));
+        }
+
+        let idx = self.data.len();
+
+        self.primary_index.insert(key, idx);
+        for index in &self.indexes {
+            (*index).borrow_mut().insert(&value, idx);
+        }
+
+        self.data.push(Some(value));
+
+        Ok(())
+    }
+
+    /// Updates the record with the *old* key and modifies the value.
+    /// Returns the old value on success.
+    pub fn update(&mut self, old_key: &K, new_value: V) -> Result<Option<V>, MapError<K, V>> {
+        // Does the old key exist?
+        if let Some(idx) = self.primary_index.get(old_key).map(|v| *v) {
+            let new_key = self.recorder.primary_key(&new_value);
+
+            // the new key must not exist.
+            if old_key.cmp(&new_key) != Ordering::Equal {
+                if self.primary_index.contains_key(&new_key) {
+                    return Err(MapError::InsertDuplicate(new_value));
+                }
+            }
+
+            let old_value = self.data[idx]
+                .take()
+                .expect("key was already deleted, but could be found?");
+
+            // remove primary
+            self.primary_index.remove(&old_key);
+            // remove other indexes
+            for index in &self.indexes {
+                (*index).borrow_mut().remove(&old_value, idx);
+            }
+
+            // add primary
+            self.primary_index.insert(new_key, idx);
+            // add other indexes
+            for index in &self.indexes {
+                (*index).borrow_mut().insert(&new_value, idx);
+            }
+
+            self.data[idx] = Some(new_value);
+
+            Ok(Some(old_value))
+        } else {
+            Err(MapError::NotUpdated(new_value))
+        }
+    }
+
+    /// Removes a value via the primary key.
+    pub fn remove(&mut self, key: &K) -> Option<V> {
+        let idx = self.find_idx(key);
+        if let Some(idx) = idx {
+            self.remove_idx(idx)
+        } else {
+            None
+        }
+    }
+
+    // todo: find, iter, ...
+
+    /// Stores the data back to the sheet. The data is stored in the
+    /// ordering of the primary key.
+    pub fn store(&mut self, sheet: &mut Sheet) -> Result<(), MapError<K, V>> {
         // store header
-        if let Some(header) = self.record.def_header() {
+        if let Some(header) = self.recorder.def_header() {
             for (col, hd) in header.iter().enumerate() {
                 sheet.set_value(0, col as ucell, *hd);
             }
         }
 
         // header data
-        let row = if self.record.def_header().is_none() {
+        let row = if self.recorder.def_header().is_none() {
             0
         } else {
             1
@@ -229,7 +457,7 @@ where
             if let Some(val) = val {
                 // or removed
                 if let Some(val) = val {
-                    self.record.store(&mut view, row, val);
+                    self.recorder.store(&mut view, row, val)?;
                 }
             }
             row += 1;
@@ -244,16 +472,21 @@ where
         for k in keys {
             sheet.remove_cell(k.0, k.1);
         }
+
+        Ok(())
     }
 
-    pub fn load(&mut self, sheet: &mut Sheet) {
+    /// Loads the data from the sheet.
+    pub fn load(&mut self, sheet: &mut Sheet) -> Result<(), MapError<K, V>> {
         // reset
         self.data = Default::default();
         self.primary_index = Default::default();
-        self.load_size = 0;
+        for index in &self.indexes {
+            (*index).borrow_mut().clear();
+        }
 
         // header data
-        let row = if self.record.def_header().is_none() {
+        let row = if self.recorder.def_header().is_none() {
             0
         } else {
             1
@@ -264,13 +497,22 @@ where
 
         let mut row = 0;
         loop {
-            let val = self.record.load(&mut view, row);
-            println!("{:?}", val);
+            let value = self.recorder.load(&mut view, row)?;
 
-            if let Some(val) = val {
-                let key = self.record.primary(&val);
-                self.primary_index.insert(key, row as usize);
-                self.data.push(Some(val));
+            if let Some(value) = value {
+                // insert into primary index
+                let key = self.recorder.primary_key(&value);
+                if let Some(_) = self.primary_index.insert(key, row as usize) {
+                    return Err(MapError::InsertDuplicate(value));
+                }
+
+                // other indexes
+                for index in &self.indexes {
+                    (*index).borrow_mut().insert(&value, row as usize);
+                }
+
+                // data
+                self.data.push(Some(value));
             } else {
                 break;
             }
@@ -278,128 +520,6 @@ where
             row += 1;
         }
 
-        // Update all other indexes.
-        for (idx, val) in self.data.iter().enumerate() {
-            if let Some(val) = val {
-                for index in &self.indexes {
-                    index.borrow_mut().insert(val, idx);
-                }
-            }
-        }
-
-        self.load_size = self.data.len();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::mapstruct::{link_index, Index2, IndexValueToKey, MapSheet, Record, SheetView};
-    use crate::{Sheet, WorkBook};
-
-    #[derive(Debug, Default)]
-    pub struct Artikel {
-        pub artnr: u32,
-        pub artbez: String,
-        pub grp1: String,
-        pub vkp1: f64,
-        pub ust: f64,
-        pub vkeh: String,
-        pub aktiv: bool,
-        pub bestand: u32,
-    }
-
-    #[derive(Default, Debug)]
-    pub struct ArtikelRecord {}
-
-    impl Record<u32, Artikel> for ArtikelRecord {
-        fn primary(&self, val: &Artikel) -> u32 {
-            val.artnr
-        }
-
-        fn def_header(&self) -> Option<&'static [&'static str]> {
-            Some(&[
-                "ArtNr",
-                "Bezeichnung",
-                "Gruppe",
-                "VK",
-                "USt",
-                "EH",
-                "Aktiv",
-                "Bestand",
-            ])
-        }
-
-        fn load(&self, sheet: &SheetView, n: u32) -> Option<Artikel> {
-            if let Some(artnr) = sheet.value(n, 0).as_u32_opt() {
-                let mut artikel = Artikel::default();
-                artikel.artnr = artnr;
-                artikel.artbez = sheet.value(n, 1).as_str_or("").to_string();
-                artikel.grp1 = sheet.value(n, 2).as_str_or("").to_string();
-                artikel.vkp1 = sheet.value(n, 3).as_f64_or(0f64);
-                artikel.ust = sheet.value(n, 4).as_f64_or(0f64);
-                artikel.vkeh = sheet.value(n, 5).as_str_or("").to_string();
-                artikel.aktiv = sheet.value(n, 6).as_bool_or(true);
-                artikel.bestand = sheet.value(n, 7).as_u32_or(0);
-                Some(artikel)
-            } else {
-                None
-            }
-        }
-
-        fn store(&self, sheet: &mut SheetView, n: u32, val: &Artikel) {
-            sheet.set_value(n, 0, val.artnr);
-            sheet.set_value(n, 1, val.artbez.clone());
-            sheet.set_value(n, 2, val.grp1.clone());
-            sheet.set_value(n, 3, val.vkp1);
-            sheet.set_value(n, 4, val.ust);
-            sheet.set_value(n, 5, val.vkeh.clone());
-            sheet.set_value(n, 6, val.aktiv);
-            sheet.set_value(n, 7, val.bestand);
-        }
-    }
-
-    #[derive(Debug)]
-    pub struct ArtbezIndex {}
-
-    impl IndexValueToKey<Artikel, String> for ArtbezIndex {
-        fn key<'a>(&self, val: &'a Artikel) -> &'a String {
-            &val.artbez
-        }
-    }
-
-    #[derive(Debug)]
-    pub struct GrpIndex {}
-
-    impl IndexValueToKey<Artikel, String> for GrpIndex {
-        fn key<'a>(&self, val: &'a Artikel) -> &'a String {
-            &val.grp1
-        }
-    }
-
-    #[test]
-    fn test_struct() {
-        let mut _book = WorkBook::new();
-
-        let mut sheet = Sheet::new_with_name("artikel");
-        for idx in 1..9 {
-            sheet.set_value(idx, 0, 201 + idx);
-            sheet.set_value(idx, 1, format!("sample{}", idx));
-        }
-
-        let mut map0 = MapSheet::new(ArtikelRecord::default());
-        map0.load(&mut sheet);
-        dbg!(&map0);
-
-        let mut idx0 = Index2::new(ArtbezIndex {});
-        map0.add_index(&idx0);
-
-        let mut idx1 = Index2::new(GrpIndex {});
-        link_index(&idx1, &mut map0);
-
-        idx0.borrow().find("sample".to_string());
-
-        dbg!(&map0);
-        dbg!(&idx0);
-        dbg!(&idx1);
+        Ok(())
     }
 }

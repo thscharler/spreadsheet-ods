@@ -190,7 +190,7 @@ pub mod error;
 pub mod format;
 pub mod formula;
 mod io;
-mod mapstruct;
+pub mod mapstruct;
 pub mod refs;
 pub mod style;
 pub mod text;
