@@ -7,11 +7,7 @@ use std::marker::PhantomData;
 use crate::{ucell, Sheet, Value};
 
 #[derive(Debug)]
-pub enum MapError<K, V>
-where
-    K: Debug,
-    V: Debug,
-{
+pub enum MapError<K, V> {
     InsertDuplicate(V),
     NotUpdated(V),
     KeyError(K, String),
@@ -72,11 +68,7 @@ impl<'a> SheetView<'a> {
 
 /// Any struct can implement this to load/store data from a row
 /// in a sheet.
-pub trait Recorder<K, V>
-where
-    K: Debug,
-    V: Debug,
-{
+pub trait Recorder<K, V> {
     /// Returns the primary key for the value.
     fn primary_key(&self, val: &V) -> K;
 
@@ -84,18 +76,15 @@ where
     fn def_header(&self) -> Option<&'static [&'static str]>;
 
     /// Loads from the sheet. None indicates there is no more data.
-    fn load(&self, sheet: &SheetView, n: u32) -> Result<Option<V>, MapError<K, V>>;
+    fn load(&self, sheet: &SheetView, row: u32) -> Result<Option<V>, MapError<K, V>>;
 
     /// Stores to the sheet.
-    fn store(&self, sheet: &mut SheetView, n: u32, val: &V) -> Result<(), MapError<K, V>>;
+    fn store(&self, sheet: &mut SheetView, row: u32, val: &V) -> Result<(), MapError<K, V>>;
 }
 
 /// Extracts further keys from the data. This is used by Index2 to
 /// allow for extra indizes.
-pub trait ExtractKey<V, K>
-where
-    K: Clone,
-{
+pub trait ExtractKey<V, K> {
     fn key<'a>(&self, val: &'a V) -> &'a K;
 }
 
@@ -114,9 +103,8 @@ pub trait IndexBackend<V> {
 /// Implements an extra index into the data.
 pub struct Index2<I, K, V>
 where
-    I: ExtractKey<V, K> + Debug,
-    K: Ord + Clone + Debug,
-    V: Debug,
+    I: ExtractKey<V, K>,
+    K: Ord + Clone,
 {
     extract_key: I,
     index: BTreeMap<K, HashSet<usize>>,
@@ -125,9 +113,8 @@ where
 
 impl<I, K, V> Debug for Index2<I, K, V>
 where
-    I: ExtractKey<V, K> + Debug,
+    I: ExtractKey<V, K>,
     K: Ord + Clone + Debug,
-    V: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Index2 (")?;
@@ -138,9 +125,8 @@ where
 
 impl<I, K2, V> Index2<I, K2, V>
 where
-    I: ExtractKey<V, K2> + Debug,
-    K2: Ord + Clone + Debug,
-    V: Debug,
+    I: ExtractKey<V, K2>,
+    K2: Ord + Clone,
 {
     /// Creates an extra index for the data.
     /// The index must be added to the matching MapSheet to be active.
@@ -166,9 +152,8 @@ where
 
 impl<I, K, V> IndexBackend<V> for Index2<I, K, V>
 where
-    I: ExtractKey<V, K> + Debug,
-    K: Ord + Clone + Debug,
-    V: Debug,
+    I: ExtractKey<V, K>,
+    K: Ord + Clone,
 {
     /// Function for MapSheet to clear the index.
     fn clear(&mut self) {
@@ -211,9 +196,8 @@ where
 ///
 pub struct MapSheet<'a, R, K, V>
 where
-    R: Recorder<K, V> + Debug,
-    K: Ord + Clone + Debug,
-    V: Debug,
+    R: Recorder<K, V>,
+    K: Ord + Clone,
 {
     /// Mapping trait.
     recorder: R,
@@ -227,13 +211,12 @@ where
 
 impl<'a, R, K, V> Debug for MapSheet<'a, R, K, V>
 where
-    R: Recorder<K, V> + Debug,
+    R: Recorder<K, V>,
     K: Ord + Clone + Debug,
     V: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "MapSheet (")?;
-        writeln!(f, "    record {:?}", self.recorder)?;
         writeln!(f, "    data {:?}", self.data)?;
         writeln!(f, "    primary {:?}", self.primary_index)?;
         writeln!(f, "    indexes {:?}", self.indexes.len())?;
@@ -244,9 +227,8 @@ where
 #[allow(dead_code)]
 impl<'a, R, K, V> MapSheet<'a, R, K, V>
 where
-    R: Recorder<K, V> + Debug,
-    K: Ord + Clone + Debug,
-    V: Debug,
+    R: Recorder<K, V>,
+    K: Ord + Clone,
 {
     /// Creates a new map.
     pub fn new(record: R) -> Self {
