@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt::{Debug, Display, Formatter};
-use std::marker::PhantomData;
 use std::rc::Rc;
 
 use crate::{ucell, OdsError, Sheet, Value};
@@ -109,6 +108,8 @@ pub enum IndexChecks {
 
 /// Links the extra indexes to the main storage.
 pub trait IndexBackend<V> {
+    fn name(&self) -> &str;
+
     /// Clears the index.
     fn clear(&mut self);
 
@@ -123,13 +124,102 @@ pub trait IndexBackend<V> {
 }
 
 /// Implements an extra index into the data.
+pub struct Index1<K, V>
+where
+    K: Ord + Clone,
+{
+    name: String,
+    extract_key: Box<dyn ExtractKey<K, V> + 'static>,
+    index: BTreeMap<K, usize>,
+}
+
+impl<K, V> Debug for Index1<K, V>
+where
+    K: Ord + Clone + Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Index1 {}", self.name)?;
+        writeln!(f, "{:?}", self.index)?;
+        Ok(())
+    }
+}
+
+impl<K2, V> Index1<K2, V>
+where
+    K2: Ord + Clone,
+{
+    /// Creates an extra index for the data.
+    /// The index must be added to the matching MapSheet to be active.
+    pub fn new<I: 'static + ExtractKey<K2, V>>(extract: I) -> Rc<RefCell<Index1<K2, V>>> {
+        Rc::new(RefCell::new(Self {
+            name: "".to_string(),
+            extract_key: Box::new(extract),
+            index: Default::default(),
+        }))
+    }
+
+    pub fn set_name(&mut self, name: &str) {
+        self.name = name.to_string()
+    }
+
+    /// Returns the indexes where this key occurs.
+    pub fn find(&self, key: &K2) -> Option<usize> {
+        if let Some(idx) = self.index.get(key) {
+            Some(*idx)
+        } else {
+            None
+        }
+    }
+
+    // todo: more
+}
+
+impl<K, V> IndexBackend<V> for Index1<K, V>
+where
+    K: Ord + Clone,
+{
+    fn name(&self) -> &str {
+        self.name.as_ref()
+    }
+
+    /// Function for MapSheet to clear the index.
+    fn clear(&mut self) {
+        self.index.clear();
+    }
+
+    /// Checks for any constraint violations.
+    fn check(&mut self, value: &V, _idx: usize) -> IndexChecks {
+        let key = self.extract_key.key(value);
+        if self.index.contains_key(key) {
+            IndexChecks::UniqueViolation
+        } else {
+            IndexChecks::Fine
+        }
+    }
+
+    /// Inserts a value to the index.
+    fn insert(&mut self, value: &V, idx: usize) {
+        let key = self.extract_key.key(value);
+        if self.index.insert(key.clone(), idx).is_some() {
+            panic!("cuplicate key inserted");
+        }
+    }
+
+    /// Removes a value from the index.
+    fn remove(&mut self, value: &V, _idx: usize) {
+        let key = self.extract_key.key(value);
+        self.index.remove(key);
+    }
+}
+
+/// Implements an extra index into the data.
 pub struct Index2<K, V>
 where
     K: Ord + Clone,
 {
+    name: String,
     extract_key: Box<dyn ExtractKey<K, V> + 'static>,
     index: BTreeMap<K, HashSet<usize>>,
-    data: PhantomData<V>,
 }
 
 impl<K, V> Debug for Index2<K, V>
@@ -137,7 +227,7 @@ where
     K: Ord + Clone + Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Index2 (")?;
+        writeln!(f, "Index2 {}", self.name)?;
         writeln!(f, "{:?}", self.index)?;
         Ok(())
     }
@@ -151,10 +241,14 @@ where
     /// The index must be added to the matching MapSheet to be active.
     pub fn new<I: 'static + ExtractKey<K2, V>>(extract: I) -> Rc<RefCell<Index2<K2, V>>> {
         Rc::new(RefCell::new(Self {
+            name: "".to_string(),
             extract_key: Box::new(extract),
             index: Default::default(),
-            data: Default::default(),
         }))
+    }
+
+    pub fn set_name(&mut self, name: &str) {
+        self.name = name.to_string();
     }
 
     /// Returns the indexes where this key occurs.
@@ -173,6 +267,10 @@ impl<K, V> IndexBackend<V> for Index2<K, V>
 where
     K: Ord + Clone,
 {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
     /// Function for MapSheet to clear the index.
     fn clear(&mut self) {
         self.index.clear();
@@ -227,6 +325,8 @@ where
     data: Vec<Option<V>>,
     /// Primary index in the data.
     primary_index: BTreeMap<K, usize>,
+
+    //Rc<RefCell<Index1<K, V>>>,
     /// Extra indexes.
     indexes: Vec<Rc<RefCell<dyn IndexBackend<V>>>>,
 }
