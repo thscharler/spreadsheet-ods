@@ -88,7 +88,9 @@ pub trait ExtractKey<K, V> {
 
 /// Any struct can implement this to load/store data from a row
 /// in a sheet.
-pub trait Recorder<K, V>: ExtractKey<K, V> {
+pub trait Recorder<K, V> {
+    fn key<'a>(&self, val: &'a V) -> &'a K;
+
     /// Returns a header that is used for the sheet.
     fn def_header(&self) -> Option<&'static [&'static str]>;
 
@@ -97,6 +99,15 @@ pub trait Recorder<K, V>: ExtractKey<K, V> {
 
     /// Stores to the sheet.
     fn store(&self, sheet: &mut SheetView, row: u32, val: &V) -> Result<(), MapError<K, V>>;
+}
+
+impl<T, K, V> ExtractKey<K, V> for T
+where
+    T: Recorder<K, V>,
+{
+    fn key<'a>(&self, val: &'a V) -> &'a K {
+        Recorder::key(self, val)
+    }
 }
 
 #[derive(Debug)]
@@ -267,13 +278,28 @@ where
         self.name = name.to_string();
     }
 
+    /// Size.
+    pub fn len(&self) -> usize {
+        self.index.len()
+    }
+
+    /// Contains.
+    pub fn contains_key(&self, key: &K2) -> bool {
+        self.find_idx(key).is_some()
+    }
+
     /// Returns the indexes where this key occurs.
-    pub fn find(&self, key: &K2) -> Option<&HashSet<usize>> {
+    pub fn find_idx(&self, key: &K2) -> Option<&HashSet<usize>> {
         if let Some(idx) = self.index.get(key) {
             Some(idx)
         } else {
             None
         }
+    }
+
+    /// Iterate.
+    pub fn iter(&self) -> std::collections::btree_map::Iter<K2, HashSet<usize>> {
+        self.index.iter()
     }
 
     // todo: more

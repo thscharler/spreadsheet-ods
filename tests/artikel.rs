@@ -18,15 +18,14 @@ pub struct Artikel {
     pub bestand: u32,
 }
 
+#[derive(Clone)]
 pub struct ArtikelRecorder {}
 
-impl ExtractKey<u32, Artikel> for ArtikelRecorder {
+impl Recorder<u32, Artikel> for ArtikelRecorder {
     fn key<'a>(&self, val: &'a Artikel) -> &'a u32 {
         &val.artnr
     }
-}
 
-impl Recorder<u32, Artikel> for ArtikelRecorder {
     fn def_header(&self) -> Option<&'static [&'static str]> {
         Some(&[
             "Artikel",
@@ -121,9 +120,23 @@ impl ArtikelDB {
         self.artikel.get_mut(&artnr)
     }
 
-    pub fn find_artbez(&self, artbez: &String) -> Option<&mut Artikel> {
-        if let Some(idx) = self.idx_artbez.borrow().find(artbez) {}
+    pub fn find_artbez(&self, artbez: &String) -> Option<&Artikel> {
+        if let Some(idx) = self.idx_artbez.borrow().find_idx(artbez) {
+            // todo: find first ok?
+            if let Some(idx) = idx.iter().next() {
+                return self.artikel.get_idx(*idx);
+            }
+        }
+        None
+    }
 
+    pub fn find_artbez_mut(&mut self, artbez: &String) -> Option<&mut Artikel> {
+        if let Some(idx) = self.idx_artbez.borrow().find_idx(artbez) {
+            // todo: find first ok?
+            if let Some(idx) = idx.iter().next() {
+                return self.artikel.get_idx_mut(*idx);
+            }
+        }
         None
     }
 

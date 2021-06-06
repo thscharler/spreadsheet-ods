@@ -18,13 +18,11 @@ pub struct Artikel {
 #[derive(Default, Debug, Clone)]
 pub struct ArtikelRecord {}
 
-impl ExtractKey<u32, Artikel> for ArtikelRecord {
+impl Recorder<u32, Artikel> for ArtikelRecord {
     fn key<'a>(&self, val: &'a Artikel) -> &'a u32 {
         &val.artnr
     }
-}
 
-impl Recorder<u32, Artikel> for ArtikelRecord {
     fn def_header(&self) -> Option<&'static [&'static str]> {
         Some(&[
             "ArtNr",
