@@ -1,4 +1,6 @@
-use spreadsheet_ods::mapstruct::{ExtractKey, Index2, MapError, MapSheet, Recorder, SheetView};
+use spreadsheet_ods::mapstruct::{
+    ExtractKey, Index1, Index2, MapError, MapSheet, Recorder, SheetView,
+};
 use spreadsheet_ods::Sheet;
 
 #[derive(Debug, Default)]
@@ -109,9 +111,12 @@ fn test_struct() -> Result<(), MapError<u32, Artikel>> {
     let mut map0 = load()?;
 
     map0.add_index(idx0.clone())?;
-    let idx1 = Index2::new(GrpIndex {});
 
+    let idx1 = Index2::new(GrpIndex {});
     map0.add_index(idx1.clone())?;
+
+    let idx2 = Index1::new(ArtbezIndex {});
+    map0.add_index(idx2.clone())?;
 
     assert_eq!(map0.len(), 8);
     assert_eq!(map0.len_vec(), 8);
@@ -139,7 +144,7 @@ fn test_struct() -> Result<(), MapError<u32, Artikel>> {
     assert_eq!(map0.len_vec(), 9);
     let v = Artikel {
         artnr: 998,
-        artbez: "inserted".to_string(),
+        artbez: "inserted2".to_string(),
         grp1: "gr9".to_string(),
         vkp1: 0.0,
         ust: 0.0,

@@ -8,9 +8,9 @@ use crate::{ucell, OdsError, Sheet, Value};
 
 #[derive(Debug)]
 pub enum MapError<K, V> {
-    InsertDuplicate(V),
-    UniqueKeyViolation(),
-    NotUpdated(V),
+    InsertDuplicate(V, String),
+    UniqueKeyViolation(String),
+    NotUpdated(V, String),
     KeyError(K, String),
     ValueError(V, String),
 }
@@ -32,11 +32,11 @@ where
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            MapError::InsertDuplicate(v) => {
-                write!(f, "Duplicate key inserted: {:?}", v)
+            MapError::InsertDuplicate(v, msg) => {
+                write!(f, "Duplicate key inserted: {} {:?}", msg, v)
             }
-            MapError::NotUpdated(v) => {
-                write!(f, "Key already exists. Not inserted: {:?}", v)
+            MapError::NotUpdated(v, msg) => {
+                write!(f, "Key already exists. Not inserted: {} {:?}", msg, v)
             }
             MapError::KeyError(k, msg) => {
                 write!(f, "Key error: {} {:?}", msg, k)
@@ -44,8 +44,8 @@ where
             MapError::ValueError(v, msg) => {
                 write!(f, "Value error: {} {:?}", msg, v)
             }
-            MapError::UniqueKeyViolation() => {
-                write!(f, "Unique key violation.")
+            MapError::UniqueKeyViolation(msg) => {
+                write!(f, "Unique key violation. {}", msg)
             }
         }
     }
@@ -114,6 +114,7 @@ pub trait IndexBackend<V> {
     fn clear(&mut self);
 
     /// Checks for any constraint violations if we would insert this.
+    #[must_use]
     fn check(&mut self, value: &V, idx: usize) -> IndexChecks;
 
     /// A value has been inserted.
@@ -368,17 +369,21 @@ where
         // Insert into this index.
         for (idx, value) in self.data.iter().enumerate() {
             if let Some(value) = value {
-                match index.borrow_mut().check(&value, idx) {
+                let mut index = index.borrow_mut();
+                match index.check(&value, idx) {
                     IndexChecks::Fine => {}
                     IndexChecks::UniqueViolation => {
-                        return Err(MapError::UniqueKeyViolation());
+                        return Err(MapError::UniqueKeyViolation(format!(
+                            "Index {}",
+                            index.name()
+                        )));
                     }
                     IndexChecks::NotFound => {
                         unreachable!()
                     }
                 }
 
-                index.borrow_mut().insert(value, idx);
+                index.insert(value, idx);
             }
         }
 
@@ -427,8 +432,8 @@ where
                 let key = self.recorder.key(&value);
                 self.primary_index.remove(&key);
 
-                for index in &self.indexes {
-                    (*index).borrow_mut().remove(&value, idx);
+                for mut index in self.indexes.iter().map(|v| v.borrow_mut()) {
+                    index.remove(&value, idx);
                 }
                 Some(value)
             } else {
@@ -482,13 +487,19 @@ where
 
         // check
         if self.primary_index.contains_key(key) {
-            return Err(MapError::InsertDuplicate(value));
+            return Err(MapError::InsertDuplicate(
+                value,
+                "primary key index".to_string(),
+            ));
         }
-        for index in &self.indexes {
-            match (*index).borrow_mut().check(&value, idx) {
+        for mut index in self.indexes.iter().map(|v| v.borrow_mut()) {
+            match index.check(&value, idx) {
                 IndexChecks::Fine => {}
                 IndexChecks::UniqueViolation => {
-                    return Err(MapError::InsertDuplicate(value));
+                    return Err(MapError::InsertDuplicate(
+                        value,
+                        format!("index {}", index.name()),
+                    ));
                 }
                 IndexChecks::NotFound => {
                     unreachable!()
@@ -498,8 +509,8 @@ where
 
         // modify
         self.primary_index.insert(key.clone(), idx);
-        for index in &self.indexes {
-            (*index).borrow_mut().insert(&value, idx);
+        for mut index in self.indexes.iter().map(|v| v.borrow_mut()) {
+            index.insert(&value, idx);
         }
 
         self.data.push(Some(value));
@@ -518,10 +529,24 @@ where
             // the new key must not exist, if it changed.
             if old_key.cmp(new_key) != Ordering::Equal {
                 if self.primary_index.contains_key(new_key) {
-                    return Err(MapError::InsertDuplicate(new_value));
+                    return Err(MapError::InsertDuplicate(
+                        new_value,
+                        "primary key index".to_string(),
+                    ));
                 }
-                for index in &self.indexes {
-                    (*index).borrow_mut().check(&new_value, idx);
+                for mut index in self.indexes.iter().map(|v| v.borrow_mut()) {
+                    match index.check(&new_value, idx) {
+                        IndexChecks::Fine => {}
+                        IndexChecks::UniqueViolation => {
+                            return Err(MapError::InsertDuplicate(
+                                new_value,
+                                format!("index {}", index.name()),
+                            ))
+                        }
+                        IndexChecks::NotFound => {
+                            unreachable!()
+                        }
+                    };
                 }
             }
 
@@ -534,22 +559,22 @@ where
             // remove primary index
             self.primary_index.remove(&old_key);
             // remove other indexes
-            for index in &self.indexes {
-                (*index).borrow_mut().remove(&old_value, idx);
+            for mut index in self.indexes.iter().map(|v| v.borrow_mut()) {
+                index.remove(&old_value, idx);
             }
 
             // add primary
             self.primary_index.insert(new_key.clone(), idx);
             // add other indexes
-            for index in &self.indexes {
-                (*index).borrow_mut().insert(&new_value, idx);
+            for mut index in self.indexes.iter().map(|v| v.borrow_mut()) {
+                index.insert(&new_value, idx);
             }
 
             self.data[idx] = Some(new_value);
 
             Ok(Some(old_value))
         } else {
-            Err(MapError::NotUpdated(new_value))
+            Err(MapError::NotUpdated(new_value, String::new()))
         }
     }
 
@@ -615,8 +640,8 @@ where
         // reset
         self.data = Default::default();
         self.primary_index = Default::default();
-        for index in &self.indexes {
-            (*index).borrow_mut().clear();
+        for mut index in self.indexes.iter().map(|v| v.borrow_mut()) {
+            index.clear();
         }
 
         // header data
@@ -638,18 +663,35 @@ where
 
                 // check
                 if self.primary_index.contains_key(key) {
-                    return Err(MapError::InsertDuplicate(value));
+                    return Err(MapError::InsertDuplicate(
+                        value,
+                        "primary key index".to_string(),
+                    ));
                 }
-                for index in &self.indexes {
-                    (*index).borrow_mut().check(&value, row as usize);
+                for mut index in self.indexes.iter().map(|v| v.borrow_mut()) {
+                    match index.check(&value, row as usize) {
+                        IndexChecks::Fine => {}
+                        IndexChecks::UniqueViolation => {
+                            return Err(MapError::InsertDuplicate(
+                                value,
+                                format!("index {}", index.name()),
+                            ))
+                        }
+                        IndexChecks::NotFound => {
+                            unreachable!()
+                        }
+                    };
                 }
 
                 // modify
                 if let Some(_) = self.primary_index.insert(key.clone(), row as usize) {
-                    return Err(MapError::InsertDuplicate(value));
+                    return Err(MapError::InsertDuplicate(
+                        value,
+                        "primary key index".to_string(),
+                    ));
                 }
-                for index in &self.indexes {
-                    (*index).borrow_mut().insert(&value, row as usize);
+                for mut index in self.indexes.iter().map(|v| v.borrow_mut()) {
+                    index.insert(&value, row as usize);
                 }
 
                 self.data.push(Some(value));
