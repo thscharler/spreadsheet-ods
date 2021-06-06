@@ -16,11 +16,13 @@ pub struct Artikel {
 #[derive(Default, Debug)]
 pub struct ArtikelRecord {}
 
-impl Recorder<u32, Artikel> for ArtikelRecord {
-    fn primary_key(&self, val: &Artikel) -> u32 {
-        val.artnr
+impl ExtractKey<u32, Artikel> for ArtikelRecord {
+    fn key<'a>(&self, val: &'a Artikel) -> &'a u32 {
+        &val.artnr
     }
+}
 
+impl Recorder<u32, Artikel> for ArtikelRecord {
     fn def_header(&self) -> Option<&'static [&'static str]> {
         Some(&[
             "ArtNr",
@@ -72,7 +74,7 @@ impl Recorder<u32, Artikel> for ArtikelRecord {
 #[derive(Debug)]
 pub struct ArtbezIndex {}
 
-impl ExtractKey<Artikel, String> for ArtbezIndex {
+impl ExtractKey<String, Artikel> for ArtbezIndex {
     fn key<'a>(&self, val: &'a Artikel) -> &'a String {
         &val.artbez
     }
@@ -81,13 +83,13 @@ impl ExtractKey<Artikel, String> for ArtbezIndex {
 #[derive(Debug)]
 pub struct GrpIndex {}
 
-impl ExtractKey<Artikel, String> for GrpIndex {
+impl ExtractKey<String, Artikel> for GrpIndex {
     fn key<'a>(&self, val: &'a Artikel) -> &'a String {
         &val.grp1
     }
 }
 
-fn load<'a>() -> Result<MapSheet<'a, u32, Artikel>, MapError<u32, Artikel>> {
+fn load() -> Result<MapSheet<u32, Artikel>, MapError<u32, Artikel>> {
     let mut sheet = Sheet::new_with_name("artikel");
     for idx in 1..9 {
         sheet.set_value(idx, 0, 201 + idx);
@@ -106,10 +108,10 @@ fn test_struct() -> Result<(), MapError<u32, Artikel>> {
 
     let mut map0 = load()?;
 
-    map0.add_index(&idx0);
+    map0.add_index(idx0.clone())?;
     let idx1 = Index2::new(GrpIndex {});
 
-    map0.add_index(&idx1);
+    map0.add_index(idx1.clone())?;
 
     assert_eq!(map0.len(), 8);
     assert_eq!(map0.len_vec(), 8);

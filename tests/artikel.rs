@@ -1,5 +1,10 @@
-use spreadsheet_ods::mapstruct::{MapError, MapSheet, Recorder, SheetView};
-use spreadsheet_ods::Value;
+use std::cell::RefCell;
+use std::path::Path;
+use std::rc::Rc;
+
+use spreadsheet_ods::defaultstyles::{create_default_styles, DefaultFormat};
+use spreadsheet_ods::mapstruct::{ExtractKey, Index2, MapError, MapSheet, Recorder, SheetView};
+use spreadsheet_ods::{read_ods, write_ods, CellStyle, OdsError, Sheet, Value, WorkBook};
 
 #[derive(Clone, Debug, Default)]
 pub struct Artikel {
@@ -15,11 +20,13 @@ pub struct Artikel {
 
 pub struct ArtikelRecorder {}
 
-impl Recorder<u32, Artikel> for ArtikelRecorder {
-    fn primary_key(&self, val: &Artikel) -> u32 {
-        val.artnr
+impl ExtractKey<u32, Artikel> for ArtikelRecorder {
+    fn key<'a>(&self, val: &'a Artikel) -> &'a u32 {
+        &val.artnr
     }
+}
 
+impl Recorder<u32, Artikel> for ArtikelRecorder {
     fn def_header(&self) -> Option<&'static [&'static str]> {
         Some(&[
             "Artikel",
@@ -68,8 +75,88 @@ impl Recorder<u32, Artikel> for ArtikelRecorder {
     }
 }
 
-pub struct ArtikelDB<'a> {
-    pub artikel: MapSheet<'a, u32, Artikel>,
+pub struct IndexArtbez {}
+
+impl ExtractKey<String, Artikel> for IndexArtbez {
+    fn key<'a>(&self, val: &'a Artikel) -> &'a String {
+        &val.artbez
+    }
+}
+
+pub struct ArtikelDB {
+    pub ods: Option<WorkBook>,
+    pub artikel: MapSheet<u32, Artikel>,
+    pub idx_artbez: Rc<RefCell<Index2<String, Artikel>>>,
+}
+
+impl ArtikelDB {
+    pub fn new() -> Self {
+        let mut adb = ArtikelDB {
+            ods: None,
+            artikel: MapSheet::new(ArtikelRecorder {}),
+            idx_artbez: Index2::new(IndexArtbez {}),
+        };
+
+        if matches!(adb.artikel.add_index(adb.idx_artbez.clone()), Err(_)) {
+            unreachable!()
+        }
+        adb
+    }
+
+    pub fn insert(&mut self, artikel: Artikel) -> Result<(), OdsError> {
+        self.artikel.insert(artikel)?;
+        Ok(())
+    }
+
+    pub fn update(&mut self, artnr_old: u32, artikel: Artikel) -> Result<(), OdsError> {
+        self.artikel.update(&artnr_old, artikel)?;
+        Ok(())
+    }
+
+    pub fn find_artnr(&self, artnr: u32) -> Option<&Artikel> {
+        self.artikel.get(&artnr)
+    }
+
+    pub fn find_artnr_mut(&mut self, artnr: u32) -> Option<&mut Artikel> {
+        self.artikel.get_mut(&artnr)
+    }
+
+    pub fn find_artbez(&self, artbez: &String) -> Option<&mut Artikel> {
+        if let Some(idx) = self.idx_artbez.borrow().find(artbez) {}
+
+        None
+    }
+
+    pub fn read(&mut self, file: &Path) -> Result<(), OdsError> {
+        if file.exists() {
+            self.ods = Some(read_ods(file)?);
+            let workbook = self.ods.as_mut().unwrap();
+            let sheet = workbook.sheet_mut(0);
+            self.artikel.load(sheet)?;
+        }
+        Ok(())
+    }
+
+    pub fn write(&mut self, file: &Path) -> Result<(), OdsError> {
+        if self.ods.is_none() {
+            let mut workbook = WorkBook::new();
+            let mut style = CellStyle::new("title1", &DefaultFormat::default());
+            style.set_font_bold();
+            workbook.add_cellstyle(style);
+            create_default_styles(&mut workbook);
+            workbook.push_sheet(Sheet::new_with_name("Artikel"));
+            self.ods = Some(workbook);
+        };
+
+        let workbook = self.ods.as_mut().unwrap();
+        let sheet = workbook.sheet_mut(0);
+
+        self.artikel.store(sheet)?;
+
+        write_ods(workbook, file)?;
+
+        Ok(())
+    }
 }
 
 #[test]

@@ -3,15 +3,27 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
+use std::rc::Rc;
 
-use crate::{ucell, Sheet, Value};
+use crate::{ucell, OdsError, Sheet, Value};
 
 #[derive(Debug)]
 pub enum MapError<K, V> {
     InsertDuplicate(V),
+    UniqueKeyViolation(),
     NotUpdated(V),
     KeyError(K, String),
     ValueError(V, String),
+}
+
+impl<K, V> From<MapError<K, V>> for OdsError
+where
+    K: Debug,
+    V: Debug,
+{
+    fn from(e: MapError<K, V>) -> Self {
+        OdsError::Ods(e.to_string())
+    }
 }
 
 impl<K, V> Display for MapError<K, V>
@@ -32,6 +44,9 @@ where
             }
             MapError::ValueError(v, msg) => {
                 write!(f, "Value error: {} {:?}", msg, v)
+            }
+            MapError::UniqueKeyViolation() => {
+                write!(f, "Unique key violation.")
             }
         }
     }
@@ -66,12 +81,15 @@ impl<'a> SheetView<'a> {
     }
 }
 
+/// Extracts further keys from the data. This is used by Index2 to
+/// allow for extra indizes.
+pub trait ExtractKey<K, V> {
+    fn key<'a>(&self, val: &'a V) -> &'a K;
+}
+
 /// Any struct can implement this to load/store data from a row
 /// in a sheet.
-pub trait Recorder<K, V> {
-    /// Returns the primary key for the value.
-    fn primary_key(&self, val: &V) -> K;
-
+pub trait Recorder<K, V>: ExtractKey<K, V> {
     /// Returns a header that is used for the sheet.
     fn def_header(&self) -> Option<&'static [&'static str]>;
 
@@ -82,16 +100,20 @@ pub trait Recorder<K, V> {
     fn store(&self, sheet: &mut SheetView, row: u32, val: &V) -> Result<(), MapError<K, V>>;
 }
 
-/// Extracts further keys from the data. This is used by Index2 to
-/// allow for extra indizes.
-pub trait ExtractKey<V, K> {
-    fn key<'a>(&self, val: &'a V) -> &'a K;
+#[derive(Debug)]
+pub enum IndexChecks {
+    Fine,
+    UniqueViolation,
+    NotFound,
 }
 
 /// Links the extra indexes to the main storage.
 pub trait IndexBackend<V> {
     /// Clears the index.
     fn clear(&mut self);
+
+    /// Checks for any constraint violations if we would insert this.
+    fn check(&mut self, value: &V, idx: usize) -> IndexChecks;
 
     /// A value has been inserted.
     fn insert(&mut self, value: &V, idx: usize);
@@ -105,7 +127,7 @@ pub struct Index2<K, V>
 where
     K: Ord + Clone,
 {
-    extract_key: Box<dyn ExtractKey<V, K> + 'static>,
+    extract_key: Box<dyn ExtractKey<K, V> + 'static>,
     index: BTreeMap<K, HashSet<usize>>,
     data: PhantomData<V>,
 }
@@ -127,17 +149,17 @@ where
 {
     /// Creates an extra index for the data.
     /// The index must be added to the matching MapSheet to be active.
-    pub fn new<I: 'static + ExtractKey<V, K2>>(extract: I) -> RefCell<Index2<K2, V>> {
-        RefCell::new(Self {
+    pub fn new<I: 'static + ExtractKey<K2, V>>(extract: I) -> Rc<RefCell<Index2<K2, V>>> {
+        Rc::new(RefCell::new(Self {
             extract_key: Box::new(extract),
             index: Default::default(),
             data: Default::default(),
-        })
+        }))
     }
 
     /// Returns the indexes where this key occurs.
-    pub fn find(&self, key: K2) -> Option<&HashSet<usize>> {
-        if let Some(idx) = self.index.get(&key) {
+    pub fn find(&self, key: &K2) -> Option<&HashSet<usize>> {
+        if let Some(idx) = self.index.get(key) {
             Some(idx)
         } else {
             None
@@ -154,6 +176,11 @@ where
     /// Function for MapSheet to clear the index.
     fn clear(&mut self) {
         self.index.clear();
+    }
+
+    /// Checks for any constraint violations.
+    fn check(&mut self, _value: &V, _idx: usize) -> IndexChecks {
+        IndexChecks::Fine
     }
 
     /// Inserts a value to the index.
@@ -190,7 +217,7 @@ where
 /// part of a index must not be touched. For those cases a clone should be
 /// made and the update function be called.
 ///
-pub struct MapSheet<'a, K, V>
+pub struct MapSheet<K, V>
 where
     K: Ord + Clone,
 {
@@ -201,10 +228,10 @@ where
     /// Primary index in the data.
     primary_index: BTreeMap<K, usize>,
     /// Extra indexes.
-    indexes: Vec<&'a RefCell<dyn IndexBackend<V>>>,
+    indexes: Vec<Rc<RefCell<dyn IndexBackend<V>>>>,
 }
 
-impl<'a, K, V> Debug for MapSheet<'a, K, V>
+impl<K, V> Debug for MapSheet<K, V>
 where
     K: Ord + Clone + Debug,
     V: Debug,
@@ -219,12 +246,12 @@ where
 }
 
 #[allow(dead_code)]
-impl<'a, K, V> MapSheet<'a, K, V>
+impl<K, V> MapSheet<K, V>
 where
     K: Ord + Clone,
 {
     /// Creates a new map.
-    pub fn new<R: Recorder<K, V> + 'static>(record: R) -> MapSheet<'a, K, V> {
+    pub fn new<R: Recorder<K, V> + 'static>(record: R) -> MapSheet<K, V> {
         Self {
             recorder: Box::new(record),
             primary_index: Default::default(),
@@ -234,17 +261,30 @@ where
     }
 
     /// Links an index.
-    pub fn add_index(&mut self, index: &'a RefCell<dyn IndexBackend<V>>) {
-        self.indexes.push(index);
+    pub fn add_index(
+        &mut self,
+        index: Rc<RefCell<dyn IndexBackend<V>>>,
+    ) -> Result<(), MapError<K, V>> {
+        // Insert into this index.
+        for (idx, value) in self.data.iter().enumerate() {
+            if let Some(value) = value {
+                match index.borrow_mut().check(&value, idx) {
+                    IndexChecks::Fine => {}
+                    IndexChecks::UniqueViolation => {
+                        return Err(MapError::UniqueKeyViolation());
+                    }
+                    IndexChecks::NotFound => {
+                        unreachable!()
+                    }
+                }
 
-        let index = *self.indexes.last().unwrap();
-
-        // Update all other indexes.
-        for (idx, val) in self.data.iter().enumerate() {
-            if let Some(val) = val {
-                index.borrow_mut().insert(val, idx);
+                index.borrow_mut().insert(value, idx);
             }
         }
+
+        self.indexes.push(index);
+
+        Ok(())
     }
 
     /// Returns the number of values in the map.
@@ -256,11 +296,6 @@ where
     /// the number of actual values in this map.
     pub fn len_vec(&self) -> usize {
         self.data.len()
-    }
-
-    /// Finds via the primary key.
-    pub fn find_idx(&self, pkey: &K) -> Option<usize> {
-        self.primary_index.get(pkey).map(|v| *v)
     }
 
     /// Access to the underlying data vec. May return None if the value
@@ -289,7 +324,7 @@ where
             // changes the value to None
             if let Some(value) = value.take() {
                 // clear indexes
-                let key = self.recorder.primary_key(&value);
+                let key = self.recorder.key(&value);
                 self.primary_index.remove(&key);
 
                 for index in &self.indexes {
@@ -304,6 +339,11 @@ where
             // index error, fine
             None
         }
+    }
+
+    /// Finds via the primary key.
+    pub fn find_idx(&self, pkey: &K) -> Option<usize> {
+        self.primary_index.get(pkey).map(|v| *v)
     }
 
     /// Finds via the primary key.
@@ -337,14 +377,27 @@ where
     /// Adds a new value.
     /// Fails if the primary key already exists.
     pub fn insert(&mut self, value: V) -> Result<(), MapError<K, V>> {
-        let key = self.recorder.primary_key(&value);
-        if self.primary_index.contains_key(&key) {
-            return Err(MapError::InsertDuplicate(value));
-        }
-
+        let key = self.recorder.key(&value);
         let idx = self.data.len();
 
-        self.primary_index.insert(key, idx);
+        // check
+        if self.primary_index.contains_key(key) {
+            return Err(MapError::InsertDuplicate(value));
+        }
+        for index in &self.indexes {
+            match (*index).borrow_mut().check(&value, idx) {
+                IndexChecks::Fine => {}
+                IndexChecks::UniqueViolation => {
+                    return Err(MapError::InsertDuplicate(value));
+                }
+                IndexChecks::NotFound => {
+                    unreachable!()
+                }
+            }
+        }
+
+        // modify
+        self.primary_index.insert(key.clone(), idx);
         for index in &self.indexes {
             (*index).borrow_mut().insert(&value, idx);
         }
@@ -359,20 +412,26 @@ where
     pub fn update(&mut self, old_key: &K, new_value: V) -> Result<Option<V>, MapError<K, V>> {
         // Does the old key exist?
         if let Some(idx) = self.primary_index.get(old_key).map(|v| *v) {
-            let new_key = self.recorder.primary_key(&new_value);
+            let new_key = self.recorder.key(&new_value);
 
-            // the new key must not exist.
-            if old_key.cmp(&new_key) != Ordering::Equal {
-                if self.primary_index.contains_key(&new_key) {
+            // check
+            // the new key must not exist, if it changed.
+            if old_key.cmp(new_key) != Ordering::Equal {
+                if self.primary_index.contains_key(new_key) {
                     return Err(MapError::InsertDuplicate(new_value));
+                }
+                for index in &self.indexes {
+                    (*index).borrow_mut().check(&new_value, idx);
                 }
             }
 
+            // modify
+            // extract the old value
             let old_value = self.data[idx]
                 .take()
                 .expect("key was already deleted, but could be found?");
 
-            // remove primary
+            // remove primary index
             self.primary_index.remove(&old_key);
             // remove other indexes
             for index in &self.indexes {
@@ -380,7 +439,7 @@ where
             }
 
             // add primary
-            self.primary_index.insert(new_key, idx);
+            self.primary_index.insert(new_key.clone(), idx);
             // add other indexes
             for index in &self.indexes {
                 (*index).borrow_mut().insert(&new_value, idx);
@@ -475,18 +534,24 @@ where
             let value = self.recorder.load(&mut view, row)?;
 
             if let Some(value) = value {
-                // insert into primary index
-                let key = self.recorder.primary_key(&value);
-                if let Some(_) = self.primary_index.insert(key, row as usize) {
+                let key = self.recorder.key(&value);
+
+                // check
+                if self.primary_index.contains_key(key) {
                     return Err(MapError::InsertDuplicate(value));
                 }
+                for index in &self.indexes {
+                    (*index).borrow_mut().check(&value, row as usize);
+                }
 
-                // other indexes
+                // modify
+                if let Some(_) = self.primary_index.insert(key.clone(), row as usize) {
+                    return Err(MapError::InsertDuplicate(value));
+                }
                 for index in &self.indexes {
                     (*index).borrow_mut().insert(&value, row as usize);
                 }
 
-                // data
                 self.data.push(Some(value));
             } else {
                 break;
