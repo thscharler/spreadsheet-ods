@@ -101,19 +101,17 @@ pub trait IndexBackend<V> {
 }
 
 /// Implements an extra index into the data.
-pub struct Index2<I, K, V>
+pub struct Index2<K, V>
 where
-    I: ExtractKey<V, K>,
     K: Ord + Clone,
 {
-    extract_key: I,
+    extract_key: Box<dyn ExtractKey<V, K> + 'static>,
     index: BTreeMap<K, HashSet<usize>>,
     data: PhantomData<V>,
 }
 
-impl<I, K, V> Debug for Index2<I, K, V>
+impl<K, V> Debug for Index2<K, V>
 where
-    I: ExtractKey<V, K>,
     K: Ord + Clone + Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -123,16 +121,15 @@ where
     }
 }
 
-impl<I, K2, V> Index2<I, K2, V>
+impl<K2, V> Index2<K2, V>
 where
-    I: ExtractKey<V, K2>,
     K2: Ord + Clone,
 {
     /// Creates an extra index for the data.
     /// The index must be added to the matching MapSheet to be active.
-    pub fn new(extract: I) -> RefCell<Index2<I, K2, V>> {
+    pub fn new<I: 'static + ExtractKey<V, K2>>(extract: I) -> RefCell<Index2<K2, V>> {
         RefCell::new(Self {
-            extract_key: extract,
+            extract_key: Box::new(extract),
             index: Default::default(),
             data: Default::default(),
         })
@@ -150,9 +147,8 @@ where
     // todo: more
 }
 
-impl<I, K, V> IndexBackend<V> for Index2<I, K, V>
+impl<K, V> IndexBackend<V> for Index2<K, V>
 where
-    I: ExtractKey<V, K>,
     K: Ord + Clone,
 {
     /// Function for MapSheet to clear the index.
@@ -194,13 +190,12 @@ where
 /// part of a index must not be touched. For those cases a clone should be
 /// made and the update function be called.
 ///
-pub struct MapSheet<'a, R, K, V>
+pub struct MapSheet<'a, K, V>
 where
-    R: Recorder<K, V>,
     K: Ord + Clone,
 {
     /// Mapping trait.
-    recorder: R,
+    recorder: Box<dyn Recorder<K, V> + 'static>,
     /// Data. Deletes only set the option to None to keep the indexes alive.
     data: Vec<Option<V>>,
     /// Primary index in the data.
@@ -209,9 +204,8 @@ where
     indexes: Vec<&'a RefCell<dyn IndexBackend<V>>>,
 }
 
-impl<'a, R, K, V> Debug for MapSheet<'a, R, K, V>
+impl<'a, K, V> Debug for MapSheet<'a, K, V>
 where
-    R: Recorder<K, V>,
     K: Ord + Clone + Debug,
     V: Debug,
 {
@@ -225,15 +219,14 @@ where
 }
 
 #[allow(dead_code)]
-impl<'a, R, K, V> MapSheet<'a, R, K, V>
+impl<'a, K, V> MapSheet<'a, K, V>
 where
-    R: Recorder<K, V>,
     K: Ord + Clone,
 {
     /// Creates a new map.
-    pub fn new(record: R) -> Self {
+    pub fn new<R: Recorder<K, V> + 'static>(record: R) -> MapSheet<'a, K, V> {
         Self {
-            recorder: record,
+            recorder: Box::new(record),
             primary_index: Default::default(),
             data: Default::default(),
             indexes: vec![],

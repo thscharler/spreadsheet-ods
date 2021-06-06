@@ -87,7 +87,7 @@ impl ExtractKey<Artikel, String> for GrpIndex {
     }
 }
 
-fn load() -> Result<MapSheet<'static, ArtikelRecord, u32, Artikel>, MapError<u32, Artikel>> {
+fn load<'a>() -> Result<MapSheet<'a, u32, Artikel>, MapError<u32, Artikel>> {
     let mut sheet = Sheet::new_with_name("artikel");
     for idx in 1..9 {
         sheet.set_value(idx, 0, 201 + idx);
@@ -102,7 +102,14 @@ fn load() -> Result<MapSheet<'static, ArtikelRecord, u32, Artikel>, MapError<u32
 
 #[test]
 fn test_struct() -> Result<(), MapError<u32, Artikel>> {
+    let idx0 = Index2::new(ArtbezIndex {});
+
     let mut map0 = load()?;
+
+    map0.add_index(&idx0);
+    let idx1 = Index2::new(GrpIndex {});
+
+    map0.add_index(&idx1);
 
     assert_eq!(map0.len(), 8);
     assert_eq!(map0.len_vec(), 8);
@@ -114,12 +121,6 @@ fn test_struct() -> Result<(), MapError<u32, Artikel>> {
     assert!(map0.get_idx(10).is_none());
     assert_eq!(map0.get_idx_mut(0).unwrap().artnr, 202);
     assert!(map0.get_idx_mut(10).is_none());
-
-    let idx0 = Index2::new(ArtbezIndex {});
-    map0.add_index(&idx0);
-
-    let idx1 = Index2::new(GrpIndex {});
-    map0.add_index(&idx1);
 
     let v = Artikel {
         artnr: 999,
