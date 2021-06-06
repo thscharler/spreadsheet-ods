@@ -15,7 +15,7 @@ pub struct Artikel {
     pub bestand: u32,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct ArtikelRecord {}
 
 impl ExtractKey<u32, Artikel> for ArtikelRecord {
@@ -107,15 +107,18 @@ fn load() -> Result<MapSheet<u32, Artikel>, MapError<u32, Artikel>> {
 #[test]
 fn test_struct() -> Result<(), MapError<u32, Artikel>> {
     let idx0 = Index2::new(ArtbezIndex {});
+    idx0.borrow_mut().set_name("artbez1");
 
     let mut map0 = load()?;
 
     map0.add_index(idx0.clone())?;
 
     let idx1 = Index2::new(GrpIndex {});
+    idx1.borrow_mut().set_name("grp");
     map0.add_index(idx1.clone())?;
 
     let idx2 = Index1::new(ArtbezIndex {});
+    idx2.borrow_mut().set_name("artbez2");
     map0.add_index(idx2.clone())?;
 
     assert_eq!(map0.len(), 8);
