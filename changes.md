@@ -1,3 +1,12 @@
+# 0.7.0
+
+- Add content validations.
+    - Condition and ValueCondition allow for composition.
+    - Validation supports all features except macros.
+    - StyleMap uses ValueCondition now.
+    - Validation can be set on SCell.
+- CellRange, CellRef get absolute_xx() functions.
+
 # 0.6.3
 
 - Renamed the split functions to better match their functionality.
