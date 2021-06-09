@@ -174,6 +174,8 @@ use crate::style::{
 use crate::text::TextTag;
 use crate::validation::{Validation, ValidationRef};
 use crate::xmltree::XmlTag;
+use std::collections::btree_map::Range;
+use std::ops::RangeBounds;
 
 #[macro_use]
 mod attr_macro;
@@ -1332,6 +1334,14 @@ impl Sheet {
     /// Returns true if there is no SCell at the given position.
     pub fn is_empty(&self, row: ucell, col: ucell) -> bool {
         self.data.get(&(row, col)).is_none()
+    }
+
+    /// Allows access to SCells via ranges.
+    pub fn range<R>(&self, range: R) -> Range<'_, (ucell, ucell), SCell>
+    where
+        R: RangeBounds<(ucell, ucell)>,
+    {
+        self.data.range(range)
     }
 
     /// Returns the cell if available.
