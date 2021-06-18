@@ -2,33 +2,10 @@ use std::fmt::{Display, Formatter};
 
 use crate::CellRange;
 
-//
-// #[derive(Copy, Clone, Debug)]
-// pub enum Cmp {
-//     Equal,
-//     NotEqual,
-//     Less,
-//     Greater,
-//     LessOrEqual,
-//     GreaterOrEqual,
-// }
-//
-// impl Display for Cmp {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             Cmp::Equal => write!(f, "="),
-//             Cmp::NotEqual => write!(f, "!="),
-//             Cmp::Less => write!(f, "<"),
-//             Cmp::Greater => write!(f, ">"),
-//             Cmp::LessOrEqual => write!(f, "<="),
-//             Cmp::GreaterOrEqual => write!(f, ">="),
-//         }
-//     }
-// }
-
 #[derive(Clone, Debug)]
 pub struct Value {
     val: String,
+    is_str: bool,
 }
 
 fn quote(val: &str) -> String {
@@ -54,7 +31,19 @@ impl Display for Value {
 
 impl From<&str> for Value {
     fn from(s: &str) -> Self {
-        Value { val: quote(s) }
+        Value {
+            val: quote(s),
+            is_str: true,
+        }
+    }
+}
+
+impl From<&&str> for Value {
+    fn from(s: &&str) -> Self {
+        Value {
+            val: quote(s),
+            is_str: true,
+        }
     }
 }
 
@@ -62,6 +51,7 @@ impl From<String> for Value {
     fn from(s: String) -> Self {
         Value {
             val: quote(s.as_str()),
+            is_str: true,
         }
     }
 }
@@ -70,6 +60,7 @@ impl From<&String> for Value {
     fn from(s: &String) -> Self {
         Value {
             val: quote(s.as_str()),
+            is_str: true,
         }
     }
 }
@@ -78,13 +69,19 @@ macro_rules! from_x_conditionvalue {
     ($int:ty) => {
         impl From<$int> for Value {
             fn from(v: $int) -> Self {
-                Value { val: v.to_string() }
+                Value {
+                    val: v.to_string(),
+                    is_str: false,
+                }
             }
         }
 
         impl From<&$int> for Value {
             fn from(v: &$int) -> Self {
-                Value { val: v.to_string() }
+                Value {
+                    val: v.to_string(),
+                    is_str: false,
+                }
             }
         }
     };
@@ -303,10 +300,14 @@ impl Condition {
             if sep {
                 buf.push(';');
             }
-            buf.push('"');
             let vv: Value = v.into();
+            if !vv.is_str {
+                buf.push('"');
+            }
             buf.push_str(vv.to_string().as_str());
-            buf.push('"');
+            if !vv.is_str {
+                buf.push('"');
+            }
             sep = true;
         }
 
@@ -416,6 +417,8 @@ mod tests {
             c.to_string(),
             r#"cell-content-is-in-list("1";"2";"3";"4";"5")"#
         );
+        let c = Condition::content_is_in_list(&["a", "b", "c"]);
+        assert_eq!(c.to_string(), r#"cell-content-is-in-list("a";"b";"c")"#);
         let c = Condition::content_is_in_cellrange(CellRange::remote("other", 0, 0, 10, 0));
         assert_eq!(c.to_string(), "cell-content-is-in-list([other.A1:.A11])");
 
