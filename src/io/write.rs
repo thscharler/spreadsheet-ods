@@ -623,6 +623,9 @@ fn write_ods_styles(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsE
         "xmlns:fo",
         "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
     )?;
+    xml_out.attr("xmlns:ooo", "http://openoffice.org/2004/office")?;
+    xml_out.attr("xmlns:xlink", "http://www.w3.org/1999/xlink")?;
+    xml_out.attr("xmlns:dc", "http://purl.org/dc/elements/1.1/")?;
     xml_out.attr(
         "xmlns:style",
         "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
@@ -643,6 +646,7 @@ fn write_ods_styles(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsE
         "xmlns:chart",
         "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
     )?;
+    xml_out.attr("xmlns:rpt", "http://openoffice.org/2005/report")?;
     xml_out.attr(
         "xmlns:table",
         "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
@@ -651,11 +655,15 @@ fn write_ods_styles(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsE
         "xmlns:number",
         "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
     )?;
+    xml_out.attr("xmlns:ooow", "http://openoffice.org/2004/writer")?;
+    xml_out.attr("xmlns:oooc", "http://openoffice.org/2004/calc")?;
     xml_out.attr("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
+    xml_out.attr("xmlns:tableooo", "http://openoffice.org/2009/table")?;
     xml_out.attr(
         "xmlns:calcext",
         "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
     )?;
+    xml_out.attr("xmlns:drawooo", "http://openoffice.org/2010/draw")?;
     xml_out.attr(
         "xmlns:loext",
         "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
@@ -664,6 +672,7 @@ fn write_ods_styles(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsE
         "xmlns:field",
         "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
     )?;
+    xml_out.attr("xmlns:math", "http://www.w3.org/1998/Math/MathML")?;
     xml_out.attr(
         "xmlns:form",
         "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
@@ -672,6 +681,10 @@ fn write_ods_styles(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), OdsE
         "xmlns:script",
         "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
     )?;
+    xml_out.attr("xmlns:dom", "http://www.w3.org/2001/xml-events")?;
+    xml_out.attr("xmlns:xhtml", "http://www.w3.org/1999/xhtml")?;
+    xml_out.attr("xmlns:grddl", "http://www.w3.org/2003/g/data-view#")?;
+    xml_out.attr("xmlns:css3t", "http://www.w3.org/TR/css3-text/")?;
     xml_out.attr(
         "xmlns:presentation",
         "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
@@ -740,6 +753,9 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), Ods
         "xmlns:fo",
         "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
     )?;
+    xml_out.attr("xmlns:ooo", "http://openoffice.org/2004/office")?;
+    xml_out.attr("xmlns:xlink", "http://www.w3.org/1999/xlink")?;
+    xml_out.attr("xmlns:dc", "http://purl.org/dc/elements/1.1/")?;
     xml_out.attr(
         "xmlns:style",
         "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
@@ -747,6 +763,10 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), Ods
     xml_out.attr(
         "xmlns:text",
         "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:draw",
+        "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
     )?;
     xml_out.attr(
         "xmlns:dr3d",
@@ -760,15 +780,24 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), Ods
         "xmlns:chart",
         "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
     )?;
+    xml_out.attr("xmlns:rpt", "http://openoffice.org/2005/report")?;
     xml_out.attr(
         "xmlns:table",
         "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
     )?;
+    xml_out.attr(
+        "xmlns:number",
+        "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
+    )?;
+    xml_out.attr("xmlns:ooow", "http://openoffice.org/2004/writer")?;
+    xml_out.attr("xmlns:oooc", "http://openoffice.org/2004/calc")?;
     xml_out.attr("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
+    xml_out.attr("xmlns:tableooo", "http://openoffice.org/2009/table")?;
     xml_out.attr(
         "xmlns:calcext",
         "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
     )?;
+    xml_out.attr("xmlns:drawooo", "http://openoffice.org/2010/draw")?;
     xml_out.attr(
         "xmlns:loext",
         "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
@@ -777,6 +806,7 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), Ods
         "xmlns:field",
         "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
     )?;
+    xml_out.attr("xmlns:math", "http://www.w3.org/1998/Math/MathML")?;
     xml_out.attr(
         "xmlns:form",
         "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
@@ -785,13 +815,20 @@ fn write_ods_content(book: &WorkBook, zip_out: &mut OdsWriter) -> Result<(), Ods
         "xmlns:script",
         "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
     )?;
+    xml_out.attr("xmlns:dom", "http://www.w3.org/2001/xml-events")?;
+    xml_out.attr("xmlns:xforms", "http://www.w3.org/2002/xforms")?;
+    xml_out.attr("xmlns:xsd", "http://www.w3.org/2001/XMLSchema")?;
+    xml_out.attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")?;
+    xml_out.attr(
+        "xmlns:formx",
+        "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0",
+    )?;
+    xml_out.attr("xmlns:xhtml", "http://www.w3.org/1999/xhtml")?;
+    xml_out.attr("xmlns:grddl", "http://www.w3.org/2003/g/data-view#")?;
+    xml_out.attr("xmlns:css3t", "http://www.w3.org/TR/css3-text/")?;
     xml_out.attr(
         "xmlns:presentation",
         "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
-    )?;
-    xml_out.attr(
-        "xmlns:number",
-        "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
     )?;
 
     xml_out.attr("office:version", book.version())?;
