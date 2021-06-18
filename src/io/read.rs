@@ -1135,7 +1135,7 @@ fn read_validations(
                                 let v = attr.unescape_and_decode_value(&xml)?;
                                 // split off 'of:' prefix
 
-                                valid.set_condition(Condition::new(v.split_at(2).1));
+                                valid.set_condition(Condition::new(v.split_at(3).1));
                             }
                             attr if attr.key == b"table:allow-empty-cell" => {
                                 let v = attr.unescape_and_decode_value(&xml)?;
@@ -1198,7 +1198,7 @@ fn read_validations(
                         }
                     }
                     let (_str, txt) =
-                        read_text_or_tag(b"table:error-message", xml, &xml_tag, false)?;
+                        read_text_or_tag(b"table:error-message", xml, &xml_tag, empty_tag)?;
                     ve.set_text(txt);
 
                     valid.set_err(Some(ve));
@@ -1224,7 +1224,7 @@ fn read_validations(
                         }
                     }
                     let (_str, txt) =
-                        read_text_or_tag(b"table:help-message", xml, &xml_tag, false)?;
+                        read_text_or_tag(b"table:help-message", xml, &xml_tag, empty_tag)?;
                     vh.set_text(txt);
 
                     valid.set_help(Some(vh));
