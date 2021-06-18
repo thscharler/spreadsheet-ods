@@ -91,6 +91,13 @@ fn test_validation0() -> Result<(), OdsError> {
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
+    let cc: ucell = 10;
+    sheet.set_value(0, cc, "In List");
+    let mut valid = Validation::new();
+    valid.set_condition(Condition::content_is_in_list(&["a", "b", "c"]));
+    let valid = book.add_validation(valid);
+    sheet.set_validation(1, cc, &valid);
+
     book.push_sheet(sheet);
 
     write_ods(&mut book, "test_out/validation0.ods")?;
