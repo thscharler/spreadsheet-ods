@@ -21,7 +21,7 @@ use crate::style::{
     ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle, ParagraphStyle,
     RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
-use crate::text::TextTag;
+use crate::text::{TextP, TextTag};
 use crate::validation::{
     MessageType, Validation, ValidationDisplay, ValidationError, ValidationHelp,
 };
@@ -612,7 +612,7 @@ fn read_table_cell(
     // Content of the table-cell tag.
     let mut cell_content: Option<String> = None;
     // Content of the table-cell tag.
-    let mut cell_content_txt: Option<TextTag> = None;
+    let mut cell_content_txt: Option<Vec<TextTag>> = None;
     // Currency
     let mut cell_currency: Option<String> = None;
 
@@ -692,8 +692,46 @@ fn read_table_cell(
         match evt {
             Event::Start(xml_tag) if xml_tag.name() == b"text:p" => {
                 let (str, txt) = read_text_or_tag(b"text:p", xml, &xml_tag, false)?;
-                cell_content = str;
-                cell_content_txt = txt;
+                // There can be multiple text:p elements within the cell.
+                if cell_content.is_some() {
+                    // Have a destructured text:p from before.
+                    // Wrap up and create list.
+                    let mut vec = Vec::new();
+
+                    // destructured text:p
+                    let cc = cell_content.take().unwrap();
+                    vec.push(TextP::new().text(cc).into_xmltag());
+
+                    if let Some(txt) = txt {
+                        vec.push(txt);
+                    } else if let Some(str) = str {
+                        vec.push(TextP::new().text(str).into_xmltag());
+                    }
+
+                    cell_content = None;
+                    cell_content_txt = Some(vec);
+
+                    dbg!(&cell_content, &cell_content_txt);
+                } else if cell_content_txt.is_some() {
+                    let mut vec = cell_content_txt.take().unwrap();
+
+                    if let Some(txt) = txt {
+                        vec.push(txt);
+                    } else if let Some(str) = str {
+                        vec.push(TextP::new().text(str).into_xmltag());
+                    }
+
+                    assert_eq!(cell_content, None);
+                    cell_content_txt = Some(vec);
+
+                    dbg!(&cell_content, &cell_content_txt);
+                } else {
+                    if let Some(txt) = txt {
+                        cell_content_txt = Some(vec![txt]);
+                    } else if let Some(str) = str {
+                        cell_content = Some(str);
+                    }
+                }
             }
 
             Event::Empty(xml_tag) if xml_tag.name() == b"text:p" => {
@@ -812,7 +850,7 @@ fn parse_value(
     value_type: Option<ValueType>,
     cell_value: Option<String>,
     cell_content: Option<String>,
-    cell_content_txt: Option<TextTag>,
+    cell_content_txt: Option<Vec<TextTag>>,
     cell_currency: Option<String>,
     row: ucell,
     col: ucell,
@@ -1469,6 +1507,7 @@ fn read_headerfooter(
                         }
                     }
                     b"text:p" => {
+                        // todo: in table:cell there can be multiple text:p. applies here too?
                         let cm = read_xml(b"text:p", xml, &xml_tag, empty_tag)?;
                         hf.set_content(cm);
                     }
