@@ -1022,6 +1022,7 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
     // table-row + table-cell
     let mut first_cell = true;
     let mut last_r: ucell = 0;
+    let mut last_r_repeat: ucell = 0;
     let mut last_c: ucell = 0;
 
     for ((cur_row, cur_col), cell) in sheet.data.iter() {
@@ -1052,6 +1053,7 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
         };
 
         // Looking backward row-wise.
+        dbg!(*cur_row, last_r);
         let backward_dr = *cur_row - last_r;
         // When a row changes our delta is from zero to cur_col.
         let backward_dc = if backward_dr >= 1 {
@@ -1068,7 +1070,18 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
 
         // Any empty rows before this one?
         if backward_dr > 0 {
-            write_empty_rows_before(sheet, *cur_row, first_cell, backward_dr, max_cell, xml_out)?;
+            // If the last row had a repeat counter the distance is reduced.
+            // We should not add any extra empty rows.
+            if last_r_repeat - 1 < backward_dr {
+                write_empty_rows_before(
+                    sheet,
+                    *cur_row,
+                    first_cell,
+                    backward_dr - last_r_repeat + 1,
+                    max_cell,
+                    xml_out,
+                )?;
+            }
         }
 
         // Start a new row if there is a delta or we are at the start.
@@ -1105,6 +1118,11 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
 
         first_cell = false;
         last_r = *cur_row;
+        last_r_repeat = if let Some(row_header) = sheet.row_header.get(&cur_row) {
+            row_header.repeat
+        } else {
+            1
+        };
         last_c = *cur_col;
     }
 
