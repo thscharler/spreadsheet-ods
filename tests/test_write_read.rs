@@ -1,6 +1,10 @@
+use std::fs::File;
+use std::io::Write;
 use std::path::Path;
 
-use spreadsheet_ods::{read_ods, write_ods, OdsError, Sheet, SplitMode, ValueType, WorkBook};
+use spreadsheet_ods::{
+    read_ods, write_ods, write_ods_buf, OdsError, Sheet, SplitMode, ValueType, WorkBook,
+};
 
 #[test]
 fn test_write_read() -> Result<(), OdsError> {
@@ -66,6 +70,31 @@ fn test_write_read_write_read() -> Result<(), OdsError> {
     write_ods(&mut wb, temp)?;
 
     let _ods = read_ods(temp)?;
+
+    Ok(())
+}
+
+#[test]
+fn test_write_buf() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new();
+    let mut sh = Sheet::new();
+
+    sh.set_value(0, 0, "A");
+    wb.push_sheet(sh);
+
+    let p = Path::new("test_out/bufnot.ods");
+    write_ods(&mut wb, p)?;
+    let len = p.to_path_buf().metadata()?.len() as usize;
+
+    dbg!(len);
+
+    let v = Vec::new();
+    let v = write_ods_buf(&mut wb, v)?;
+
+    assert_eq!(v.len(), len);
+
+    let mut ff = File::create("test_out/bufbuf.ods")?;
+    ff.write_all(&v)?;
 
     Ok(())
 }
