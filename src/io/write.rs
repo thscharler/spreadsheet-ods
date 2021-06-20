@@ -1052,7 +1052,6 @@ fn write_sheet(book: &WorkBook, sheet: &Sheet, xml_out: &mut XmlOdsWriter) -> Re
         };
 
         // Looking backward row-wise.
-        dbg!(*cur_row, last_r);
         let backward_dr = *cur_row - last_r;
         // When a row changes our delta is from zero to cur_col.
         let backward_dc = if backward_dr >= 1 {

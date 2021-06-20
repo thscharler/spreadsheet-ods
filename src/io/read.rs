@@ -710,8 +710,6 @@ fn read_table_cell(
 
                     cell_content = None;
                     cell_content_txt = Some(vec);
-
-                    dbg!(&cell_content, &cell_content_txt);
                 } else if cell_content_txt.is_some() {
                     let mut vec = cell_content_txt.take().unwrap();
 
@@ -723,8 +721,6 @@ fn read_table_cell(
 
                     assert_eq!(cell_content, None);
                     cell_content_txt = Some(vec);
-
-                    dbg!(&cell_content, &cell_content_txt);
                 } else {
                     if let Some(txt) = txt {
                         cell_content_txt = Some(vec![txt]);
