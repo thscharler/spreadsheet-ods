@@ -1,3 +1,22 @@
+# 0.8.0
+
+- Value::TextXml changed to Vec<TextTag>. Multiline, styled text can occur as
+  multiple direct text:p in a table:cell.
+
+- Repeat rows where not correctly considered when occuring in the middle of the
+  table.
+
+  There is a problem that still remains: If data exists in the repeat range,
+  these values are written out too. The effect is that the rest of the rows is
+  shifted down. This might destroy cell references. This doesn't happen when an
+  existing ODS is read, but care has to be taken when generating new stuff.
+
+- write_ods_buf and read_ods_buf implemented.
+
+- add some missing namespaces.
+- fix bug in Condition with string values.
+- add range() to sheet.
+
 # 0.7.0
 
 - Add content validations.

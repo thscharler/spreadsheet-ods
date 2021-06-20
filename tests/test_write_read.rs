@@ -55,22 +55,36 @@ fn read_orders() -> Result<(), OdsError> {
 
 #[test]
 fn test_write_read_write_read() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
-    let mut sh = Sheet::new();
-
-    sh.set_value(0, 0, "A");
-    wb.push_sheet(sh);
-
     let path = Path::new("tests/rw.ods");
     let temp = Path::new("test_out/rw.ods");
 
     std::fs::copy(path, temp)?;
 
+    let mut ods = read_ods(temp)?;
+    write_ods(&mut ods, temp)?;
     let _ods = read_ods(temp)?;
 
-    write_ods(&mut wb, temp)?;
+    Ok(())
+}
 
-    let _ods = read_ods(temp)?;
+#[test]
+fn test_write_repeat_overlapped() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new();
+    let mut sh = Sheet::new();
+
+    sh.set_value(0, 0, "A");
+    sh.set_row_repeat(0, 3);
+    sh.set_value(1, 0, "X");
+    sh.set_value(2, 0, "X");
+    sh.set_value(3, 0, "B");
+
+    wb.push_sheet(sh);
+
+    let path = Path::new("test_out/overlap.ods");
+    write_ods(&mut wb, path)?;
+
+    let _ods = read_ods(path)?;
+    dbg!(_ods);
 
     Ok(())
 }
