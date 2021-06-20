@@ -1068,7 +1068,7 @@ fn write_sheet<W: Write + Seek>(
     // table-row + table-cell
     let mut first_cell = true;
     let mut last_r: ucell = 0;
-    let mut last_r_repeat: ucell = 0;
+    let mut last_r_repeat: ucell = 1;
     let mut last_c: ucell = 0;
 
     for ((cur_row, cur_col), cell) in sheet.data.iter() {
