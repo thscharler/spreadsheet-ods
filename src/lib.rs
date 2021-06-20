@@ -2051,6 +2051,12 @@ macro_rules! from_number {
             }
         }
 
+        impl From<&$l> for Value {
+            fn from(f: &$l) -> Self {
+                Value::Number(*f as f64)
+            }
+        }
+
         impl From<Option<$l>> for Value {
             fn from(f: Option<$l>) -> Self {
                 if let Some(f) = f {
