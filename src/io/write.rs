@@ -34,7 +34,6 @@ pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(),
     store_derived(book)?;
 
     let mut zip_writer = OdsWriter::new(ods_path.as_ref())?;
-    // let mut zip_writer = TempZip::new(ods_path.as_ref())?;
 
     // copy all buffered data from the original.
     copy_workbook(&book, &mut zip_writer)?;
@@ -1474,7 +1473,9 @@ fn write_cell(
             }
         }
         Value::TextXml(t) => {
-            write_xmltag(t, xml_out)?;
+            for tt in t.iter() {
+                write_xmltag(tt, xml_out)?;
+            }
         }
         Value::DateTime(d) => {
             xml_out.attr("office:value-type", "date")?;

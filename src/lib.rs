@@ -1765,7 +1765,7 @@ pub enum Value {
     Percentage(f64),
     Currency(String, f64),
     Text(String),
-    TextXml(Box<TextTag>),
+    TextXml(Box<Vec<TextTag>>),
     DateTime(NaiveDateTime),
     TimeDuration(Duration),
 }
@@ -1985,6 +1985,12 @@ impl From<&String> for Value {
 
 impl From<TextTag> for Value {
     fn from(t: TextTag) -> Self {
+        Value::TextXml(Box::new(vec![t]))
+    }
+}
+
+impl From<Vec<TextTag>> for Value {
+    fn from(t: Vec<TextTag>) -> Self {
         Value::TextXml(Box::new(t))
     }
 }
