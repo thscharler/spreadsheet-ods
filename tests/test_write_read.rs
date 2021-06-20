@@ -1,9 +1,10 @@
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::Path;
 
 use spreadsheet_ods::{
-    read_ods, write_ods, write_ods_buf, OdsError, Sheet, SplitMode, ValueType, WorkBook,
+    read_ods, read_ods_buf, write_ods, write_ods_buf, OdsError, Sheet, SplitMode, ValueType,
+    WorkBook,
 };
 
 #[test]
@@ -96,5 +97,24 @@ fn test_write_buf() -> Result<(), OdsError> {
     let mut ff = File::create("test_out/bufbuf.ods")?;
     ff.write_all(&v)?;
 
+    Ok(())
+}
+
+#[test]
+fn test_read_buf() -> Result<(), OdsError> {
+    let mut buf = Vec::new();
+    let mut f = File::open("tests/orders.ods")?;
+    f.read_to_end(&mut buf)?;
+
+    let mut wb = read_ods_buf(&buf)?;
+
+    wb.config_mut().has_sheet_tabs = false;
+
+    let cc = wb.sheet_mut(0).config_mut();
+    cc.show_grid = true;
+    cc.vert_split_pos = 2;
+    cc.vert_split_mode = SplitMode::Heading;
+
+    write_ods(&mut wb, "test_out/orders.ods")?;
     Ok(())
 }

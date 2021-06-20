@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::{BufReader, Cursor, Read, Seek};
 use std::path::Path;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime};
@@ -31,13 +31,21 @@ use crate::{
     ValueType, Visibility, WorkBook,
 };
 
+/// Reads an ODS-file from a buffer
+pub fn read_ods_buf(buf: &[u8]) -> Result<WorkBook, OdsError> {
+    let zip = ZipArchive::new(Cursor::new(buf))?;
+    read_ods_impl(zip)
+}
+
 /// Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
     let file = File::open(path.as_ref())?;
+    let zip = ZipArchive::new(file)?;
+    read_ods_impl(zip)
+}
 
-    // ods is a zip-archive, we read content.xml
-    let mut zip = ZipArchive::new(file)?;
-
+/// Reads an ODS-file.
+fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, OdsError> {
     let mut book = WorkBook::new();
 
     read_content(&mut book, &mut zip.by_name("content.xml")?)?;
@@ -59,7 +67,10 @@ pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
 }
 
 // Loads all unprocessed files as byte blobs into a buffer.
-fn read_filebuf(book: &mut WorkBook, zip: &mut ZipArchive<File>) -> Result<(), OdsError> {
+fn read_filebuf<R: Read + Seek>(
+    book: &mut WorkBook,
+    zip: &mut ZipArchive<R>,
+) -> Result<(), OdsError> {
     for idx in 0..zip.len() {
         let mut ze = zip.by_index(idx)?;
 
