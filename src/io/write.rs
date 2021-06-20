@@ -1522,6 +1522,7 @@ fn write_cell<W: Write + Seek>(
             }
         }
         Value::TextXml(t) => {
+            xml_out.attr("office:value-type", "string")?;
             for tt in t.iter() {
                 write_xmltag(tt, xml_out)?;
             }
