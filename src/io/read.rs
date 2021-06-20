@@ -602,6 +602,7 @@ fn read_table_col_attr(
 }
 
 // Reads the cell data.
+#[allow(clippy::collapsible_else_if)]
 fn read_table_cell(
     sheet: &mut Sheet,
     row: ucell,
@@ -869,7 +870,7 @@ fn parse_value(
                 if let Some(cell_value) = cell_value {
                     Ok(Value::Text(cell_value))
                 } else if let Some(cell_content_txt) = cell_content_txt {
-                    Ok(Value::TextXml(Box::new(cell_content_txt)))
+                    Ok(Value::TextXml(cell_content_txt))
                 } else if let Some(cell_content) = cell_content {
                     Ok(Value::Text(cell_content))
                 } else {

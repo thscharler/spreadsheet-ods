@@ -143,10 +143,12 @@
 
 #![doc(html_root_url = "https://docs.rs/spreadsheet-ods/0.4.0")]
 
+use std::collections::btree_map::Range;
 use std::collections::{BTreeMap, HashMap};
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use std::ops::RangeBounds;
 use std::str::FromStr;
 
 use chrono::Duration;
@@ -174,8 +176,6 @@ use crate::style::{
 use crate::text::TextTag;
 use crate::validation::{Validation, ValidationRef};
 use crate::xmltree::XmlTag;
-use std::collections::btree_map::Range;
-use std::ops::RangeBounds;
 
 #[macro_use]
 mod attr_macro;
@@ -1765,7 +1765,7 @@ pub enum Value {
     Percentage(f64),
     Currency(String, f64),
     Text(String),
-    TextXml(Box<Vec<TextTag>>),
+    TextXml(Vec<TextTag>),
     DateTime(NaiveDateTime),
     TimeDuration(Duration),
 }
@@ -1985,13 +1985,13 @@ impl From<&String> for Value {
 
 impl From<TextTag> for Value {
     fn from(t: TextTag) -> Self {
-        Value::TextXml(Box::new(vec![t]))
+        Value::TextXml(vec![t])
     }
 }
 
 impl From<Vec<TextTag>> for Value {
     fn from(t: Vec<TextTag>) -> Self {
-        Value::TextXml(Box::new(t))
+        Value::TextXml(t)
     }
 }
 
