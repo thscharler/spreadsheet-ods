@@ -1,6 +1,8 @@
 # 0.8.1
 
 - fix for #24. Excel doesn't like the empty content-validations tag.
+- complex text was missing the value-type
+- Value conversions from ref types.
 
 # 0.8.0
 
