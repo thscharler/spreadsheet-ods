@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fs::File;
 use std::io;
 use std::io::{Cursor, Seek, Write};
 use std::path::Path;
@@ -20,7 +21,6 @@ use crate::style::{
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{ucell, Length, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
-use std::fs::File;
 
 type OdsWriter<W> = ZipOut<W>;
 type XmlOdsWriter<'a, W> = XmlWriter<ZipWrite<'a, W>>;
@@ -943,67 +943,69 @@ fn write_content_validations<W: Write + Seek>(
     book: &WorkBook,
     xml_out: &mut XmlOdsWriter<W>,
 ) -> Result<(), OdsError> {
-    xml_out.elem("table:content-validations")?;
+    if !book.validations.is_empty() {
+        xml_out.elem("table:content-validations")?;
 
-    for valid in book.validations.values() {
-        xml_out.elem("table:content-validation")?;
-        xml_out.attr_esc("table:name", valid.name())?;
-        let mut cond = "of:".to_string();
-        cond.push_str(valid.condition());
-        xml_out.attr_esc("table:condition", cond.as_str())?;
-        xml_out.attr(
-            "table:allow-empty-cell",
-            if valid.allow_empty() { "true" } else { "false" },
-        )?;
-        xml_out.attr(
-            "table:display-list",
-            match valid.display() {
-                ValidationDisplay::NoDisplay => "no",
-                ValidationDisplay::Unsorted => "unsorted",
-                ValidationDisplay::SortAscending => "sort-ascending",
-            },
-        )?;
-        xml_out.attr_esc("table:base-cell-address", &valid.base_cell().to_string())?;
+        for valid in book.validations.values() {
+            xml_out.elem("table:content-validation")?;
+            xml_out.attr_esc("table:name", valid.name())?;
+            let mut cond = "of:".to_string();
+            cond.push_str(valid.condition());
+            xml_out.attr_esc("table:condition", cond.as_str())?;
+            xml_out.attr(
+                "table:allow-empty-cell",
+                if valid.allow_empty() { "true" } else { "false" },
+            )?;
+            xml_out.attr(
+                "table:display-list",
+                match valid.display() {
+                    ValidationDisplay::NoDisplay => "no",
+                    ValidationDisplay::Unsorted => "unsorted",
+                    ValidationDisplay::SortAscending => "sort-ascending",
+                },
+            )?;
+            xml_out.attr_esc("table:base-cell-address", &valid.base_cell().to_string())?;
 
-        if let Some(err) = valid.err() {
-            if err.text().is_some() {
-                xml_out.elem("table:error-message")?;
-            } else {
-                xml_out.empty("table:error-message")?;
+            if let Some(err) = valid.err() {
+                if err.text().is_some() {
+                    xml_out.elem("table:error-message")?;
+                } else {
+                    xml_out.empty("table:error-message")?;
+                }
+                xml_out.attr("table:display", err.display().to_string())?;
+                xml_out.attr("table:message-type", err.msg_type().to_string())?;
+                if let Some(title) = err.title() {
+                    xml_out.attr("table:title", title)?;
+                }
+                if let Some(text) = err.text() {
+                    write_xmltag(text, xml_out)?;
+                }
+                if err.text().is_some() {
+                    xml_out.end_elem("table:error-message")?;
+                }
             }
-            xml_out.attr("table:display", err.display().to_string())?;
-            xml_out.attr("table:message-type", err.msg_type().to_string())?;
-            if let Some(title) = err.title() {
-                xml_out.attr("table:title", title)?;
+            if let Some(err) = valid.help() {
+                if err.text().is_some() {
+                    xml_out.elem("table:help-message")?;
+                } else {
+                    xml_out.empty("table:help-message")?;
+                }
+                xml_out.attr("table:display", err.display().to_string())?;
+                if let Some(title) = err.title() {
+                    xml_out.attr("table:title", title)?;
+                }
+                if let Some(text) = err.text() {
+                    write_xmltag(text, xml_out)?;
+                }
+                if err.text().is_some() {
+                    xml_out.end_elem("table:help-message")?;
+                }
             }
-            if let Some(text) = err.text() {
-                write_xmltag(text, xml_out)?;
-            }
-            if err.text().is_some() {
-                xml_out.end_elem("table:error-message")?;
-            }
+
+            xml_out.end_elem("table:content-validation")?;
         }
-        if let Some(err) = valid.help() {
-            if err.text().is_some() {
-                xml_out.elem("table:help-message")?;
-            } else {
-                xml_out.empty("table:help-message")?;
-            }
-            xml_out.attr("table:display", err.display().to_string())?;
-            if let Some(title) = err.title() {
-                xml_out.attr("table:title", title)?;
-            }
-            if let Some(text) = err.text() {
-                write_xmltag(text, xml_out)?;
-            }
-            if err.text().is_some() {
-                xml_out.end_elem("table:help-message")?;
-            }
-        }
-
-        xml_out.end_elem("table:content-validation")?;
+        xml_out.end_elem("table:content-validations")?;
     }
-    xml_out.end_elem("table:content-validations")?;
 
     Ok(())
 }
