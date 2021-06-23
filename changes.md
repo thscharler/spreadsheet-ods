@@ -1,3 +1,7 @@
+# 0.8.1
+
+- fix for #24. Excel doesn't like the empty content-validations tag.
+
 # 0.8.0
 
 - Value::TextXml changed to Vec<TextTag>. Multiline, styled text can occur as
