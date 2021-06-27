@@ -1687,6 +1687,8 @@ impl SCell {
 
     /// Sets the formula.
     pub fn set_formula<V: Into<String>>(&mut self, formula: V) {
+        let formula = formula.into();
+        assert!(formula.starts_with("of:="));
         self.formula = Some(formula.into());
     }
 
