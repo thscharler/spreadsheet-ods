@@ -701,6 +701,10 @@ fn write_ods_styles<W: Write + Seek>(
     )?;
     xml_out.attr("xmlns:drawooo", "http://openoffice.org/2010/draw")?;
     xml_out.attr(
+        "xmlns:draw",
+        "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
+    )?;
+    xml_out.attr(
         "xmlns:loext",
         "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
     )?;
