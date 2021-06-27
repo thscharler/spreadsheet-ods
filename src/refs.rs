@@ -808,8 +808,11 @@ pub(crate) fn push_rowname(buf: &mut String, row: ucell) {
 }
 
 /// Appends the table-name
-pub(crate) fn push_tablename(buf: &mut String, table: Option<&String>) {
+pub(crate) fn push_tablename(buf: &mut String, table: Option<&String>, abs: bool) {
     if let Some(table) = table {
+        if abs {
+            buf.push('$');
+        }
         if table.contains(|c| c == '\'' || c == ' ' || c == '.') {
             buf.push('\'');
             buf.push_str(&table.replace('\'', "''"));
@@ -825,7 +828,11 @@ pub(crate) fn push_tablename(buf: &mut String, table: Option<&String>) {
 
 /// Appends the cell reference
 pub(crate) fn push_cellref(buf: &mut String, cellref: &CellRef) {
-    push_tablename(buf, cellref.table.as_ref());
+    push_tablename(
+        buf,
+        cellref.table.as_ref(),
+        cellref.col_abs || cellref.row_abs,
+    );
     if cellref.col_abs {
         buf.push('$');
     }
@@ -838,7 +845,11 @@ pub(crate) fn push_cellref(buf: &mut String, cellref: &CellRef) {
 
 /// Appends the range reference
 pub(crate) fn push_cellrange(buf: &mut String, cellrange: &CellRange) {
-    push_tablename(buf, cellrange.table.as_ref());
+    push_tablename(
+        buf,
+        cellrange.table.as_ref(),
+        cellrange.row_abs || cellrange.col_abs || cellrange.to_row_abs || cellrange.to_col_abs,
+    );
     if cellrange.col_abs {
         buf.push('$');
     }
@@ -848,7 +859,11 @@ pub(crate) fn push_cellrange(buf: &mut String, cellrange: &CellRange) {
     }
     push_rowname(buf, cellrange.row);
     buf.push(':');
-    buf.push('.');
+    push_tablename(
+        buf,
+        cellrange.table.as_ref(),
+        cellrange.row_abs || cellrange.col_abs || cellrange.to_row_abs || cellrange.to_col_abs,
+    );
     if cellrange.to_col_abs {
         buf.push('$');
     }
@@ -928,27 +943,27 @@ mod tests {
         assert_eq!(buf, "4294967295");
         buf.clear();
 
-        push_rowname(&mut buf, ucell::max_value());
+        push_rowname(&mut buf, ucell::MAX);
         assert_eq!(buf, "4294967296");
         buf.clear();
 
-        push_tablename(&mut buf, Some(&"fable".to_string()));
+        push_tablename(&mut buf, Some(&"fable".to_string()), false);
         assert_eq!(buf, "fable.");
         buf.clear();
 
-        push_tablename(&mut buf, Some(&"fa le".to_string()));
+        push_tablename(&mut buf, Some(&"fa le".to_string()), false);
         assert_eq!(buf, "'fa le'.");
         buf.clear();
 
-        push_tablename(&mut buf, Some(&"fa'le".to_string()));
+        push_tablename(&mut buf, Some(&"fa'le".to_string()), false);
         assert_eq!(buf, "'fa''le'.");
         buf.clear();
 
-        push_tablename(&mut buf, Some(&"fa.le".to_string()));
+        push_tablename(&mut buf, Some(&"fa.le".to_string()), false);
         assert_eq!(buf, "'fa.le'.");
         buf.clear();
 
-        push_tablename(&mut buf, None);
+        push_tablename(&mut buf, None, false);
         assert_eq!(buf, ".");
         buf.clear();
 
