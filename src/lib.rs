@@ -1398,6 +1398,13 @@ impl Sheet {
         cell.formula = Some(formula.into());
     }
 
+    /// Removes the formula.
+    pub fn clear_formula(&mut self, row: ucell, col: ucell) {
+        if let Some(cell) = self.data.get_mut(&(row, col)) {
+            cell.clear_formula();
+        }
+    }
+
     /// Returns a value
     pub fn formula(&self, row: ucell, col: ucell) -> Option<&String> {
         if let Some(c) = self.data.get(&(row, col)) {
@@ -1413,6 +1420,13 @@ impl Sheet {
         cell.style = Some(style.to_string());
     }
 
+    /// Removes the cell-style.
+    pub fn clear_cellstyle(&mut self, row: ucell, col: ucell) {
+        if let Some(cell) = self.data.get_mut(&(row, col)) {
+            cell.clear_style();
+        }
+    }
+
     /// Returns a value
     pub fn cellstyle(&self, row: ucell, col: ucell) -> Option<&String> {
         if let Some(c) = self.data.get(&(row, col)) {
@@ -1426,6 +1440,13 @@ impl Sheet {
     pub fn set_validation(&mut self, row: ucell, col: ucell, validation: &ValidationRef) {
         let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
         cell.validation = Some(validation.to_string());
+    }
+
+    /// Removes the cell-style.
+    pub fn clear_validation(&mut self, row: ucell, col: ucell) {
+        if let Some(cell) = self.data.get_mut(&(row, col)) {
+            cell.clear_validation();
+        }
     }
 
     /// Returns a content-validation name for this cell.
@@ -1692,6 +1713,10 @@ impl SCell {
         self.formula = Some(formula.into());
     }
 
+    pub fn clear_formula(&mut self) {
+        self.formula = None;
+    }
+
     /// Returns the cell style.
     pub fn style(&self) -> Option<&String> {
         self.style.as_ref()
@@ -1702,6 +1727,10 @@ impl SCell {
         self.style = Some(style.to_string());
     }
 
+    pub fn clear_style(&mut self) {
+        self.style = None;
+    }
+
     /// Returns the validation name.
     pub fn validation(&self) -> Option<&String> {
         self.validation.as_ref()
@@ -1710,6 +1739,10 @@ impl SCell {
     /// Sets the validation name.
     pub fn set_validation(&mut self, validation: &ValidationRef) {
         self.validation = Some(validation.to_string());
+    }
+
+    pub fn clear_validation(&mut self) {
+        self.validation = None;
     }
 
     /// Sets the row span of this cell.
