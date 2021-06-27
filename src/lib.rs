@@ -56,7 +56,6 @@
 //! sheet.set_value(5,5, "sample");
 //! wb.push_sheet(sheet);
 //!
-
 //!
 //! spreadsheet_ods::write_ods(&mut wb, "test_out/tryout.ods");
 //!
@@ -1932,6 +1931,24 @@ impl Value {
     pub fn as_datetime_opt(&self) -> Option<NaiveDateTime> {
         match self {
             Value::DateTime(dt) => Some(*dt),
+            _ => None,
+        }
+    }
+
+    /// Return the content as NaiveDate if the value is a DateTime.
+    /// Default otherwise.
+    pub fn as_date_or(&self, d: NaiveDate) -> NaiveDate {
+        match self {
+            Value::DateTime(dt) => dt.date(),
+            _ => d,
+        }
+    }
+
+    /// Return the content as an optional NaiveDateTime if the value is
+    /// a DateTime.
+    pub fn as_date_opt(&self) -> Option<NaiveDate> {
+        match self {
+            Value::DateTime(dt) => Some(dt.date()),
             _ => None,
         }
     }
