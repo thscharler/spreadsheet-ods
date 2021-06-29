@@ -1299,6 +1299,16 @@ impl Sheet {
         }
     }
 
+    /// Returns the maximum used column +1 in the column header
+    pub fn used_cols(&self) -> ucell {
+        *self.col_header.keys().max().unwrap_or(&0) + 1
+    }
+
+    /// Returns the maximum used row +1 in the row header
+    pub fn used_rows(&self) -> ucell {
+        *self.row_header.keys().max().unwrap_or(&0) + 1
+    }
+
     /// Returns a tuple of (max(row)+1, max(col)+1)
     pub fn used_grid_size(&self) -> (ucell, ucell) {
         let max = self.data.keys().fold((0, 0), |mut max, (r, c)| {
