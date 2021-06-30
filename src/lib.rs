@@ -381,6 +381,16 @@ impl WorkBook {
         self.sheets.len()
     }
 
+    /// Finds the sheet index by the sheet-name.
+    pub fn sheet_idx<S: AsRef<str>>(&self, name: S) -> Option<usize> {
+        for (idx, sheet) in self.sheets.iter().enumerate() {
+            if sheet.name == name.as_ref() {
+                return Some(idx);
+            }
+        }
+        return None;
+    }
+
     /// Detaches a sheet.
     /// Useful if you have to make mutating calls to the workbook and
     /// the sheet intermixed.
