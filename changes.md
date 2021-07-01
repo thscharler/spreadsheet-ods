@@ -1,3 +1,20 @@
+# 0.8.2
+
+- Checks that formulas start with "of:="
+- New f*ref variants for formulas. These create a diverse array of absolute $
+  references.
+- Value can extract a NaiveDate value.
+
+WorkBook:
+
+- Add sheet_idx to find a sheet by name.
+- Add used_cols, used_rows to find the number of row/column-headers.
+- fixed a missing namespace.
+
+Sheet:
+
+- clear_formula, clear_cell_style, clear_validation
+
 # 0.8.1
 
 - fix for #24. Excel doesn't like the empty content-validations tag.
