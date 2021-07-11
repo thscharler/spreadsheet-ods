@@ -4,12 +4,13 @@ use std::path::Path;
 
 use zip::result::ZipError;
 use zip::write::FileOptions;
-use zip::ZipWriter;
+use zip::{CompressionMethod, ZipWriter};
 
 /// Reduced Interface for ZipWriter.
 #[allow(dead_code)]
 pub struct ZipOut<W: Write + Seek> {
     zip: ZipWriter<W>,
+    compression: CompressionMethod,
 }
 
 pub struct ZipWrite<'a, W: Write + Seek> {
@@ -22,12 +23,21 @@ impl<W: Write + Seek> ZipOut<W> {
         let f = File::create(zip_file)?;
         Ok(ZipOut {
             zip: ZipWriter::new(f),
+            compression: CompressionMethod::Deflated,
         })
     }
 
     pub fn new_buf(buf: Vec<u8>) -> Result<ZipOut<Cursor<Vec<u8>>>, std::io::Error> {
         Ok(ZipOut {
             zip: ZipWriter::new(Cursor::new(buf)),
+            compression: CompressionMethod::Deflated,
+        })
+    }
+
+    pub fn new_buf_uncompressed(buf: Vec<u8>) -> Result<ZipOut<Cursor<Vec<u8>>>, std::io::Error> {
+        Ok(ZipOut {
+            zip: ZipWriter::new(Cursor::new(buf)),
+            compression: CompressionMethod::Stored,
         })
     }
 
@@ -44,6 +54,7 @@ impl<W: Write + Seek> ZipOut<W> {
         name: S,
         options: FileOptions,
     ) -> Result<ZipWrite<W>, ZipError> {
+        let options = options.compression_method(self.compression);
         self.zip.start_file(name, options)?;
         Ok(ZipWrite {
             write: &mut self.zip,

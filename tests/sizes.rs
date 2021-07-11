@@ -1,13 +1,28 @@
+use std::mem::size_of;
+
+use chrono::{Duration, NaiveDateTime};
+
+use spreadsheet_ods::text::TextTag;
+use spreadsheet_ods::{ucell, SCell, Sheet, Value, WorkBook};
+
 #[test]
 pub fn sizes() {
-    // println!("WorkBook {}", size_of::<WorkBook>());
-    // println!("Sheet {}", size_of::<Sheet>());
-    //
-    // println!("SCell {}", size_of::<SCell>());
-    // println!("Value {}", size_of::<Value>());
-    // println!("Option<String> {}", size_of::<Option<String>>());
-    // println!("(ucell,ucell) {}", size_of::<(ucell, ucell)>());
-    //
+    println!("WorkBook {}", size_of::<WorkBook>());
+    println!("Sheet {}", size_of::<Sheet>());
+
+    println!("SCell {}", size_of::<SCell>());
+    println!("Value {}", size_of::<Value>());
+    println!("Option<String> {}", size_of::<Option<String>>());
+    println!("(ucell,ucell) {}", size_of::<(ucell, ucell)>());
+
+    println!("bool {}", size_of::<bool>());
+    println!("f64 {}", size_of::<f64>());
+    println!("String, f64 {}", size_of::<(String, f64)>());
+    println!("String {}", size_of::<String>());
+    println!("Vec<TextTag> {}", size_of::<Vec<TextTag>>());
+    println!("NaiveDateTime {}", size_of::<NaiveDateTime>());
+    println!("Duration {}", size_of::<Duration>());
+
     // println!("bool {}", size_of::<bool>());
     // println!("f64 {}", size_of::<f64>());
     // println!("(String, f64) {}", size_of::<(String, f64)>());
