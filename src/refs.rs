@@ -249,6 +249,7 @@ impl CellRange {
             to_col: col + span.1 - 1,
         }
     }
+
     /// Table name for references into other tables.
     pub fn set_table<S: Into<String>>(&mut self, table: S) {
         self.table = Some(table.into());
@@ -923,11 +924,11 @@ mod tests {
         assert_eq!(buf, "ZA");
         buf.clear();
 
-        push_colname(&mut buf, ucell::max_value() - 1);
+        push_colname(&mut buf, ucell::MAX - 1);
         assert_eq!(buf, "MWLQKWU");
         buf.clear();
 
-        push_colname(&mut buf, ucell::max_value());
+        push_colname(&mut buf, ucell::MAX);
         assert_eq!(buf, "MWLQKWV");
         buf.clear();
 
@@ -939,7 +940,7 @@ mod tests {
         assert_eq!(buf, "928");
         buf.clear();
 
-        push_rowname(&mut buf, ucell::max_value() - 1);
+        push_rowname(&mut buf, ucell::MAX - 1);
         assert_eq!(buf, "4294967295");
         buf.clear();
 
