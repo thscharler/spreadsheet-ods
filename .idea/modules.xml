@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../mini-wws/mini-wws.iml" filepath="$PROJECT_DIR$/../mini-wws/mini-wws.iml" />
       <module fileurl="file://$PROJECT_DIR$/spreadsheet-ods.iml" filepath="$PROJECT_DIR$/spreadsheet-ods.iml" />
     </modules>
   </component>
