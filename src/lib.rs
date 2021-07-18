@@ -21,7 +21,7 @@
 //!
 //! if wb.num_sheets() == 0 {
 //!     let mut sheet = Sheet::new();
-//!     sheet.cell_mut(0, 0).set_value(true);
+//!     sheet.set_value(0, 0, true);
 //!     wb.push_sheet(sheet);
 //! }
 //!
@@ -142,12 +142,10 @@
 
 #![doc(html_root_url = "https://docs.rs/spreadsheet-ods/0.4.0")]
 
-use std::collections::btree_map::Range;
 use std::collections::{BTreeMap, HashMap};
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::ops::RangeBounds;
 use std::str::FromStr;
 
 use chrono::Duration;
@@ -996,7 +994,7 @@ pub struct Sheet {
     name: String,
     style: Option<String>,
 
-    data: BTreeMap<(ucell, ucell), SCell>,
+    data: BTreeMap<(ucell, ucell), CellData>,
 
     col_header: BTreeMap<ucell, ColHeader>,
     row_header: BTreeMap<ucell, RowHeader>,
@@ -1012,6 +1010,186 @@ pub struct Sheet {
 
     extra: Vec<XmlTag>,
 }
+
+// impl<'a> IntoIterator for &'a Sheet {
+//     type Item = ((ucell, ucell), CellContentRef<'a>);
+//     type IntoIter = CellIter<'a>;
+//
+//     fn into_iter(self) -> Self::IntoIter {
+//         CellIter {
+//             it_data: self.data.iter(),
+//             it_styles: self.styles.iter(),
+//             it_formula: self.formulas.iter(),
+//             it_validation: self.validation_names.iter(),
+//             it_span: self.spans.iter(),
+//             key: None,
+//             k_data: None,
+//             v_data: None,
+//             k_style: None,
+//             v_style: None,
+//             k_formula: None,
+//             v_formula: None,
+//             k_validation: None,
+//             v_validation: None,
+//             k_span: None,
+//             v_span: None,
+//         }
+//     }
+// }
+//
+// pub struct CellIter<'a> {
+//     it_data: std::collections::btree_map::Iter<'a, (ucell, ucell), Value>,
+//     it_styles: std::collections::btree_map::Iter<'a, (ucell, ucell), String>,
+//     it_formula: std::collections::btree_map::Iter<'a, (ucell, ucell), String>,
+//     it_validation: std::collections::btree_map::Iter<'a, (ucell, ucell), String>,
+//     it_span: std::collections::btree_map::Iter<'a, (ucell, ucell), CellSpan>,
+//
+//     key: Option<&'a (ucell, ucell)>,
+//
+//     k_data: Option<&'a (ucell, ucell)>,
+//     v_data: Option<&'a Value>,
+//     k_style: Option<&'a (ucell, ucell)>,
+//     v_style: Option<&'a String>,
+//     k_formula: Option<&'a (ucell, ucell)>,
+//     v_formula: Option<&'a String>,
+//     k_validation: Option<&'a (ucell, ucell)>,
+//     v_validation: Option<&'a String>,
+//     k_span: Option<&'a (ucell, ucell)>,
+//     v_span: Option<&'a CellSpan>,
+// }
+//
+// impl<'a> CellIter<'a> {
+//     fn next_data(&mut self) {
+//         if let Some((k, v)) = self.it_data.next() {
+//             self.k_data = Some(k);
+//             self.v_data = Some(v);
+//         } else {
+//             self.k_data = None;
+//             self.v_data = None;
+//         }
+//     }
+//
+//     fn next_style(&mut self) {
+//         if let Some((k, v)) = self.it_styles.next() {
+//             self.k_style = Some(k);
+//             self.v_style = Some(v);
+//         } else {
+//             self.k_style = None;
+//             self.v_style = None;
+//         }
+//     }
+//
+//     fn next_formula(&mut self) {
+//         if let Some((k, v)) = self.it_formula.next() {
+//             self.k_formula = Some(k);
+//             self.v_formula = Some(v);
+//         } else {
+//             self.k_formula = None;
+//             self.v_formula = None;
+//         }
+//     }
+//
+//     fn next_validation(&mut self) {
+//         if let Some((k, v)) = self.it_validation.next() {
+//             self.k_validation = Some(k);
+//             self.v_validation = Some(v);
+//         } else {
+//             self.k_validation = None;
+//             self.v_validation = None;
+//         }
+//     }
+//
+//     fn next_span(&mut self) {
+//         if let Some((k, v)) = self.it_span.next() {
+//             self.k_span = Some(k);
+//             self.v_span = Some(v);
+//         } else {
+//             self.k_span = None;
+//             self.v_span = None;
+//         }
+//     }
+// }
+//
+// impl<'a> Iterator for CellIter<'a> {
+//     type Item = ((ucell, ucell), CellContentRef<'a>);
+//
+//     fn next(&mut self) -> Option<Self::Item> {
+//         // load next where necessary
+//         if self.key.is_none() {
+//             self.next_data();
+//             self.next_style();
+//             self.next_formula();
+//             self.next_validation();
+//             self.next_span();
+//         } else {
+//             if self.key == self.k_data {
+//                 self.next_data();
+//             }
+//             if self.key == self.k_style {
+//                 self.next_style();
+//             }
+//             if self.key == self.k_formula {
+//                 self.next_formula();
+//             }
+//             if self.key == self.k_validation {
+//                 self.next_validation();
+//             }
+//             if self.key == self.k_span {
+//                 self.next_span();
+//             }
+//         }
+//
+//         // smallest key
+//         self.key = self.k_data;
+//         if self.key.is_none() || self.k_formula.is_some() && self.key > self.k_formula {
+//             self.key = self.k_formula;
+//         }
+//         if self.key.is_none() || self.k_style.is_some() && self.key > self.k_style {
+//             self.key = self.k_style;
+//         }
+//         if self.key.is_none() || self.k_validation.is_some() && self.key > self.k_validation {
+//             self.key = self.k_validation;
+//         }
+//         if self.key.is_none() || self.k_span.is_some() && self.key > self.k_span {
+//             self.key = self.k_span;
+//         }
+//
+//         if let Some(key) = self.key {
+//             Some((
+//                 *key,
+//                 CellContentRef {
+//                     value: if self.key == self.k_data {
+//                         self.v_data
+//                     } else {
+//                         None
+//                     },
+//                     style: if self.key == self.k_data {
+//                         self.v_style
+//                     } else {
+//                         None
+//                     },
+//                     formula: if self.key == self.k_formula {
+//                         self.v_formula
+//                     } else {
+//                         None
+//                     },
+//                     validation_name: if self.key == self.k_validation {
+//                         self.v_validation
+//                     } else {
+//                         None
+//                     },
+//                     span: if self.key == self.k_span {
+//                         self.v_span
+//                     } else {
+//                         None
+//                     },
+//                 },
+//             ))
+//         } else {
+//             None
+//         }
+//     }
+// }
 
 impl fmt::Debug for Sheet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1355,33 +1533,66 @@ impl Sheet {
         self.data.get(&(row, col)).is_none()
     }
 
-    /// Allows access to SCells via ranges.
-    pub fn range<R>(&self, range: R) -> Range<'_, (ucell, ucell), SCell>
-    where
-        R: RangeBounds<(ucell, ucell)>,
-    {
-        self.data.range(range)
+    // todo: this
+    // pub fn cell_range<R>(&self, range: R)
+    // where
+    //     R: RangeBounds<(ucell, ucell)>,
+    // {
+    //     let r = self.data.range(range);
+    // }
+
+    /// Returns a copy of the cell content.
+    pub fn cell(&self, row: ucell, col: ucell) -> Option<CellContent> {
+        let value = self.data.get(&(row, col));
+
+        if let Some(value) = value {
+            Some(CellContent {
+                value: value.value.clone(),
+                style: value.style.clone(),
+                formula: value.formula.clone(),
+                validation_name: value.validation_name.clone(),
+                span: value.span.clone(),
+            })
+        } else {
+            None
+        }
     }
 
-    /// Returns the cell if available.
-    pub fn cell(&self, row: ucell, col: ucell) -> Option<&SCell> {
-        self.data.get(&(row, col))
+    /// Consumes the CellContent and sets the values.
+    pub fn add_cell(&mut self, row: ucell, col: ucell, cell: CellContent) {
+        self.add_cell_data(
+            row,
+            col,
+            CellData {
+                value: cell.value,
+                formula: cell.formula,
+                style: cell.style,
+                validation_name: cell.validation_name,
+                span: cell.span,
+            },
+        );
     }
 
-    /// Ensures that there is a SCell at the given position and returns
-    /// a reference to it.
-    pub fn cell_mut(&mut self, row: ucell, col: ucell) -> &mut SCell {
-        self.data.entry((row, col)).or_insert_with(SCell::new)
+    /// Removes the cell and returns the values as CellContent.
+    pub fn remove_cell(&mut self, row: ucell, col: ucell) -> Option<CellContent> {
+        let value = self.data.remove(&(row, col));
+
+        if let Some(value) = value {
+            Some(CellContent {
+                value: value.value,
+                style: value.style,
+                formula: value.formula,
+                validation_name: value.validation_name,
+                span: value.span,
+            })
+        } else {
+            None
+        }
     }
 
-    /// Adds a cell. Replaces an existing one.
-    pub fn add_cell(&mut self, row: ucell, col: ucell, cell: SCell) -> Option<SCell> {
-        self.data.insert((row, col), cell)
-    }
-
-    /// Removes a cell.
-    pub fn remove_cell(&mut self, row: ucell, col: ucell) -> Option<SCell> {
-        self.data.remove(&(row, col))
+    /// Add a new cell. Main use is for reading the spreadsheet.
+    pub(crate) fn add_cell_data(&mut self, row: ucell, col: ucell, cell: CellData) {
+        self.data.insert((row, col), cell);
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
@@ -1392,14 +1603,14 @@ impl Sheet {
         value: V,
         style: &CellStyleRef,
     ) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.value = value.into();
         cell.style = Some(style.to_string());
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
     pub fn set_value<V: Into<Value>>(&mut self, row: ucell, col: ucell, value: V) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.value = value.into();
     }
 
@@ -1414,14 +1625,14 @@ impl Sheet {
 
     /// Sets a formula for the specified cell. Creates a new cell if necessary.
     pub fn set_formula<V: Into<String>>(&mut self, row: ucell, col: ucell, formula: V) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.formula = Some(formula.into());
     }
 
     /// Removes the formula.
     pub fn clear_formula(&mut self, row: ucell, col: ucell) {
         if let Some(cell) = self.data.get_mut(&(row, col)) {
-            cell.clear_formula();
+            cell.formula = None;
         }
     }
 
@@ -1436,14 +1647,14 @@ impl Sheet {
 
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
     pub fn set_cellstyle(&mut self, row: ucell, col: ucell, style: &CellStyleRef) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
+        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.style = Some(style.to_string());
     }
 
     /// Removes the cell-style.
     pub fn clear_cellstyle(&mut self, row: ucell, col: ucell) {
         if let Some(cell) = self.data.get_mut(&(row, col)) {
-            cell.clear_style();
+            cell.style = None;
         }
     }
 
@@ -1458,21 +1669,21 @@ impl Sheet {
 
     /// Sets a content-validation for this cell.
     pub fn set_validation(&mut self, row: ucell, col: ucell, validation: &ValidationRef) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
-        cell.validation = Some(validation.to_string());
+        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        cell.validation_name = Some(validation.to_string());
     }
 
     /// Removes the cell-style.
     pub fn clear_validation(&mut self, row: ucell, col: ucell) {
         if let Some(cell) = self.data.get_mut(&(row, col)) {
-            cell.clear_validation();
+            cell.validation_name = None;
         }
     }
 
     /// Returns a content-validation name for this cell.
     pub fn validation(&self, row: ucell, col: ucell) -> Option<&String> {
         if let Some(c) = self.data.get(&(row, col)) {
-            c.validation.as_ref()
+            c.validation_name.as_ref()
         } else {
             None
         }
@@ -1480,14 +1691,14 @@ impl Sheet {
 
     /// Sets the rowspan of the cell. Must be greater than 0.
     pub fn set_row_span(&mut self, row: ucell, col: ucell, span: ucell) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
-        cell.span.0 = span;
+        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        cell.span.row_span = span;
     }
 
     /// Rowspan of the cell.
     pub fn row_span(&self, row: ucell, col: ucell) -> ucell {
         if let Some(c) = self.data.get(&(row, col)) {
-            c.span.0
+            c.span.row_span
         } else {
             1
         }
@@ -1496,14 +1707,14 @@ impl Sheet {
     /// Sets the colspan of the cell. Must be greater than 0.
     pub fn set_col_span(&mut self, row: ucell, col: ucell, span: ucell) {
         assert!(span > 0);
-        let mut cell = self.data.entry((row, col)).or_insert_with(SCell::new);
-        cell.span.1 = span;
+        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        cell.span.col_span = span;
     }
 
     /// Colspan of the cell.
     pub fn col_span(&self, row: ucell, col: ucell) -> ucell {
         if let Some(c) = self.data.get(&(row, col)) {
-            c.span.1
+            c.span.col_span
         } else {
             1
         }
@@ -1685,29 +1896,162 @@ impl Default for SheetConfig {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct CellSpan {
+    row_span: u32,
+    col_span: u32,
+}
+
+impl Default for CellSpan {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl From<CellSpan> for (ucell, ucell) {
+    fn from(span: CellSpan) -> Self {
+        (span.row_span, span.col_span)
+    }
+}
+
+impl CellSpan {
+    pub fn new() -> Self {
+        Self {
+            row_span: 1,
+            col_span: 1,
+        }
+    }
+
+    /// Sets the row span of this cell.
+    /// Cells below with values will be lost when writing.
+    pub fn set_row_span(&mut self, rows: ucell) {
+        assert!(rows > 0);
+        self.row_span = rows;
+    }
+
+    /// Returns the row span.
+    pub fn row_span(&self) -> ucell {
+        self.row_span
+    }
+
+    /// Sets the column span of this cell.
+    /// Cells to the right with values will be lost when writing.
+    pub fn set_col_span(&mut self, cols: ucell) {
+        assert!(cols > 0);
+        self.col_span = cols;
+    }
+
+    /// Returns the col span.
+    pub fn col_span(&self) -> ucell {
+        self.col_span
+    }
+}
+
 /// One Cell of the spreadsheet.
 #[derive(Debug, Clone, Default)]
-pub struct SCell {
+struct CellData {
     value: Value,
     // Unparsed formula string.
     formula: Option<String>,
     // Cell style name.
     style: Option<String>,
     // Content validation name.
-    validation: Option<String>,
+    validation_name: Option<String>,
     // Row/Column span.
-    span: (ucell, ucell),
+    span: CellSpan,
 }
 
-impl SCell {
+impl CellData {
     /// New, empty.
     pub fn new() -> Self {
-        SCell {
+        CellData {
             value: Value::Empty,
             formula: None,
             style: None,
-            validation: None,
-            span: (1, 1),
+            validation_name: None,
+            span: Default::default(),
+        }
+    }
+}
+
+/// Holds references to the combined content of a cell.
+/// A temporary to hold the data when iterating over a sheet.
+#[derive(Debug, Clone, Copy)]
+pub struct CellContentRef<'a> {
+    pub value: Option<&'a Value>,
+    pub style: Option<&'a String>,
+    pub formula: Option<&'a String>,
+    pub validation_name: Option<&'a String>,
+    pub span: Option<&'a CellSpan>,
+}
+
+impl<'a> CellContentRef<'a> {
+    /// Returns the value.
+    pub fn value(&self) -> &'a Value {
+        if let Some(value) = self.value {
+            value
+        } else {
+            &Value::Empty
+        }
+    }
+
+    /// Returns the formula.
+    pub fn formula(&self) -> Option<&'a String> {
+        self.formula
+    }
+
+    /// Returns the cell style.
+    pub fn style(&self) -> Option<&'a String> {
+        self.style
+    }
+
+    /// Returns the validation name.
+    pub fn validation(&self) -> Option<&'a String> {
+        self.validation_name
+    }
+
+    /// Returns the row span.
+    pub fn row_span(&self) -> ucell {
+        if let Some(span) = self.span {
+            span.row_span
+        } else {
+            1
+        }
+    }
+
+    /// Returns the col span.
+    pub fn col_span(&self) -> ucell {
+        if let Some(span) = self.span {
+            span.col_span
+        } else {
+            1
+        }
+    }
+}
+
+/// A copy of the relevant data for a spreadsheet cell.
+#[derive(Debug, Clone, Default)]
+pub struct CellContent {
+    /// Cell value.
+    pub value: Value,
+    /// Cell stylename.
+    pub style: Option<String>,
+    /// Cell formula.
+    pub formula: Option<String>,
+    /// Reference to a validation rule.
+    pub validation_name: Option<String>,
+    /// Cellspan.
+    pub span: CellSpan,
+}
+
+impl CellContent {
+    pub fn new() -> Self {
+        Self {
+            value: Default::default(),
+            style: None,
+            formula: None,
+            validation_name: None,
+            span: Default::default(),
         }
     }
 
@@ -1729,10 +2073,10 @@ impl SCell {
     /// Sets the formula.
     pub fn set_formula<V: Into<String>>(&mut self, formula: V) {
         let formula = formula.into();
-        assert!(formula.starts_with("of:="));
         self.formula = Some(formula.into());
     }
 
+    /// Resets the formula.
     pub fn clear_formula(&mut self) {
         self.formula = None;
     }
@@ -1747,46 +2091,47 @@ impl SCell {
         self.style = Some(style.to_string());
     }
 
+    /// Removes the style.
     pub fn clear_style(&mut self) {
         self.style = None;
     }
 
     /// Returns the validation name.
     pub fn validation(&self) -> Option<&String> {
-        self.validation.as_ref()
+        self.validation_name.as_ref()
     }
 
     /// Sets the validation name.
     pub fn set_validation(&mut self, validation: &ValidationRef) {
-        self.validation = Some(validation.to_string());
+        self.validation_name = Some(validation.to_string());
     }
 
     pub fn clear_validation(&mut self) {
-        self.validation = None;
+        self.validation_name = None;
     }
 
     /// Sets the row span of this cell.
     /// Cells below with values will be lost when writing.
     pub fn set_row_span(&mut self, rows: ucell) {
         assert!(rows > 0);
-        self.span.0 = rows;
+        self.span.row_span = rows;
     }
 
     /// Returns the row span.
     pub fn row_span(&self) -> ucell {
-        self.span.0
+        self.span.row_span
     }
 
     /// Sets the column span of this cell.
     /// Cells to the right with values will be lost when writing.
     pub fn set_col_span(&mut self, cols: ucell) {
         assert!(cols > 0);
-        self.span.1 = cols;
+        self.span.col_span = cols;
     }
 
     /// Returns the col span.
     pub fn col_span(&self) -> ucell {
-        self.span.1
+        self.span.col_span
     }
 }
 
@@ -1802,12 +2147,6 @@ pub enum ValueType {
     TextXml,
     DateTime,
     TimeDuration,
-}
-
-impl Default for ValueType {
-    fn default() -> Self {
-        ValueType::Text
-    }
 }
 
 /// Content-Values

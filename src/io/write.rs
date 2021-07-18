@@ -20,7 +20,7 @@ use crate::style::{
 };
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
-use crate::{ucell, Length, SCell, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
+use crate::{ucell, CellData, Length, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
 
 type OdsWriter<W> = ZipOut<W>;
 type XmlOdsWriter<'a, W> = XmlWriter<ZipWrite<'a, W>>;
@@ -1169,8 +1169,8 @@ fn write_sheet<W: Write + Seek>(
 
         // maybe span. only if visible, that nicely eliminates all
         // double hides.
-        if !is_hidden && (cell.span.0 > 1 || cell.span.1 > 1) {
-            spans.push(CellRange::origin_span(*cur_row, *cur_col, cell.span));
+        if !is_hidden && (cell.span.row_span > 1 || cell.span.col_span > 1) {
+            spans.push(CellRange::origin_span(*cur_row, *cur_col, cell.span.into()));
         }
 
         first_cell = false;
@@ -1472,7 +1472,7 @@ fn write_table_columns<W: Write + Seek>(
 #[allow(clippy::single_char_add_str)]
 fn write_cell<W: Write + Seek>(
     book: &WorkBook,
-    cell: &SCell,
+    cell: &CellData,
     is_hidden: bool,
     xml_out: &mut XmlOdsWriter<W>,
 ) -> Result<(), OdsError> {
@@ -1497,21 +1497,21 @@ fn write_cell<W: Write + Seek>(
     } else if let Some(style) = book.def_style(cell.value.value_type()) {
         xml_out.attr_esc("table:style-name", style.as_str())?;
     }
-    if let Some(validation) = &cell.validation {
-        xml_out.attr("table:content-validation-name", validation.as_str())?;
+    if let Some(validation_name) = &cell.validation_name {
+        xml_out.attr("table:content-validation-name", validation_name.as_str())?;
     }
 
     // Spans
-    if cell.span.0 > 1 {
+    if cell.span.row_span > 1 {
         xml_out.attr_esc(
             "table:number-rows-spanned",
-            cell.span.0.to_string().as_str(),
+            cell.span.row_span.to_string().as_str(),
         )?;
     }
-    if cell.span.1 > 1 {
+    if cell.span.col_span > 1 {
         xml_out.attr_esc(
             "table:number-columns-spanned",
-            cell.span.1.to_string().as_str(),
+            cell.span.col_span.to_string().as_str(),
         )?;
     }
 

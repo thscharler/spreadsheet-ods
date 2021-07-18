@@ -64,7 +64,7 @@ impl std::error::Error for ValueFormatError {}
 style_ref!(ValueFormatRef);
 
 /// Actual textual formatting of values.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ValueFormat {
     /// Name
     name: String,
@@ -85,6 +85,12 @@ pub struct ValueFormat {
     parts: Vec<FormatPart>,
     /// Style map data.
     stylemaps: Option<Vec<StyleMap>>,
+}
+
+impl Default for ValueFormat {
+    fn default() -> Self {
+        ValueFormat::new()
+    }
 }
 
 impl ValueFormat {

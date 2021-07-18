@@ -1,6 +1,6 @@
 use spreadsheet_ods::{
     cm, currency, percent, read_ods, write_ods, CellRange, ColRange, Length, OdsError, RowRange,
-    SCell, Sheet, Value, ValueType, WorkBook,
+    Sheet, Value, ValueType, WorkBook,
 };
 
 #[test]
@@ -33,11 +33,11 @@ fn test_cell() {
         assert_eq!(c.value().as_i32_or(0), 1);
     }
 
-    let c = sh.cell_mut(6, 6);
-    c.set_value(3);
-    let mut x = SCell::new();
-    std::mem::swap(c, &mut x);
-    assert_eq!(x.value().as_f64_or(0.0), 3.0);
+    // let c = sh.cell_mut(6, 6);
+    // c.set_value(3);
+    // let mut x = SCell::new();
+    // std::mem::swap(c, &mut x);
+    // assert_eq!(x.value().as_f64_or(0.0), 3.0);
 }
 
 #[test]

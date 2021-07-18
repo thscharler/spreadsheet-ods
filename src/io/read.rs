@@ -27,7 +27,7 @@ use crate::validation::{
 };
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
-    ucell, CellStyle, ColRange, Length, RowRange, SCell, Sheet, SplitMode, Value, ValueFormat,
+    ucell, CellData, CellStyle, ColRange, Length, RowRange, Sheet, SplitMode, Value, ValueFormat,
     ValueType, Visibility, WorkBook,
 };
 
@@ -614,9 +614,9 @@ fn read_table_cell(
     let tag_name = xml_tag.name();
 
     // The current cell.
-    let mut cell: SCell = SCell::new();
+    let mut cell = CellData::new();
     // Columns can be repeated, not only empty ones.
-    let mut cell_repeat: ucell = 1;
+    let mut cell_repeat = 1;
     // Decoded type.
     let mut value_type: Option<ValueType> = None;
     // Basic cell value here.
@@ -636,11 +636,11 @@ fn read_table_cell(
             }
             attr if attr.key == b"table:number-rows-spanned" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                cell.span.0 = v.parse::<ucell>()?;
+                cell.span.row_span = v.parse::<ucell>()?;
             }
             attr if attr.key == b"table:number-columns-spanned" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                cell.span.1 = v.parse::<ucell>()?;
+                cell.span.col_span = v.parse::<ucell>()?;
             }
 
             attr if attr.key == b"office:value-type" => {
@@ -758,11 +758,11 @@ fn read_table_cell(
                 )?;
 
                 while cell_repeat > 1 {
-                    sheet.add_cell(row, col, cell.clone());
+                    sheet.add_cell_data(row, col, cell.clone());
                     col += 1;
                     cell_repeat -= 1;
                 }
-                sheet.add_cell(row, col, cell);
+                sheet.add_cell_data(row, col, cell);
                 col += 1;
 
                 break;
@@ -807,24 +807,24 @@ fn read_empty_table_cell(
             }
 
             attr if attr.key == b"table:formula" => {
-                cell.get_or_insert_with(SCell::new)
-                    .set_formula(attr.unescape_and_decode_value(&xml)?);
+                let v = attr.unescape_and_decode_value(&xml)?;
+                cell.get_or_insert_with(CellData::new).formula = Some(v);
             }
             attr if attr.key == b"table:style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
-                cell.get_or_insert_with(SCell::new).set_style(&v.into());
+                cell.get_or_insert_with(CellData::new).style = Some(v);
             }
             attr if attr.key == b"table:number-rows-spanned" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
                 let span = v.parse::<ucell>()?;
 
-                cell.get_or_insert_with(SCell::new).set_row_span(span);
+                cell.get_or_insert_with(CellData::new).span.row_span = span;
             }
             attr if attr.key == b"table:number-columns-spanned" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
                 let span = v.parse::<ucell>()?;
 
-                cell.get_or_insert_with(SCell::new).set_col_span(span);
+                cell.get_or_insert_with(CellData::new).span.col_span = span;
             }
 
             attr => {
@@ -840,11 +840,11 @@ fn read_empty_table_cell(
 
     if let Some(cell) = cell {
         while cell_repeat > 1 {
-            sheet.add_cell(row, col, cell.clone());
+            sheet.add_cell_data(row, col, cell.clone());
             col += 1;
             cell_repeat -= 1;
         }
-        sheet.add_cell(row, col, cell);
+        sheet.add_cell_data(row, col, cell);
         col += 1;
     } else {
         col += cell_repeat;
