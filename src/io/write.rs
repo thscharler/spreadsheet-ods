@@ -26,6 +26,12 @@ type OdsWriter<W> = ZipOut<W>;
 type XmlOdsWriter<'a, W> = XmlWriter<ZipWrite<'a, W>>;
 
 /// Writes the ODS file into a supplied buffer.
+pub fn write_ods_buf_uncompressed(book: &mut WorkBook, buf: Vec<u8>) -> Result<Vec<u8>, OdsError> {
+    let zip_writer = ZipOut::<Cursor<Vec<u8>>>::new_buf_uncompressed(buf)?;
+    Ok(write_ods_impl(book, zip_writer)?.into_inner())
+}
+
+/// Writes the ODS file into a supplied buffer.
 pub fn write_ods_buf(book: &mut WorkBook, buf: Vec<u8>) -> Result<Vec<u8>, OdsError> {
     let zip_writer = ZipOut::<Cursor<Vec<u8>>>::new_buf(buf)?;
     Ok(write_ods_impl(book, zip_writer)?.into_inner())

@@ -163,7 +163,7 @@ use crate::ds::detach::Detached;
 pub use crate::error::OdsError;
 pub use crate::format::{ValueFormat, ValueFormatRef};
 use crate::io::FileBuf;
-pub use crate::io::{read_ods, read_ods_buf, write_ods, write_ods_buf};
+pub use crate::io::{read_ods, read_ods_buf, write_ods, write_ods_buf, write_ods_buf_uncompressed};
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
