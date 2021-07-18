@@ -20,7 +20,9 @@ use crate::style::{
 };
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
-use crate::{ucell, CellData, Length, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
+use crate::{
+    ucell, CellContentRef, Length, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook,
+};
 
 type OdsWriter<W> = ZipOut<W>;
 type XmlOdsWriter<'a, W> = XmlWriter<ZipWrite<'a, W>>;
@@ -1083,46 +1085,44 @@ fn write_sheet<W: Write + Seek>(
     let mut last_r_repeat: ucell = 1;
     let mut last_c: ucell = 0;
 
-    for ((cur_row, cur_col), cell) in sheet.data.iter() {
+    let mut it = sheet.into_iter();
+    while let Some(((cur_row, cur_col), cell)) = it.next() {
         // There may be a lot of gaps of any kind in our data.
         // In the XML format there is no cell identification, every gap
         // must be filled with empty rows/columns. For this we need some
         // calculations.
 
         // For the repeat-counter we need to look forward.
-        // Works nicely with the range operator :-)
-        let (next_r, next_c, is_last_cell) = if let Some(((next_r, next_c), _)) =
-            sheet.data.range((*cur_row, cur_col + 1)..).next()
-        {
-            (*next_r, *next_c, false)
+        let (next_r, next_c, is_last_cell) = if let Ok((next_r, next_c)) = it.peek_cell() {
+            (next_r, next_c, false)
         } else {
             (max_cell.0, max_cell.1, true)
         };
 
         // Looking forward row-wise.
-        let forward_dr = next_r - *cur_row;
+        let forward_dr = next_r - cur_row;
 
         // Column deltas are only relevant in the same row, but we need to
         // fill up to max used columns.
         let forward_dc = if forward_dr >= 1 {
-            max_cell.1 - *cur_col
+            max_cell.1 - cur_col
         } else {
-            next_c - *cur_col
+            next_c - cur_col
         };
 
         // Looking backward row-wise.
-        let backward_dr = *cur_row - last_r;
+        let backward_dr = cur_row - last_r;
         // When a row changes our delta is from zero to cur_col.
         let backward_dc = if backward_dr >= 1 {
-            *cur_col
+            cur_col
         } else {
-            *cur_col - last_c
+            cur_col - last_c
         };
 
         // After the first cell there is always an open row tag that
         // needs to be closed.
         if backward_dr > 0 && !first_cell {
-            write_end_last_row(sheet, *cur_row, backward_dr, xml_out)?;
+            write_end_last_row(sheet, cur_row, backward_dr, xml_out)?;
         }
 
         // Any empty rows before this one?
@@ -1132,7 +1132,7 @@ fn write_sheet<W: Write + Seek>(
             if last_r_repeat - 1 < backward_dr {
                 write_empty_rows_before(
                     sheet,
-                    *cur_row,
+                    cur_row,
                     first_cell,
                     backward_dr - last_r_repeat + 1,
                     max_cell,
@@ -1144,17 +1144,17 @@ fn write_sheet<W: Write + Seek>(
         // Start a new row if there is a delta or we are at the start.
         // Fills in any blank cells before the current cell.
         if backward_dr > 0 || first_cell {
-            write_start_current_row(sheet, *cur_row, backward_dc, xml_out)?;
+            write_start_current_row(sheet, cur_row, backward_dc, xml_out)?;
         }
 
         // Remove no longer usefull cell-spans.
-        remove_outlooped(&mut spans, *cur_row, *cur_col);
+        remove_outlooped(&mut spans, cur_row, cur_col);
 
         // Current cell is hidden?
-        let (is_hidden, hidden_cols) = check_hidden(&spans, *cur_row, *cur_col);
+        let (is_hidden, hidden_cols) = check_hidden(&spans, cur_row, cur_col);
 
         // And now to something completely different ...
-        write_cell(book, cell, is_hidden, xml_out)?;
+        write_cell(book, &cell, is_hidden, xml_out)?;
 
         // There may be some blank cells until the next one, but only one less the forward.
         if forward_dc > 1 {
@@ -1164,23 +1164,25 @@ fn write_sheet<W: Write + Seek>(
         // The last cell we will write? We can close the last row here,
         // where we have all the data.
         if is_last_cell {
-            write_end_current_row(sheet, *cur_row, xml_out)?;
+            write_end_current_row(sheet, cur_row, xml_out)?;
         }
 
         // maybe span. only if visible, that nicely eliminates all
         // double hides.
-        if !is_hidden && (cell.span.row_span > 1 || cell.span.col_span > 1) {
-            spans.push(CellRange::origin_span(*cur_row, *cur_col, cell.span.into()));
+        if let Some(span) = cell.span {
+            if !is_hidden && (span.row_span > 1 || span.col_span > 1) {
+                spans.push(CellRange::origin_span(cur_row, cur_col, span.into()));
+            }
         }
 
         first_cell = false;
-        last_r = *cur_row;
+        last_r = cur_row;
         last_r_repeat = if let Some(row_header) = sheet.row_header.get(&cur_row) {
             row_header.repeat
         } else {
             1
         };
-        last_c = *cur_col;
+        last_c = cur_col;
     }
 
     xml_out.end_elem("table:table")?;
@@ -1472,7 +1474,7 @@ fn write_table_columns<W: Write + Seek>(
 #[allow(clippy::single_char_add_str)]
 fn write_cell<W: Write + Seek>(
     book: &WorkBook,
-    cell: &CellData,
+    cell: &CellContentRef,
     is_hidden: bool,
     xml_out: &mut XmlOdsWriter<W>,
 ) -> Result<(), OdsError> {
@@ -1483,49 +1485,55 @@ fn write_cell<W: Write + Seek>(
     };
 
     match cell.value {
-        Value::Empty => xml_out.empty(tag)?,
+        None | Some(Value::Empty) => xml_out.empty(tag)?,
         _ => xml_out.elem(tag)?,
     }
 
-    if let Some(formula) = &cell.formula {
+    if let Some(formula) = cell.formula {
         xml_out.attr_esc("table:formula", formula.as_str())?;
     }
 
     // Direct style oder value based default style.
-    if let Some(style) = &cell.style {
+    if let Some(style) = cell.style {
         xml_out.attr_esc("table:style-name", style.as_str())?;
-    } else if let Some(style) = book.def_style(cell.value.value_type()) {
-        xml_out.attr_esc("table:style-name", style.as_str())?;
+    } else if let Some(value) = cell.value {
+        if let Some(style) = book.def_style(value.value_type()) {
+            xml_out.attr_esc("table:style-name", style.as_str())?;
+        }
     }
-    if let Some(validation_name) = &cell.validation_name {
+
+    // Content validation
+    if let Some(validation_name) = cell.validation_name {
         xml_out.attr("table:content-validation-name", validation_name.as_str())?;
     }
 
     // Spans
-    if cell.span.row_span > 1 {
-        xml_out.attr_esc(
-            "table:number-rows-spanned",
-            cell.span.row_span.to_string().as_str(),
-        )?;
-    }
-    if cell.span.col_span > 1 {
-        xml_out.attr_esc(
-            "table:number-columns-spanned",
-            cell.span.col_span.to_string().as_str(),
-        )?;
+    if let Some(span) = cell.span {
+        if span.row_span > 1 {
+            xml_out.attr_esc(
+                "table:number-rows-spanned",
+                span.row_span.to_string().as_str(),
+            )?;
+        }
+        if span.col_span > 1 {
+            xml_out.attr_esc(
+                "table:number-columns-spanned",
+                span.col_span.to_string().as_str(),
+            )?;
+        }
     }
 
     // Might not yield a useful result. Could not exist, or be in styles.xml
     // which I don't read. Defaulting to to_string() seems reasonable.
-    let valuestyle = if let Some(style_name) = &cell.style {
+    let valuestyle = if let Some(style_name) = cell.style {
         book.find_value_format(style_name)
     } else {
         None
     };
 
-    match &cell.value {
-        Value::Empty => {}
-        Value::Text(s) => {
+    match cell.value {
+        None | Some(Value::Empty) => {}
+        Some(Value::Text(s)) => {
             xml_out.attr("office:value-type", "string")?;
             for l in s.split('\n') {
                 xml_out.elem("text:p")?;
@@ -1533,13 +1541,13 @@ fn write_cell<W: Write + Seek>(
                 xml_out.end_elem("text:p")?;
             }
         }
-        Value::TextXml(t) => {
+        Some(Value::TextXml(t)) => {
             xml_out.attr("office:value-type", "string")?;
             for tt in t.iter() {
                 write_xmltag(tt, xml_out)?;
             }
         }
-        Value::DateTime(d) => {
+        Some(Value::DateTime(d)) => {
             xml_out.attr("office:value-type", "date")?;
             let value = d.format("%Y-%m-%dT%H:%M:%S%.f").to_string();
             xml_out.attr("office:date-value", value.as_str())?;
@@ -1551,7 +1559,7 @@ fn write_cell<W: Write + Seek>(
             }
             xml_out.end_elem("text:p")?;
         }
-        Value::TimeDuration(d) => {
+        Some(Value::TimeDuration(d)) => {
             xml_out.attr("office:value-type", "time")?;
 
             let mut value = String::from("PT");
@@ -1580,7 +1588,7 @@ fn write_cell<W: Write + Seek>(
             }
             xml_out.end_elem("text:p")?;
         }
-        Value::Boolean(b) => {
+        Some(Value::Boolean(b)) => {
             xml_out.attr("office:value-type", "boolean")?;
             xml_out.attr("office:boolean-value", if *b { "true" } else { "false" })?;
             xml_out.elem("text:p")?;
@@ -1591,7 +1599,7 @@ fn write_cell<W: Write + Seek>(
             }
             xml_out.end_elem("text:p")?;
         }
-        Value::Currency(v, c) => {
+        Some(Value::Currency(v, c)) => {
             xml_out.attr("office:value-type", "currency")?;
             xml_out.attr_esc("office:currency", String::from_utf8_lossy(c))?;
             let value = v.to_string();
@@ -1606,7 +1614,7 @@ fn write_cell<W: Write + Seek>(
             }
             xml_out.end_elem("text:p")?;
         }
-        Value::Number(v) => {
+        Some(Value::Number(v)) => {
             xml_out.attr("office:value-type", "float")?;
             let value = v.to_string();
             xml_out.attr("office:value", value.as_str())?;
@@ -1618,7 +1626,7 @@ fn write_cell<W: Write + Seek>(
             }
             xml_out.end_elem("text:p")?;
         }
-        Value::Percentage(v) => {
+        Some(Value::Percentage(v)) => {
             xml_out.attr("office:value-type", "percentage")?;
             xml_out.attr("office:value", format!("{}%", v).as_str())?;
             xml_out.elem("text:p")?;
@@ -1632,7 +1640,7 @@ fn write_cell<W: Write + Seek>(
     }
 
     match cell.value {
-        Value::Empty => {}
+        None | Some(Value::Empty) => {}
         _ => xml_out.end_elem(tag)?,
     }
 

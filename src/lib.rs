@@ -1011,185 +1011,116 @@ pub struct Sheet {
     extra: Vec<XmlTag>,
 }
 
-// impl<'a> IntoIterator for &'a Sheet {
-//     type Item = ((ucell, ucell), CellContentRef<'a>);
-//     type IntoIter = CellIter<'a>;
-//
-//     fn into_iter(self) -> Self::IntoIter {
-//         CellIter {
-//             it_data: self.data.iter(),
-//             it_styles: self.styles.iter(),
-//             it_formula: self.formulas.iter(),
-//             it_validation: self.validation_names.iter(),
-//             it_span: self.spans.iter(),
-//             key: None,
-//             k_data: None,
-//             v_data: None,
-//             k_style: None,
-//             v_style: None,
-//             k_formula: None,
-//             v_formula: None,
-//             k_validation: None,
-//             v_validation: None,
-//             k_span: None,
-//             v_span: None,
-//         }
-//     }
-// }
-//
-// pub struct CellIter<'a> {
-//     it_data: std::collections::btree_map::Iter<'a, (ucell, ucell), Value>,
-//     it_styles: std::collections::btree_map::Iter<'a, (ucell, ucell), String>,
-//     it_formula: std::collections::btree_map::Iter<'a, (ucell, ucell), String>,
-//     it_validation: std::collections::btree_map::Iter<'a, (ucell, ucell), String>,
-//     it_span: std::collections::btree_map::Iter<'a, (ucell, ucell), CellSpan>,
-//
-//     key: Option<&'a (ucell, ucell)>,
-//
-//     k_data: Option<&'a (ucell, ucell)>,
-//     v_data: Option<&'a Value>,
-//     k_style: Option<&'a (ucell, ucell)>,
-//     v_style: Option<&'a String>,
-//     k_formula: Option<&'a (ucell, ucell)>,
-//     v_formula: Option<&'a String>,
-//     k_validation: Option<&'a (ucell, ucell)>,
-//     v_validation: Option<&'a String>,
-//     k_span: Option<&'a (ucell, ucell)>,
-//     v_span: Option<&'a CellSpan>,
-// }
-//
-// impl<'a> CellIter<'a> {
-//     fn next_data(&mut self) {
-//         if let Some((k, v)) = self.it_data.next() {
-//             self.k_data = Some(k);
-//             self.v_data = Some(v);
-//         } else {
-//             self.k_data = None;
-//             self.v_data = None;
-//         }
-//     }
-//
-//     fn next_style(&mut self) {
-//         if let Some((k, v)) = self.it_styles.next() {
-//             self.k_style = Some(k);
-//             self.v_style = Some(v);
-//         } else {
-//             self.k_style = None;
-//             self.v_style = None;
-//         }
-//     }
-//
-//     fn next_formula(&mut self) {
-//         if let Some((k, v)) = self.it_formula.next() {
-//             self.k_formula = Some(k);
-//             self.v_formula = Some(v);
-//         } else {
-//             self.k_formula = None;
-//             self.v_formula = None;
-//         }
-//     }
-//
-//     fn next_validation(&mut self) {
-//         if let Some((k, v)) = self.it_validation.next() {
-//             self.k_validation = Some(k);
-//             self.v_validation = Some(v);
-//         } else {
-//             self.k_validation = None;
-//             self.v_validation = None;
-//         }
-//     }
-//
-//     fn next_span(&mut self) {
-//         if let Some((k, v)) = self.it_span.next() {
-//             self.k_span = Some(k);
-//             self.v_span = Some(v);
-//         } else {
-//             self.k_span = None;
-//             self.v_span = None;
-//         }
-//     }
-// }
-//
-// impl<'a> Iterator for CellIter<'a> {
-//     type Item = ((ucell, ucell), CellContentRef<'a>);
-//
-//     fn next(&mut self) -> Option<Self::Item> {
-//         // load next where necessary
-//         if self.key.is_none() {
-//             self.next_data();
-//             self.next_style();
-//             self.next_formula();
-//             self.next_validation();
-//             self.next_span();
-//         } else {
-//             if self.key == self.k_data {
-//                 self.next_data();
-//             }
-//             if self.key == self.k_style {
-//                 self.next_style();
-//             }
-//             if self.key == self.k_formula {
-//                 self.next_formula();
-//             }
-//             if self.key == self.k_validation {
-//                 self.next_validation();
-//             }
-//             if self.key == self.k_span {
-//                 self.next_span();
-//             }
-//         }
-//
-//         // smallest key
-//         self.key = self.k_data;
-//         if self.key.is_none() || self.k_formula.is_some() && self.key > self.k_formula {
-//             self.key = self.k_formula;
-//         }
-//         if self.key.is_none() || self.k_style.is_some() && self.key > self.k_style {
-//             self.key = self.k_style;
-//         }
-//         if self.key.is_none() || self.k_validation.is_some() && self.key > self.k_validation {
-//             self.key = self.k_validation;
-//         }
-//         if self.key.is_none() || self.k_span.is_some() && self.key > self.k_span {
-//             self.key = self.k_span;
-//         }
-//
-//         if let Some(key) = self.key {
-//             Some((
-//                 *key,
-//                 CellContentRef {
-//                     value: if self.key == self.k_data {
-//                         self.v_data
-//                     } else {
-//                         None
-//                     },
-//                     style: if self.key == self.k_data {
-//                         self.v_style
-//                     } else {
-//                         None
-//                     },
-//                     formula: if self.key == self.k_formula {
-//                         self.v_formula
-//                     } else {
-//                         None
-//                     },
-//                     validation_name: if self.key == self.k_validation {
-//                         self.v_validation
-//                     } else {
-//                         None
-//                     },
-//                     span: if self.key == self.k_span {
-//                         self.v_span
-//                     } else {
-//                         None
-//                     },
-//                 },
-//             ))
-//         } else {
-//             None
-//         }
-//     }
-// }
+impl<'a> IntoIterator for &'a Sheet {
+    type Item = ((ucell, ucell), CellContentRef<'a>);
+    type IntoIter = CellIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        CellIter {
+            it_data: self.data.iter(),
+            key: None,
+            k_data: None,
+            v_data: None,
+        }
+    }
+}
+
+/// Iterator over cells.
+// The internal structure looks complicated, but this is in preparation for
+// a possible split of the celldata into multiple BTreeMaps
+pub struct CellIter<'a> {
+    it_data: std::collections::btree_map::Iter<'a, (ucell, ucell), CellData>,
+
+    key: Option<&'a (ucell, ucell)>,
+
+    k_data: Option<&'a (ucell, ucell)>,
+    v_data: Option<&'a CellData>,
+}
+
+impl<'a> CellIter<'a> {
+    /// Returns the (row,col) of the next cell.
+    pub fn peek_cell(&mut self) -> Result<(ucell, ucell), ()> {
+        if let Some(key) = self.key {
+            Ok(*key)
+        } else {
+            Err(())
+        }
+    }
+
+    fn load_next_data(&mut self) {
+        if let Some((k, v)) = self.it_data.next() {
+            self.k_data = Some(k);
+            self.v_data = Some(v);
+        } else {
+            self.k_data = None;
+            self.v_data = None;
+        }
+    }
+
+    fn init_next(&mut self) {
+        self.load_next_data();
+
+        self.key = self.k_data;
+    }
+
+    fn find_next(&mut self) {
+        // load next where necessary
+        if self.key == self.k_data {
+            self.load_next_data();
+        }
+
+        self.key = self.k_data;
+    }
+}
+
+impl<'a> Iterator for CellIter<'a> {
+    type Item = ((ucell, ucell), CellContentRef<'a>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.key.is_none() {
+            self.init_next();
+        }
+
+        if let Some(key) = self.key {
+            let r = Some((
+                *key,
+                CellContentRef {
+                    value: if let Some(v_data) = self.v_data {
+                        Some(&v_data.value)
+                    } else {
+                        None
+                    },
+                    style: if let Some(v_data) = self.v_data {
+                        v_data.style.as_ref()
+                    } else {
+                        None
+                    },
+                    formula: if let Some(v_data) = self.v_data {
+                        v_data.formula.as_ref()
+                    } else {
+                        None
+                    },
+                    validation_name: if let Some(v_data) = self.v_data {
+                        v_data.validation_name.as_ref()
+                    } else {
+                        None
+                    },
+                    span: if let Some(v_data) = self.v_data {
+                        Some(&v_data.span)
+                    } else {
+                        None
+                    },
+                },
+            ));
+
+            self.find_next();
+
+            r
+        } else {
+            None
+        }
+    }
+}
 
 impl fmt::Debug for Sheet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1533,7 +1464,7 @@ impl Sheet {
         self.data.get(&(row, col)).is_none()
     }
 
-    // todo: this
+    /// Basic range operator.
     // pub fn cell_range<R>(&self, range: R)
     // where
     //     R: RangeBounds<(ucell, ucell)>,
@@ -1910,6 +1841,12 @@ impl Default for CellSpan {
 
 impl From<CellSpan> for (ucell, ucell) {
     fn from(span: CellSpan) -> Self {
+        (span.row_span, span.col_span)
+    }
+}
+
+impl From<&CellSpan> for (ucell, ucell) {
+    fn from(span: &CellSpan) -> Self {
         (span.row_span, span.col_span)
     }
 }

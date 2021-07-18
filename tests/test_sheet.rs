@@ -251,3 +251,24 @@ fn split_table() -> Result<(), OdsError> {
 
     Ok(())
 }
+
+#[test]
+fn test_iterator() {
+    let mut sh = Sheet::new();
+    for r in 1..100 {
+        for c in 1..10 {
+            if r % c == 0 {
+                sh.set_styled_value(r, c, 4711, &"foo".into());
+            }
+        }
+    }
+
+    let mut it = sh.into_iter();
+    while let Some(((cur_row, cur_col), _cell)) = it.next() {
+        if let Ok(p) = it.peek_cell() {
+            println!("{:?} -> {:?}", (cur_row, cur_col), p);
+        } else {
+            println!("{:?} -> {:?}", (cur_row, cur_col), ());
+        }
+    }
+}
