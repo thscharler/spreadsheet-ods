@@ -3,14 +3,13 @@ use std::mem::size_of;
 use chrono::{Duration, NaiveDateTime};
 
 use spreadsheet_ods::text::TextTag;
-use spreadsheet_ods::{ucell, SCell, Sheet, Value, WorkBook};
+use spreadsheet_ods::{ucell, Sheet, Value, WorkBook};
 
 #[test]
 pub fn sizes() {
     println!("WorkBook {}", size_of::<WorkBook>());
     println!("Sheet {}", size_of::<Sheet>());
 
-    println!("SCell {}", size_of::<SCell>());
     println!("Value {}", size_of::<Value>());
     println!("Option<String> {}", size_of::<Option<String>>());
     println!("(ucell,ucell) {}", size_of::<(ucell, ucell)>());

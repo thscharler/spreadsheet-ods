@@ -10,6 +10,7 @@ Cargo.lock
 /tryout.ods
 /test_spreadsheet/target
 .gradle
+/tests/sample
 /tests/validation.ods
 /.idea/shelf/read_config_xml_need_to_clear_the_data-structure_first_/shelved.patch
 /try

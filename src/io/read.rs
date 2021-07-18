@@ -631,15 +631,15 @@ fn read_table_cell(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:number-columns-repeated" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = xml.decode(attr.value.as_ref())?;
                 cell_repeat = v.parse::<ucell>()?;
             }
             attr if attr.key == b"table:number-rows-spanned" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = xml.decode(attr.value.as_ref())?;
                 cell.span.row_span = v.parse::<ucell>()?;
             }
             attr if attr.key == b"table:number-columns-spanned" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = xml.decode(attr.value.as_ref())?;
                 cell.span.col_span = v.parse::<ucell>()?;
             }
 
@@ -891,12 +891,7 @@ fn parse_value(
             }
             ValueType::DateTime => {
                 if let Some(cell_value) = cell_value {
-                    let dt = if cell_value.len() == 10 {
-                        NaiveDate::parse_from_str(cell_value.as_str(), "%Y-%m-%d")?.and_hms(0, 0, 0)
-                    } else {
-                        NaiveDateTime::parse_from_str(cell_value.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?
-                    };
-
+                    let dt = parse_datetime(cell_value.as_str())?;
                     Ok(Value::DateTime(dt))
                 } else {
                     Err(OdsError::Ods(format!(
@@ -906,47 +901,8 @@ fn parse_value(
                 }
             }
             ValueType::TimeDuration => {
-                if let Some(mut cell_value) = cell_value {
-                    let mut hour: i32 = 0;
-                    let mut have_hour = false;
-                    let mut min: i32 = 0;
-                    let mut have_min = false;
-                    let mut sec: i32 = 0;
-                    let mut have_sec = false;
-                    let mut nanos: i64 = 0;
-                    let mut nanos_digits: u8 = 0;
-
-                    for c in cell_value.drain(..) {
-                        match c {
-                            'P' | 'T' => {}
-                            '0'..='9' => {
-                                if !have_hour {
-                                    hour = hour * 10 + (c as i32 - '0' as i32);
-                                } else if !have_min {
-                                    min = min * 10 + (c as i32 - '0' as i32);
-                                } else if !have_sec {
-                                    sec = sec * 10 + (c as i32 - '0' as i32);
-                                } else {
-                                    nanos = nanos * 10 + (c as i64 - '0' as i64);
-                                    nanos_digits += 1;
-                                }
-                            }
-                            'H' => have_hour = true,
-                            'M' => have_min = true,
-                            '.' => have_sec = true,
-                            'S' => {}
-                            _ => {}
-                        }
-                    }
-                    // unseen nano digits
-                    while nanos_digits < 9 {
-                        nanos *= 10;
-                        nanos_digits += 1;
-                    }
-
-                    let secs = (hour * 3600 + min * 60 + sec) as i64;
-                    let dur = Duration::seconds(secs) + Duration::nanoseconds(nanos);
-
+                if let Some(cell_value) = cell_value {
+                    let dur = parse_duration(cell_value.as_str());
                     Ok(Value::TimeDuration(dur))
                 } else {
                     Err(OdsError::Ods(format!(
@@ -972,7 +928,7 @@ fn parse_value(
                         Ok(Value::new_currency(cell_currency, f))
                     } else {
                         Err(OdsError::Ods(format!(
-                            "{} has type currency, but no value!",
+                            "{} has type currency, but no currency symbol!",
                             CellRef::local(row, col)
                         )))
                     }
@@ -999,6 +955,61 @@ fn parse_value(
         // could be an image or whatever
         Ok(Value::Empty)
     }
+}
+
+fn parse_datetime(cell_value: &str) -> Result<NaiveDateTime, chrono::ParseError> {
+    if cell_value.len() == 10 {
+        Ok(NaiveDate::parse_from_str(cell_value, "%Y-%m-%d")?.and_hms(0, 0, 0))
+    } else {
+        Ok(NaiveDateTime::parse_from_str(
+            cell_value,
+            "%Y-%m-%dT%H:%M:%S%.f",
+        )?)
+    }
+}
+
+fn parse_duration(cell_value: &str) -> Duration {
+    let mut hour: i32 = 0;
+    let mut have_hour = false;
+    let mut min: i32 = 0;
+    let mut have_min = false;
+    let mut sec: i32 = 0;
+    let mut have_sec = false;
+    let mut nanos: i64 = 0;
+    let mut nanos_digits: u8 = 0;
+
+    for c in cell_value.chars() {
+        match c {
+            'P' | 'T' => {}
+            '0'..='9' => {
+                if !have_hour {
+                    hour = hour * 10 + (c as i32 - '0' as i32);
+                } else if !have_min {
+                    min = min * 10 + (c as i32 - '0' as i32);
+                } else if !have_sec {
+                    sec = sec * 10 + (c as i32 - '0' as i32);
+                } else {
+                    nanos = nanos * 10 + (c as i64 - '0' as i64);
+                    nanos_digits += 1;
+                }
+            }
+            'H' => have_hour = true,
+            'M' => have_min = true,
+            '.' => have_sec = true,
+            'S' => {}
+            _ => {}
+        }
+    }
+    // unseen nano digits
+    while nanos_digits < 9 {
+        nanos *= 10;
+        nanos_digits += 1;
+    }
+
+    let secs = (hour * 3600 + min * 60 + sec) as i64;
+    let dur = Duration::seconds(secs) + Duration::nanoseconds(nanos);
+
+    dur
 }
 
 // reads a font-face
