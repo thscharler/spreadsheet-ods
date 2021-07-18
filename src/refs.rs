@@ -249,6 +249,7 @@ impl CellRange {
             to_col: col + span.1 - 1,
         }
     }
+
     /// Table name for references into other tables.
     pub fn set_table<S: Into<String>>(&mut self, table: S) {
         self.table = Some(table.into());
