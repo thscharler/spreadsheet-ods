@@ -1817,7 +1817,7 @@ pub enum Value {
     Boolean(bool),
     Number(f64),
     Percentage(f64),
-    Currency(String, f64),
+    Currency(f64, [u8; 3]),
     Text(String),
     TextXml(Vec<TextTag>),
     DateTime(NaiveDateTime),
@@ -1854,7 +1854,7 @@ impl Value {
         match self {
             Value::Number(n) => *n as i32,
             Value::Percentage(p) => *p as i32,
-            Value::Currency(_, v) => *v as i32,
+            Value::Currency(v, _) => *v as i32,
             _ => d,
         }
     }
@@ -1865,7 +1865,7 @@ impl Value {
         match self {
             Value::Number(n) => Some(*n as i32),
             Value::Percentage(p) => Some(*p as i32),
-            Value::Currency(_, v) => Some(*v as i32),
+            Value::Currency(v, _) => Some(*v as i32),
             _ => None,
         }
     }
@@ -1876,7 +1876,7 @@ impl Value {
         match self {
             Value::Number(n) => *n as u32,
             Value::Percentage(p) => *p as u32,
-            Value::Currency(_, v) => *v as u32,
+            Value::Currency(v, _) => *v as u32,
             _ => d,
         }
     }
@@ -1887,7 +1887,7 @@ impl Value {
         match self {
             Value::Number(n) => Some(*n as u32),
             Value::Percentage(p) => Some(*p as u32),
-            Value::Currency(_, v) => Some(*v as u32),
+            Value::Currency(v, _) => Some(*v as u32),
             _ => None,
         }
     }
@@ -1898,7 +1898,7 @@ impl Value {
     pub fn as_decimal_or(&self, d: Decimal) -> Decimal {
         match self {
             Value::Number(n) => Decimal::from_f64(*n).unwrap(),
-            Value::Currency(_, v) => Decimal::from_f64(*v).unwrap(),
+            Value::Currency(v, _) => Decimal::from_f64(*v).unwrap(),
             Value::Percentage(p) => Decimal::from_f64(*p).unwrap(),
             _ => d,
         }
@@ -1910,7 +1910,7 @@ impl Value {
     pub fn as_decimal_opt(&self) -> Option<Decimal> {
         match self {
             Value::Number(n) => Some(Decimal::from_f64(*n).unwrap()),
-            Value::Currency(_, v) => Some(Decimal::from_f64(*v).unwrap()),
+            Value::Currency(v, _) => Some(Decimal::from_f64(*v).unwrap()),
             Value::Percentage(p) => Some(Decimal::from_f64(*p).unwrap()),
             _ => None,
         }
@@ -1921,7 +1921,7 @@ impl Value {
     pub fn as_f64_or(&self, d: f64) -> f64 {
         match self {
             Value::Number(n) => *n,
-            Value::Currency(_, v) => *v,
+            Value::Currency(v, _) => *v,
             Value::Percentage(p) => *p,
             _ => d,
         }
@@ -1932,7 +1932,7 @@ impl Value {
     pub fn as_f64_opt(&self) -> Option<f64> {
         match self {
             Value::Number(n) => Some(*n),
-            Value::Currency(_, v) => Some(*v),
+            Value::Currency(v, _) => Some(*v),
             Value::Percentage(p) => Some(*p),
             _ => None,
         }
@@ -2007,6 +2007,39 @@ impl Value {
             _ => None,
         }
     }
+
+    /// Returns the currency code or "" if the value is not a currency.
+    pub fn currency(&self) -> &str {
+        match self {
+            Value::Currency(_, c) => core::str::from_utf8(c).unwrap(),
+            _ => "",
+        }
+    }
+
+    /// Create a currency value.
+    pub fn new_currency<S: AsRef<str>>(cur: S, value: f64) -> Self {
+        let mut cur_bytes = [0u8; 3];
+
+        let mut idx = 0;
+        for c in cur.as_ref().as_bytes() {
+            cur_bytes[idx] = *c;
+            idx += 1;
+
+            if idx >= 3 {
+                break;
+            }
+        }
+        for i in idx..3 {
+            cur_bytes[i] = b' ';
+        }
+
+        Value::Currency(value, cur_bytes)
+    }
+
+    /// Create a percentage value.
+    pub fn new_percentage(value: f64) -> Self {
+        Value::Percentage(value)
+    }
 }
 
 impl Default for Value {
@@ -2019,7 +2052,7 @@ impl Default for Value {
 #[macro_export]
 macro_rules! currency {
     ($c:expr, $v:expr) => {
-        Value::Currency($c.to_string(), $v as f64)
+        Value::new_currency($c, $v as f64)
     };
 }
 
@@ -2027,7 +2060,7 @@ macro_rules! currency {
 #[macro_export]
 macro_rules! percent {
     ($v:expr) => {
-        Value::Percentage($v)
+        Value::new_percentage($v)
     };
 }
 

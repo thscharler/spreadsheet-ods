@@ -969,7 +969,7 @@ fn parse_value(
                 if let Some(cell_value) = cell_value {
                     let f = cell_value.parse::<f64>()?;
                     if let Some(cell_currency) = cell_currency {
-                        Ok(Value::Currency(cell_currency, f))
+                        Ok(Value::new_currency(cell_currency, f))
                     } else {
                         Err(OdsError::Ods(format!(
                             "{} has type currency, but no value!",

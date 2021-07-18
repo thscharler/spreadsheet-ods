@@ -1591,16 +1591,16 @@ fn write_cell<W: Write + Seek>(
             }
             xml_out.end_elem("text:p")?;
         }
-        Value::Currency(c, v) => {
+        Value::Currency(v, c) => {
             xml_out.attr("office:value-type", "currency")?;
-            xml_out.attr_esc("office:currency", c.as_str())?;
+            xml_out.attr_esc("office:currency", String::from_utf8_lossy(c))?;
             let value = v.to_string();
             xml_out.attr("office:value", value.as_str())?;
             xml_out.elem("text:p")?;
             if let Some(valuestyle) = valuestyle {
                 xml_out.text_esc(valuestyle.format_float(*v).as_str())?;
             } else {
-                xml_out.text(c)?;
+                xml_out.text(String::from_utf8_lossy(c))?;
                 xml_out.text(" ")?;
                 xml_out.text(&value)?;
             }
