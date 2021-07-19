@@ -476,12 +476,12 @@ fn read_table_attr(
                 sheet.set_style(&v.into());
             }
             attr if attr.key == b"table:print" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                sheet.set_print(v.parse()?);
+                let v = parse_bool(attr.value.as_ref())?;
+                sheet.set_print(v);
             }
             attr if attr.key == b"table:display" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                sheet.set_display(v.parse()?);
+                let v = parse_bool(attr.value.as_ref())?;
+                sheet.set_display(v);
             }
             attr if attr.key == b"table:print-ranges" => {
                 let v = attr.unescape_and_decode_value(xml)?;
@@ -516,8 +516,7 @@ fn read_table_row_attr(
         match attr? {
             // table:default-cell-style-name 19.615, table:visibility 19.749 and xml:id 19.914.
             attr if attr.key == b"table:number-rows-repeated" => {
-                let v = attr.unescaped_value()?;
-                let v = xml.decode(v.as_ref())?;
+                let v = from_utf8(attr.value.as_ref())?;
                 row_repeat = v.parse::<ucell>()?;
             }
             attr if attr.key == b"table:style-name" => {
@@ -529,7 +528,7 @@ fn read_table_row_attr(
                 row_cellstyle = Some(v);
             }
             attr if attr.key == b"table:visibility" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = from_utf8(attr.value.as_ref())?;
                 row_visible = v.parse()?;
             }
             attr => {
@@ -561,7 +560,7 @@ fn read_table_col_attr(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:number-columns-repeated" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = from_utf8(attr.value.as_ref())?;
                 repeat = v.parse()?;
             }
             attr if attr.key == b"table:style-name" => {
@@ -573,7 +572,7 @@ fn read_table_col_attr(
                 cellstyle = Some(v);
             }
             attr if attr.key == b"table:visibility" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = from_utf8(attr.value.as_ref())?;
                 visible = v.parse()?;
             }
             attr => {
