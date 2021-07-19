@@ -30,6 +30,7 @@ use crate::{
     ucell, CellData, CellStyle, ColRange, Length, RowRange, Sheet, SplitMode, Value, ValueFormat,
     ValueType, Visibility, WorkBook,
 };
+use std::str::from_utf8;
 
 /// Reads an ODS-file from a buffer
 pub fn read_ods_buf(buf: &[u8]) -> Result<WorkBook, OdsError> {
@@ -446,7 +447,7 @@ fn read_table(
 
             Event::Start(xml_tag)
             if xml_tag.name() == b"table:table-cell" || xml_tag.name() == b"table:covered-table-cell" => {
-                col = read_table_cell(&mut sheet, row, col, xml, xml_tag)?;
+                col = read_table_cell2(&mut sheet, row, col, xml, xml_tag)?;
             }
 
             _ => {
@@ -601,9 +602,26 @@ fn read_table_col_attr(
     Ok(table_col)
 }
 
-// Reads the cell data.
-#[allow(clippy::collapsible_else_if)]
-fn read_table_cell(
+enum CellContent {
+    Empty,
+    Text(String),
+    Xml(TextTag),
+    XmlVec(Vec<TextTag>),
+}
+
+struct ReadTableCell2 {
+    val_type: ValueType,
+    val_datetime: Option<NaiveDateTime>,
+    val_duration: Option<Duration>,
+    val_float: Option<f64>,
+    val_bool: Option<bool>,
+    val_string: Option<String>,
+    val_currency: Option<[u8; 3]>,
+
+    content: CellContent,
+}
+
+fn read_table_cell2(
     sheet: &mut Sheet,
     row: ucell,
     mut col: ucell,
@@ -613,77 +631,94 @@ fn read_table_cell(
     // Current cell tag
     let tag_name = xml_tag.name();
 
-    // The current cell.
-    let mut cell = CellData::new();
-    // Columns can be repeated, not only empty ones.
-    let mut cell_repeat = 1;
-    // Decoded type.
-    let mut value_type: Option<ValueType> = None;
-    // Basic cell value here.
-    let mut cell_value: Option<String> = None;
-    // Content of the table-cell tag.
-    let mut cell_content: Option<String> = None;
-    // Content of the table-cell tag.
-    let mut cell_content_txt: Option<Vec<TextTag>> = None;
-    // Currency
-    let mut cell_currency: Option<String> = None;
+    let mut cell_repeat: ucell = 1;
+
+    let mut cell = CellData {
+        value: Default::default(),
+        formula: None,
+        style: None,
+        validation_name: None,
+        span: Default::default(),
+    };
+
+    let mut tc = ReadTableCell2 {
+        val_type: ValueType::Empty,
+        val_datetime: None,
+        val_duration: None,
+        val_float: None,
+        val_bool: None,
+        val_string: None,
+        val_currency: None,
+        content: CellContent::Empty,
+    };
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:number-columns-repeated" => {
-                let v = xml.decode(attr.value.as_ref())?;
+                let v = from_utf8(attr.value.as_ref())?;
                 cell_repeat = v.parse::<ucell>()?;
             }
             attr if attr.key == b"table:number-rows-spanned" => {
-                let v = xml.decode(attr.value.as_ref())?;
+                let v = from_utf8(attr.value.as_ref())?;
                 cell.span.row_span = v.parse::<ucell>()?;
             }
             attr if attr.key == b"table:number-columns-spanned" => {
-                let v = xml.decode(attr.value.as_ref())?;
+                let v = from_utf8(attr.value.as_ref())?;
                 cell.span.col_span = v.parse::<ucell>()?;
             }
-
+            attr if attr.key == b"calcext:value-type" => {
+                // not used. office:value-type seems to be good enough.
+            }
             attr if attr.key == b"office:value-type" => {
-                value_type = match attr.unescaped_value()?.as_ref() {
-                    b"string" => Some(ValueType::Text),
-                    b"float" => Some(ValueType::Number),
-                    b"percentage" => Some(ValueType::Percentage),
-                    b"date" => Some(ValueType::DateTime),
-                    b"time" => Some(ValueType::TimeDuration),
-                    b"boolean" => Some(ValueType::Boolean),
-                    b"currency" => Some(ValueType::Currency),
-                    other => return Err(OdsError::Ods(format!("Unknown cell-type {:?}", other))),
+                tc.val_type = match attr.value.as_ref() {
+                    b"string" => ValueType::Text,
+                    b"float" => ValueType::Number,
+                    b"percentage" => ValueType::Percentage,
+                    b"date" => ValueType::DateTime,
+                    b"time" => ValueType::TimeDuration,
+                    b"boolean" => ValueType::Boolean,
+                    b"currency" => ValueType::Currency,
+                    other => return Err(OdsError::Parse(format!("Unknown cell-type {:?}", other))),
                 }
             }
-            attr if attr.key == b"calcext:value-type" => {}
-
             attr if attr.key == b"office:date-value" => {
-                cell_value = Some(attr.unescape_and_decode_value(&xml)?)
+                let v = from_utf8(attr.value.as_ref())?;
+                let v = parse_datetime(v)?;
+                tc.val_datetime = Some(v);
             }
             attr if attr.key == b"office:time-value" => {
-                cell_value = Some(attr.unescape_and_decode_value(&xml)?)
+                let v = from_utf8(attr.value.as_ref())?;
+                let v = parse_duration(v);
+                tc.val_duration = Some(v);
             }
             attr if attr.key == b"office:value" => {
-                cell_value = Some(attr.unescape_and_decode_value(&xml)?)
+                let v = from_utf8(attr.value.as_ref())?;
+                let v = v.parse::<f64>()?;
+                tc.val_float = Some(v);
             }
             attr if attr.key == b"office:boolean-value" => {
-                cell_value = Some(attr.unescape_and_decode_value(&xml)?)
+                let v = parse_bool(attr.value.as_ref())?;
+                tc.val_bool = Some(v);
             }
             attr if attr.key == b"office:string-value" => {
-                cell_value = Some(attr.unescape_and_decode_value(&xml)?)
+                tc.val_string = Some(attr.unescape_and_decode_value(&xml)?)
             }
-
             attr if attr.key == b"office:currency" => {
-                cell_currency = Some(attr.unescape_and_decode_value(&xml)?)
+                let v = attr.value.as_ref();
+                tc.val_currency = match v.len() {
+                    0 => Some([b' ', b' ', b' ']),
+                    1 => Some([v[0], b' ', b' ']),
+                    2 => Some([v[0], v[1], b' ']),
+                    3 => Some([v[0], v[1], v[2]]),
+                    _ => return Err(OdsError::Parse(format!("{:?} not a currency", v))),
+                };
             }
-
             attr if attr.key == b"table:formula" => {
                 cell.formula = Some(attr.unescape_and_decode_value(&xml)?)
             }
             attr if attr.key == b"table:style-name" => {
                 cell.style = Some(attr.unescape_and_decode_value(&xml)?)
             }
-
             attr => {
                 if cfg!(feature = "dump_unused") {
                     let n = xml.decode(xml_tag.name())?;
@@ -703,59 +738,15 @@ fn read_table_cell(
         }
         match evt {
             Event::Start(xml_tag) if xml_tag.name() == b"text:p" => {
-                let (str, txt) = read_text_or_tag(b"text:p", xml, &xml_tag, false)?;
-                // There can be multiple text:p elements within the cell.
-                if cell_content.is_some() {
-                    // Have a destructured text:p from before.
-                    // Wrap up and create list.
-                    let mut vec = Vec::new();
-
-                    // destructured text:p
-                    let cc = cell_content.take().unwrap();
-                    vec.push(TextP::new().text(cc).into_xmltag());
-
-                    if let Some(txt) = txt {
-                        vec.push(txt);
-                    } else if let Some(str) = str {
-                        vec.push(TextP::new().text(str).into_xmltag());
-                    }
-
-                    cell_content = None;
-                    cell_content_txt = Some(vec);
-                } else if cell_content_txt.is_some() {
-                    let mut vec = cell_content_txt.take().unwrap();
-
-                    if let Some(txt) = txt {
-                        vec.push(txt);
-                    } else if let Some(str) = str {
-                        vec.push(TextP::new().text(str).into_xmltag());
-                    }
-
-                    assert_eq!(cell_content, None);
-                    cell_content_txt = Some(vec);
-                } else {
-                    if let Some(txt) = txt {
-                        cell_content_txt = Some(vec![txt]);
-                    } else if let Some(str) = str {
-                        cell_content = Some(str);
-                    }
-                }
+                let new_txt = read_text_or_tag2(b"text:p", xml, &xml_tag, false)?;
+                tc = append_text(new_txt, tc);
             }
-
             Event::Empty(xml_tag) if xml_tag.name() == b"text:p" => {
                 // noop
             }
 
             Event::End(xml_tag) if xml_tag.name() == tag_name => {
-                cell.value = parse_value(
-                    value_type,
-                    cell_value,
-                    cell_content,
-                    cell_content_txt,
-                    cell_currency,
-                    row,
-                    col,
-                )?;
+                parse_value2(tc, &mut cell).expect(format!("cell {} {}", row, col).as_str());
 
                 while cell_repeat > 1 {
                     sheet.add_cell_data(row, col, cell.clone());
@@ -785,6 +776,148 @@ fn read_table_cell(
     Ok(col)
 }
 
+fn append_text(new_txt: CellContent, mut tc: ReadTableCell2) -> ReadTableCell2 {
+    // There can be multiple text:p elements within the cell.
+    tc.content = match tc.content {
+        CellContent::Empty => new_txt,
+        CellContent::Text(txt) => {
+            // Have a destructured text:p from before.
+            // Wrap up and create list.
+            let p = TextP::new().text(txt).into_xmltag();
+            let mut vec = vec![p];
+
+            match new_txt {
+                CellContent::Empty => {}
+                CellContent::Text(txt) => {
+                    let p2 = TextP::new().text(txt).into_xmltag();
+                    vec.push(p2);
+                }
+                CellContent::Xml(xml) => {
+                    vec.push(xml);
+                }
+                CellContent::XmlVec(_) => {
+                    unreachable!();
+                }
+            }
+            CellContent::XmlVec(vec)
+        }
+        CellContent::Xml(xml) => {
+            let mut vec = vec![xml];
+            match new_txt {
+                CellContent::Empty => {}
+                CellContent::Text(txt) => {
+                    let p2 = TextP::new().text(txt).into_xmltag();
+                    vec.push(p2);
+                }
+                CellContent::Xml(xml) => {
+                    vec.push(xml);
+                }
+                CellContent::XmlVec(_) => {
+                    unreachable!();
+                }
+            }
+            CellContent::XmlVec(vec)
+        }
+        CellContent::XmlVec(mut vec) => {
+            match new_txt {
+                CellContent::Empty => {}
+                CellContent::Text(txt) => {
+                    let p2 = TextP::new().text(txt).into_xmltag();
+                    vec.push(p2);
+                }
+                CellContent::Xml(xml) => {
+                    vec.push(xml);
+                }
+                CellContent::XmlVec(_) => {
+                    unreachable!();
+                }
+            }
+            CellContent::XmlVec(vec)
+        }
+    };
+
+    tc
+}
+
+fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError> {
+    match tc.val_type {
+        ValueType::Empty => {
+            // noop
+        }
+        ValueType::Boolean => {
+            if let Some(v) = tc.val_bool {
+                cell.value = Value::Boolean(v);
+            } else {
+                return Err(OdsError::Parse("no boolean value".to_string()));
+            }
+        }
+        ValueType::Number => {
+            if let Some(v) = tc.val_float {
+                cell.value = Value::Number(v);
+            } else {
+                return Err(OdsError::Parse("no float value".to_string()));
+            }
+        }
+        ValueType::Percentage => {
+            if let Some(v) = tc.val_float {
+                cell.value = Value::Percentage(v);
+            } else {
+                return Err(OdsError::Parse("no float value".to_string()));
+            }
+        }
+        ValueType::Currency => {
+            if let Some(v) = tc.val_float {
+                if let Some(c) = tc.val_currency {
+                    cell.value = Value::Currency(v, c);
+                } else {
+                    return Err(OdsError::Parse("no currency value".to_string()));
+                }
+            } else {
+                return Err(OdsError::Parse("no float value".to_string()));
+            }
+        }
+        ValueType::Text => {
+            if let Some(v) = tc.val_string {
+                cell.value = Value::Text(v);
+            } else {
+                match tc.content {
+                    CellContent::Empty => {
+                        // noop
+                    }
+                    CellContent::Text(txt) => {
+                        cell.value = Value::Text(txt);
+                    }
+                    CellContent::Xml(xml) => {
+                        cell.value = Value::TextXml(vec![xml]);
+                    }
+                    CellContent::XmlVec(vec) => {
+                        cell.value = Value::TextXml(vec);
+                    }
+                }
+            }
+        }
+        ValueType::TextXml => {
+            unreachable!();
+        }
+        ValueType::DateTime => {
+            if let Some(v) = tc.val_datetime {
+                cell.value = Value::DateTime(v);
+            } else {
+                return Err(OdsError::Parse("no datetime value".to_string()));
+            }
+        }
+        ValueType::TimeDuration => {
+            if let Some(v) = tc.val_duration {
+                cell.value = Value::TimeDuration(v);
+            } else {
+                return Err(OdsError::Parse("no duration value".to_string()));
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Reads a table-cell from an empty XML tag.
 /// There seems to be no data associated, but it can have a style and a formula.
 /// And first of all we need the repeat count for the correct placement.
@@ -801,11 +934,9 @@ fn read_empty_table_cell(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:number-columns-repeated" => {
-                let v = attr.unescaped_value()?;
-                let v = xml.decode(v.as_ref())?;
+                let v = from_utf8(attr.value.as_ref())?;
                 cell_repeat = v.parse::<ucell>()?;
             }
-
             attr if attr.key == b"table:formula" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
                 cell.get_or_insert_with(CellData::new).formula = Some(v);
@@ -815,16 +946,14 @@ fn read_empty_table_cell(
                 cell.get_or_insert_with(CellData::new).style = Some(v);
             }
             attr if attr.key == b"table:number-rows-spanned" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
-                let span = v.parse::<ucell>()?;
-
-                cell.get_or_insert_with(CellData::new).span.row_span = span;
+                let v = from_utf8(attr.value.as_ref())?;
+                let v = v.parse::<ucell>()?;
+                cell.get_or_insert_with(CellData::new).span.row_span = v;
             }
             attr if attr.key == b"table:number-columns-spanned" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
-                let span = v.parse::<ucell>()?;
-
-                cell.get_or_insert_with(CellData::new).span.col_span = span;
+                let v = from_utf8(attr.value.as_ref())?;
+                let v = v.parse::<ucell>()?;
+                cell.get_or_insert_with(CellData::new).span.col_span = v;
             }
 
             attr => {
@@ -853,122 +982,25 @@ fn read_empty_table_cell(
     Ok(col)
 }
 
-// Takes a bunch of strings and converts it to something useable.
-fn parse_value(
-    value_type: Option<ValueType>,
-    cell_value: Option<String>,
-    cell_content: Option<String>,
-    cell_content_txt: Option<Vec<TextTag>>,
-    cell_currency: Option<String>,
-    row: ucell,
-    col: ucell,
-) -> Result<Value, OdsError> {
-    if let Some(value_type) = value_type {
-        match value_type {
-            ValueType::Empty => Ok(Value::Empty),
-            ValueType::Text => {
-                if let Some(cell_value) = cell_value {
-                    Ok(Value::Text(cell_value))
-                } else if let Some(cell_content_txt) = cell_content_txt {
-                    Ok(Value::TextXml(cell_content_txt))
-                } else if let Some(cell_content) = cell_content {
-                    Ok(Value::Text(cell_content))
-                } else {
-                    Ok(Value::Text("".to_string()))
-                }
-            }
-            ValueType::TextXml => unreachable!(),
-            ValueType::Number => {
-                if let Some(cell_value) = cell_value {
-                    let f = cell_value.parse::<f64>()?;
-                    Ok(Value::Number(f))
-                } else {
-                    Err(OdsError::Ods(format!(
-                        "{} has type number, but no value!",
-                        CellRef::local(row, col)
-                    )))
-                }
-            }
-            ValueType::DateTime => {
-                if let Some(cell_value) = cell_value {
-                    let dt = parse_datetime(cell_value.as_str())?;
-                    Ok(Value::DateTime(dt))
-                } else {
-                    Err(OdsError::Ods(format!(
-                        "{} has type datetime, but no value!",
-                        CellRef::local(row, col)
-                    )))
-                }
-            }
-            ValueType::TimeDuration => {
-                if let Some(cell_value) = cell_value {
-                    let dur = parse_duration(cell_value.as_str());
-                    Ok(Value::TimeDuration(dur))
-                } else {
-                    Err(OdsError::Ods(format!(
-                        "{} has type time-duration, but no value!",
-                        CellRef::local(row, col)
-                    )))
-                }
-            }
-            ValueType::Boolean => {
-                if let Some(cell_value) = cell_value {
-                    Ok(Value::Boolean(&cell_value == "true"))
-                } else {
-                    Err(OdsError::Ods(format!(
-                        "{} has type boolean, but no value!",
-                        CellRef::local(row, col)
-                    )))
-                }
-            }
-            ValueType::Currency => {
-                if let Some(cell_value) = cell_value {
-                    let f = cell_value.parse::<f64>()?;
-                    if let Some(cell_currency) = cell_currency {
-                        Ok(Value::new_currency(cell_currency, f))
-                    } else {
-                        Err(OdsError::Ods(format!(
-                            "{} has type currency, but no currency symbol!",
-                            CellRef::local(row, col)
-                        )))
-                    }
-                } else {
-                    Err(OdsError::Ods(format!(
-                        "{} has type currency, but no value!",
-                        CellRef::local(row, col)
-                    )))
-                }
-            }
-            ValueType::Percentage => {
-                if let Some(cell_value) = cell_value {
-                    let f = cell_value.parse::<f64>()?;
-                    Ok(Value::Percentage(f))
-                } else {
-                    Err(OdsError::Ods(format!(
-                        "{} has type percentage, but no value!",
-                        CellRef::local(row, col)
-                    )))
-                }
-            }
-        }
+fn parse_bool(val: &[u8]) -> Result<bool, OdsError> {
+    if val == b"true" {
+        Ok(true)
+    } else if val == b"false" {
+        Ok(false)
     } else {
-        // could be an image or whatever
-        Ok(Value::Empty)
+        return Err(OdsError::Parse(format!("{:?} not a bool", val)));
     }
 }
 
-fn parse_datetime(cell_value: &str) -> Result<NaiveDateTime, chrono::ParseError> {
-    if cell_value.len() == 10 {
-        Ok(NaiveDate::parse_from_str(cell_value, "%Y-%m-%d")?.and_hms(0, 0, 0))
+fn parse_datetime(val: &str) -> Result<NaiveDateTime, chrono::ParseError> {
+    if val.len() == 10 {
+        Ok(NaiveDate::parse_from_str(val, "%Y-%m-%d")?.and_hms(0, 0, 0))
     } else {
-        Ok(NaiveDateTime::parse_from_str(
-            cell_value,
-            "%Y-%m-%dT%H:%M:%S%.f",
-        )?)
+        Ok(NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M:%S%.f")?)
     }
 }
 
-fn parse_duration(cell_value: &str) -> Duration {
+fn parse_duration(val: &str) -> Duration {
     let mut hour: i32 = 0;
     let mut have_hour = false;
     let mut min: i32 = 0;
@@ -978,7 +1010,7 @@ fn parse_duration(cell_value: &str) -> Duration {
     let mut nanos: i64 = 0;
     let mut nanos_digits: u8 = 0;
 
-    for c in cell_value.chars() {
+    for c in val.chars() {
         match c {
             'P' | 'T' => {}
             '0'..='9' => {
@@ -997,7 +1029,8 @@ fn parse_duration(cell_value: &str) -> Duration {
             'M' => have_min = true,
             '.' => have_sec = true,
             'S' => {}
-            _ => {}
+            _ => { // todo: fail
+            }
         }
     }
     // unseen nano digits
@@ -3235,6 +3268,22 @@ fn read_xml(
 
     assert_eq!(stack.len(), 1);
     Ok(stack.pop().unwrap())
+}
+
+fn read_text_or_tag2(
+    end_tag: &[u8],
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart,
+    empty_tag: bool,
+) -> Result<CellContent, OdsError> {
+    let (str, xml) = read_text_or_tag(end_tag, xml, xml_tag, empty_tag)?;
+    if let Some(str) = str {
+        Ok(CellContent::Text(str))
+    } else if let Some(xml) = xml {
+        Ok(CellContent::Xml(xml))
+    } else {
+        Ok(CellContent::Empty)
+    }
 }
 
 // reads all the tags up to end_tag and creates a TextVec.

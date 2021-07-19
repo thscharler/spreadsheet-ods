@@ -6,6 +6,7 @@ pub enum OdsError {
     Io(std::io::Error),
     Zip(zip::result::ZipError),
     Xml(quick_xml::Error),
+    Utf8(std::str::Utf8Error),
     Parse(String),
     ParseInt(std::num::ParseIntError),
     ParseBool(std::str::ParseBoolError),
@@ -29,6 +30,7 @@ impl Display for OdsError {
             OdsError::Chrono(e) => write!(f, "Chrono {}", e)?,
             OdsError::Duration(e) => write!(f, "Duration {}", e)?,
             OdsError::SystemTime(e) => write!(f, "SystemTime {}", e)?,
+            OdsError::Utf8(e) => write!(f, "UTF8 {}", e)?,
         }
 
         Ok(())
@@ -49,6 +51,7 @@ impl std::error::Error for OdsError {
             OdsError::Chrono(e) => Some(e),
             OdsError::Duration(e) => Some(e),
             OdsError::SystemTime(e) => Some(e),
+            OdsError::Utf8(e) => Some(e),
         }
     }
 }
@@ -104,5 +107,11 @@ impl From<chrono::format::ParseError> for OdsError {
 impl From<std::time::SystemTimeError> for OdsError {
     fn from(err: std::time::SystemTimeError) -> OdsError {
         OdsError::SystemTime(err)
+    }
+}
+
+impl From<std::str::Utf8Error> for OdsError {
+    fn from(err: std::str::Utf8Error) -> OdsError {
+        OdsError::Utf8(err)
     }
 }
