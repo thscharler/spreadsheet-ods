@@ -601,7 +601,8 @@ fn read_table_col_attr(
     Ok(table_col)
 }
 
-enum CellContent {
+#[derive(Debug)]
+enum TextContent {
     Empty,
     Text(String),
     Xml(TextTag),
@@ -617,7 +618,7 @@ struct ReadTableCell2 {
     val_string: Option<String>,
     val_currency: Option<[u8; 3]>,
 
-    content: CellContent,
+    content: TextContent,
 }
 
 fn read_table_cell2(
@@ -648,7 +649,7 @@ fn read_table_cell2(
         val_bool: None,
         val_string: None,
         val_currency: None,
-        content: CellContent::Empty,
+        content: TextContent::Empty,
     };
 
     for attr in xml_tag.attributes().with_checks(false) {
@@ -737,7 +738,7 @@ fn read_table_cell2(
         }
         match evt {
             Event::Start(xml_tag) if xml_tag.name() == b"text:p" => {
-                let new_txt = read_text_or_tag2(b"text:p", xml, &xml_tag, false)?;
+                let new_txt = read_text_or_tag(b"text:p", xml, &xml_tag, false)?;
                 tc = append_text(new_txt, tc);
             }
             Event::Empty(xml_tag) if xml_tag.name() == b"text:p" => {
@@ -775,63 +776,63 @@ fn read_table_cell2(
     Ok(col)
 }
 
-fn append_text(new_txt: CellContent, mut tc: ReadTableCell2) -> ReadTableCell2 {
+fn append_text(new_txt: TextContent, mut tc: ReadTableCell2) -> ReadTableCell2 {
     // There can be multiple text:p elements within the cell.
     tc.content = match tc.content {
-        CellContent::Empty => new_txt,
-        CellContent::Text(txt) => {
+        TextContent::Empty => new_txt,
+        TextContent::Text(txt) => {
             // Have a destructured text:p from before.
             // Wrap up and create list.
             let p = TextP::new().text(txt).into_xmltag();
             let mut vec = vec![p];
 
             match new_txt {
-                CellContent::Empty => {}
-                CellContent::Text(txt) => {
+                TextContent::Empty => {}
+                TextContent::Text(txt) => {
                     let p2 = TextP::new().text(txt).into_xmltag();
                     vec.push(p2);
                 }
-                CellContent::Xml(xml) => {
+                TextContent::Xml(xml) => {
                     vec.push(xml);
                 }
-                CellContent::XmlVec(_) => {
+                TextContent::XmlVec(_) => {
                     unreachable!();
                 }
             }
-            CellContent::XmlVec(vec)
+            TextContent::XmlVec(vec)
         }
-        CellContent::Xml(xml) => {
+        TextContent::Xml(xml) => {
             let mut vec = vec![xml];
             match new_txt {
-                CellContent::Empty => {}
-                CellContent::Text(txt) => {
+                TextContent::Empty => {}
+                TextContent::Text(txt) => {
                     let p2 = TextP::new().text(txt).into_xmltag();
                     vec.push(p2);
                 }
-                CellContent::Xml(xml) => {
+                TextContent::Xml(xml) => {
                     vec.push(xml);
                 }
-                CellContent::XmlVec(_) => {
+                TextContent::XmlVec(_) => {
                     unreachable!();
                 }
             }
-            CellContent::XmlVec(vec)
+            TextContent::XmlVec(vec)
         }
-        CellContent::XmlVec(mut vec) => {
+        TextContent::XmlVec(mut vec) => {
             match new_txt {
-                CellContent::Empty => {}
-                CellContent::Text(txt) => {
+                TextContent::Empty => {}
+                TextContent::Text(txt) => {
                     let p2 = TextP::new().text(txt).into_xmltag();
                     vec.push(p2);
                 }
-                CellContent::Xml(xml) => {
+                TextContent::Xml(xml) => {
                     vec.push(xml);
                 }
-                CellContent::XmlVec(_) => {
+                TextContent::XmlVec(_) => {
                     unreachable!();
                 }
             }
-            CellContent::XmlVec(vec)
+            TextContent::XmlVec(vec)
         }
     };
 
@@ -880,16 +881,16 @@ fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError>
                 cell.value = Value::Text(v);
             } else {
                 match tc.content {
-                    CellContent::Empty => {
+                    TextContent::Empty => {
                         // noop
                     }
-                    CellContent::Text(txt) => {
+                    TextContent::Text(txt) => {
                         cell.value = Value::Text(txt);
                     }
-                    CellContent::Xml(xml) => {
+                    TextContent::Xml(xml) => {
                         cell.value = Value::TextXml(vec![xml]);
                     }
-                    CellContent::XmlVec(vec) => {
+                    TextContent::XmlVec(vec) => {
                         cell.value = Value::TextXml(vec);
                     }
                 }
@@ -1148,15 +1149,15 @@ fn read_page_style(
         match evt {
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
-                    b"style:page-layout-properties" => copy_attr2(pl.style_mut(), xml, xml_tag)?,
+                    b"style:page-layout-properties" => copy_attr2(pl.style_mut(), xml_tag)?,
                     b"style:header-style" => headerstyle = true,
                     b"style:footer-style" => footerstyle = true,
                     b"style:header-footer-properties" => {
                         if headerstyle {
-                            copy_attr2(pl.headerstyle_mut().style_mut(), xml, xml_tag)?;
+                            copy_attr2(pl.headerstyle_mut().style_mut(), xml_tag)?;
                         }
                         if footerstyle {
-                            copy_attr2(pl.footerstyle_mut().style_mut(), xml, xml_tag)?;
+                            copy_attr2(pl.footerstyle_mut().style_mut(), xml_tag)?;
                         }
                     }
                     b"style:background-image" => {
@@ -1286,9 +1287,18 @@ fn read_validations(
                             }
                         }
                     }
-                    let (_str, txt) =
-                        read_text_or_tag(b"table:error-message", xml, &xml_tag, empty_tag)?;
-                    ve.set_text(txt);
+                    let txt = read_text_or_tag(b"table:error-message", xml, &xml_tag, empty_tag)?;
+                    match txt {
+                        TextContent::Xml(txt) => {
+                            ve.set_text(Some(txt));
+                        }
+                        _ => {
+                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
+                                "table:error-message invalid {:?}",
+                                txt
+                            ))));
+                        }
+                    }
 
                     valid.set_err(Some(ve));
                 }
@@ -1312,9 +1322,18 @@ fn read_validations(
                             }
                         }
                     }
-                    let (_str, txt) =
-                        read_text_or_tag(b"table:help-message", xml, &xml_tag, empty_tag)?;
-                    vh.set_text(txt);
+                    let txt = read_text_or_tag(b"table:help-message", xml, &xml_tag, empty_tag)?;
+                    match txt {
+                        TextContent::Xml(txt) => {
+                            vh.set_text(Some(txt));
+                        }
+                        _ => {
+                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
+                                "table:help-message invalid {:?}",
+                                txt
+                            ))));
+                        }
+                    }
 
                     valid.set_help(Some(vh));
                 }
@@ -1791,63 +1810,56 @@ fn read_value_format(
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
                     b"number:boolean" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Boolean)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Boolean)?)
                     }
                     b"number:number" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Number)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Number)?)
                     }
                     b"number:scientific-number" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Scientific)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Scientific)?)
                     }
-                    b"number:day" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Day)?)
-                    }
+                    b"number:day" => valuestyle.push_part(read_part(xml_tag, FormatPartType::Day)?),
                     b"number:month" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Month)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Month)?)
                     }
                     b"number:year" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Year)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Year)?)
                     }
-                    b"number:era" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Era)?)
-                    }
+                    b"number:era" => valuestyle.push_part(read_part(xml_tag, FormatPartType::Era)?),
                     b"number:day-of-week" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::DayOfWeek)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::DayOfWeek)?)
                     }
                     b"number:week-of-year" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::WeekOfYear)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::WeekOfYear)?)
                     }
                     b"number:quarter" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Quarter)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Quarter)?)
                     }
                     b"number:hours" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Hours)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Hours)?)
                     }
                     b"number:minutes" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Minutes)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Minutes)?)
                     }
                     b"number:seconds" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Seconds)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Seconds)?)
                     }
                     b"number:fraction" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Fraction)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Fraction)?)
                     }
                     b"number:am-pm" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::AmPm)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::AmPm)?)
                     }
                     b"number:embedded-text" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::EmbeddedText)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::EmbeddedText)?)
                     }
                     b"number:text-content" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::TextContent)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::TextContent)?)
                     }
-                    b"style:text" => {
-                        valuestyle.push_part(read_part(xml, xml_tag, FormatPartType::Day)?)
-                    }
+                    b"style:text" => valuestyle.push_part(read_part(xml_tag, FormatPartType::Day)?),
                     b"style:map" => valuestyle.push_stylemap(read_stylemap(xml, xml_tag)?),
                     b"number:currency-symbol" => {
-                        valuestyle_part =
-                            Some(read_part(xml, xml_tag, FormatPartType::CurrencySymbol)?);
+                        valuestyle_part = Some(read_part(xml_tag, FormatPartType::CurrencySymbol)?);
 
                         // Empty-Tag. Finish here.
                         if let Event::Empty(_) = evt {
@@ -1858,7 +1870,7 @@ fn read_value_format(
                         }
                     }
                     b"number:text" => {
-                        valuestyle_part = Some(read_part(xml, xml_tag, FormatPartType::Text)?);
+                        valuestyle_part = Some(read_part(xml_tag, FormatPartType::Text)?);
 
                         // Empty-Tag. Finish here.
                         if let Event::Empty(_) = evt {
@@ -1868,9 +1880,7 @@ fn read_value_format(
                             valuestyle_part = None;
                         }
                     }
-                    b"style:text-properties" => {
-                        copy_attr2(valuestyle.textstyle_mut(), xml, xml_tag)?
-                    }
+                    b"style:text-properties" => copy_attr2(valuestyle.textstyle_mut(), xml_tag)?,
                     _ => {
                         if cfg!(feature = "dump_unused") {
                             println!(" read_value_format unused {:?}", evt);
@@ -1946,13 +1956,9 @@ fn read_value_format_attr(
     Ok(())
 }
 
-fn read_part(
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
-    part_type: FormatPartType,
-) -> Result<FormatPart, OdsError> {
+fn read_part(xml_tag: &BytesStart, part_type: FormatPartType) -> Result<FormatPart, OdsError> {
     let mut part = FormatPart::new(part_type);
-    copy_attr2(part.attrmap_mut(), xml, xml_tag)?;
+    copy_attr2(part.attrmap_mut(), xml_tag)?;
     Ok(part)
 }
 
@@ -2027,7 +2033,7 @@ fn read_tablestyle(
             }
             match evt {
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:table-properties" => copy_attr2(style.tablestyle_mut(), xml, xml_tag)?,
+                    b"style:table-properties" => copy_attr2(style.tablestyle_mut(), xml_tag)?,
                     _ => {
                         if cfg!(feature = "dump_unused") {
                             println!(" read_table_style unused {:?}", evt);
@@ -2088,9 +2094,7 @@ fn read_rowstyle(
             }
             match evt {
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:table-row-properties" => {
-                        copy_attr2(style.rowstyle_mut(), xml, xml_tag)?
-                    }
+                    b"style:table-row-properties" => copy_attr2(style.rowstyle_mut(), xml_tag)?,
                     _ => {
                         if cfg!(feature = "dump_unused") {
                             println!(" read_rowstyle unused {:?}", evt);
@@ -2151,9 +2155,7 @@ fn read_colstyle(
             }
             match evt {
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:table-column-properties" => {
-                        copy_attr2(style.colstyle_mut(), xml, xml_tag)?
-                    }
+                    b"style:table-column-properties" => copy_attr2(style.colstyle_mut(), xml_tag)?,
                     _ => {
                         if cfg!(feature = "dump_unused") {
                             println!(" read_colstyle unused {:?}", evt);
@@ -2214,12 +2216,10 @@ fn read_cellstyle(
             }
             match evt {
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:table-cell-properties" => {
-                        copy_attr2(style.cellstyle_mut(), xml, xml_tag)?
-                    }
-                    b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml, xml_tag)?,
+                    b"style:table-cell-properties" => copy_attr2(style.cellstyle_mut(), xml_tag)?,
+                    b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml_tag)?,
                     b"style:paragraph-properties" => {
-                        copy_attr2(style.paragraphstyle_mut(), xml, xml_tag)?
+                        copy_attr2(style.paragraphstyle_mut(), xml_tag)?
                     }
                     // b"style:graphic-properties" => copy_attr(style.graphic_mut(), xml, xml_tag)?,
                     b"style:map" => style.push_stylemap(read_stylemap(xml, xml_tag)?),
@@ -2292,16 +2292,16 @@ fn read_paragraphstyle(
             }
             match evt {
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml, xml_tag)?,
+                    b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml_tag)?,
                     b"style:paragraph-properties" => {
-                        copy_attr2(style.paragraphstyle_mut(), xml, xml_tag)?
+                        copy_attr2(style.paragraphstyle_mut(), xml_tag)?
                     }
                     // b"style:graphic-properties" => copy_attr(style.graphic_mut(), xml, xml_tag)?,
                     // b"style:map" => style.push_stylemap(read_stylemap(xml, xml_tag)?),
                     b"style:tab-stops" => (),
                     b"style:tab-stop" => {
                         let mut ts = TabStop::new();
-                        copy_attr2(ts.attrmap_mut(), xml, xml_tag)?;
+                        copy_attr2(ts.attrmap_mut(), xml_tag)?;
                         style.add_tabstop(ts);
                     }
                     _ => {
@@ -2368,7 +2368,7 @@ fn read_textstyle(
             }
             match evt {
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml, xml_tag)?,
+                    b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml_tag)?,
                     _ => {
                         if cfg!(feature = "dump_unused") {
                             println!(" read_textstyle unused {:?}", evt);
@@ -2429,9 +2429,7 @@ fn read_graphicstyle(
             }
             match evt {
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:graphic-properties" => {
-                        copy_attr2(style.graphicstyle_mut(), xml, xml_tag)?
-                    }
+                    b"style:graphic-properties" => copy_attr2(style.graphicstyle_mut(), xml_tag)?,
                     _ => {
                         if cfg!(feature = "dump_unused") {
                             println!(" read_graphicstyle unused {:?}", evt);
@@ -2560,15 +2558,12 @@ fn copy_style_attr(
 }
 
 /// Copies all attributes to the given map.
-fn copy_attr2(
-    attrmap: &mut AttrMap2,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
-) -> Result<(), OdsError> {
+fn copy_attr2(attrmap: &mut AttrMap2, xml_tag: &BytesStart) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false).flatten() {
-        let k = xml.decode(&attr.key)?;
-        let v = attr.unescape_and_decode_value(&xml)?;
-        attrmap.set_attr(k, v);
+        let k = from_utf8(attr.key)?;
+        let v = attr.unescaped_value()?;
+        let v = from_utf8(v.as_ref())?;
+        attrmap.set_attr(k, v.to_string());
     }
 
     Ok(())
@@ -3203,7 +3198,7 @@ fn read_xml(
     let mut stack = Vec::new();
 
     let mut tag = XmlTag::new(xml.decode(xml_tag.name())?);
-    copy_attr2(tag.attrmap_mut(), xml, xml_tag)?;
+    copy_attr2(tag.attrmap_mut(), xml_tag)?;
     stack.push(tag);
 
     if !empty_tag {
@@ -3216,7 +3211,7 @@ fn read_xml(
             match evt {
                 Event::Start(xmlbytes) => {
                     let mut tag = XmlTag::new(xml.decode(xmlbytes.name())?);
-                    copy_attr2(tag.attrmap_mut(), xml, &xmlbytes)?;
+                    copy_attr2(tag.attrmap_mut(), &xmlbytes)?;
                     stack.push(tag);
                 }
 
@@ -3235,7 +3230,7 @@ fn read_xml(
 
                 Event::Empty(xmlbytes) => {
                     let mut emptytag = XmlTag::new(xml.decode(xmlbytes.name())?);
-                    copy_attr2(emptytag.attrmap_mut(), xml, &xmlbytes)?;
+                    copy_attr2(emptytag.attrmap_mut(), &xmlbytes)?;
 
                     if let Some(parent) = stack.last_mut() {
                         parent.add_tag(emptytag);
@@ -3269,36 +3264,30 @@ fn read_xml(
     Ok(stack.pop().unwrap())
 }
 
-fn read_text_or_tag2(
-    end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
-    empty_tag: bool,
-) -> Result<CellContent, OdsError> {
-    let (str, xml) = read_text_or_tag(end_tag, xml, xml_tag, empty_tag)?;
-    if let Some(str) = str {
-        Ok(CellContent::Text(str))
-    } else if let Some(xml) = xml {
-        Ok(CellContent::Xml(xml))
-    } else {
-        Ok(CellContent::Empty)
-    }
-}
-
-// reads all the tags up to end_tag and creates a TextVec.
-// if there are no tags the result is a plain String.
 fn read_text_or_tag(
     end_tag: &[u8],
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
     xml_tag: &BytesStart,
     empty_tag: bool,
-) -> Result<(Option<String>, Option<TextTag>), OdsError> {
-    let mut str: Option<String> = None;
-    let mut text: Option<TextTag> = None;
+) -> Result<TextContent, OdsError> {
+    let mut stack = Vec::new();
+    let mut cellcontent = TextContent::Empty;
 
-    let mut stack = Vec::<XmlTag>::new();
+    // The toplevel element is passed in with the xml_tag.
+    // It is only created if there are further xml tags in the
+    // element. If there is only text this is not needed.
+    let create_toplevel = |t: Option<String>| -> Result<XmlTag, OdsError> {
+        // No parent tag on the stack. Create the parent.
+        let mut toplevel = XmlTag::new(from_utf8(xml_tag.name())?);
+        copy_attr2(toplevel.attrmap_mut(), xml_tag)?;
+        if let Some(t) = t {
+            toplevel.add_text(t);
+        }
+        Ok(toplevel)
+    };
 
-    if !empty_tag {
+    if empty_tag {
+    } else {
         let mut buf = Vec::new();
         loop {
             let evt = xml.read_event(&mut buf)?;
@@ -3307,81 +3296,105 @@ fn read_text_or_tag(
             }
             match evt {
                 Event::Text(xmlbytes) => {
-                    let text = xmlbytes.unescape_and_decode(xml)?;
-                    if !stack.is_empty() {
-                        // There is already a tag. Append the text to its children.
-                        if let Some(parent_tag) = stack.last_mut() {
-                            parent_tag.add_text(text);
-                        }
-                    } else if let Some(tmp_str) = &mut str {
-                        // We have a previous plain text string. Append to it.
-                        tmp_str.push_str(text.as_str());
-                    } else {
-                        // Fresh plain text string.
-                        str.replace(text);
-                    }
-                }
+                    let v = xmlbytes.unescaped()?;
+                    let v = from_utf8(v.as_ref())?;
 
-                Event::Start(xmlbytes) => {
-                    if stack.is_empty() {
-                        // No parent tag on the stack. Create the parent.
-                        let mut toplevel = XmlTag::new(xml.decode(xml_tag.name())?);
-                        copy_attr2(toplevel.attrmap_mut(), xml, xml_tag)?;
-                        // Previous plain text strings are added.
-                        if let Some(s) = &str {
-                            toplevel.add_text(s.as_str());
-                            str = None;
+                    cellcontent = match cellcontent {
+                        TextContent::Empty => {
+                            // Fresh plain text string.
+                            TextContent::Text(v.to_string())
                         }
-                        // Push to the stack.
-                        stack.push(toplevel);
+                        TextContent::Text(mut old_txt) => {
+                            // We have a previous plain text string. Append to it.
+                            old_txt.push_str(v);
+                            TextContent::Text(old_txt)
+                        }
+                        TextContent::Xml(mut xml) => {
+                            // There is already a tag. Append the text to its children.
+                            xml.add_text(v);
+                            TextContent::Xml(xml)
+                        }
+                        TextContent::XmlVec(_) => {
+                            unreachable!()
+                        }
+                    };
+                }
+                Event::Start(xmlbytes) => {
+                    match cellcontent {
+                        TextContent::Empty => {
+                            stack.push(create_toplevel(None)?);
+                        }
+                        TextContent::Text(old_txt) => {
+                            stack.push(create_toplevel(Some(old_txt))?);
+                        }
+                        TextContent::Xml(old_tag) => {
+                            stack.push(old_tag);
+                        }
+                        TextContent::XmlVec(_) => {
+                            unreachable!()
+                        }
                     }
 
                     // Set the new tag.
                     let mut tag = XmlTag::new(xml.decode(xmlbytes.name())?);
-                    copy_attr2(tag.attrmap_mut(), xml, &xmlbytes)?;
-                    stack.push(tag);
+                    copy_attr2(tag.attrmap_mut(), &xmlbytes)?;
+                    cellcontent = TextContent::Xml(tag)
                 }
-
                 Event::End(xmlbytes) => {
-                    // End tag.
                     if xmlbytes.name() == end_tag {
                         if !stack.is_empty() {
-                            assert_eq!(stack.len(), 1);
-                            let tag = stack.pop().unwrap();
-                            text.replace(tag);
+                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!("XML corrupted. Endtag {} occured before all elements are closed: {:?}", from_utf8(end_tag)?, stack))));
                         }
                         break;
-                    } else {
-                        // Get the tag from the stack and add it to it's parent.
-                        let tag = stack.pop().unwrap();
-                        if let Some(parent) = stack.last_mut() {
-                            parent.add_tag(tag);
-                        } else {
+                    }
+
+                    cellcontent = match cellcontent {
+                        TextContent::Empty | TextContent::Text(_) => {
+                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
+                                "XML corrupted. Endtag {} occured without start tag",
+                                from_utf8(xmlbytes.name())?
+                            ))));
+                        }
+                        TextContent::Xml(tag) => {
+                            if let Some(mut parent) = stack.pop() {
+                                parent.add_tag(tag);
+                                TextContent::Xml(parent)
+                            } else {
+                                return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
+                                    format!(
+                                        "XML corrupted. Endtag {} occured without start tag",
+                                        from_utf8(xmlbytes.name())?
+                                    ),
+                                )));
+                            }
+                        }
+                        TextContent::XmlVec(_) => {
                             unreachable!()
                         }
                     }
                 }
-
                 Event::Empty(xmlbytes) => {
-                    if stack.is_empty() {
-                        // No parent tag on the stack. Create the parent.
-                        let mut toplevel = XmlTag::new(xml.decode(xml_tag.name())?);
-                        copy_attr2(toplevel.attrmap_mut(), xml, xml_tag)?;
-                        // Previous plain text strings are added.
-                        if let Some(s) = &str {
-                            toplevel.add_text(s.as_str());
-                            str = None;
+                    match cellcontent {
+                        TextContent::Empty => {
+                            stack.push(create_toplevel(None)?);
                         }
-                        // Push to the stack.
-                        stack.push(toplevel);
+                        TextContent::Text(old_txt) => {
+                            stack.push(create_toplevel(Some(old_txt))?);
+                        }
+                        TextContent::Xml(old_tag) => {
+                            stack.push(old_tag);
+                        }
+                        TextContent::XmlVec(_) => {
+                            unreachable!()
+                        }
                     }
-
-                    // Create the tag and append it immediately to the parent.
-                    let mut emptytag = XmlTag::new(xml.decode(xmlbytes.name())?);
-                    copy_attr2(emptytag.attrmap_mut(), xml, &xmlbytes)?;
-
-                    if let Some(parent) = stack.last_mut() {
+                    if let Some(mut parent) = stack.pop() {
+                        // Create the tag and append it immediately to the parent.
+                        let mut emptytag = XmlTag::new(xml.decode(xmlbytes.name())?);
+                        copy_attr2(emptytag.attrmap_mut(), &xmlbytes)?;
                         parent.add_tag(emptytag);
+
+                        cellcontent = TextContent::Xml(parent);
                     } else {
                         unreachable!()
                     }
@@ -3400,5 +3413,5 @@ fn read_text_or_tag(
         }
     }
 
-    Ok((str, text))
+    Ok(TextContent::Empty)
 }
