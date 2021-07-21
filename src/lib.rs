@@ -173,6 +173,8 @@ use crate::style::{
 use crate::text::TextTag;
 use crate::validation::{Validation, ValidationRef};
 use crate::xmltree::XmlTag;
+use std::iter::FusedIterator;
+use std::ops::RangeBounds;
 
 #[macro_use]
 mod attr_macro;
@@ -1018,7 +1020,6 @@ impl<'a> IntoIterator for &'a Sheet {
     fn into_iter(self) -> Self::IntoIter {
         CellIter {
             it_data: self.data.iter(),
-            key: None,
             k_data: None,
             v_data: None,
         }
@@ -1028,11 +1029,9 @@ impl<'a> IntoIterator for &'a Sheet {
 /// Iterator over cells.
 // The internal structure looks complicated, but this is in preparation for
 // a possible split of the celldata into multiple BTreeMaps
+#[derive(Clone, Debug)]
 pub struct CellIter<'a> {
     it_data: std::collections::btree_map::Iter<'a, (ucell, ucell), CellData>,
-
-    key: Option<&'a (ucell, ucell)>,
-
     k_data: Option<&'a (ucell, ucell)>,
     v_data: Option<&'a CellData>,
 }
@@ -1040,8 +1039,8 @@ pub struct CellIter<'a> {
 impl<'a> CellIter<'a> {
     /// Returns the (row,col) of the next cell.
     pub fn peek_cell(&mut self) -> Result<(ucell, ucell), ()> {
-        if let Some(key) = self.key {
-            Ok(*key)
+        if let Some(k_data) = self.k_data {
+            Ok(*k_data)
         } else {
             Err(())
         }
@@ -1056,71 +1055,66 @@ impl<'a> CellIter<'a> {
             self.v_data = None;
         }
     }
-
-    fn init_next(&mut self) {
-        self.load_next_data();
-
-        self.key = self.k_data;
-    }
-
-    fn find_next(&mut self) {
-        // load next where necessary
-        if self.key == self.k_data {
-            self.load_next_data();
-        }
-
-        self.key = self.k_data;
-    }
 }
+
+impl<'a> FusedIterator for CellIter<'a> {}
 
 impl<'a> Iterator for CellIter<'a> {
     type Item = ((ucell, ucell), CellContentRef<'a>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.key.is_none() {
-            self.init_next();
+        if self.k_data.is_none() {
+            self.load_next_data();
         }
 
-        if let Some(key) = self.key {
-            let r = Some((
-                *key,
-                CellContentRef {
-                    value: if let Some(v_data) = self.v_data {
-                        Some(&v_data.value)
-                    } else {
-                        None
-                    },
-                    style: if let Some(v_data) = self.v_data {
-                        v_data.style.as_ref()
-                    } else {
-                        None
-                    },
-                    formula: if let Some(v_data) = self.v_data {
-                        v_data.formula.as_ref()
-                    } else {
-                        None
-                    },
-                    validation_name: if let Some(v_data) = self.v_data {
-                        v_data.validation_name.as_ref()
-                    } else {
-                        None
-                    },
-                    span: if let Some(v_data) = self.v_data {
-                        Some(&v_data.span)
-                    } else {
-                        None
-                    },
-                },
-            ));
-
-            self.find_next();
-
-            r
+        if let Some(k_data) = self.k_data {
+            if let Some(v_data) = self.v_data {
+                let r = Some((*k_data, v_data.into()));
+                self.load_next_data();
+                r
+            } else {
+                None
+            }
         } else {
             None
         }
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct Range<'a> {
+    range: std::collections::btree_map::Range<'a, (ucell, ucell), CellData>,
+}
+
+impl<'a> FusedIterator for Range<'a> {}
+
+impl<'a> Iterator for Range<'a> {
+    type Item = ((ucell, ucell), CellContentRef<'a>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((k, v)) = self.range.next() {
+            Some((*k, v.into()))
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.range.size_hint()
+    }
+}
+
+impl<'a> DoubleEndedIterator for Range<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if let Some((k, v)) = self.range.next_back() {
+            Some((*k, v.into()))
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a> ExactSizeIterator for Range<'a> {}
 
 impl fmt::Debug for Sheet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1199,6 +1193,21 @@ impl Sheet {
             print_ranges: self.print_ranges.clone(),
             sheet_config: Default::default(),
             extra: self.extra.clone(),
+        }
+    }
+
+    /// Iterate all cells.
+    pub fn iter(&self) -> CellIter {
+        self.into_iter()
+    }
+
+    /// Iterate a range of cells.
+    pub fn range<R>(&self, range: R) -> Range
+    where
+        R: RangeBounds<(ucell, ucell)>,
+    {
+        Range {
+            range: self.data.range(range),
         }
     }
 
@@ -1920,6 +1929,18 @@ pub struct CellContentRef<'a> {
     pub formula: Option<&'a String>,
     pub validation_name: Option<&'a String>,
     pub span: Option<&'a CellSpan>,
+}
+
+impl<'a> From<&'a CellData> for CellContentRef<'a> {
+    fn from(cd: &'a CellData) -> Self {
+        CellContentRef {
+            value: Some(&cd.value),
+            style: cd.style.as_ref(),
+            formula: cd.formula.as_ref(),
+            validation_name: cd.validation_name.as_ref(),
+            span: Some(&cd.span),
+        }
+    }
 }
 
 impl<'a> CellContentRef<'a> {
