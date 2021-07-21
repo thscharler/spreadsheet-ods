@@ -90,7 +90,7 @@ struct DummyRowHeader {
     height: Length,
 }
 
-#[test]
+//#[test]
 fn test_b0() -> Result<(), OdsError> {
     const ROWS: u32 = 10000;
     const COLS: u32 = 40;

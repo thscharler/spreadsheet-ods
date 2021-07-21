@@ -52,7 +52,7 @@ pub fn timingr<E, R>(
 //     Ok(())
 // }
 
-#[test]
+//#[test]
 fn test_samples() -> Result<(), OdsError> {
     let path = Path::new("tests\\sample");
 

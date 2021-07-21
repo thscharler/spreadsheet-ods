@@ -609,6 +609,7 @@ enum TextContent {
     XmlVec(Vec<TextTag>),
 }
 
+#[derive(Debug)]
 struct ReadTableCell2 {
     val_type: ValueType,
     val_datetime: Option<NaiveDateTime>,
@@ -3286,8 +3287,7 @@ fn read_text_or_tag(
         Ok(toplevel)
     };
 
-    if empty_tag {
-    } else {
+    if !empty_tag {
         let mut buf = Vec::new();
         loop {
             let evt = xml.read_event(&mut buf)?;
@@ -3327,8 +3327,8 @@ fn read_text_or_tag(
                         TextContent::Text(old_txt) => {
                             stack.push(create_toplevel(Some(old_txt))?);
                         }
-                        TextContent::Xml(old_tag) => {
-                            stack.push(old_tag);
+                        TextContent::Xml(parent) => {
+                            stack.push(parent);
                         }
                         TextContent::XmlVec(_) => {
                             unreachable!()
@@ -3336,9 +3336,9 @@ fn read_text_or_tag(
                     }
 
                     // Set the new tag.
-                    let mut tag = XmlTag::new(xml.decode(xmlbytes.name())?);
-                    copy_attr2(tag.attrmap_mut(), &xmlbytes)?;
-                    cellcontent = TextContent::Xml(tag)
+                    let mut new_tag = XmlTag::new(xml.decode(xmlbytes.name())?);
+                    copy_attr2(new_tag.attrmap_mut(), &xmlbytes)?;
+                    cellcontent = TextContent::Xml(new_tag)
                 }
                 Event::End(xmlbytes) => {
                     if xmlbytes.name() == end_tag {
@@ -3378,11 +3378,11 @@ fn read_text_or_tag(
                         TextContent::Empty => {
                             stack.push(create_toplevel(None)?);
                         }
-                        TextContent::Text(old_txt) => {
-                            stack.push(create_toplevel(Some(old_txt))?);
+                        TextContent::Text(txt) => {
+                            stack.push(create_toplevel(Some(txt))?);
                         }
-                        TextContent::Xml(old_tag) => {
-                            stack.push(old_tag);
+                        TextContent::Xml(parent) => {
+                            stack.push(parent);
                         }
                         TextContent::XmlVec(_) => {
                             unreachable!()
@@ -3413,5 +3413,5 @@ fn read_text_or_tag(
         }
     }
 
-    Ok(TextContent::Empty)
+    Ok(cellcontent)
 }
