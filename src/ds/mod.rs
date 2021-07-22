@@ -1,3 +1,1 @@
-pub use detach::*;
-
-pub mod detach;
+pub(crate) mod detach;

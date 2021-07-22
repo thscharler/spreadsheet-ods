@@ -6,10 +6,10 @@ use crate::ucell;
 
 /// The possible value types for the configuration.
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
-pub enum ConfigValue {
+pub(crate) enum ConfigValue {
     Base64Binary(String),
     Boolean(bool),
-    DateTime(chrono::NaiveDateTime),
+    DateTime(NaiveDateTime),
     Double(f64),
     Int(i32),
     Long(i64),
@@ -75,13 +75,13 @@ impl From<i64> for ConfigValue {
 
 /// Configuration mappings.
 #[derive(Debug, Clone, PartialEq)]
-pub struct ConfigMap {
+pub(crate) struct ConfigMap {
     ki: HashMap<String, usize>,
     vl: Vec<(String, ConfigItem)>,
 }
 
 impl ConfigMap {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             ki: Default::default(),
             vl: Default::default(),
@@ -89,14 +89,14 @@ impl ConfigMap {
     }
 
     /// Iterate over this map.
-    pub fn iter(&self) -> ConfigIter {
+    pub(crate) fn iter(&self) -> ConfigIter<'_> {
         ConfigIter {
             it: Some(self.vl.iter()),
         }
     }
 
     /// Adds a new ConfigItem
-    pub fn insert<S, V>(&mut self, name: S, item: V)
+    pub(crate) fn insert<S, V>(&mut self, name: S, item: V)
     where
         S: AsRef<str>,
         V: Into<ConfigItem>,
@@ -112,7 +112,7 @@ impl ConfigMap {
     }
 
     /// Returns a ConfigItem
-    pub fn get<S>(&self, name: S) -> Option<&ConfigItem>
+    pub(crate) fn get<S>(&self, name: S) -> Option<&ConfigItem>
     where
         S: AsRef<str>,
     {
@@ -126,7 +126,7 @@ impl ConfigMap {
     }
 
     /// Returns a ConfigItem or creates it.
-    pub fn get_or<S, F>(&mut self, name: S, default: F) -> &mut ConfigItem
+    pub(crate) fn get_or_create<S, F>(&mut self, name: S, default: F) -> &mut ConfigItem
     where
         S: AsRef<str>,
         F: Fn() -> ConfigItem,
@@ -146,7 +146,7 @@ impl ConfigMap {
     }
 }
 
-pub struct ConfigIter<'a> {
+pub(crate) struct ConfigIter<'a> {
     it: Option<core::slice::Iter<'a, (String, ConfigItem)>>,
 }
 
@@ -164,7 +164,7 @@ impl<'a> Iterator for ConfigIter<'a> {
 
 /// Bare enumeration for the different classes of ConfigItems.
 #[derive(Debug, Clone, Copy)]
-pub enum ConfigItemType {
+pub(crate) enum ConfigItemType {
     Value,
     Set,
     Vec,
@@ -216,7 +216,7 @@ impl PartialEq<ConfigItemType> for ConfigItem {
 
 /// Unifies values and sets of values. The branch structure of the tree.
 #[derive(Debug, Clone, PartialEq)]
-pub enum ConfigItem {
+pub(crate) enum ConfigItem {
     Value(ConfigValue),
     Set(ConfigMap),
     Vec(ConfigMap),
@@ -246,7 +246,7 @@ impl ConfigItem {
     ///
     /// Panics
     /// This doesn't work for ConfigItemType::Value.
-    pub fn new(itype: ConfigItemType) -> Self {
+    pub(crate) fn new(itype: ConfigItemType) -> Self {
         match itype {
             ConfigItemType::Value => panic!("new with type works only for map-types"),
             ConfigItemType::Set => ConfigItem::Set(ConfigMap::new()),
@@ -257,22 +257,22 @@ impl ConfigItem {
     }
 
     /// New set.
-    pub fn new_set() -> Self {
+    pub(crate) fn new_set() -> Self {
         Self::Set(ConfigMap::new())
     }
 
     /// New vec.
-    pub fn new_vec() -> Self {
+    pub(crate) fn new_vec() -> Self {
         Self::Vec(ConfigMap::new())
     }
 
     /// New map.
-    pub fn new_map() -> Self {
+    pub(crate) fn new_map() -> Self {
         Self::Map(ConfigMap::new())
     }
 
     /// New map entry oder vec entry.
-    pub fn new_entry() -> Self {
+    pub(crate) fn new_entry() -> Self {
         Self::Entry(ConfigMap::new())
     }
 
@@ -321,7 +321,7 @@ impl ConfigItem {
     }
 
     /// Iterate over (k,v) pairs.
-    pub fn iter(&self) -> ConfigIter {
+    pub(crate) fn iter(&self) -> ConfigIter<'_> {
         if let Some(m) = self.as_map() {
             m.iter()
         } else {
@@ -333,7 +333,7 @@ impl ConfigItem {
     ///
     /// Panics
     /// If this is not a map-like ConfigItem.
-    pub fn insert<S, V>(&mut self, name: S, item: V)
+    pub(crate) fn insert<S, V>(&mut self, name: S, item: V)
     where
         S: Into<String>,
         V: Into<ConfigItem>,
@@ -349,7 +349,7 @@ impl ConfigItem {
     ///
     /// Panics
     /// If this is not a map-like ConfigItem.
-    pub fn get<S>(&self, name: S) -> Option<&ConfigItem>
+    pub(crate) fn get<S>(&self, name: S) -> Option<&ConfigItem>
     where
         S: AsRef<str>,
     {
@@ -367,7 +367,7 @@ impl ConfigItem {
     /// If the given map-types along the path don't match with what
     /// exists in the structure.
     /// If the last element in the path is a ConfigValue.
-    pub fn create_path<S>(&mut self, names: &[(S, ConfigItemType)]) -> &mut ConfigItem
+    pub(crate) fn create_path<S>(&mut self, names: &[(S, ConfigItemType)]) -> &mut ConfigItem
     where
         S: AsRef<str>,
     {
@@ -378,7 +378,7 @@ impl ConfigItem {
                 let item = self
                     .as_map_mut()
                     .unwrap()
-                    .get_or(name, || ConfigItem::new(*itype));
+                    .get_or_create(name, || ConfigItem::new(*itype));
 
                 if !(item == itype) {
                     // close, but not good enough
@@ -402,7 +402,7 @@ impl ConfigItem {
     }
 
     /// Recursive get for any ConfigItem.
-    pub fn get_rec<S>(&self, names: &[S]) -> Option<&ConfigItem>
+    pub(crate) fn get_rec<S>(&self, names: &[S]) -> Option<&ConfigItem>
     where
         S: AsRef<str>,
     {
@@ -427,7 +427,7 @@ impl ConfigItem {
     }
 
     /// Recursive get for only the ConfigValue leaves.
-    pub fn get_value_rec<S>(&self, names: &[S]) -> Option<&ConfigValue>
+    pub(crate) fn get_value_rec<S>(&self, names: &[S]) -> Option<&ConfigValue>
     where
         S: AsRef<str>,
     {
@@ -454,7 +454,7 @@ impl ConfigItem {
 
 /// Basic wrapper around a ConfigSet. Root of the config tree.
 #[derive(Debug, Clone)]
-pub struct Config {
+pub(crate) struct Config {
     config: ConfigItem,
 }
 
@@ -465,19 +465,19 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             config: Default::default(),
         }
     }
 
     /// Iterate over the (k,v) pairs.
-    pub fn iter(&self) -> ConfigIter {
+    pub(crate) fn iter(&self) -> ConfigIter<'_> {
         self.config.iter()
     }
 
     /// Add an item.
-    pub fn insert<S, V>(&mut self, name: S, item: V)
+    pub(crate) fn insert<S, V>(&mut self, name: S, item: V)
     where
         S: Into<String>,
         V: Into<ConfigItem>,
@@ -486,7 +486,7 @@ impl Config {
     }
 
     /// Recursive get.
-    pub fn get<S>(&self, names: &[S]) -> Option<&ConfigItem>
+    pub(crate) fn get<S>(&self, names: &[S]) -> Option<&ConfigItem>
     where
         S: AsRef<str>,
     {
@@ -494,14 +494,14 @@ impl Config {
     }
 
     /// Recursive get, only for ConfigValue leaves.
-    pub fn get_value<S>(&self, names: &[S]) -> Option<&ConfigValue>
+    pub(crate) fn get_value<S>(&self, names: &[S]) -> Option<&ConfigValue>
     where
         S: AsRef<str>,
     {
         self.config.get_value_rec(names)
     }
 
-    pub fn create_path<S>(&mut self, names: &[(S, ConfigItemType)]) -> &mut ConfigItem
+    pub(crate) fn create_path<S>(&mut self, names: &[(S, ConfigItemType)]) -> &mut ConfigItem
     where
         S: AsRef<str>,
     {

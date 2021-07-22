@@ -195,7 +195,7 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
 }
 
 // Reads the content.xml
-fn read_content(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsError> {
+fn read_content(book: &mut WorkBook, zip_file: &mut ZipFile<'_>) -> Result<(), OdsError> {
     // xml parser
     let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
     xml.trim_text(true);
@@ -320,8 +320,8 @@ fn read_content(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsEr
 
 // Reads the table.
 fn read_table(
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: BytesStart<'_>,
 ) -> Result<Sheet, OdsError> {
     let mut sheet = Sheet::new();
 
@@ -462,8 +462,8 @@ fn read_table(
 // Reads the table attributes.
 fn read_table_attr(
     sheet: &mut Sheet,
-    xml: &quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: BytesStart,
+    xml: &quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: BytesStart<'_>,
 ) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -504,8 +504,8 @@ fn read_table_attr(
 
 // Reads table-row attributes. Returns the repeat-count.
 fn read_table_row_attr(
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: BytesStart<'_>,
 ) -> Result<(ucell, Option<String>, Option<String>, Visibility), OdsError> {
     let mut row_repeat: ucell = 1;
     let mut row_visible: Visibility = Default::default();
@@ -549,8 +549,8 @@ fn read_table_row_attr(
 fn read_table_col_attr(
     sheet: &mut Sheet,
     mut table_col: ucell,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
 ) -> Result<ucell, OdsError> {
     let mut style = None;
     let mut cellstyle = None;
@@ -626,8 +626,8 @@ fn read_table_cell2(
     sheet: &mut Sheet,
     row: ucell,
     mut col: ucell,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: BytesStart<'_>,
 ) -> Result<ucell, OdsError> {
     // Current cell tag
     let tag_name = xml_tag.name();
@@ -747,7 +747,7 @@ fn read_table_cell2(
             }
 
             Event::End(xml_tag) if xml_tag.name() == tag_name => {
-                parse_value2(tc, &mut cell).expect(format!("cell {} {}", row, col).as_str());
+                parse_value2(tc, &mut cell)?;
 
                 while cell_repeat > 1 {
                     sheet.add_cell_data(row, col, cell.clone());
@@ -926,8 +926,8 @@ fn read_empty_table_cell(
     sheet: &mut Sheet,
     row: ucell,
     mut col: ucell,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: BytesStart<'_>,
 ) -> Result<ucell, OdsError> {
     let mut cell = None;
     // Default advance is one column.
@@ -1041,16 +1041,15 @@ fn parse_duration(val: &str) -> Duration {
     }
 
     let secs = (hour * 3600 + min * 60 + sec) as i64;
-    let dur = Duration::seconds(secs) + Duration::nanoseconds(nanos);
 
-    dur
+    Duration::seconds(secs) + Duration::nanoseconds(nanos)
 }
 
 // reads a font-face
 fn read_fonts(
     book: &mut WorkBook,
     origin: StyleOrigin,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
@@ -1116,8 +1115,8 @@ fn read_fonts(
 // reads the page-layout tag
 fn read_page_style(
     book: &mut WorkBook,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
@@ -1202,7 +1201,7 @@ fn read_page_style(
 
 fn read_validations(
     book: &mut WorkBook,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
@@ -1376,7 +1375,7 @@ fn read_validations(
 fn read_master_styles(
     book: &mut WorkBook,
     origin: StyleOrigin,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
@@ -1421,8 +1420,8 @@ fn read_master_styles(
 fn read_master_page(
     book: &mut WorkBook,
     _origin: StyleOrigin,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
@@ -1525,8 +1524,8 @@ fn read_master_page(
 // reads any header or footer tags
 fn read_headerfooter(
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
 ) -> Result<HeaderFooter, OdsError> {
     let mut buf = Vec::new();
 
@@ -1614,7 +1613,7 @@ fn read_headerfooter(
 fn read_styles_tag(
     book: &mut WorkBook,
     origin: StyleOrigin,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // not attributes
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
@@ -1691,7 +1690,7 @@ fn read_styles_tag(
 fn read_auto_styles(
     book: &mut WorkBook,
     origin: StyleOrigin,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
@@ -1761,8 +1760,8 @@ fn read_value_format(
     book: &mut WorkBook,
     origin: StyleOrigin,
     styleuse: StyleUse,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
 
@@ -1935,8 +1934,8 @@ fn read_value_format(
 fn read_value_format_attr(
     value_type: ValueType,
     valuestyle: &mut ValueFormat,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
     valuestyle.set_value_type(value_type);
 
@@ -1957,7 +1956,7 @@ fn read_value_format_attr(
     Ok(())
 }
 
-fn read_part(xml_tag: &BytesStart, part_type: FormatPartType) -> Result<FormatPart, OdsError> {
+fn read_part(xml_tag: &BytesStart<'_>, part_type: FormatPartType) -> Result<FormatPart, OdsError> {
     let mut part = FormatPart::new(part_type);
     copy_attr2(part.attrmap_mut(), xml_tag)?;
     Ok(part)
@@ -1969,8 +1968,8 @@ fn read_style_style(
     origin: StyleOrigin,
     styleuse: StyleUse,
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
     match read_family_attr(xml, xml_tag)?.as_str() {
@@ -2011,8 +2010,8 @@ fn read_tablestyle(
     origin: StyleOrigin,
     styleuse: StyleUse,
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
@@ -2072,8 +2071,8 @@ fn read_rowstyle(
     origin: StyleOrigin,
     styleuse: StyleUse,
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
@@ -2133,8 +2132,8 @@ fn read_colstyle(
     origin: StyleOrigin,
     styleuse: StyleUse,
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
@@ -2194,8 +2193,8 @@ fn read_cellstyle(
     origin: StyleOrigin,
     styleuse: StyleUse,
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
@@ -2270,8 +2269,8 @@ fn read_paragraphstyle(
     origin: StyleOrigin,
     styleuse: StyleUse,
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
@@ -2346,8 +2345,8 @@ fn read_textstyle(
     origin: StyleOrigin,
     styleuse: StyleUse,
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
@@ -2407,8 +2406,8 @@ fn read_graphicstyle(
     origin: StyleOrigin,
     styleuse: StyleUse,
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
     let mut buf = Vec::new();
@@ -2462,8 +2461,8 @@ fn read_graphicstyle(
 }
 
 fn read_stylemap(
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
 ) -> Result<StyleMap, OdsError> {
     let mut sm = StyleMap::default();
     for attr in xml_tag.attributes().with_checks(false) {
@@ -2496,8 +2495,8 @@ fn read_stylemap(
 }
 
 fn read_family_attr(
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
 ) -> Result<String, OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -2525,8 +2524,8 @@ fn read_family_attr(
 
 /// extract the "style:name" attr
 fn style_name(
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
 ) -> Result<String, OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -2541,8 +2540,8 @@ fn style_name(
 /// Copies all attributes to the given map, excluding "style:name"
 fn copy_style_attr(
     attrmap: &mut AttrMap2,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -2559,7 +2558,7 @@ fn copy_style_attr(
 }
 
 /// Copies all attributes to the given map.
-fn copy_attr2(attrmap: &mut AttrMap2, xml_tag: &BytesStart) -> Result<(), OdsError> {
+fn copy_attr2(attrmap: &mut AttrMap2, xml_tag: &BytesStart<'_>) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false).flatten() {
         let k = from_utf8(attr.key)?;
         let v = attr.unescaped_value()?;
@@ -2570,7 +2569,7 @@ fn copy_attr2(attrmap: &mut AttrMap2, xml_tag: &BytesStart) -> Result<(), OdsErr
     Ok(())
 }
 
-fn read_styles(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsError> {
+fn read_styles(book: &mut WorkBook, zip_file: &mut ZipFile<'_>) -> Result<(), OdsError> {
     let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
     xml.trim_text(true);
 
@@ -2623,7 +2622,7 @@ fn read_styles(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsErr
 }
 
 #[allow(unused_variables)]
-pub fn default_settings() -> Detach<Config> {
+pub(crate) fn default_settings() -> Detach<Config> {
     let mut dc = Detach::new(Config::new());
     let p0 = dc.create_path(&[("ooo:view-settings", ConfigItemType::Set)]);
     p0.insert("VisibleAreaTop", 0);
@@ -2713,7 +2712,7 @@ pub fn default_settings() -> Detach<Config> {
     dc
 }
 
-fn read_settings(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsError> {
+fn read_settings(book: &mut WorkBook, zip_file: &mut ZipFile<'_>) -> Result<(), OdsError> {
     let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
     xml.trim_text(true);
 
@@ -2756,7 +2755,7 @@ fn read_settings(book: &mut WorkBook, zip_file: &mut ZipFile) -> Result<(), OdsE
 
 // read the automatic-styles tag
 fn read_office_settings(
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<Config, OdsError> {
     let mut buf = Vec::new();
@@ -2792,8 +2791,8 @@ fn read_office_settings(
 
 // read the automatic-styles tag
 fn read_config_item_set(
-    xml_tag: &BytesStart,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart<'_>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(String, ConfigItem), OdsError> {
     let mut buf = Vec::new();
@@ -2860,8 +2859,8 @@ fn read_config_item_set(
 
 // read the automatic-styles tag
 fn read_config_item_map_indexed(
-    xml_tag: &BytesStart,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart<'_>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(String, ConfigItem), OdsError> {
     let mut buf = Vec::new();
@@ -2921,8 +2920,8 @@ fn read_config_item_map_indexed(
 
 // read the automatic-styles tag
 fn read_config_item_map_named(
-    xml_tag: &BytesStart,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart<'_>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(String, ConfigItem), OdsError> {
     let mut buf = Vec::new();
@@ -2988,8 +2987,8 @@ fn read_config_item_map_named(
 
 // read the automatic-styles tag
 fn read_config_item_map_entry(
-    xml_tag: &BytesStart,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart<'_>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(Option<String>, ConfigItem), OdsError> {
     let mut buf = Vec::new();
@@ -3050,8 +3049,8 @@ fn read_config_item_map_entry(
 
 // read the automatic-styles tag
 fn read_config_item(
-    xml_tag: &BytesStart,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
+    xml_tag: &BytesStart<'_>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(String, ConfigValue), OdsError> {
     let mut buf = Vec::new();
@@ -3171,8 +3170,8 @@ fn read_config_item(
 // Reads a part of the XML as XmlTag's, and returns the first content XmlTag.
 fn read_xml_content(
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<Option<XmlTag>, OdsError> {
     let mut xml = read_xml(end_tag, xml, xml_tag, empty_tag)?;
@@ -3192,8 +3191,8 @@ fn read_xml_content(
 // Reads a part of the XML as XmlTag's.
 fn read_xml(
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<XmlTag, OdsError> {
     let mut stack = Vec::new();
@@ -3267,8 +3266,8 @@ fn read_xml(
 
 fn read_text_or_tag(
     end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile>>,
-    xml_tag: &BytesStart,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<TextContent, OdsError> {
     let mut stack = Vec::new();

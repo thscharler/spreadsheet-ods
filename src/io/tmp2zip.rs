@@ -13,13 +13,13 @@ use zip::write::FileOptions;
 /// A ZipWriter that writes to a temp-file first,
 /// and zips everything as a final step.
 #[allow(dead_code)]
-pub struct TempZip {
+pub(crate) struct TempZip {
     zipped: PathBuf,
     temp_path: Temp,
     entries: Vec<TempZipEntry>,
 }
 
-pub struct TempWrite<'a> {
+pub(crate) struct TempWrite<'a> {
     temp_file: BufWriter<File>,
     _dummy: PhantomData<&'a TempZip>,
 }
@@ -27,14 +27,14 @@ pub struct TempWrite<'a> {
 struct TempZipEntry {
     name: String,
     is_dir: bool,
-    fopt: zip::write::FileOptions,
+    fopt: FileOptions,
 }
 
 #[allow(dead_code)]
 impl TempZip {
     /// Final ZIP is this file. The temporary files are written to a
     /// new random subdirectory.
-    pub fn new(zip_file: &Path) -> Result<Self, std::io::Error> {
+    pub(crate) fn new(zip_file: &Path) -> Result<Self, std::io::Error> {
         Ok(TempZip {
             zipped: zip_file.to_path_buf(),
             temp_path: mktemp::Temp::new_dir_in(zip_file.parent().unwrap())?,
@@ -43,7 +43,7 @@ impl TempZip {
     }
 
     /// Adds this directory.
-    pub fn add_directory<S: Into<String>>(
+    pub(crate) fn add_directory<S: Into<String>>(
         &mut self,
         name: S,
         options: FileOptions,
@@ -63,11 +63,11 @@ impl TempZip {
     }
 
     /// Starts a new file inside the zip. Returns a Write for the file.
-    pub fn start_file<'a>(
+    pub(crate) fn start_file<'a>(
         &'a mut self,
         name: &'_ str,
-        fopt: zip::write::FileOptions,
-    ) -> Result<TempWrite, std::io::Error> {
+        fopt: FileOptions,
+    ) -> Result<TempWrite<'_>, std::io::Error> {
         let file = self.temp_path.join(name);
         let path = file.parent().unwrap();
 
@@ -86,7 +86,7 @@ impl TempZip {
     }
 
     /// Packs all created files into a zip.
-    pub fn zip(self) -> Result<(), std::io::Error> {
+    pub(crate) fn zip(self) -> Result<(), std::io::Error> {
         let zip_file = File::create(&self.zipped)?;
 
         let mut zip_writer = zip::ZipWriter::new(BufWriter::new(zip_file));
@@ -114,7 +114,7 @@ impl TempZip {
     }
 }
 
-impl<'a> Write for TempWrite<'a> {
+impl Write for TempWrite<'_> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
         self.temp_file.write(buf)
     }

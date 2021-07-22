@@ -1,3 +1,23 @@
+# 0.9.0
+
+- Throw away SCell. This was used for internal storage and as part of the API.
+  Split this into the internal CellData and the API CellContent for a copy
+  of the cell data and CellContentRef for references to the data.
+  This allows for a possible future rearrangement of the internal storage.
+  
+  cell_mut was removed, cell, add_cell, remove_cell, work with CellContent now.
+  iter() and range() use CellContentRef.
+
+- Implement IntoIterator
+
+- Add CellSpan for ease of use.
+
+- Changed layout of Value::Currency. The currency string is 3 bytes of ASCII,
+  so a String is not necessary.
+  
+- read_table_cell and read_text_or_tag rewritten to use fewer copies of String
+  data. Parsing cell-values works directly with the buffer data.
+  
 # 0.8.2
 
 - Checks that formulas start with "of:="

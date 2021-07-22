@@ -4,8 +4,6 @@ use std::io::{self, Write};
 #[cfg(not(feature = "check_xml"))]
 use std::marker::PhantomData;
 
-pub type Result = io::Result<()>;
-
 #[derive(PartialEq)]
 enum Open {
     None,
@@ -79,7 +77,7 @@ impl Stack {
 }
 
 /// The XmlWriter himself
-pub struct XmlWriter<W: Write> {
+pub(crate) struct XmlWriter<W: Write> {
     writer: Box<W>,
     buf: String,
     stack: Stack,
@@ -87,7 +85,7 @@ pub struct XmlWriter<W: Write> {
 }
 
 impl<W: Write> fmt::Debug for XmlWriter<W> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "XmlWriter {{ stack: {:?}, opened: {} }}",
@@ -98,7 +96,7 @@ impl<W: Write> fmt::Debug for XmlWriter<W> {
 
 impl<W: Write> XmlWriter<W> {
     /// Create a new writer, by passing an `io::Write`
-    pub fn new(writer: W) -> XmlWriter<W> {
+    pub(crate) fn new(writer: W) -> XmlWriter<W> {
         XmlWriter {
             stack: Stack::new(),
             buf: String::new(),
@@ -109,7 +107,7 @@ impl<W: Write> XmlWriter<W> {
 
     /// Write the DTD. You have to take care of the encoding
     /// on the underlying Write yourself.
-    pub fn dtd(&mut self, encoding: &str) -> Result {
+    pub(crate) fn dtd(&mut self, encoding: &str) -> io::Result<()> {
         self.buf.push_str("<?xml version=\"1.0\" encoding=\"");
         self.buf.push_str(encoding);
         self.buf.push_str("\" ?>\n");
@@ -128,7 +126,7 @@ impl<W: Write> XmlWriter<W> {
     }
 
     /// Write an element with inlined text (not escaped)
-    pub fn elem_text<S: AsRef<str>>(&mut self, name: &str, text: S) -> Result {
+    pub(crate) fn elem_text<S: AsRef<str>>(&mut self, name: &str, text: S) -> io::Result<()> {
         self.close_elem()?;
 
         self.indent();
@@ -149,7 +147,7 @@ impl<W: Write> XmlWriter<W> {
 
     /// Write an element with inlined text (escaped)
     #[allow(dead_code)]
-    pub fn elem_text_esc<S: AsRef<str>>(&mut self, name: &str, text: S) -> Result {
+    pub(crate) fn elem_text_esc<S: AsRef<str>>(&mut self, name: &str, text: S) -> io::Result<()> {
         self.close_elem()?;
 
         self.indent();
@@ -169,7 +167,7 @@ impl<W: Write> XmlWriter<W> {
     }
 
     /// Begin an elem, make sure name contains only allowed chars
-    pub fn elem(&mut self, name: &str) -> Result {
+    pub(crate) fn elem(&mut self, name: &str) -> io::Result<()> {
         self.close_elem()?;
 
         self.indent();
@@ -183,7 +181,7 @@ impl<W: Write> XmlWriter<W> {
     }
 
     /// Begin an empty elem
-    pub fn empty(&mut self, name: &str) -> Result {
+    pub(crate) fn empty(&mut self, name: &str) -> io::Result<()> {
         self.close_elem()?;
 
         self.indent();
@@ -195,7 +193,7 @@ impl<W: Write> XmlWriter<W> {
     }
 
     /// Close an elem if open, do nothing otherwise
-    fn close_elem(&mut self) -> Result {
+    fn close_elem(&mut self) -> io::Result<()> {
         match self.open {
             Open::None => {}
             Open::Elem => {
@@ -213,7 +211,7 @@ impl<W: Write> XmlWriter<W> {
 
     /// Write an attr, make sure name and value contain only allowed chars.
     /// For an escaping version use `attr_esc`
-    pub fn attr<S: AsRef<str>>(&mut self, name: &str, value: S) -> Result {
+    pub(crate) fn attr<S: AsRef<str>>(&mut self, name: &str, value: S) -> io::Result<()> {
         if cfg!(feature = "check_xml") && self.open == Open::None {
             panic!(
                 "Attempted to write attr to elem, when no elem was opened, stack {:?}",
@@ -230,7 +228,7 @@ impl<W: Write> XmlWriter<W> {
     }
 
     /// Write an attr, make sure name contains only allowed chars
-    pub fn attr_esc<S: AsRef<str>>(&mut self, name: &str, value: S) -> Result {
+    pub(crate) fn attr_esc<S: AsRef<str>>(&mut self, name: &str, value: S) -> io::Result<()> {
         if cfg!(feature = "check_xml") && self.open == Open::None {
             panic!(
                 "Attempted to write attr to elem, when no elem was opened, stack {:?}",
@@ -267,21 +265,21 @@ impl<W: Write> XmlWriter<W> {
     }
 
     /// Write a text, doesn't escape the text.
-    pub fn text<S: AsRef<str>>(&mut self, text: S) -> Result {
+    pub(crate) fn text<S: AsRef<str>>(&mut self, text: S) -> io::Result<()> {
         self.close_elem()?;
         self.buf.push_str(text.as_ref());
         Ok(())
     }
 
     /// Write a text, escapes the text automatically
-    pub fn text_esc<S: AsRef<str>>(&mut self, text: S) -> Result {
+    pub(crate) fn text_esc<S: AsRef<str>>(&mut self, text: S) -> io::Result<()> {
         self.close_elem()?;
         self.escape(text.as_ref(), false);
         Ok(())
     }
 
     /// End and elem
-    pub fn end_elem(&mut self, name: &str) -> Result {
+    pub(crate) fn end_elem(&mut self, name: &str) -> io::Result<()> {
         self.close_elem()?;
 
         if cfg!(feature = "check_xml") {
@@ -309,14 +307,14 @@ impl<W: Write> XmlWriter<W> {
         Ok(())
     }
 
-    fn write_buf(&mut self) -> Result {
+    fn write_buf(&mut self) -> io::Result<()> {
         self.writer.write_all(self.buf.as_bytes())?;
         self.buf.clear();
         Ok(())
     }
 
     /// Fails if there are any open elements.
-    pub fn close(&mut self) -> Result {
+    pub(crate) fn close(&mut self) -> io::Result<()> {
         self.write_buf()?;
 
         if cfg!(feature = "check_xml") && !self.stack.is_empty() {

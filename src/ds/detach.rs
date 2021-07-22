@@ -2,7 +2,7 @@
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug)]
-pub struct Detach<T> {
+pub(crate) struct Detach<T> {
     val: Option<Box<T>>,
 }
 
@@ -43,7 +43,7 @@ impl<T> DerefMut for Detach<T> {
 
 impl<T> Detach<T> {
     #[allow(dead_code)]
-    pub fn new(val: T) -> Self {
+    pub(crate) fn new(val: T) -> Self {
         Self {
             val: Some(Box::new(val)),
         }
@@ -51,7 +51,7 @@ impl<T> Detach<T> {
 
     /// No data contained.
     #[allow(dead_code)]
-    pub fn is_detached(&self) -> bool {
+    pub(crate) fn is_detached(&self) -> bool {
         self.val.is_none()
     }
 
@@ -62,13 +62,13 @@ impl<T> Detach<T> {
     /// Panics
     ///
     /// Panics if the data was already detached.
-    pub fn detach<K: Copy>(&mut self, key: K) -> Detached<K, T> {
+    pub(crate) fn detach<K: Copy>(&mut self, key: K) -> Detached<K, T> {
         let val = self.val.take().expect("already detached");
         Detached::new(key, val)
     }
 
     /// Reattaches the data.
-    pub fn attach<K: Copy>(&mut self, detached: Detached<K, T>) {
+    pub(crate) fn attach<K: Copy>(&mut self, detached: Detached<K, T>) {
         let Detached { key: _, val } = detached;
         self.val.replace(val);
     }
@@ -78,7 +78,7 @@ impl<T> Detach<T> {
     /// Panics
     ///
     /// Panics if the data was detached.
-    pub fn as_ref(&self) -> &T {
+    pub(crate) fn as_ref(&self) -> &T {
         self.val.as_ref().expect("already detached")
     }
 
@@ -87,7 +87,7 @@ impl<T> Detach<T> {
     /// Panics
     ///
     /// Panics if the data was detached.
-    pub fn as_mut(&mut self) -> &mut T {
+    pub(crate) fn as_mut(&mut self) -> &mut T {
         self.val.as_mut().expect("already detached")
     }
 
@@ -96,7 +96,7 @@ impl<T> Detach<T> {
     /// Panics
     ///
     /// Panics if the data was detached.
-    pub fn take(mut self) -> T {
+    pub(crate) fn take(mut self) -> T {
         *self.val.take().expect("already detached")
     }
 }

@@ -141,30 +141,51 @@
 //!
 
 #![doc(html_root_url = "https://docs.rs/spreadsheet-ods/0.4.0")]
+#![warn(absolute_paths_not_starting_with_crate)]
+// NO #![warn(box_pointers)]
+#![warn(disjoint_capture_drop_reorder)]
+#![warn(elided_lifetimes_in_paths)]
+#![warn(explicit_outlives_requirements)]
+#![warn(keyword_idents)]
+#![warn(macro_use_extern_crate)]
+#![warn(meta_variable_misuse)]
+#![warn(missing_abi)]
+// NOT_ACCURATE #![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+// TODO: #![warn(missing_docs)]
+#![warn(non_ascii_idents)]
+#![warn(noop_method_call)]
+// NO #![warn(or_patterns_back_compat)]
+#![warn(pointer_structural_match)]
+#![warn(semicolon_in_expressions_from_macros)]
+// NOT_ACCURATE #![warn(single_use_lifetimes)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unreachable_pub)]
+#![warn(unsafe_code)]
+#![warn(unsafe_op_in_unsafe_fn)]
+#![warn(unstable_features)]
+// NO #![warn(unused_crate_dependencies)]
+// NO #![warn(unused_extern_crates)]
+#![warn(unused_import_braces)]
+#![warn(unused_lifetimes)]
+#![warn(unused_qualifications)]
+// NO #![warn(unused_results)]
+#![warn(variant_size_differences)]
 
-use std::collections::{BTreeMap, HashMap};
-use std::convert::TryFrom;
-use std::fmt;
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
-
-use chrono::Duration;
-use chrono::{NaiveDate, NaiveDateTime};
-#[cfg(feature = "use_decimal")]
-use rust_decimal::prelude::*;
-#[cfg(feature = "use_decimal")]
-use rust_decimal::Decimal;
+pub use crate::error::OdsError;
+pub use crate::format::{ValueFormat, ValueFormatRef};
+pub use crate::io::read::{read_ods, read_ods_buf};
+pub use crate::io::write::{write_ods, write_ods_buf, write_ods_buf_uncompressed};
+pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
+pub use crate::style::units::{Angle, Length};
+pub use crate::style::{CellStyle, CellStyleRef};
 
 use crate::config::Config;
 use crate::ds::detach::Detach;
 use crate::ds::detach::Detached;
-pub use crate::error::OdsError;
-pub use crate::format::{ValueFormat, ValueFormatRef};
-use crate::io::FileBuf;
-pub use crate::io::{read_ods, read_ods_buf, write_ods, write_ods_buf, write_ods_buf_uncompressed};
-pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
-pub use crate::style::units::{Angle, Length};
-pub use crate::style::{CellStyle, CellStyleRef};
+use crate::io::filebuf::FileBuf;
+use crate::io::read::default_settings;
 use crate::style::{
     ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
     PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle,
@@ -173,8 +194,19 @@ use crate::style::{
 use crate::text::TextTag;
 use crate::validation::{Validation, ValidationRef};
 use crate::xmltree::XmlTag;
+use chrono::Duration;
+use chrono::{NaiveDate, NaiveDateTime};
+#[cfg(feature = "use_decimal")]
+use rust_decimal::prelude::*;
+#[cfg(feature = "use_decimal")]
+use rust_decimal::Decimal;
+use std::collections::{BTreeMap, HashMap};
+use std::convert::TryFrom;
+use std::fmt;
+use std::fmt::{Display, Formatter};
 use std::iter::FusedIterator;
 use std::ops::RangeBounds;
+use std::str::FromStr;
 
 #[macro_use]
 mod attr_macro;
@@ -255,7 +287,7 @@ pub struct WorkBook {
 }
 
 impl fmt::Debug for WorkBook {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln!(f, "{:?}", self.version)?;
         for s in self.sheets.iter() {
             writeln!(f, "{:?}", s)?;
@@ -349,7 +381,7 @@ impl WorkBook {
             pagestyles: Default::default(),
             masterpages: Default::default(),
             validations: Default::default(),
-            config: io::default_settings(),
+            config: default_settings(),
             workbook_config: Default::default(),
             extra: vec![],
             filebuf: Default::default(),
@@ -388,7 +420,7 @@ impl WorkBook {
                 return Some(idx);
             }
         }
-        return None;
+        None
     }
 
     /// Detaches a sheet.
@@ -867,7 +899,7 @@ struct RowHeader {
 }
 
 impl RowHeader {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             style: None,
             cellstyle: None,
@@ -877,51 +909,51 @@ impl RowHeader {
         }
     }
 
-    pub fn set_style(&mut self, style: &RowStyleRef) {
+    pub(crate) fn set_style(&mut self, style: &RowStyleRef) {
         self.style = Some(style.to_string());
     }
 
-    pub fn clear_style(&mut self) {
+    pub(crate) fn clear_style(&mut self) {
         self.style = None;
     }
 
-    pub fn style(&self) -> Option<&String> {
+    pub(crate) fn style(&self) -> Option<&String> {
         self.style.as_ref()
     }
 
-    pub fn set_cellstyle(&mut self, style: &CellStyleRef) {
+    pub(crate) fn set_cellstyle(&mut self, style: &CellStyleRef) {
         self.cellstyle = Some(style.to_string());
     }
 
-    pub fn clear_cellstyle(&mut self) {
+    pub(crate) fn clear_cellstyle(&mut self) {
         self.cellstyle = None;
     }
 
-    pub fn cellstyle(&self) -> Option<&String> {
+    pub(crate) fn cellstyle(&self) -> Option<&String> {
         self.cellstyle.as_ref()
     }
 
-    pub fn set_visible(&mut self, visible: Visibility) {
+    pub(crate) fn set_visible(&mut self, visible: Visibility) {
         self.visible = visible;
     }
 
-    pub fn visible(&self) -> Visibility {
+    pub(crate) fn visible(&self) -> Visibility {
         self.visible
     }
 
-    pub fn set_repeat(&mut self, repeat: u32) {
+    pub(crate) fn set_repeat(&mut self, repeat: u32) {
         self.repeat = repeat;
     }
 
-    pub fn repeat(&self) -> u32 {
+    pub(crate) fn repeat(&self) -> u32 {
         self.repeat
     }
 
-    pub fn set_height(&mut self, height: Length) {
+    pub(crate) fn set_height(&mut self, height: Length) {
         self.height = height;
     }
 
-    pub fn height(&self) -> Length {
+    pub(crate) fn height(&self) -> Length {
         self.height
     }
 }
@@ -936,7 +968,7 @@ struct ColHeader {
 }
 
 impl ColHeader {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             style: None,
             cellstyle: None,
@@ -945,43 +977,43 @@ impl ColHeader {
         }
     }
 
-    pub fn set_style(&mut self, style: &ColStyleRef) {
+    pub(crate) fn set_style(&mut self, style: &ColStyleRef) {
         self.style = Some(style.to_string());
     }
 
-    pub fn clear_style(&mut self) {
+    pub(crate) fn clear_style(&mut self) {
         self.style = None;
     }
 
-    pub fn style(&self) -> Option<&String> {
+    pub(crate) fn style(&self) -> Option<&String> {
         self.style.as_ref()
     }
 
-    pub fn set_cellstyle(&mut self, style: &CellStyleRef) {
+    pub(crate) fn set_cellstyle(&mut self, style: &CellStyleRef) {
         self.cellstyle = Some(style.to_string());
     }
 
-    pub fn clear_cellstyle(&mut self) {
+    pub(crate) fn clear_cellstyle(&mut self) {
         self.cellstyle = None;
     }
 
-    pub fn cellstyle(&self) -> Option<&String> {
+    pub(crate) fn cellstyle(&self) -> Option<&String> {
         self.cellstyle.as_ref()
     }
 
-    pub fn set_visible(&mut self, visible: Visibility) {
+    pub(crate) fn set_visible(&mut self, visible: Visibility) {
         self.visible = visible;
     }
 
-    pub fn visible(&self) -> Visibility {
+    pub(crate) fn visible(&self) -> Visibility {
         self.visible
     }
 
-    pub fn set_width(&mut self, width: Length) {
+    pub(crate) fn set_width(&mut self, width: Length) {
         self.width = width;
     }
 
-    pub fn width(&self) -> Length {
+    pub(crate) fn width(&self) -> Length {
         self.width
     }
 }
@@ -1036,14 +1068,10 @@ pub struct CellIter<'a> {
     v_data: Option<&'a CellData>,
 }
 
-impl<'a> CellIter<'a> {
+impl CellIter<'_> {
     /// Returns the (row,col) of the next cell.
-    pub fn peek_cell(&mut self) -> Result<(ucell, ucell), ()> {
-        if let Some(k_data) = self.k_data {
-            Ok(*k_data)
-        } else {
-            Err(())
-        }
+    pub fn peek_cell(&mut self) -> Option<(ucell, ucell)> {
+        self.k_data.copied()
     }
 
     fn load_next_data(&mut self) {
@@ -1057,7 +1085,7 @@ impl<'a> CellIter<'a> {
     }
 }
 
-impl<'a> FusedIterator for CellIter<'a> {}
+impl FusedIterator for CellIter<'_> {}
 
 impl<'a> Iterator for CellIter<'a> {
     type Item = ((ucell, ucell), CellContentRef<'a>);
@@ -1086,7 +1114,7 @@ pub struct Range<'a> {
     range: std::collections::btree_map::Range<'a, (ucell, ucell), CellData>,
 }
 
-impl<'a> FusedIterator for Range<'a> {}
+impl FusedIterator for Range<'_> {}
 
 impl<'a> Iterator for Range<'a> {
     type Item = ((ucell, ucell), CellContentRef<'a>);
@@ -1104,7 +1132,7 @@ impl<'a> Iterator for Range<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for Range<'a> {
+impl DoubleEndedIterator for Range<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if let Some((k, v)) = self.range.next_back() {
             Some((*k, v.into()))
@@ -1114,10 +1142,10 @@ impl<'a> DoubleEndedIterator for Range<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for Range<'a> {}
+impl ExactSizeIterator for Range<'_> {}
 
 impl fmt::Debug for Sheet {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln!(f, "name {:?} style {:?}", self.name, self.style)?;
         for (k, v) in self.data.iter() {
             writeln!(f, "  data {:?} {:?}", k, v)?;
@@ -1197,12 +1225,12 @@ impl Sheet {
     }
 
     /// Iterate all cells.
-    pub fn iter(&self) -> CellIter {
+    pub fn iter(&self) -> CellIter<'_> {
         self.into_iter()
     }
 
     /// Iterate a range of cells.
-    pub fn range<R>(&self, range: R) -> Range
+    pub fn range<R>(&self, range: R) -> Range<'_>
     where
         R: RangeBounds<(ucell, ucell)>,
     {
@@ -1485,17 +1513,13 @@ impl Sheet {
     pub fn cell(&self, row: ucell, col: ucell) -> Option<CellContent> {
         let value = self.data.get(&(row, col));
 
-        if let Some(value) = value {
-            Some(CellContent {
-                value: value.value.clone(),
-                style: value.style.clone(),
-                formula: value.formula.clone(),
-                validation_name: value.validation_name.clone(),
-                span: value.span.clone(),
-            })
-        } else {
-            None
-        }
+        value.map(|value| CellContent {
+            value: value.value.clone(),
+            style: value.style.clone(),
+            formula: value.formula.clone(),
+            validation_name: value.validation_name.clone(),
+            span: value.span,
+        })
     }
 
     /// Consumes the CellContent and sets the values.
@@ -1909,7 +1933,7 @@ struct CellData {
 
 impl CellData {
     /// New, empty.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         CellData {
             value: Value::Empty,
             formula: None,
@@ -2030,7 +2054,6 @@ impl CellContent {
 
     /// Sets the formula.
     pub fn set_formula<V: Into<String>>(&mut self, formula: V) {
-        let formula = formula.into();
         self.formula = Some(formula.into());
     }
 
@@ -2314,6 +2337,7 @@ impl Value {
     }
 
     /// Create a currency value.
+    #[allow(clippy::needless_range_loop)]
     pub fn new_currency<S: AsRef<str>>(cur: S, value: f64) -> Self {
         let mut cur_bytes = [0u8; 3];
 
@@ -2448,18 +2472,21 @@ impl From<Option<Decimal>> for Value {
 macro_rules! from_number {
     ($l:ty) => {
         impl From<$l> for Value {
+            #![allow(trivial_numeric_casts)]
             fn from(f: $l) -> Self {
                 Value::Number(f as f64)
             }
         }
 
         impl From<&$l> for Value {
+            #![allow(trivial_numeric_casts)]
             fn from(f: &$l) -> Self {
                 Value::Number(*f as f64)
             }
         }
 
         impl From<Option<$l>> for Value {
+            #![allow(trivial_numeric_casts)]
             fn from(f: Option<$l>) -> Self {
                 if let Some(f) = f {
                     Value::Number(f as f64)
@@ -2470,6 +2497,7 @@ macro_rules! from_number {
         }
 
         impl From<Option<&$l>> for Value {
+            #![allow(trivial_numeric_casts)]
             fn from(f: Option<&$l>) -> Self {
                 if let Some(f) = f {
                     Value::Number(*f as f64)

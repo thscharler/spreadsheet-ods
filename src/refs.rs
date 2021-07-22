@@ -485,7 +485,7 @@ pub(crate) fn parse_colname(buf: &str, pos: &mut usize) -> Option<ucell> {
             v += 1;
             col *= 26;
         }
-        col += v as u32;
+        col += v
     }
     // consumed all chars
     if !loop_break {
@@ -755,7 +755,7 @@ pub(crate) fn push_colname(buf: &mut String, mut col: ucell) {
     let mut i = 0;
     let mut dbuf = [0u8; 7];
 
-    if col == ucell::max_value() {
+    if col == ucell::MAX {
         // unroll first loop because of overflow
         dbuf[0] = 21;
         i += 1;

@@ -44,6 +44,7 @@ macro_rules! style_ref {
 /// Generates a name reference for a style.
 macro_rules! text_tag {
     ($tag:ident, $xml:literal) => {
+        #[derive(Debug)]
         pub struct $tag {
             xml: XmlTag,
         }

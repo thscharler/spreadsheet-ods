@@ -10,9 +10,9 @@ use zip::write::FileOptions;
 use crate::config::{ConfigItem, ConfigItemType, ConfigValue};
 use crate::error::OdsError;
 use crate::format::FormatPartType;
+use crate::io::filebuf::FileBufEntry;
 use crate::io::xmlwriter::XmlWriter;
 use crate::io::zip_out::{ZipOut, ZipWrite};
-use crate::io::FileBufEntry;
 use crate::refs::{cellranges_string, CellRange};
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
@@ -438,7 +438,7 @@ fn write_settings<W: Write + Seek>(
 fn write_config_item_set<W: Write + Seek>(
     name: &str,
     set: &ConfigItem,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-set")?;
     xml_out.attr("config:name", name)?;
@@ -463,7 +463,7 @@ fn write_config_item_set<W: Write + Seek>(
 fn write_config_item_map_indexed<W: Write + Seek>(
     name: &str,
     vec: &ConfigItem,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-indexed")?;
     xml_out.attr("config:name", name)?;
@@ -500,7 +500,7 @@ fn write_config_item_map_indexed<W: Write + Seek>(
 fn write_config_item_map_named<W: Write + Seek>(
     name: &str,
     map: &ConfigItem,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-named")?;
     xml_out.attr("config:name", name)?;
@@ -529,7 +529,7 @@ fn write_config_item_map_named<W: Write + Seek>(
 fn write_config_item_map_entry<W: Write + Seek>(
     name: Option<&String>,
     map_entry: &ConfigItem,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-entry")?;
     if let Some(name) = name {
@@ -556,7 +556,7 @@ fn write_config_item_map_entry<W: Write + Seek>(
 fn write_config_item<W: Write + Seek>(
     name: &str,
     value: &ConfigValue,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     let is_empty = match value {
         ConfigValue::Base64Binary(t) => t.is_empty(),
@@ -953,7 +953,7 @@ fn write_ods_content<W: Write + Seek>(
 
 fn write_content_validations<W: Write + Seek>(
     book: &WorkBook,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     if !book.validations.is_empty() {
         xml_out.elem("table:content-validations")?;
@@ -1042,7 +1042,7 @@ pub(crate) fn remove_outlooped(ranges: &mut Vec<CellRange>, row: ucell, col: uce
 fn write_sheet<W: Write + Seek>(
     book: &WorkBook,
     sheet: &Sheet,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table")?;
     xml_out.attr_esc("table:name", &*sheet.name)?;
@@ -1093,7 +1093,7 @@ fn write_sheet<W: Write + Seek>(
         // calculations.
 
         // For the repeat-counter we need to look forward.
-        let (next_r, next_c, is_last_cell) = if let Ok((next_r, next_c)) = it.peek_cell() {
+        let (next_r, next_c, is_last_cell) = if let Some((next_r, next_c)) = it.peek_cell() {
             (next_r, next_c, false)
         } else {
             (max_cell.0, max_cell.1, true)
@@ -1199,7 +1199,7 @@ fn write_sheet<W: Write + Seek>(
 fn write_empty_cells<W: Write + Seek>(
     mut forward_dc: u32,
     hidden_cols: u32,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     // split between hidden and regular cells.
     if hidden_cols >= forward_dc {
@@ -1229,7 +1229,7 @@ fn write_start_current_row<W: Write + Seek>(
     sheet: &Sheet,
     cur_row: ucell,
     backward_dc: u32,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     // Start of headers
     if let Some(header_rows) = &sheet.header_rows {
@@ -1271,7 +1271,7 @@ fn write_end_last_row<W: Write + Seek>(
     sheet: &Sheet,
     cur_row: u32,
     backward_dr: u32,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.end_elem("table:table-row")?;
 
@@ -1289,7 +1289,7 @@ fn write_end_last_row<W: Write + Seek>(
 fn write_end_current_row<W: Write + Seek>(
     sheet: &Sheet,
     cur_row: u32,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.end_elem("table:table-row")?;
 
@@ -1309,7 +1309,7 @@ fn write_empty_rows_before<W: Write + Seek>(
     first_cell: bool,
     mut backward_dr: u32,
     max_cell: (ucell, ucell),
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     // Empty rows in between are 1 less than the delta, except at the very start.
     let mut corr = if first_cell { 0u32 } else { 1u32 };
@@ -1370,7 +1370,7 @@ fn write_empty_row<W: Write + Seek>(
     cur_row: ucell,
     empty_count: u32,
     max_cell: (u32, u32),
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table-row")?;
     xml_out.attr("table:number-rows-repeated", &empty_count.to_string())?;
@@ -1401,7 +1401,7 @@ fn write_empty_row<W: Write + Seek>(
 
 fn write_xmltag<W: Write + Seek>(
     x: &XmlTag,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     if x.is_empty() {
         xml_out.empty(x.name())?;
@@ -1433,7 +1433,7 @@ fn write_xmltag<W: Write + Seek>(
 fn write_table_columns<W: Write + Seek>(
     sheet: &Sheet,
     max_cell: (ucell, ucell),
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     // table:table-column
     for c in 0..max_cell.1 {
@@ -1474,9 +1474,9 @@ fn write_table_columns<W: Write + Seek>(
 #[allow(clippy::single_char_add_str)]
 fn write_cell<W: Write + Seek>(
     book: &WorkBook,
-    cell: &CellContentRef,
+    cell: &CellContentRef<'_>,
     is_hidden: bool,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     let tag = if is_hidden {
         "table:covered-table-cell"
@@ -1650,7 +1650,7 @@ fn write_cell<W: Write + Seek>(
 fn write_font_decl<W: Write + Seek>(
     fonts: &HashMap<String, FontFaceDecl>,
     origin: StyleOrigin,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     for font in fonts.values().filter(|s| s.origin() == origin) {
         xml_out.empty("style:font-face")?;
@@ -1666,7 +1666,7 @@ fn write_styles<W: Write + Seek>(
     book: &WorkBook,
     origin: StyleOrigin,
     styleuse: StyleUse,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     for style in book.tablestyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
@@ -1718,7 +1718,7 @@ fn write_styles<W: Write + Seek>(
 
 fn write_tablestyle<W: Write + Seek>(
     style: &TableStyle,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
@@ -1754,7 +1754,7 @@ fn write_tablestyle<W: Write + Seek>(
 
 fn write_rowstyle<W: Write + Seek>(
     style: &RowStyle,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
@@ -1790,7 +1790,7 @@ fn write_rowstyle<W: Write + Seek>(
 
 fn write_colstyle<W: Write + Seek>(
     style: &ColStyle,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
@@ -1826,7 +1826,7 @@ fn write_colstyle<W: Write + Seek>(
 
 fn write_cellstyle<W: Write + Seek>(
     style: &CellStyle,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
@@ -1882,7 +1882,7 @@ fn write_cellstyle<W: Write + Seek>(
 
 fn write_paragraphstyle<W: Write + Seek>(
     style: &ParagraphStyle,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
@@ -1942,7 +1942,7 @@ fn write_paragraphstyle<W: Write + Seek>(
 
 fn write_textstyle<W: Write + Seek>(
     style: &TextStyle,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
@@ -1978,7 +1978,7 @@ fn write_textstyle<W: Write + Seek>(
 
 fn write_graphicstyle<W: Write + Seek>(
     style: &GraphicStyle,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
@@ -2017,7 +2017,7 @@ fn write_valuestyles<W: Write + Seek>(
     value_formats: &HashMap<String, ValueFormat>,
     origin: StyleOrigin,
     styleuse: StyleUse,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     for value_format in value_formats
         .values()
@@ -2107,7 +2107,7 @@ fn write_valuestyles<W: Write + Seek>(
 
 fn write_pagestyles<W: Write + Seek>(
     styles: &HashMap<String, PageStyle>,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:page-layout")?;
@@ -2146,7 +2146,7 @@ fn write_pagestyles<W: Write + Seek>(
 
 fn write_masterpage<W: Write + Seek>(
     styles: &HashMap<String, MasterPage>,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:master-page")?;
@@ -2207,7 +2207,7 @@ fn write_masterpage<W: Write + Seek>(
 
 fn write_regions<W: Write + Seek>(
     hf: &HeaderFooter,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     if let Some(left) = hf.left() {
         xml_out.elem("style:region-left")?;

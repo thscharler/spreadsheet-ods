@@ -58,12 +58,13 @@ impl AttrMap2 {
         }
     }
 
-    pub fn iter(&self) -> AttrMapIter {
+    pub fn iter(&self) -> AttrMapIter<'_> {
         From::from(self)
     }
 }
 
 /// Iterator for an AttrMap.
+#[derive(Debug)]
 pub struct AttrMapIter<'a> {
     it: Option<hash_map::Iter<'a, DefaultAtom, String>>,
 }
