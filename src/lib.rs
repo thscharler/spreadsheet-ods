@@ -67,7 +67,6 @@
 //!   * Handles all datatypes
 //!     * Uses time::Duration
 //!     * Uses chrono::NaiveDate and NaiveDateTime
-//!     * Supports rust_decimal::Decimal
 //!   * Column/Row/Cell styles
 //!   * Formulas
 //!     * Only as strings, but support functions for cell/range references.
@@ -134,7 +133,7 @@
 //! * calcext:conditional-formats
 //!
 //! When storing a previously read ODS file, all the contained files
-//! are copied to the new file, except styles.xml and content.xml.
+//! are copied to the new file, except settings.xml, styles.xml and content.xml.
 //! For a new ODS file mimetype, manifest, manifest.rdf, meta.xml
 //! are filled with minimal defaults. There is no way to set these
 //! for now.
@@ -2208,30 +2207,6 @@ impl Value {
         }
     }
 
-    /// Return the content as decimal if the value is a number, percentage or
-    /// currency. Default otherwise.
-    #[cfg(feature = "use_decimal")]
-    pub fn as_decimal_or(&self, d: Decimal) -> Decimal {
-        match self {
-            Value::Number(n) => Decimal::from_f64(*n).unwrap(),
-            Value::Currency(v, _) => Decimal::from_f64(*v).unwrap(),
-            Value::Percentage(p) => Decimal::from_f64(*p).unwrap(),
-            _ => d,
-        }
-    }
-
-    /// Return the content as decimal if the value is a number, percentage or
-    /// currency. Default otherwise.
-    #[cfg(feature = "use_decimal")]
-    pub fn as_decimal_opt(&self) -> Option<Decimal> {
-        match self {
-            Value::Number(n) => Some(Decimal::from_f64(*n).unwrap()),
-            Value::Currency(v, _) => Some(Decimal::from_f64(*v).unwrap()),
-            Value::Percentage(p) => Some(Decimal::from_f64(*p).unwrap()),
-            _ => None,
-        }
-    }
-
     /// Return the content as f64 if the value is a number, percentage or
     /// currency. Default otherwise.
     pub fn as_f64_or(&self, d: f64) -> f64 {
@@ -2441,24 +2416,6 @@ impl From<Option<String>> for Value {
     fn from(s: Option<String>) -> Self {
         if let Some(s) = s {
             Value::Text(s)
-        } else {
-            Value::Empty
-        }
-    }
-}
-
-#[cfg(feature = "use_decimal")]
-impl From<Decimal> for Value {
-    fn from(f: Decimal) -> Self {
-        Value::Number(f.to_f64().unwrap())
-    }
-}
-
-#[cfg(feature = "use_decimal")]
-impl From<Option<Decimal>> for Value {
-    fn from(f: Option<Decimal>) -> Self {
-        if let Some(f) = f {
-            Value::Number(f.to_f64().unwrap())
         } else {
             Value::Empty
         }
