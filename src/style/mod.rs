@@ -67,7 +67,9 @@ pub mod units;
 /// Origin of a style. Content.xml or Styles.xml.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StyleOrigin {
+    /// Style comes from Content.xml
     Content,
+    /// Style comes from Styles.xml
     Styles,
 }
 
@@ -81,8 +83,11 @@ impl Default for StyleOrigin {
 /// Defines the usage pattern for the style.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StyleUse {
+    /// Default style, when no style is defined.
     Default,
+    /// This style is a named style that the user can choose in the ui.
     Named,
+    /// An automatic style that is generated performs any formatting.
     Automatic,
 }
 

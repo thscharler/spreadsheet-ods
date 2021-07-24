@@ -199,9 +199,13 @@ impl Display for XmlTag {
     }
 }
 
-/// Values of the content vec.
+///
+/// A XmlTag can contain any mixture of XmlTags and text content.
+///
 #[derive(Debug, Clone)]
 pub enum XmlContent {
+    /// Text content.
     Text(String),
+    /// Contained xml-tags.
     Tag(XmlTag),
 }

@@ -43,7 +43,9 @@ use chrono::NaiveDateTime;
 use color::Rgb;
 use std::fmt::{Display, Formatter};
 
+/// Error type for any formatting errors.
 #[derive(Debug)]
+#[allow(missing_docs)]
 pub enum ValueFormatError {
     Format(String),
     NaN,
@@ -437,6 +439,7 @@ impl ValueFormat {
 
 /// Identifies the structural parts of a value format.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum FormatPartType {
     Boolean,
     Number,
@@ -472,6 +475,7 @@ pub struct FormatPart {
 
 /// Flag for several PartTypes.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum FormatNumberStyle {
     Short,
     Long,
@@ -488,6 +492,7 @@ impl Display for FormatNumberStyle {
 
 /// Calendar types.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum FormatCalendarStyle {
     Gregorian,
     Gengou,
@@ -599,12 +604,14 @@ impl FormatPart {
         p
     }
 
+    /// Create a part for a date.
     pub fn new_day(number: FormatNumberStyle) -> Self {
         let mut p = Self::new(FormatPartType::Day);
         p.set_attr("number:style", number.to_string());
         p
     }
 
+    /// Create a part for a month.
     pub fn new_month(number: FormatNumberStyle, text: bool) -> Self {
         let mut p = Self::new(FormatPartType::Month);
         p.set_attr("number:style", number.to_string());
@@ -612,12 +619,14 @@ impl FormatPart {
         p
     }
 
+    /// Create a part for a year.
     pub fn new_year(number: FormatNumberStyle) -> Self {
         let mut p = Self::new(FormatPartType::Year);
         p.set_attr("number:style", number.to_string());
         p
     }
 
+    /// Create a part for a era marker.
     pub fn new_era(number: FormatNumberStyle, calendar: FormatCalendarStyle) -> Self {
         let mut p = Self::new(FormatPartType::Era);
         p.set_attr("number:style", number.to_string());
@@ -625,6 +634,7 @@ impl FormatPart {
         p
     }
 
+    /// Create a part for a week day.
     pub fn new_day_of_week(number: FormatNumberStyle, calendar: FormatCalendarStyle) -> Self {
         let mut p = Self::new(FormatPartType::DayOfWeek);
         p.set_attr("number:style", number.to_string());
@@ -632,12 +642,14 @@ impl FormatPart {
         p
     }
 
+    /// Create a part for the week of year.
     pub fn new_week_of_year(calendar: FormatCalendarStyle) -> Self {
         let mut p = Self::new(FormatPartType::WeekOfYear);
         p.set_attr("number:calendar", calendar.to_string());
         p
     }
 
+    /// Create a part for a quarter of a year.
     pub fn new_quarter(number: FormatNumberStyle, calendar: FormatCalendarStyle) -> Self {
         let mut p = Self::new(FormatPartType::Quarter);
         p.set_attr("number:style", number.to_string());
@@ -645,24 +657,28 @@ impl FormatPart {
         p
     }
 
+    /// Create a part for hours.
     pub fn new_hours(number: FormatNumberStyle) -> Self {
         let mut p = Self::new(FormatPartType::Hours);
         p.set_attr("number:style", number.to_string());
         p
     }
 
+    /// Create a part for minutes.
     pub fn new_minutes(number: FormatNumberStyle) -> Self {
         let mut p = Self::new(FormatPartType::Minutes);
         p.set_attr("number:style", number.to_string());
         p
     }
 
+    /// Create a part for seconds.
     pub fn new_seconds(number: FormatNumberStyle) -> Self {
         let mut p = Self::new(FormatPartType::Seconds);
         p.set_attr("number:style", number.to_string());
         p
     }
 
+    /// Create a part for a AM/PM marker.
     pub fn new_am_pm() -> Self {
         Self::new(FormatPartType::AmPm)
     }
@@ -694,10 +710,12 @@ impl FormatPart {
         self.part_type
     }
 
+    /// General attributes.
     pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
+    /// General attributes.
     pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }

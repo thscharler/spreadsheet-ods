@@ -1,3 +1,7 @@
+//!
+//! Creates default formats for a new Workbook.
+//!
+
 use crate::format::ValueFormatRef;
 use crate::style::CellStyle;
 use crate::{format, CellStyleRef, ValueType, WorkBook};
@@ -10,34 +14,42 @@ use crate::{format, CellStyleRef, ValueType, WorkBook};
 pub struct DefaultFormat {}
 
 impl DefaultFormat {
+    /// Default format.
     pub fn default() -> ValueFormatRef {
         ValueFormatRef::from("")
     }
 
+    /// Default boolean format.
     pub fn bool() -> ValueFormatRef {
         ValueFormatRef::from("bool1")
     }
 
+    /// Default number format.
     pub fn num() -> ValueFormatRef {
         ValueFormatRef::from("num1")
     }
 
+    /// Default percentage format.
     pub fn percent() -> ValueFormatRef {
         ValueFormatRef::from("percent1")
     }
 
+    /// Default currency format.
     pub fn currency() -> ValueFormatRef {
         ValueFormatRef::from("currency1")
     }
 
+    /// Default date format.
     pub fn date() -> ValueFormatRef {
         ValueFormatRef::from("date1")
     }
 
+    /// Default datetime format.
     pub fn datetime() -> ValueFormatRef {
         ValueFormatRef::from("datetime1")
     }
 
+    /// Default time format.
     pub fn time() -> ValueFormatRef {
         ValueFormatRef::from("time1")
     }
@@ -51,30 +63,37 @@ impl DefaultFormat {
 pub struct DefaultStyle {}
 
 impl DefaultStyle {
+    /// Default bool style.
     pub fn bool() -> CellStyleRef {
         CellStyleRef::from("default-bool")
     }
 
+    /// Default number style.
     pub fn num() -> CellStyleRef {
         CellStyleRef::from("default-num")
     }
 
+    /// Default percent style.
     pub fn percent() -> CellStyleRef {
         CellStyleRef::from("default-percent")
     }
 
+    /// Default currency style.
     pub fn currency() -> CellStyleRef {
         CellStyleRef::from("default-currency")
     }
 
+    /// Default date style.
     pub fn date() -> CellStyleRef {
         CellStyleRef::from("default-date")
     }
 
+    /// Default datetime style.
     pub fn datetime() -> CellStyleRef {
         CellStyleRef::from("default-datetime")
     }
 
+    /// Default time style.
     pub fn time() -> CellStyleRef {
         CellStyleRef::from("default-time")
     }

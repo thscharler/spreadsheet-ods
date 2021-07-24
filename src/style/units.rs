@@ -1,3 +1,7 @@
+//!
+//! All kinds of units for use in style attributes.
+//!
+
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -6,8 +10,11 @@ use crate::OdsError;
 /// Value type for angles.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Angle {
+    /// Degrees
     Deg(f64),
+    /// Grad degrees.
     Grad(f64),
+    /// Radiant.
     Rad(f64),
 }
 
@@ -24,12 +31,19 @@ impl Display for Angle {
 /// Value type for lengths.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Length {
+    /// Unspecified length, the actual value is some default or whatever.
     Default,
+    /// cm
     Cm(f64),
+    /// mm
     Mm(f64),
+    /// inch
     In(f64),
+    /// typographic points
     Pt(f64),
+    /// pica
     Pc(f64),
+    /// em
     Em(f64),
 }
 
@@ -78,7 +92,9 @@ impl FromStr for Length {
 /// Font pitch.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum FontPitch {
+    /// Variable font with
     Variable,
+    /// Fixed font width
     Fixed,
 }
 
@@ -92,6 +108,7 @@ impl Display for FontPitch {
 }
 
 /// Various border styles.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Border {
     None,
@@ -124,6 +141,7 @@ impl Display for Border {
 }
 
 /// Page breaks.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum PageBreak {
     Auto,
@@ -144,6 +162,7 @@ impl Display for PageBreak {
 
 /// Text keep together.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum TextKeep {
     Auto,
     Always,
@@ -161,6 +180,7 @@ impl Display for TextKeep {
 
 /// Writing modes.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum WritingMode {
     LrTb,
     RlTb,
@@ -188,6 +208,7 @@ impl Display for WritingMode {
 }
 
 /// Text wrapping.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum WrapOption {
     NoWrap,
@@ -205,6 +226,7 @@ impl Display for WrapOption {
 
 /// Rotation.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum RotationAlign {
     None,
     Bottom,
@@ -225,6 +247,7 @@ impl Display for RotationAlign {
 
 /// Vertical alignment.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum CellAlignVertical {
     Top,
     Middle,
@@ -245,6 +268,7 @@ impl Display for CellAlignVertical {
 
 /// Fix uses the text-align attribute, value-type bases alignment on content.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum TextAlignSource {
     Fix,
     ValueType,
@@ -261,6 +285,7 @@ impl Display for TextAlignSource {
 
 /// Horizontal alignment.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum TextAlign {
     Start,
     Center,
@@ -287,8 +312,9 @@ impl Display for TextAlign {
     }
 }
 
-/// Vertical alignment.
+/// Vertical alignment for a paragraph.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum ParaAlignVertical {
     Top,
     Middle,
@@ -311,6 +337,7 @@ impl Display for ParaAlignVertical {
 
 /// Text style values.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum FontStyle {
     Normal,
     Italic,
@@ -329,6 +356,7 @@ impl Display for FontStyle {
 
 /// Text weight values.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum FontWeight {
     Normal,
     Bold,
@@ -363,6 +391,7 @@ impl Display for FontWeight {
 
 /// Text case transformations.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum TextTransform {
     None,
     Lowercase,
@@ -383,6 +412,7 @@ impl Display for TextTransform {
 
 /// Text style engraved and embossed.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum TextRelief {
     None,
     Embossed,
@@ -401,6 +431,7 @@ impl Display for TextRelief {
 
 /// Text style subscript or superscript.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum TextPosition {
     Sub,
     Super,
@@ -417,6 +448,7 @@ impl Display for TextPosition {
 
 /// Line style for underline, overline, line-through.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum LineStyle {
     Dash,
     DotDash,
@@ -445,6 +477,7 @@ impl Display for LineStyle {
 
 /// Line types for underline, overline, line-through.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum LineType {
     None,
     Single,
@@ -463,6 +496,7 @@ impl Display for LineType {
 
 /// Line modes for underline, overline, line-through.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum LineMode {
     Continuous,
     SkipWhiteSpace,
@@ -479,6 +513,7 @@ impl Display for LineMode {
 
 /// Line width for underline, overline, line-through.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum LineWidth {
     Auto,
     Normal,

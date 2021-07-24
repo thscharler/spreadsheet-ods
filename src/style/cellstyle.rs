@@ -103,10 +103,12 @@ impl CellStyle {
         self.origin = origin;
     }
 
+    /// Usage for the style.
     pub fn styleuse(&self) -> StyleUse {
         self.styleuse
     }
 
+    /// Usage for the style.
     pub fn set_styleuse(&mut self, styleuse: StyleUse) {
         self.styleuse = styleuse;
     }

@@ -92,10 +92,12 @@ impl MasterPage {
         &self.name
     }
 
+    /// Reference to a page-style.
     pub fn set_pagestyle(&mut self, name: &PageStyleRef) {
         self.pagestyle = name.to_string();
     }
 
+    /// Reference to a page-style.
     pub fn pagestyle(&self) -> &String {
         &self.pagestyle
     }
@@ -228,6 +230,7 @@ impl HeaderFooter {
         self.display
     }
 
+    /// true if all regions of the header/footer are empty.
     pub fn is_empty(&self) -> bool {
         self.region_left.is_none()
             && self.region_center.is_none()

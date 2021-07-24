@@ -45,6 +45,7 @@ impl Display for CellRef {
 }
 
 impl CellRef {
+    /// Empty.
     pub fn new() -> Self {
         Self {
             table: None,
@@ -87,10 +88,12 @@ impl CellRef {
         self.table.as_ref()
     }
 
+    /// Row
     pub fn set_row(&mut self, row: ucell) {
         self.row = row;
     }
 
+    /// Row
     pub fn row(&self) -> ucell {
         self.row
     }
@@ -105,10 +108,12 @@ impl CellRef {
         self.row_abs
     }
 
+    /// Column
     pub fn set_col(&mut self, col: ucell) {
         self.col = col;
     }
 
+    /// Column
     pub fn col(&self) -> ucell {
         self.col
     }
@@ -179,6 +184,7 @@ pub struct CellRange {
 }
 
 impl CellRange {
+    /// Empty
     pub fn new() -> Self {
         Self {
             table: None,
@@ -260,10 +266,12 @@ impl CellRange {
         self.table.as_ref()
     }
 
+    /// Row
     pub fn set_row(&mut self, row: ucell) {
         self.row = row;
     }
 
+    /// Row
     pub fn row(&self) -> ucell {
         self.row
     }
@@ -278,10 +286,12 @@ impl CellRange {
         self.row_abs
     }
 
+    /// Column
     pub fn set_col(&mut self, col: ucell) {
         self.col = col;
     }
 
+    /// Column
     pub fn col(&self) -> ucell {
         self.col
     }
@@ -296,10 +306,12 @@ impl CellRange {
         self.col_abs
     }
 
+    /// To row
     pub fn set_to_row(&mut self, to_row: ucell) {
         self.to_row = to_row;
     }
 
+    /// To row
     pub fn to_row(&self) -> ucell {
         self.to_row
     }
@@ -314,10 +326,12 @@ impl CellRange {
         self.to_row_abs
     }
 
+    /// To column
     pub fn set_to_col(&mut self, to_col: ucell) {
         self.to_col = to_col;
     }
 
+    /// To column
     pub fn to_col(&self) -> ucell {
         self.to_col
     }
@@ -409,23 +423,28 @@ impl Display for ColRange {
 }
 
 impl ColRange {
+    /// New range.
     pub fn new(col: ucell, to_col: ucell) -> Self {
         assert!(col <= to_col);
         Self { col, to_col }
     }
 
+    /// Column
     pub fn set_col(&mut self, col: ucell) {
         self.col = col;
     }
 
+    /// Column
     pub fn col(&self) -> ucell {
         self.col
     }
 
+    /// To column
     pub fn set_to_col(&mut self, to_col: ucell) {
         self.to_col = to_col;
     }
 
+    /// To column
     pub fn to_col(&self) -> ucell {
         self.to_col
     }
@@ -440,8 +459,8 @@ impl ColRange {
 /// A range over rows.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct RowRange {
-    pub row: ucell,
-    pub to_row: ucell,
+    row: ucell,
+    to_row: ucell,
 }
 
 impl Display for RowRange {
@@ -451,9 +470,30 @@ impl Display for RowRange {
 }
 
 impl RowRange {
+    /// New range.
     pub fn new(row: ucell, to_row: ucell) -> Self {
         assert!(row <= to_row);
         Self { row, to_row }
+    }
+
+    /// Row
+    pub fn row(&self) -> ucell {
+        self.row
+    }
+
+    /// Row
+    pub fn set_row(&mut self, row: ucell) {
+        self.row = row;
+    }
+
+    /// To row
+    pub fn to_row(&self) -> ucell {
+        self.to_row
+    }
+
+    /// To row
+    pub fn set_to_row(&mut self, row: ucell) {
+        self.to_row = row;
     }
 
     /// Is the row in this range.

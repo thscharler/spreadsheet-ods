@@ -20,6 +20,7 @@ pub struct PageStyle {
 }
 
 impl PageStyle {
+    /// New pagestyle.
     pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
@@ -125,16 +126,19 @@ impl PageStyle {
     svg_height!(style_mut);
 }
 
+/// Style attributes for header/footer.
 #[derive(Clone, Debug, Default)]
 pub struct HeaderFooterStyle {
     style: AttrMap2,
 }
 
 impl HeaderFooterStyle {
+    /// General attributes.
     pub fn style(&self) -> &AttrMap2 {
         &self.style
     }
 
+    /// General attributes.
     pub fn style_mut(&mut self) -> &mut AttrMap2 {
         &mut self.style
     }

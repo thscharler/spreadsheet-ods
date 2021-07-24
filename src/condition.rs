@@ -1,11 +1,13 @@
+//! Defines conditional expressions that are used for cell-validation and
+//! conditional styles via style-maps.
 use std::fmt::{Display, Formatter};
 
 use crate::CellRange;
 
+/// A value that is used in a comparison.
 #[derive(Clone, Debug)]
 pub struct Value {
     val: String,
-    is_str: bool,
 }
 
 fn quote(val: &str) -> String {
@@ -31,19 +33,13 @@ impl Display for Value {
 
 impl From<&str> for Value {
     fn from(s: &str) -> Self {
-        Value {
-            val: quote(s),
-            is_str: true,
-        }
+        Value { val: quote(s) }
     }
 }
 
 impl From<&&str> for Value {
     fn from(s: &&str) -> Self {
-        Value {
-            val: quote(s),
-            is_str: true,
-        }
+        Value { val: quote(s) }
     }
 }
 
@@ -51,7 +47,6 @@ impl From<String> for Value {
     fn from(s: String) -> Self {
         Value {
             val: quote(s.as_str()),
-            is_str: true,
         }
     }
 }
@@ -60,7 +55,6 @@ impl From<&String> for Value {
     fn from(s: &String) -> Self {
         Value {
             val: quote(s.as_str()),
-            is_str: true,
         }
     }
 }
@@ -69,19 +63,13 @@ macro_rules! from_x_conditionvalue {
     ($int:ty) => {
         impl From<$int> for Value {
             fn from(v: $int) -> Self {
-                Value {
-                    val: v.to_string(),
-                    is_str: false,
-                }
+                Value { val: v.to_string() }
             }
         }
 
         impl From<&$int> for Value {
             fn from(v: &$int) -> Self {
-                Value {
-                    val: v.to_string(),
-                    is_str: false,
-                }
+                Value { val: v.to_string() }
             }
         }
     };
@@ -99,9 +87,7 @@ from_x_conditionvalue!(f32);
 from_x_conditionvalue!(f64);
 from_x_conditionvalue!(bool);
 
-///
-/// Conditions for Validations and StyleMaps.
-///
+/// Defines a condition that compares the cell-content with a value.
 #[derive(Clone, Debug)]
 pub struct ValueCondition {
     cond: String,
@@ -114,11 +100,12 @@ impl Display for ValueCondition {
 }
 
 impl ValueCondition {
-    pub fn new<S: Into<String>>(str: S) -> Self {
+    /// Creates a value condition from a string that was read.
+    pub(crate) fn new<S: Into<String>>(str: S) -> Self {
         Self { cond: str.into() }
     }
 
-    /// Refers to the content.
+    /// Compares the cell-content with a value.
     pub fn content_eq<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("cell-content()=");
@@ -126,7 +113,7 @@ impl ValueCondition {
         ValueCondition { cond: buf }
     }
 
-    /// Refers to the content.
+    /// Compares the cell-content with a value.
     pub fn content_ne<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("cell-content()!=");
@@ -134,7 +121,7 @@ impl ValueCondition {
         ValueCondition { cond: buf }
     }
 
-    /// Refers to the content.
+    /// Compares the cell-content with a value.
     pub fn content_lt<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("cell-content()<");
@@ -142,7 +129,7 @@ impl ValueCondition {
         ValueCondition { cond: buf }
     }
 
-    /// Refers to the content.
+    /// Compares the cell-content with a value.
     pub fn content_gt<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("cell-content()>");
@@ -150,7 +137,7 @@ impl ValueCondition {
         ValueCondition { cond: buf }
     }
 
-    /// Refers to the content.
+    /// Compares the cell-content with a value.
     pub fn content_lte<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("cell-content()<=");
@@ -158,7 +145,7 @@ impl ValueCondition {
         ValueCondition { cond: buf }
     }
 
-    /// Refers to the content.
+    /// Compares the cell-content with a value.
     pub fn content_gte<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("cell-content()>=");
@@ -166,7 +153,7 @@ impl ValueCondition {
         ValueCondition { cond: buf }
     }
 
-    /// Range check.
+    /// Range check of the cell-content.
     pub fn content_is_between<V: Into<Value>>(from: V, to: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("cell-content-is-between(");
@@ -177,7 +164,7 @@ impl ValueCondition {
         ValueCondition { cond: buf }
     }
 
-    /// Range check.
+    /// Range check of the cell-content.
     pub fn content_is_not_between<V: Into<Value>>(from: V, to: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("cell-content-is-not-between(");
@@ -198,9 +185,7 @@ impl ValueCondition {
     }
 }
 
-///
-/// Conditions for Validations and StyleMaps.
-///
+/// Defines a condition for a cell-validation.
 #[derive(Clone, Debug)]
 pub struct Condition {
     cond: String,
@@ -213,76 +198,77 @@ impl Display for Condition {
 }
 
 impl Condition {
-    pub fn new<S: Into<String>>(str: S) -> Self {
+    /// Creates a condition from a read string.
+    pub(crate) fn new<S: Into<String>>(str: S) -> Self {
         Self { cond: str.into() }
     }
 
-    /// Content length.
-    pub fn content_text_length_eq<V: Into<Value>>(value: V) -> Condition {
+    /// Compares the content length to a value.
+    pub fn content_text_length_eq(len: u32) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-text-length()=");
-        buf.push_str(value.into().to_string().as_str());
+        buf.push_str(len.to_string().as_str());
         Condition { cond: buf }
     }
 
-    /// Content length.
-    pub fn content_text_length_ne<V: Into<Value>>(value: V) -> Condition {
+    /// Compares the content length to a value.
+    pub fn content_text_length_ne(len: u32) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-text-length()!=");
-        buf.push_str(value.into().to_string().as_str());
+        buf.push_str(len.to_string().as_str());
         Condition { cond: buf }
     }
 
-    /// Content length.
-    pub fn content_text_length_lt<V: Into<Value>>(value: V) -> Condition {
+    /// Compares the content length to a value.
+    pub fn content_text_length_lt(len: u32) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-text-length()<");
-        buf.push_str(value.into().to_string().as_str());
+        buf.push_str(len.to_string().as_str());
         Condition { cond: buf }
     }
 
-    /// Content length.
-    pub fn content_text_length_gt<V: Into<Value>>(value: V) -> Condition {
+    /// Compares the content length to a value.
+    pub fn content_text_length_gt(len: u32) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-text-length()>");
-        buf.push_str(value.into().to_string().as_str());
+        buf.push_str(len.to_string().as_str());
         Condition { cond: buf }
     }
 
-    /// Content length.
-    pub fn content_text_length_lte<V: Into<Value>>(value: V) -> Condition {
+    /// Compares the content length to a value.
+    pub fn content_text_length_lte(len: u32) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-text-length()<=");
-        buf.push_str(value.into().to_string().as_str());
+        buf.push_str(len.to_string().as_str());
         Condition { cond: buf }
     }
 
-    /// Content length.
-    pub fn content_text_length_gte<V: Into<Value>>(value: V) -> Condition {
+    /// Compares the content length to a value.
+    pub fn content_text_length_gte(len: u32) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-text-length()>=");
-        buf.push_str(value.into().to_string().as_str());
+        buf.push_str(len.to_string().as_str());
         Condition { cond: buf }
     }
 
-    /// Range check.
-    pub fn content_text_length_is_between<V: Into<Value>>(from: V, to: V) -> Condition {
+    /// Compares the content length to a range of values.
+    pub fn content_text_length_is_between(from: u32, to: u32) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-text-length-is-between(");
-        buf.push_str(from.into().to_string().as_str());
+        buf.push_str(from.to_string().as_str());
         buf.push_str(", ");
-        buf.push_str(to.into().to_string().as_str());
+        buf.push_str(to.to_string().as_str());
         buf.push(')');
         Condition { cond: buf }
     }
 
     /// Range check.
-    pub fn content_text_length_is_not_between<V: Into<Value>>(from: V, to: V) -> Condition {
+    pub fn content_text_length_is_not_between(from: u32, to: u32) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-text-length-is-not-between(");
-        buf.push_str(from.into().to_string().as_str());
+        buf.push_str(from.to_string().as_str());
         buf.push_str(", ");
-        buf.push_str(to.into().to_string().as_str());
+        buf.push_str(to.to_string().as_str());
         buf.push(')');
         Condition { cond: buf }
     }
@@ -301,11 +287,12 @@ impl Condition {
                 buf.push(';');
             }
             let vv: Value = v.into();
-            if !vv.is_str {
+            let vstr = vv.to_string();
+            if !vstr.starts_with('"') {
                 buf.push('"');
             }
-            buf.push_str(vv.to_string().as_str());
-            if !vv.is_str {
+            buf.push_str(vstr.as_str());
+            if !vstr.starts_with('"') {
                 buf.push('"');
             }
             sep = true;
@@ -316,9 +303,11 @@ impl Condition {
     }
 
     /// The choices are made up from the values in the cellrange.
+    ///
     /// Warning
     /// For the cellrange the distance to the base-cell is calculated,
     /// and this result is added to the cell this condition is applied to.
+    /// You may want to use an absolute cell-reference to avoid this..
     ///
     pub fn content_is_in_cellrange(range: CellRange) -> Condition {
         let mut buf = String::new();
@@ -328,7 +317,9 @@ impl Condition {
         Condition { cond: buf }
     }
 
-    /// Content is a date.
+    /// Content is a date and matches a comparison.
+    /// The date is an integer value that amounts to the days since
+    /// 30.12.1899.
     pub fn content_is_date_and(vcond: ValueCondition) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-is-date()");
@@ -337,7 +328,8 @@ impl Condition {
         Condition { cond: buf }
     }
 
-    /// Content is a time.
+    /// Content is a time and matches a comparison.
+    /// The time is given as a fraction of a day.
     pub fn content_is_time_and(vcond: ValueCondition) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-is-time()");
@@ -346,7 +338,7 @@ impl Condition {
         Condition { cond: buf }
     }
 
-    /// Content is a number.
+    /// Content is a number and matches the comparison.
     pub fn content_is_decimal_number_and(vcond: ValueCondition) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-is-decimal-number()");
@@ -355,7 +347,7 @@ impl Condition {
         Condition { cond: buf }
     }
 
-    /// Content is a whole number.
+    /// Content is a whole number and matches the comparison.
     pub fn content_is_whole_number_and(vcond: ValueCondition) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-is-whole-number()");

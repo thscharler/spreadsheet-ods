@@ -38,7 +38,8 @@ pub struct TextStyle {
 }
 
 impl TextStyle {
-    pub fn empty() -> Self {
+    /// Empty.
+    pub(crate) fn empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -48,6 +49,7 @@ impl TextStyle {
         }
     }
 
+    /// A new named style.
     pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
         Self {
             origin: Default::default(),
@@ -58,63 +60,78 @@ impl TextStyle {
         }
     }
 
+    /// Creates a reference to this style.
     pub fn style_ref(&self) -> TextStyleRef {
         TextStyleRef::from(self.name())
     }
 
+    /// Origin of the style.
     pub fn origin(&self) -> StyleOrigin {
         self.origin
     }
 
+    /// Origin of the style.
     pub fn set_origin(&mut self, origin: StyleOrigin) {
         self.origin = origin;
     }
 
+    /// Usage of the style.
     pub fn styleuse(&self) -> StyleUse {
         self.styleuse
     }
 
+    /// Usage of the style.
     pub fn set_styleuse(&mut self, styleuse: StyleUse) {
         self.styleuse = styleuse;
     }
 
+    /// Stylename
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Stylename
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
         self.name = name.into();
     }
 
+    /// Display name for named styles.
     pub fn display_name(&self) -> Option<&String> {
         self.attr.attr("style:display-name")
     }
 
+    /// Display name for named styles.
     pub fn set_display_name<S: Into<String>>(&mut self, name: S) {
         self.attr.set_attr("style:display-name", name.into());
     }
 
+    /// Parent style.
     pub fn parent_style(&self) -> Option<&String> {
         self.attr.attr("style:parent-style-name")
     }
 
+    /// Parent style.
     pub fn set_parent_style(&mut self, name: &TextStyleRef) {
         self.attr
             .set_attr("style:parent-style-name", name.to_string());
     }
 
+    /// General attributes for the style.
     pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
+    /// General attributes for the style.
     pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
+    /// All text-attributes for the style.
     pub fn textstyle(&self) -> &AttrMap2 {
         &self.textstyle
     }
 
+    /// All text-attributes for the style.
     pub fn textstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.textstyle
     }

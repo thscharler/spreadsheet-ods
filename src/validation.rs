@@ -1,3 +1,7 @@
+//!
+//! Content validation.
+//!
+
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
 
@@ -8,8 +12,11 @@ use crate::{CellRef, OdsError};
 /// This defines how lists of entries are displayed to the user.
 #[derive(Copy, Clone, Debug)]
 pub enum ValidationDisplay {
+    /// Don't show.
     NoDisplay,
+    /// Show the entries in the original order.
     Unsorted,
+    /// Sort the entries.
     SortAscending,
 }
 
@@ -35,6 +42,7 @@ impl TryFrom<&str> for ValidationDisplay {
     }
 }
 
+/// Help text for a validation.
 #[derive(Clone, Debug)]
 pub struct ValidationHelp {
     display: bool,
@@ -49,6 +57,7 @@ impl Default for ValidationHelp {
 }
 
 impl ValidationHelp {
+    /// Empty message.
     pub fn new() -> Self {
         Self {
             display: true,
@@ -57,22 +66,27 @@ impl ValidationHelp {
         }
     }
 
+    /// Show the help text.
     pub fn set_display(&mut self, display: bool) {
         self.display = display;
     }
 
+    /// Show the help text.
     pub fn display(&self) -> bool {
         self.display
     }
 
+    /// Title for the help text.
     pub fn set_title(&mut self, title: Option<String>) {
         self.title = title;
     }
 
+    /// Title for the help text.
     pub fn title(&self) -> Option<&str> {
         self.title.as_deref()
     }
 
+    /// Help text as formatted text.
     pub fn set_text(&mut self, text: Option<TextTag>) {
         if let Some(txt) = text {
             self.text = Some(Box::new(txt));
@@ -81,15 +95,22 @@ impl ValidationHelp {
         };
     }
 
+    /// Help text as formatted text.
     pub fn text(&self) -> Option<&TextTag> {
         self.text.as_deref()
     }
 }
 
+/// Determines the severity of a validation error.
+/// When this is error the entered value is discarded, otherwise
+/// the error is just shown as a warning or a hint.
 #[derive(Copy, Clone, Debug)]
 pub enum MessageType {
+    /// Hard error.
     Error,
+    /// Warning.
     Warning,
+    /// Informational.
     Info,
 }
 
@@ -103,6 +124,7 @@ impl Display for MessageType {
     }
 }
 
+/// Error handling for content validations.
 #[derive(Clone, Debug)]
 pub struct ValidationError {
     display: bool,
@@ -118,6 +140,7 @@ impl Default for ValidationError {
 }
 
 impl ValidationError {
+    /// Empty message.
     pub fn new() -> Self {
         Self {
             display: true,
@@ -127,30 +150,37 @@ impl ValidationError {
         }
     }
 
+    /// Is the error text shown.
     pub fn set_display(&mut self, display: bool) {
         self.display = display;
     }
 
+    /// Is the error text shown.
     pub fn display(&self) -> bool {
         self.display
     }
 
+    /// Type of error.
     pub fn set_msg_type(&mut self, msg_type: MessageType) {
         self.msg_type = msg_type;
     }
 
+    /// Type of error.
     pub fn msg_type(&self) -> &MessageType {
         &self.msg_type
     }
 
+    /// Title for the message.
     pub fn set_title(&mut self, title: Option<String>) {
         self.title = title;
     }
 
+    /// Title for the message.
     pub fn title(&self) -> Option<&str> {
         self.title.as_deref()
     }
 
+    /// Styled text for the message.
     pub fn set_text(&mut self, text: Option<TextTag>) {
         if let Some(txt) = text {
             self.text = Some(Box::new(txt));
@@ -159,6 +189,7 @@ impl ValidationError {
         };
     }
 
+    /// Styled text for the message.
     pub fn text(&self) -> Option<&TextTag> {
         self.text.as_deref()
     }
@@ -167,6 +198,7 @@ impl ValidationError {
 style_ref!(ValidationRef);
 
 /// Cell content validations.
+///
 /// This defines a validity constraint via the contained condition.
 /// It can be applied to a cell by setting the validation name.
 #[derive(Clone, Debug, Default)]
@@ -181,6 +213,7 @@ pub struct Validation {
 }
 
 impl Validation {
+    /// Empty validation.
     pub fn new() -> Self {
         Self {
             name: "".to_string(),

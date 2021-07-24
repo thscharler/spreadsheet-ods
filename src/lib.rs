@@ -151,7 +151,7 @@
 #![warn(missing_abi)]
 // NOT_ACCURATE #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-// TODO: #![warn(missing_docs)]
+#![warn(missing_docs)]
 #![warn(non_ascii_idents)]
 #![warn(noop_method_call)]
 // NO #![warn(or_patterns_back_compat)]
@@ -358,6 +358,7 @@ fn auto_style_name<T>(
 }
 
 impl WorkBook {
+    /// Empty.
     pub fn new() -> Self {
         WorkBook {
             sheets: Default::default(),
@@ -845,6 +846,7 @@ impl Default for WorkBookConfig {
 
 /// Visibility of a column or row.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum Visibility {
     Visible,
     Collapsed,
@@ -1104,6 +1106,7 @@ impl<'a> Iterator for CellIter<'a> {
     }
 }
 
+/// Range iterator.
 #[derive(Clone, Debug)]
 pub struct Range<'a> {
     range: std::collections::btree_map::Range<'a, (ucell, ucell), CellData>,
@@ -1244,10 +1247,12 @@ impl Sheet {
         &self.name
     }
 
+    /// Configuration for the sheet.
     pub fn config(&self) -> &SheetConfig {
         &self.sheet_config
     }
 
+    /// Configuration for the sheet.
     pub fn config_mut(&mut self) -> &mut SheetConfig {
         &mut self.sheet_config
     }
@@ -1761,6 +1766,7 @@ impl Sheet {
 /// like splits, and there is a moveable split.
 ///
 #[derive(Clone, Copy, Debug)]
+#[allow(missing_docs)]
 pub enum SplitMode {
     None = 0,
     Split = 1,
@@ -1855,6 +1861,7 @@ impl Default for SheetConfig {
     }
 }
 
+/// A cell can span multiple rows/columns.
 #[derive(Debug, Clone, Copy)]
 pub struct CellSpan {
     row_span: u32,
@@ -1880,6 +1887,7 @@ impl From<&CellSpan> for (ucell, ucell) {
 }
 
 impl CellSpan {
+    /// Default span 1,1
     pub fn new() -> Self {
         Self {
             row_span: 1,
@@ -1943,10 +1951,15 @@ impl CellData {
 /// A temporary to hold the data when iterating over a sheet.
 #[derive(Debug, Clone, Copy)]
 pub struct CellContentRef<'a> {
+    /// Reference to the cell value.
     pub value: Option<&'a Value>,
+    /// Reference to the stylename.
     pub style: Option<&'a String>,
+    /// Reference to the cell formula.
     pub formula: Option<&'a String>,
+    /// Reference to a cell validation.
     pub validation_name: Option<&'a String>,
+    /// Reference to the cellspan.
     pub span: Option<&'a CellSpan>,
 }
 
@@ -2022,6 +2035,7 @@ pub struct CellContent {
 }
 
 impl CellContent {
+    /// Empty.
     pub fn new() -> Self {
         Self {
             value: Default::default(),
@@ -2082,6 +2096,7 @@ impl CellContent {
         self.validation_name = Some(validation.to_string());
     }
 
+    /// No validation.
     pub fn clear_validation(&mut self) {
         self.validation_name = None;
     }
@@ -2111,8 +2126,9 @@ impl CellContent {
     }
 }
 
-/// Datatypes
+/// Datatypes for the values. Only the discriminants of the Value enum.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[allow(missing_docs)]
 pub enum ValueType {
     Empty,
     Boolean,
@@ -2127,6 +2143,7 @@ pub enum ValueType {
 
 /// Content-Values
 #[derive(Debug, Clone)]
+#[allow(missing_docs)]
 pub enum Value {
     Empty,
     Boolean(bool),
@@ -2140,7 +2157,7 @@ pub enum Value {
 }
 
 impl Value {
-    // Return the plan ValueType for this value.
+    /// Return the plan ValueType for this value.
     pub fn value_type(&self) -> ValueType {
         match self {
             Value::Empty => ValueType::Empty,

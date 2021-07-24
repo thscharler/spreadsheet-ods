@@ -34,7 +34,8 @@ pub struct GraphicStyle {
 }
 
 impl GraphicStyle {
-    pub fn empty() -> Self {
+    // Empty.
+    pub(crate) fn empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -44,6 +45,7 @@ impl GraphicStyle {
         }
     }
 
+    /// New graphic style.
     pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
         Self {
             origin: Default::default(),
@@ -54,46 +56,57 @@ impl GraphicStyle {
         }
     }
 
+    /// Reference to this style.
     pub fn style_ref(&self) -> GraphicStyleRef {
         GraphicStyleRef::from(self.name())
     }
 
+    /// Origin of the style.
     pub fn origin(&self) -> StyleOrigin {
         self.origin
     }
 
+    /// Origin of the style.
     pub fn set_origin(&mut self, origin: StyleOrigin) {
         self.origin = origin;
     }
 
+    /// Usage of the style.
     pub fn styleuse(&self) -> StyleUse {
         self.styleuse
     }
 
+    /// Usage of the style.
     pub fn set_styleuse(&mut self, styleuse: StyleUse) {
         self.styleuse = styleuse;
     }
 
+    /// Stylename.
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Stylename.
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
         self.name = name.into();
     }
 
+    /// General attributes.
     pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
+    /// General attributes.
     pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
+    /// Graphic style attributes.
     pub fn graphicstyle(&self) -> &AttrMap2 {
         &self.graphicstyle
     }
 
+    /// Graphic style attributes.
     pub fn graphicstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.graphicstyle
     }

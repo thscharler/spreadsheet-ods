@@ -30,10 +30,12 @@ macro_rules! style_ref {
         }
 
         impl $l {
+            /// Reference as str.
             pub fn as_str(&self) -> &str {
                 self.name.as_str()
             }
 
+            /// Reference as String.
             pub fn to_string(&self) -> String {
                 self.name.clone()
             }
@@ -44,6 +46,7 @@ macro_rules! style_ref {
 /// Generates a name reference for a style.
 macro_rules! text_tag {
     ($tag:ident, $xml:literal) => {
+        /// $literal
         #[derive(Debug)]
         pub struct $tag {
             xml: XmlTag,
@@ -54,12 +57,6 @@ macro_rules! text_tag {
                 t.xml
             }
         }
-
-        // impl Into<XmlTag> for $tag {
-        //     fn into(self) -> XmlTag {
-        //         self.xml
-        //     }
-        // }
 
         impl Display for $tag {
             fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
@@ -74,22 +71,26 @@ macro_rules! text_tag {
         }
 
         impl $tag {
+            /// Creates a new $xml.
             pub fn new() -> Self {
                 $tag {
                     xml: XmlTag::new($xml),
                 }
             }
 
+            /// Appends a tag.
             pub fn tag<T: Into<XmlTag>>(mut self, tag: T) -> Self {
                 self.xml.add_tag(tag);
                 self
             }
 
+            /// Appends text.
             pub fn text<S: Into<String>>(mut self, text: S) -> Self {
                 self.xml.add_text(text);
                 self
             }
 
+            /// Extracts the finished XmlTag.
             pub fn into_xmltag(self) -> XmlTag {
                 self.xml
             }

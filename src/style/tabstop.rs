@@ -1,10 +1,16 @@
+//!
+//! Defines tabstops for paragraph styles.
+//!
+
 use crate::attrmap2::AttrMap2;
 use crate::style::color_string;
 use crate::style::units::{Length, LineStyle, LineType, LineWidth};
 use color::Rgb;
 use std::fmt::{Display, Formatter};
 
+/// Types of tab-stopps
 #[derive(Clone, Copy, Debug)]
+#[allow(missing_docs)]
 pub enum TabStopType {
     Center,
     Left,
@@ -36,6 +42,7 @@ pub struct TabStop {
 }
 
 impl TabStop {
+    /// Empty.
     pub fn new() -> Self {
         Self {
             attr: Default::default(),
@@ -88,10 +95,12 @@ impl TabStop {
         self.attr.set_attr("style:type", t.to_string());
     }
 
+    /// General attributes.
     pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
+    /// General attributes.
     pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }

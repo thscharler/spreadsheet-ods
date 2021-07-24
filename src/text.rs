@@ -27,12 +27,15 @@ use crate::style::{ParagraphStyleRef, TextStyleRef};
 use crate::xmltree::{XmlContent, XmlTag};
 use std::fmt::{Display, Formatter};
 
+/// TextTags are just XmlTags.
 pub type TextTag = XmlTag;
+/// Content of a TextTag is just some XmlContent.
 pub type TextContent = XmlContent;
 
 text_tag!(TextH, "text:h");
 
 impl TextH {
+    /// Sets class names aka paragraph styles as formatting.
     pub fn class_names(mut self, class_names: &[&ParagraphStyleRef]) -> Self {
         let mut buf = String::new();
         for n in class_names {
@@ -43,41 +46,49 @@ impl TextH {
         self
     }
 
+    /// Sets a conditional style.
     pub fn condstyle_name(mut self, name: &ParagraphStyleRef) -> Self {
         self.xml.set_attr("text:condstyle-name", name.to_string());
         self
     }
 
+    /// Identifier for a text passage.
     pub fn id(mut self, id: &str) -> Self {
         self.xml.set_attr("text:id", id);
         self
     }
 
+    /// Styled as list header.
     pub fn list_header(mut self, lh: bool) -> Self {
         self.xml.set_attr("text:is-list-header", lh.to_string());
         self
     }
 
+    /// Level of the heading.
     pub fn outlinelevel(mut self, l: u8) -> Self {
         self.xml.set_attr("text:outlinelevel", l.to_string());
         self
     }
 
+    /// Numbering reset.
     pub fn restart_numbering(mut self, r: bool) -> Self {
         self.xml.set_attr("text:restart-numbering", r.to_string());
         self
     }
 
+    /// Numbering start value.
     pub fn start_value(mut self, l: u8) -> Self {
         self.xml.set_attr("text:start-value", l.to_string());
         self
     }
 
+    /// Style
     pub fn style_name(mut self, name: &ParagraphStyleRef) -> Self {
         self.xml.set_attr("text:style-name", name.to_string());
         self
     }
 
+    /// xml-id
     pub fn xml_id(mut self, id: &str) -> Self {
         self.xml.set_attr("xml:id", id);
         self
@@ -87,6 +98,7 @@ impl TextH {
 text_tag!(TextP, "text:p");
 
 impl TextP {
+    /// Sets class names aka paragraph styles as formatting.
     pub fn class_names(mut self, class_names: &[&ParagraphStyleRef]) -> Self {
         let mut buf = String::new();
         for n in class_names {
@@ -97,21 +109,25 @@ impl TextP {
         self
     }
 
+    /// Sets a conditional style.
     pub fn condstyle_name(mut self, name: &ParagraphStyleRef) -> Self {
         self.xml.set_attr("text:condstyle-name", name.to_string());
         self
     }
 
+    /// Text id for a text passage.
     pub fn id(mut self, id: &str) -> Self {
         self.xml.set_attr("text:id", id);
         self
     }
 
+    /// Style for this paragraph.
     pub fn style_name(mut self, name: &ParagraphStyleRef) -> Self {
         self.xml.set_attr("text:style-name", name.to_string());
         self
     }
 
+    /// xml-id
     pub fn xml_id(mut self, id: &str) -> Self {
         self.xml.set_attr("xml:id", id);
         self
@@ -121,6 +137,7 @@ impl TextP {
 text_tag!(TextSpan, "text:span");
 
 impl TextSpan {
+    /// Sets class names aka paragraph styles as formatting.
     pub fn class_names(mut self, class_names: &[&TextStyleRef]) -> Self {
         let mut buf = String::new();
         for n in class_names {
@@ -131,6 +148,7 @@ impl TextSpan {
         self
     }
 
+    /// Style for this paragraph.
     pub fn style_name(mut self, name: &TextStyleRef) -> Self {
         self.xml.set_attr("text:style-name", name.to_string());
         self
@@ -140,16 +158,19 @@ impl TextSpan {
 text_tag!(TextA, "text:a");
 
 impl TextA {
+    /// href for a link.
     pub fn href<S: Into<String>>(mut self, uri: S) -> Self {
         self.xml.set_attr("xlink:href", uri.into());
         self
     }
 
+    /// Style name.
     pub fn style_name(mut self, style: &TextStyleRef) -> Self {
         self.xml.set_attr("text:style-name", style.to_string());
         self
     }
 
+    /// Style name for a visited link.
     pub fn visited_style_name(mut self, style: &TextStyleRef) -> Self {
         self.xml
             .set_attr("text:visited-style-name", style.to_string());
@@ -160,6 +181,7 @@ impl TextA {
 text_tag!(TextS, "text:s");
 
 impl TextS {
+    /// Number of spaces.
     pub fn count(mut self, count: u32) -> Self {
         self.xml.set_attr("text:c", count.to_string());
         self
@@ -169,6 +191,7 @@ impl TextS {
 text_tag!(TextTab, "text:tab");
 
 impl TextTab {
+    /// To which tabstop does this refer to?
     pub fn tab_ref(mut self, tab_ref: u32) -> Self {
         self.xml.set_attr("text:tab-ref", tab_ref.to_string());
         self

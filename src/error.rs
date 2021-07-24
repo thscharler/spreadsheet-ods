@@ -1,6 +1,11 @@
+//!
+//! Error type.
+//!
+
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
+#[allow(missing_docs)]
 pub enum OdsError {
     Ods(String),
     Io(std::io::Error),

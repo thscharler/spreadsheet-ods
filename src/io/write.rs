@@ -1233,7 +1233,7 @@ fn write_start_current_row<W: Write + Seek>(
 ) -> Result<(), OdsError> {
     // Start of headers
     if let Some(header_rows) = &sheet.header_rows {
-        if header_rows.row == cur_row {
+        if header_rows.row() == cur_row {
             xml_out.elem("table:table-header-rows")?;
         }
     }
@@ -1278,7 +1278,7 @@ fn write_end_last_row<W: Write + Seek>(
     // This row was the end of the header.
     if let Some(header_rows) = &sheet.header_rows {
         let last_row = cur_row - backward_dr;
-        if header_rows.to_row == last_row {
+        if header_rows.to_row() == last_row {
             xml_out.end_elem("table:table-header-rows")?;
         }
     }
@@ -1295,7 +1295,7 @@ fn write_end_current_row<W: Write + Seek>(
 
     // This row was the end of the header.
     if let Some(header_rows) = &sheet.header_rows {
-        if header_rows.to_row == cur_row {
+        if header_rows.to_row() == cur_row {
             xml_out.end_elem("table:table-header-rows")?;
         }
     }
@@ -1321,11 +1321,11 @@ fn write_empty_rows_before<W: Write + Seek>(
         if let Some(header_rows) = &sheet.header_rows {
             // What was the last_row? Was there a header start since?
             let last_row = cur_row - backward_dr;
-            if header_rows.row < cur_row && header_rows.row > last_row {
+            if header_rows.row() < cur_row && header_rows.row() > last_row {
                 write_empty_row(
                     sheet,
                     last_row,
-                    header_rows.row - last_row - corr,
+                    header_rows.row() - last_row - corr,
                     max_cell,
                     xml_out,
                 )?;
@@ -1334,18 +1334,18 @@ fn write_empty_rows_before<W: Write + Seek>(
                 // collapse it with the rest. corr suits fine for this.
                 corr = 0;
                 // We correct the empty line count.
-                backward_dr = cur_row - header_rows.row;
+                backward_dr = cur_row - header_rows.row();
             }
 
             // What was the last row here? Was there a header end since?
             let last_row = cur_row - backward_dr;
-            if header_rows.to_row < cur_row && header_rows.to_row > cur_row - backward_dr {
+            if header_rows.to_row() < cur_row && header_rows.to_row() > cur_row - backward_dr {
                 // Empty lines, including the current line that marks
                 // the end of the header.
                 write_empty_row(
                     sheet,
                     last_row,
-                    header_rows.to_row - last_row - corr + 1,
+                    header_rows.to_row() - last_row - corr + 1,
                     max_cell,
                     xml_out,
                 )?;
@@ -1353,7 +1353,7 @@ fn write_empty_rows_before<W: Write + Seek>(
                 // Correction for table start is no longer needed.
                 corr = 1;
                 // We correct the empty line count.
-                backward_dr = cur_row - header_rows.to_row;
+                backward_dr = cur_row - header_rows.to_row();
             }
         }
 
