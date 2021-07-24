@@ -196,10 +196,6 @@ use crate::validation::{Validation, ValidationRef};
 use crate::xmltree::XmlTag;
 use chrono::Duration;
 use chrono::{NaiveDate, NaiveDateTime};
-#[cfg(feature = "use_decimal")]
-use rust_decimal::prelude::*;
-#[cfg(feature = "use_decimal")]
-use rust_decimal::Decimal;
 use std::collections::{BTreeMap, HashMap};
 use std::convert::TryFrom;
 use std::fmt;

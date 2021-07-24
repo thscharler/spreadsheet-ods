@@ -18,17 +18,10 @@ exclude = [
 
 [features]
 default = []
-# Add bindings for rust_decimal::Decimal
-use_decimal = []
-# Store numbers as rust_decimal::Decimal
-decimal = []
-
 # Check the xml output for wellformedness.
 check_xml = []
 
 [dependencies]
-rust_decimal = "1.10"
-rust_decimal_macros = "1.10"
 color-rs = "0.6"
 string_cache = "0.8"
 mktemp = "0.4"

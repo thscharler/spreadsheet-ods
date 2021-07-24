@@ -694,8 +694,7 @@ fn read_table_cell2(
                 tc.val_duration = Some(v);
             }
             attr if attr.key == b"office:value" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                let v = v.parse::<f64>()?;
+                let v = parse_float(attr.value.as_ref())?;
                 tc.val_float = Some(v);
             }
             attr if attr.key == b"office:boolean-value" => {
@@ -982,6 +981,11 @@ fn read_empty_table_cell(
     }
 
     Ok(col)
+}
+
+fn parse_float(val: &[u8]) -> Result<f64, OdsError> {
+    let v = from_utf8(val)?;
+    Ok(v.parse::<f64>()?)
 }
 
 fn parse_bool(val: &[u8]) -> Result<bool, OdsError> {
