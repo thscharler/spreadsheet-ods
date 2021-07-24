@@ -36,10 +36,6 @@ impl Stack {
         Self { stack: Vec::new() }
     }
 
-    fn len(&self) -> usize {
-        self.stack.len()
-    }
-
     fn push(&mut self, name: &str) {
         self.stack.push(name.to_string());
     }
@@ -59,10 +55,6 @@ impl Stack {
         Self {
             stack: PhantomData {},
         }
-    }
-
-    fn len(&self) -> usize {
-        0
     }
 
     fn push(&mut self, _name: &str) {}
