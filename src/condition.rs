@@ -380,7 +380,7 @@ mod tests {
     use crate::CellRange;
 
     #[test]
-    pub fn test_valuecondition() {
+    fn test_valuecondition() {
         let c = ValueCondition::content_eq(5);
         assert_eq!(c.to_string(), "cell-content()=5");
         let c = ValueCondition::content_ne(5);

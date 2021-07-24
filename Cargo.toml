@@ -18,16 +18,13 @@ exclude = [
 
 [features]
 default = []
-# Dump all XML while reading.
-dump_xml = [ ]
-# Dump unprocessed XML tags and attributes when reading the ODS.
-dump_unused = [ ]
-# Apply indentation to the xml output.
-indent_xml = []
+# Add bindings for rust_decimal::Decimal
+use_decimal = []
+# Store numbers as rust_decimal::Decimal
+decimal = []
+
 # Check the xml output for wellformedness.
 check_xml = []
-# Add bindings for rust_decimal.
-use_decimal = []
 
 [dependencies]
 rust_decimal = "1.10"

@@ -265,7 +265,7 @@ fn test_iterator() {
 
     let mut it = sh.into_iter();
     while let Some(((cur_row, cur_col), _cell)) = it.next() {
-        if let Ok(p) = it.peek_cell() {
+        if let Some(p) = it.peek_cell() {
             println!("{:?} -> {:?}", (cur_row, cur_col), p);
         } else {
             println!("{:?} -> {:?}", (cur_row, cur_col), ());

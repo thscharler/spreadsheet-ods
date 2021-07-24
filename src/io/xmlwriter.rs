@@ -115,21 +115,9 @@ impl<W: Write> XmlWriter<W> {
         Ok(())
     }
 
-    fn indent(&mut self) {
-        if cfg!(feature = "indent_xml") && !self.stack.is_empty() {
-            self.buf.push('\n');
-            let indent = self.stack.len() * 2;
-            for _ in 0..indent {
-                self.buf.push(' ');
-            }
-        }
-    }
-
     /// Write an element with inlined text (not escaped)
     pub(crate) fn elem_text<S: AsRef<str>>(&mut self, name: &str, text: S) -> io::Result<()> {
         self.close_elem()?;
-
-        self.indent();
 
         self.buf.push('<');
         self.buf.push_str(name);
@@ -150,8 +138,6 @@ impl<W: Write> XmlWriter<W> {
     pub(crate) fn elem_text_esc<S: AsRef<str>>(&mut self, name: &str, text: S) -> io::Result<()> {
         self.close_elem()?;
 
-        self.indent();
-
         self.buf.push('<');
         self.buf.push_str(name);
         self.buf.push('>');
@@ -170,8 +156,6 @@ impl<W: Write> XmlWriter<W> {
     pub(crate) fn elem(&mut self, name: &str) -> io::Result<()> {
         self.close_elem()?;
 
-        self.indent();
-
         self.stack.push(name);
 
         self.buf.push('<');
@@ -183,8 +167,6 @@ impl<W: Write> XmlWriter<W> {
     /// Begin an empty elem
     pub(crate) fn empty(&mut self, name: &str) -> io::Result<()> {
         self.close_elem()?;
-
-        self.indent();
 
         self.buf.push('<');
         self.open = Open::Empty;

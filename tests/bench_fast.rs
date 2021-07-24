@@ -2,10 +2,7 @@ use std::mem::size_of;
 use std::time::Instant;
 
 use spreadsheet_ods::defaultstyles::create_default_styles;
-use spreadsheet_ods::{
-    ucell, write_ods_buf, write_ods_buf_uncompressed, Length, OdsError, Sheet, Value, Visibility,
-    WorkBook,
-};
+use spreadsheet_ods::{write_ods_buf, Length, OdsError, Sheet, Value, Visibility, WorkBook};
 
 pub fn timingr<E, R>(
     name: &str,
@@ -90,9 +87,9 @@ struct DummyRowHeader {
     height: Length,
 }
 
-//#[test]
+#[test]
 fn test_b0() -> Result<(), OdsError> {
-    const ROWS: u32 = 10000;
+    const ROWS: u32 = 100;
     const COLS: u32 = 40;
     const CELLS: u64 = ROWS as u64 * COLS as u64;
 

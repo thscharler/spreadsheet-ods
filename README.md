@@ -28,13 +28,6 @@ spreadsheet-ods = "0.5.2"
 * `use_decimal`: Add conversions for rust_decimal. Internally the values are
   stored as f64 nonetheless.
 
-* `dump_xml`: For debugging only.
-* `dump_unused`: For debugging only. Writes out all xml tags that are not 
-   processed.
-* `indent_xml`: For debugging only. Pretty prints the generated xml. 
-* `check_xml`: For debugging only: Checks for valid xml structure when writing.
-
-
 ## License
 
 This project is licensed under either of
