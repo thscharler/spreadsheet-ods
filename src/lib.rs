@@ -195,6 +195,10 @@ use crate::validation::{Validation, ValidationRef};
 use crate::xmltree::XmlTag;
 use chrono::Duration;
 use chrono::{NaiveDate, NaiveDateTime};
+#[cfg(feature = "use_decimal")]
+use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
+#[cfg(feature = "use_decimal")]
+use rust_decimal::Decimal;
 use std::collections::{BTreeMap, HashMap};
 use std::convert::TryFrom;
 use std::fmt;
@@ -2224,6 +2228,30 @@ impl Value {
         }
     }
 
+    /// Return the content as decimal if the value is a number, percentage or
+    /// currency. Default otherwise.
+    #[cfg(feature = "use_decimal")]
+    pub fn as_decimal_or(&self, d: Decimal) -> Decimal {
+        match self {
+            Value::Number(n) => Decimal::from_f64(*n).unwrap(),
+            Value::Currency(v, _) => Decimal::from_f64(*v).unwrap(),
+            Value::Percentage(p) => Decimal::from_f64(*p).unwrap(),
+            _ => d,
+        }
+    }
+
+    /// Return the content as decimal if the value is a number, percentage or
+    /// currency. Default otherwise.
+    #[cfg(feature = "use_decimal")]
+    pub fn as_decimal_opt(&self) -> Option<Decimal> {
+        match self {
+            Value::Number(n) => Some(Decimal::from_f64(*n).unwrap()),
+            Value::Currency(v, _) => Some(Decimal::from_f64(*v).unwrap()),
+            Value::Percentage(p) => Some(Decimal::from_f64(*p).unwrap()),
+            _ => None,
+        }
+    }
+
     /// Return the content as f64 if the value is a number, percentage or
     /// currency. Default otherwise.
     pub fn as_f64_or(&self, d: f64) -> f64 {
@@ -2433,6 +2461,24 @@ impl From<Option<String>> for Value {
     fn from(s: Option<String>) -> Self {
         if let Some(s) = s {
             Value::Text(s)
+        } else {
+            Value::Empty
+        }
+    }
+}
+
+#[cfg(feature = "use_decimal")]
+impl From<Decimal> for Value {
+    fn from(f: Decimal) -> Self {
+        Value::Number(f.to_f64().unwrap())
+    }
+}
+
+#[cfg(feature = "use_decimal")]
+impl From<Option<Decimal>> for Value {
+    fn from(f: Option<Decimal>) -> Self {
+        if let Some(f) = f {
+            Value::Number(f.to_f64().unwrap())
         } else {
             Value::Empty
         }
