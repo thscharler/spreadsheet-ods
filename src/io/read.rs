@@ -1294,6 +1294,7 @@ fn read_validations(
                     }
                     let txt = read_text_or_tag(b"table:error-message", xml, &xml_tag, empty_tag)?;
                     match txt {
+                        TextContent::Empty => {}
                         TextContent::Xml(txt) => {
                             ve.set_text(Some(txt));
                         }
@@ -1329,6 +1330,7 @@ fn read_validations(
                     }
                     let txt = read_text_or_tag(b"table:help-message", xml, &xml_tag, empty_tag)?;
                     match txt {
+                        TextContent::Empty => {}
                         TextContent::Xml(txt) => {
                             vh.set_text(Some(txt));
                         }

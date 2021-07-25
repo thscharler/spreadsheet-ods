@@ -4,6 +4,7 @@
     <cargoProject file="$PROJECT_DIR$/Cargo.toml">
       <package file="$PROJECT_DIR$">
         <feature name="default" />
+        <feature name="check_xml" />
       </package>
     </cargoProject>
   </component>
@@ -12,10 +13,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="38cf5228-71c8-42f3-948a-73fee02f4f32" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
-    <list id="c79c1a01-2461-4ecb-9bdb-9fe0a55bc690" name="Default Changelist 2" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -206,6 +205,8 @@
     <MESSAGE value="cleanup" />
     <MESSAGE value="remove rust_decimal" />
     <MESSAGE value="docs" />
-    <option name="LAST_COMMIT_MESSAGE" value="docs" />
+    <MESSAGE value="rust_decimal is still needed." />
+    <MESSAGE value="idea" />
+    <option name="LAST_COMMIT_MESSAGE" value="idea" />
   </component>
 </project>
