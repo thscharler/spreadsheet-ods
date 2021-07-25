@@ -1,6 +1,7 @@
 **/*.rs.bk
 .gradle
 /.idea
+/spreadsheet-ods.iml
 /sample
 /target
 /test_out
