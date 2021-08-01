@@ -1,8 +1,8 @@
-**/*.rs.bk
-.gradle
+/.gradle
 /.idea
-/spreadsheet-ods.iml
+/doc
 /sample
+/spreadsheet-ods.iml
 /target
 /test_out
 /test_spreadsheet/target
@@ -15,4 +15,3 @@
 /try
 /tryout.ods
 Cargo.lock
-/spreadsheet-ods.iml
