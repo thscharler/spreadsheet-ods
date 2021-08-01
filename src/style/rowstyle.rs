@@ -137,7 +137,7 @@ impl RowStyle {
     /// Parses the row height
     pub fn row_height(&self) -> Result<Length, OdsError> {
         if let Some(s) = self.rowstyle.attr("style:row-height") {
-            Ok(Length::from_str(&s)?)
+            Ok(Length::from_str(s)?)
         } else {
             Ok(Length::Default)
         }

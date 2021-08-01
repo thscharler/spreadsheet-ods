@@ -60,17 +60,17 @@ fn write_ods_impl<W: Write + Seek>(
     store_derived(book)?;
 
     // copy all buffered data from the original.
-    copy_workbook(&book, &mut zip_writer)?;
+    copy_workbook(book, &mut zip_writer)?;
     // write the rest, if necessary.
-    write_mimetype(&book, &mut zip_writer)?;
-    write_manifest(&book, &mut zip_writer)?;
-    write_manifest_rdf(&book, &mut zip_writer)?;
-    write_meta(&book, &mut zip_writer)?;
+    write_mimetype(book, &mut zip_writer)?;
+    write_manifest(book, &mut zip_writer)?;
+    write_manifest_rdf(book, &mut zip_writer)?;
+    write_meta(book, &mut zip_writer)?;
     // not in use any more, just ignore
     // write_configurations(&mut zip_writer, &mut file_set)?;
-    write_settings(&book, &mut zip_writer)?;
-    write_ods_styles(&book, &mut zip_writer)?;
-    write_ods_content(&book, &mut zip_writer)?;
+    write_settings(book, &mut zip_writer)?;
+    write_ods_styles(book, &mut zip_writer)?;
+    write_ods_content(book, &mut zip_writer)?;
 
     Ok(zip_writer.zip()?)
 }
@@ -443,10 +443,10 @@ fn write_config_item_set<W: Write + Seek>(
 
     for (name, item) in set.iter() {
         match item {
-            ConfigItem::Value(value) => write_config_item(name, &value, xml_out)?,
-            ConfigItem::Set(_) => write_config_item_set(name, &item, xml_out)?,
-            ConfigItem::Vec(_) => write_config_item_map_indexed(name, &item, xml_out)?,
-            ConfigItem::Map(_) => write_config_item_map_named(name, &item, xml_out)?,
+            ConfigItem::Value(value) => write_config_item(name, value, xml_out)?,
+            ConfigItem::Set(_) => write_config_item_set(name, item, xml_out)?,
+            ConfigItem::Vec(_) => write_config_item_map_indexed(name, item, xml_out)?,
+            ConfigItem::Map(_) => write_config_item_map_named(name, item, xml_out)?,
             ConfigItem::Entry(_) => {
                 panic!("config-item-set must not contain config-item-map-entry")
             }
@@ -471,7 +471,7 @@ fn write_config_item_map_indexed<W: Write + Seek>(
         let index_str = index.to_string();
         if let Some(item) = vec.get(&index_str) {
             match item {
-                ConfigItem::Value(value) => write_config_item(name, &value, xml_out)?,
+                ConfigItem::Value(value) => write_config_item(name, value, xml_out)?,
                 ConfigItem::Set(_) => {
                     panic!("config-item-map-index must not contain config-item-set")
                 }
@@ -481,7 +481,7 @@ fn write_config_item_map_indexed<W: Write + Seek>(
                 ConfigItem::Map(_) => {
                     panic!("config-item-map-index must not contain config-item-map-named")
                 }
-                ConfigItem::Entry(_) => write_config_item_map_entry(None, &item, xml_out)?,
+                ConfigItem::Entry(_) => write_config_item_map_entry(None, item, xml_out)?,
             }
         } else {
             break;
@@ -505,7 +505,7 @@ fn write_config_item_map_named<W: Write + Seek>(
 
     for (name, item) in map.iter() {
         match item {
-            ConfigItem::Value(value) => write_config_item(name, &value, xml_out)?,
+            ConfigItem::Value(value) => write_config_item(name, value, xml_out)?,
             ConfigItem::Set(_) => {
                 panic!("config-item-map-index must not contain config-item-set")
             }
@@ -515,7 +515,7 @@ fn write_config_item_map_named<W: Write + Seek>(
             ConfigItem::Map(_) => {
                 panic!("config-item-map-index must not contain config-item-map-named")
             }
-            ConfigItem::Entry(_) => write_config_item_map_entry(Some(name), &item, xml_out)?,
+            ConfigItem::Entry(_) => write_config_item_map_entry(Some(name), item, xml_out)?,
         }
     }
 
@@ -536,10 +536,10 @@ fn write_config_item_map_entry<W: Write + Seek>(
 
     for (name, item) in map_entry.iter() {
         match item {
-            ConfigItem::Value(value) => write_config_item(name, &value, xml_out)?,
-            ConfigItem::Set(_) => write_config_item_set(name, &item, xml_out)?,
-            ConfigItem::Vec(_) => write_config_item_map_indexed(name, &item, xml_out)?,
-            ConfigItem::Map(_) => write_config_item_map_named(name, &item, xml_out)?,
+            ConfigItem::Value(value) => write_config_item(name, value, xml_out)?,
+            ConfigItem::Set(_) => write_config_item_set(name, item, xml_out)?,
+            ConfigItem::Vec(_) => write_config_item_map_indexed(name, item, xml_out)?,
+            ConfigItem::Map(_) => write_config_item_map_named(name, item, xml_out)?,
             ConfigItem::Entry(_) => {
                 panic!("config:config-item-map-entry must not contain config-item-map-entry")
             }
@@ -922,10 +922,10 @@ fn write_ods_content<W: Write + Seek>(
         }
     }
 
-    write_content_validations(&book, &mut xml_out)?;
+    write_content_validations(book, &mut xml_out)?;
 
     for sheet in &book.sheets {
-        write_sheet(&book, sheet, &mut xml_out)?;
+        write_sheet(book, sheet, &mut xml_out)?;
     }
 
     // extra tags. pass through only
@@ -1072,7 +1072,7 @@ fn write_sheet<W: Write + Seek>(
         }
     }
 
-    write_table_columns(&sheet, max_cell, xml_out)?;
+    write_table_columns(sheet, max_cell, xml_out)?;
 
     // list of current spans
     let mut spans = Vec::<CellRange>::new();
@@ -2155,7 +2155,7 @@ fn write_masterpage<W: Write + Seek>(
         if !style.header().display() {
             xml_out.attr("style:display", "false")?;
         }
-        write_regions(&style.header(), xml_out)?;
+        write_regions(style.header(), xml_out)?;
         xml_out.end_elem("style:header")?;
 
         if !style.header_first().is_empty() {
@@ -2163,7 +2163,7 @@ fn write_masterpage<W: Write + Seek>(
             if !style.header_first().display() {
                 xml_out.attr("style:display", "false")?;
             }
-            write_regions(&style.header_first(), xml_out)?;
+            write_regions(style.header_first(), xml_out)?;
             xml_out.end_elem("style:header_first")?;
         }
 
@@ -2171,14 +2171,14 @@ fn write_masterpage<W: Write + Seek>(
         if !style.header_left().display() || style.header_left().is_empty() {
             xml_out.attr("style:display", "false")?;
         }
-        write_regions(&style.header_left(), xml_out)?;
+        write_regions(style.header_left(), xml_out)?;
         xml_out.end_elem("style:header_left")?;
 
         xml_out.elem("style:footer")?;
         if !style.footer().display() {
             xml_out.attr("style:display", "false")?;
         }
-        write_regions(&style.footer(), xml_out)?;
+        write_regions(style.footer(), xml_out)?;
         xml_out.end_elem("style:footer")?;
 
         if !style.footer_first().is_empty() {
@@ -2186,7 +2186,7 @@ fn write_masterpage<W: Write + Seek>(
             if !style.footer_first().display() {
                 xml_out.attr("style:display", "false")?;
             }
-            write_regions(&style.footer_first(), xml_out)?;
+            write_regions(style.footer_first(), xml_out)?;
             xml_out.end_elem("style:footer_first")?;
         }
 
@@ -2194,7 +2194,7 @@ fn write_masterpage<W: Write + Seek>(
         if !style.footer_left().display() || style.footer_left().is_empty() {
             xml_out.attr("style:display", "false")?;
         }
-        write_regions(&style.footer_left(), xml_out)?;
+        write_regions(style.footer_left(), xml_out)?;
         xml_out.end_elem("style:footer_left")?;
 
         xml_out.end_elem("style:master-page")?;

@@ -137,7 +137,7 @@ impl ColStyle {
     /// Parses the column width
     pub fn col_width(&self) -> Result<Length, OdsError> {
         if let Some(s) = self.colstyle.attr("style:column-width") {
-            Ok(Length::from_str(&s)?)
+            Ok(Length::from_str(s)?)
         } else {
             Ok(Length::Default)
         }

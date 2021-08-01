@@ -326,7 +326,7 @@ fn read_table(
 ) -> Result<Sheet, OdsError> {
     let mut sheet = Sheet::new();
 
-    read_table_attr(&mut sheet, &xml, xml_tag)?;
+    read_table_attr(&mut sheet, xml, xml_tag)?;
 
     // Position within table-columns
     let mut table_col: u32 = 0;
@@ -521,11 +521,11 @@ fn read_table_row_attr(
                 row_repeat = v.parse::<u32>()?;
             }
             attr if attr.key == b"table:style-name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 rowstyle = Some(v);
             }
             attr if attr.key == b"table:default-cell-style-name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 row_cellstyle = Some(v);
             }
             attr if attr.key == b"table:visibility" => {
@@ -565,11 +565,11 @@ fn read_table_col_attr(
                 repeat = v.parse()?;
             }
             attr if attr.key == b"table:style-name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 style = Some(v);
             }
             attr if attr.key == b"table:default-cell-style-name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 cellstyle = Some(v);
             }
             attr if attr.key == b"table:visibility" => {
@@ -702,7 +702,7 @@ fn read_table_cell2(
                 tc.val_bool = Some(v);
             }
             attr if attr.key == b"office:string-value" => {
-                tc.val_string = Some(attr.unescape_and_decode_value(&xml)?)
+                tc.val_string = Some(attr.unescape_and_decode_value(xml)?)
             }
             attr if attr.key == b"office:currency" => {
                 let v = attr.value.as_ref();
@@ -715,10 +715,10 @@ fn read_table_cell2(
                 };
             }
             attr if attr.key == b"table:formula" => {
-                cell.formula = Some(attr.unescape_and_decode_value(&xml)?)
+                cell.formula = Some(attr.unescape_and_decode_value(xml)?)
             }
             attr if attr.key == b"table:style-name" => {
-                cell.style = Some(attr.unescape_and_decode_value(&xml)?)
+                cell.style = Some(attr.unescape_and_decode_value(xml)?)
             }
             attr => {
                 if DUMP_UNUSED {
@@ -939,11 +939,11 @@ fn read_empty_table_cell(
                 cell_repeat = v.parse::<u32>()?;
             }
             attr if attr.key == b"table:formula" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 cell.get_or_insert_with(CellData::new).formula = Some(v);
             }
             attr if attr.key == b"table:style-name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 cell.get_or_insert_with(CellData::new).style = Some(v);
             }
             attr if attr.key == b"table:number-rows-spanned" => {
@@ -1073,12 +1073,12 @@ fn read_fonts(
                     for attr in xml_tag.attributes().with_checks(false) {
                         match attr? {
                             attr if attr.key == b"style:name" => {
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 font.set_name(v);
                             }
                             attr => {
-                                let k = xml.decode(&attr.key)?;
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let k = xml.decode(attr.key)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 font.attrmap_mut().set_attr(k, v);
                             }
                         }
@@ -1129,7 +1129,7 @@ fn read_page_style(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 pl.set_name(v);
             }
             attr => {
@@ -1223,25 +1223,25 @@ fn read_validations(
                     for attr in xml_tag.attributes().with_checks(false) {
                         match attr? {
                             attr if attr.key == b"table:name" => {
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 valid.set_name(v);
                             }
                             attr if attr.key == b"table:condition" => {
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 // split off 'of:' prefix
 
                                 valid.set_condition(Condition::new(v.split_at(3).1));
                             }
                             attr if attr.key == b"table:allow-empty-cell" => {
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 valid.set_allow_empty(v.parse()?);
                             }
                             attr if attr.key == b"table:base-cell-address" => {
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 valid.set_base_cell(CellRef::try_from(v.as_str())?);
                             }
                             attr if attr.key == b"table:display-list" => {
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 valid.set_display(ValidationDisplay::try_from(v.as_str())?);
                             }
                             attr => {
@@ -1263,11 +1263,11 @@ fn read_validations(
                     for attr in xml_tag.attributes().with_checks(false) {
                         match attr? {
                             attr if attr.key == b"table:display" => {
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 ve.set_display(v.parse()?);
                             }
                             attr if attr.key == b"table:message-type" => {
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 let mt = match v.as_str() {
                                     "stop" => MessageType::Error,
                                     "warning" => MessageType::Warning,
@@ -1282,7 +1282,7 @@ fn read_validations(
                                 ve.set_msg_type(mt);
                             }
                             attr if attr.key == b"table:title" => {
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 ve.set_title(Some(v));
                             }
                             attr => {
@@ -1292,7 +1292,7 @@ fn read_validations(
                             }
                         }
                     }
-                    let txt = read_text_or_tag(b"table:error-message", xml, &xml_tag, empty_tag)?;
+                    let txt = read_text_or_tag(b"table:error-message", xml, xml_tag, empty_tag)?;
                     match txt {
                         TextContent::Empty => {}
                         TextContent::Xml(txt) => {
@@ -1314,11 +1314,11 @@ fn read_validations(
                     for attr in xml_tag.attributes().with_checks(false) {
                         match attr? {
                             attr if attr.key == b"table:display" => {
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 vh.set_display(v.parse()?);
                             }
                             attr if attr.key == b"table:title" => {
-                                let v = attr.unescape_and_decode_value(&xml)?;
+                                let v = attr.unescape_and_decode_value(xml)?;
                                 vh.set_title(Some(v));
                             }
                             attr => {
@@ -1328,7 +1328,7 @@ fn read_validations(
                             }
                         }
                     }
-                    let txt = read_text_or_tag(b"table:help-message", xml, &xml_tag, empty_tag)?;
+                    let txt = read_text_or_tag(b"table:help-message", xml, xml_tag, empty_tag)?;
                     match txt {
                         TextContent::Empty => {}
                         TextContent::Xml(txt) => {
@@ -1436,11 +1436,11 @@ fn read_master_page(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:name" => {
-                let name = attr.unescape_and_decode_value(&xml)?;
+                let name = attr.unescape_and_decode_value(xml)?;
                 masterpage.set_name(name);
             }
             attr if attr.key == b"style:page-layout-name" => {
-                let name = attr.unescape_and_decode_value(&xml)?;
+                let name = attr.unescape_and_decode_value(xml)?;
                 masterpage.set_pagestyle(&name.into());
             }
             attr => {
@@ -1541,7 +1541,7 @@ fn read_headerfooter(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:display" => {
-                let display = attr.unescape_and_decode_value(&xml)?;
+                let display = attr.unescape_and_decode_value(xml)?;
                 hf.set_display(display == "true");
             }
             attr => {
@@ -1565,27 +1565,26 @@ fn read_headerfooter(
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
                     b"style:region-left" => {
-                        let cm = read_xml_content(b"style:region-left", xml, &xml_tag, empty_tag)?;
+                        let cm = read_xml_content(b"style:region-left", xml, xml_tag, empty_tag)?;
                         if let Some(cm) = cm {
                             hf.set_left(cm);
                         }
                     }
                     b"style:region-center" => {
-                        let cm =
-                            read_xml_content(b"style:region-center", xml, &xml_tag, empty_tag)?;
+                        let cm = read_xml_content(b"style:region-center", xml, xml_tag, empty_tag)?;
                         if let Some(cm) = cm {
                             hf.set_center(cm);
                         }
                     }
                     b"style:region-right" => {
-                        let cm = read_xml_content(b"style:region-right", xml, &xml_tag, empty_tag)?;
+                        let cm = read_xml_content(b"style:region-right", xml, xml_tag, empty_tag)?;
                         if let Some(cm) = cm {
                             hf.set_right(cm);
                         }
                     }
                     b"text:p" => {
                         // todo: in table:cell there can be multiple text:p. applies here too?
-                        let cm = read_xml(b"text:p", xml, &xml_tag, empty_tag)?;
+                        let cm = read_xml(b"text:p", xml, xml_tag, empty_tag)?;
                         hf.set_content(cm);
                     }
                     // no other tags supported for now.
@@ -1897,7 +1896,7 @@ fn read_value_format(
             }
             Event::Text(ref e) => {
                 if let Some(part) = &mut valuestyle_part {
-                    part.set_content(e.unescape_and_decode(&xml)?);
+                    part.set_content(e.unescape_and_decode(xml)?);
                 }
             }
             Event::End(ref e) => match e.name() {
@@ -1949,12 +1948,12 @@ fn read_value_format_attr(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 valuestyle.set_name(v);
             }
             attr => {
-                let k = xml.decode(&attr.key)?;
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let k = xml.decode(attr.key)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 valuestyle.attrmap_mut().set_attr(k, v);
             }
         }
@@ -2475,15 +2474,15 @@ fn read_stylemap(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:condition" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 sm.set_condition(ValueCondition::new(v));
             }
             attr if attr.key == b"style:apply-style-name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 sm.set_applied_style(v);
             }
             attr if attr.key == b"style:base-cell-address" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 let mut pos = 0usize;
                 sm.set_base_cell(parse_cellref(v.as_str(), &mut pos)?);
             }
@@ -2508,7 +2507,7 @@ fn read_family_attr(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:family" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 return match v.as_ref() {
                     "table" | "table-column" | "table-row" | "table-cell" | "graphic"
                     | "paragraph" | "text" => Ok(v.as_str().to_string()),
@@ -2536,7 +2535,7 @@ fn style_name(
 ) -> Result<String, OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"style:name" => return Ok(attr.unescape_and_decode_value(&xml)?),
+            attr if attr.key == b"style:name" => return Ok(attr.unescape_and_decode_value(xml)?),
             _ => {}
         }
     }
@@ -2554,8 +2553,8 @@ fn copy_style_attr(
         match attr? {
             attr if attr.key == b"style:name" => {}
             attr => {
-                let k = xml.decode(&attr.key)?;
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let k = xml.decode(attr.key)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 attrmap.set_attr(k, v);
             }
         }
@@ -2810,7 +2809,7 @@ fn read_config_item_set(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"config:name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 name = Some(v);
             }
             _ => {
@@ -2878,7 +2877,7 @@ fn read_config_item_map_indexed(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"config:name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 name = Some(v);
             }
             _ => {
@@ -2939,7 +2938,7 @@ fn read_config_item_map_named(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"config:name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 name = Some(v);
             }
             _ => {
@@ -3006,7 +3005,7 @@ fn read_config_item_map_entry(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"config:name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 name = Some(v);
             }
             _ => {
@@ -3069,11 +3068,11 @@ fn read_config_item(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"config:name" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 name = Some(v);
             }
             attr if attr.key == b"config:type" => {
-                let v = attr.unescape_and_decode_value(&xml)?;
+                let v = attr.unescape_and_decode_value(xml)?;
                 val_type = Some(v);
             }
             _ => {

@@ -933,7 +933,7 @@ mod tests {
         parse_cellrange, parse_cellranges, parse_cellref, parse_colname, parse_rowname,
         push_cellrange, push_cellref, push_colname, push_rowname, push_tablename,
     };
-    use crate::{u32, CellRange, CellRef, OdsError};
+    use crate::{CellRange, CellRef, OdsError};
 
     #[test]
     fn test_names() {

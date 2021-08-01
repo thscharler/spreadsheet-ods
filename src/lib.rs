@@ -142,7 +142,6 @@
 #![doc(html_root_url = "https://docs.rs/spreadsheet-ods/0.4.0")]
 #![warn(absolute_paths_not_starting_with_crate)]
 // NO #![warn(box_pointers)]
-#![warn(disjoint_capture_drop_reorder)]
 #![warn(elided_lifetimes_in_paths)]
 #![warn(explicit_outlives_requirements)]
 #![warn(keyword_idents)]
@@ -450,7 +449,7 @@ impl WorkBook {
     ///
     /// Panics if n is out of bounds.
     pub fn sheet(&self, n: usize) -> &Sheet {
-        &self.sheets[n].as_ref()
+        self.sheets[n].as_ref()
     }
 
     /// Returns a certain sheet.
@@ -497,7 +496,7 @@ impl WorkBook {
         if let Some(style) = self.cellstyles.get(style_name) {
             if let Some(value_format_name) = style.value_format() {
                 if let Some(value_format) = self.formats.get(value_format_name) {
-                    return Some(&value_format);
+                    return Some(value_format);
                 }
             }
         }
