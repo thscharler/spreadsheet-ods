@@ -1,7 +1,7 @@
 use spreadsheet_ods::condition::{Condition, ValueCondition};
 use spreadsheet_ods::text::TextP;
 use spreadsheet_ods::validation::{Validation, ValidationError, ValidationHelp};
-use spreadsheet_ods::{ucell, write_ods, CellRange, OdsError, Sheet, WorkBook};
+use spreadsheet_ods::{write_ods, CellRange, OdsError, Sheet, WorkBook};
 
 #[test]
 fn test_validation0() -> Result<(), OdsError> {
@@ -9,35 +9,35 @@ fn test_validation0() -> Result<(), OdsError> {
 
     let mut sheet = Sheet::new_with_name("One");
 
-    let cc: ucell = 0;
+    let cc: u32 = 0;
     sheet.set_value(0, cc, "Content Length");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_text_length_lt(5));
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
-    let cc: ucell = 1;
+    let cc: u32 = 1;
     sheet.set_value(0, cc, "Between");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_text_length_is_between(4, 10));
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
-    let cc: ucell = 2;
+    let cc: u32 = 2;
     sheet.set_value(0, cc, "Not Between");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_text_length_is_not_between(4, 10));
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
-    let cc: ucell = 3;
+    let cc: u32 = 3;
     sheet.set_value(0, cc, "In List");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_is_in_list(&[1, 3, 5, 7, 11, 13, 17, 19]));
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
-    let cc: ucell = 4;
+    let cc: u32 = 4;
     sheet.set_value(0, cc, "Decimal");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_is_decimal_number_and(
@@ -46,7 +46,7 @@ fn test_validation0() -> Result<(), OdsError> {
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
-    let cc: ucell = 5;
+    let cc: u32 = 5;
     sheet.set_value(0, cc, "Whole");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_is_whole_number_and(
@@ -55,7 +55,7 @@ fn test_validation0() -> Result<(), OdsError> {
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
-    let cc: ucell = 6;
+    let cc: u32 = 6;
     sheet.set_value(0, cc, "Date");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_is_date_and(ValueCondition::content_eq(
@@ -64,7 +64,7 @@ fn test_validation0() -> Result<(), OdsError> {
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
-    let cc: ucell = 7;
+    let cc: u32 = 7;
     sheet.set_value(0, cc, "Time");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_is_time_and(ValueCondition::content_eq(
@@ -73,7 +73,7 @@ fn test_validation0() -> Result<(), OdsError> {
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
-    let cc: ucell = 8;
+    let cc: u32 = 8;
     sheet.set_value(0, cc, "Ref");
     sheet.set_value(1, cc + 1, "A");
     sheet.set_value(2, cc + 1, "B");
@@ -91,7 +91,7 @@ fn test_validation0() -> Result<(), OdsError> {
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
-    let cc: ucell = 10;
+    let cc: u32 = 10;
     sheet.set_value(0, cc, "In List");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_is_in_list(&["a", "b", "c"]));
@@ -111,7 +111,7 @@ fn test_validation1() -> Result<(), OdsError> {
 
     let mut sheet = Sheet::new_with_name("One");
 
-    let cc: ucell = 0;
+    let cc: u32 = 0;
     sheet.set_value(0, cc, "Content Length");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_text_length_lt(5));

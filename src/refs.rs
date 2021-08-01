@@ -5,7 +5,7 @@
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
 
-use crate::{ucell, OdsError};
+use crate::OdsError;
 
 /// Reference to a cell.
 ///
@@ -22,9 +22,9 @@ use crate::{ucell, OdsError};
 pub struct CellRef {
     table: Option<String>,
     row_abs: bool, /* Absolute ($) reference */
-    row: ucell,
+    row: u32,
     col_abs: bool, /* Absolute ($) reference */
-    col: ucell,
+    col: u32,
 }
 
 impl TryFrom<&str> for CellRef {
@@ -57,7 +57,7 @@ impl CellRef {
     }
 
     /// Creates a cellref within the same table.
-    pub fn local(row: ucell, col: ucell) -> Self {
+    pub fn local(row: u32, col: u32) -> Self {
         Self {
             table: None,
             row,
@@ -68,7 +68,7 @@ impl CellRef {
     }
 
     /// Creates a cellref that references another table.
-    pub fn remote<S: Into<String>>(table: S, row: ucell, col: ucell) -> Self {
+    pub fn remote<S: Into<String>>(table: S, row: u32, col: u32) -> Self {
         Self {
             table: Some(table.into()),
             row,
@@ -89,12 +89,12 @@ impl CellRef {
     }
 
     /// Row
-    pub fn set_row(&mut self, row: ucell) {
+    pub fn set_row(&mut self, row: u32) {
         self.row = row;
     }
 
     /// Row
-    pub fn row(&self) -> ucell {
+    pub fn row(&self) -> u32 {
         self.row
     }
 
@@ -109,12 +109,12 @@ impl CellRef {
     }
 
     /// Column
-    pub fn set_col(&mut self, col: ucell) {
+    pub fn set_col(&mut self, col: u32) {
         self.col = col;
     }
 
     /// Column
-    pub fn col(&self) -> ucell {
+    pub fn col(&self) -> u32 {
         self.col
     }
 
@@ -174,13 +174,13 @@ impl CellRef {
 pub struct CellRange {
     table: Option<String>,
     row_abs: bool, /* Absolute ($) reference */
-    row: ucell,
+    row: u32,
     col_abs: bool, /* Absolute ($) reference */
-    col: ucell,
+    col: u32,
     to_row_abs: bool, /* Absolute ($) reference */
-    to_row: ucell,
+    to_row: u32,
     to_col_abs: bool, /* Absolute ($) reference */
-    to_col: ucell,
+    to_col: u32,
 }
 
 impl CellRange {
@@ -200,7 +200,7 @@ impl CellRange {
     }
 
     /// Creates the cell range from from + to data.
-    pub fn local(row: ucell, col: ucell, to_row: ucell, to_col: ucell) -> Self {
+    pub fn local(row: u32, col: u32, to_row: u32, to_col: u32) -> Self {
         assert!(row <= to_row);
         assert!(col <= to_col);
         Self {
@@ -217,13 +217,7 @@ impl CellRange {
     }
 
     /// Creates the cell range from from + to data.
-    pub fn remote<S: Into<String>>(
-        table: S,
-        row: ucell,
-        col: ucell,
-        to_row: ucell,
-        to_col: ucell,
-    ) -> Self {
+    pub fn remote<S: Into<String>>(table: S, row: u32, col: u32, to_row: u32, to_col: u32) -> Self {
         assert!(row <= to_row);
         assert!(col <= to_col);
         Self {
@@ -240,7 +234,7 @@ impl CellRange {
     }
 
     /// Creates the cell range from origin + spanning data.
-    pub fn origin_span(row: ucell, col: ucell, span: (ucell, ucell)) -> Self {
+    pub fn origin_span(row: u32, col: u32, span: (u32, u32)) -> Self {
         assert!(span.0 > 0);
         assert!(span.1 > 0);
         Self {
@@ -267,12 +261,12 @@ impl CellRange {
     }
 
     /// Row
-    pub fn set_row(&mut self, row: ucell) {
+    pub fn set_row(&mut self, row: u32) {
         self.row = row;
     }
 
     /// Row
-    pub fn row(&self) -> ucell {
+    pub fn row(&self) -> u32 {
         self.row
     }
 
@@ -287,12 +281,12 @@ impl CellRange {
     }
 
     /// Column
-    pub fn set_col(&mut self, col: ucell) {
+    pub fn set_col(&mut self, col: u32) {
         self.col = col;
     }
 
     /// Column
-    pub fn col(&self) -> ucell {
+    pub fn col(&self) -> u32 {
         self.col
     }
 
@@ -307,12 +301,12 @@ impl CellRange {
     }
 
     /// To row
-    pub fn set_to_row(&mut self, to_row: ucell) {
+    pub fn set_to_row(&mut self, to_row: u32) {
         self.to_row = to_row;
     }
 
     /// To row
-    pub fn to_row(&self) -> ucell {
+    pub fn to_row(&self) -> u32 {
         self.to_row
     }
 
@@ -327,12 +321,12 @@ impl CellRange {
     }
 
     /// To column
-    pub fn set_to_col(&mut self, to_col: ucell) {
+    pub fn set_to_col(&mut self, to_col: u32) {
         self.to_col = to_col;
     }
 
     /// To column
-    pub fn to_col(&self) -> ucell {
+    pub fn to_col(&self) -> u32 {
         self.to_col
     }
 
@@ -382,12 +376,12 @@ impl CellRange {
 
     /// Does the range contain the cell.
     /// This is inclusive for to_row and to_col!
-    pub fn contains(&self, row: ucell, col: ucell) -> bool {
+    pub fn contains(&self, row: u32, col: u32) -> bool {
         row >= self.row && row <= self.to_row && col >= self.col && col <= self.to_col
     }
 
     /// Is this range any longer relevant, when looping rows first, then columns?
-    pub fn out_looped(&self, row: ucell, col: ucell) -> bool {
+    pub fn out_looped(&self, row: u32, col: u32) -> bool {
         row > self.to_row || row == self.to_row && col > self.to_col
     }
 }
@@ -412,8 +406,8 @@ impl Display for CellRange {
 /// A range over columns.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ColRange {
-    col: ucell,
-    to_col: ucell,
+    col: u32,
+    to_col: u32,
 }
 
 impl Display for ColRange {
@@ -424,34 +418,34 @@ impl Display for ColRange {
 
 impl ColRange {
     /// New range.
-    pub fn new(col: ucell, to_col: ucell) -> Self {
+    pub fn new(col: u32, to_col: u32) -> Self {
         assert!(col <= to_col);
         Self { col, to_col }
     }
 
     /// Column
-    pub fn set_col(&mut self, col: ucell) {
+    pub fn set_col(&mut self, col: u32) {
         self.col = col;
     }
 
     /// Column
-    pub fn col(&self) -> ucell {
+    pub fn col(&self) -> u32 {
         self.col
     }
 
     /// To column
-    pub fn set_to_col(&mut self, to_col: ucell) {
+    pub fn set_to_col(&mut self, to_col: u32) {
         self.to_col = to_col;
     }
 
     /// To column
-    pub fn to_col(&self) -> ucell {
+    pub fn to_col(&self) -> u32 {
         self.to_col
     }
 
     /// Is the column in this range.
     /// The range is inclusive with the to_col.
-    pub fn contains(&self, col: ucell) -> bool {
+    pub fn contains(&self, col: u32) -> bool {
         col >= self.col && col <= self.to_col
     }
 }
@@ -459,8 +453,8 @@ impl ColRange {
 /// A range over rows.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct RowRange {
-    row: ucell,
-    to_row: ucell,
+    row: u32,
+    to_row: u32,
 }
 
 impl Display for RowRange {
@@ -471,34 +465,34 @@ impl Display for RowRange {
 
 impl RowRange {
     /// New range.
-    pub fn new(row: ucell, to_row: ucell) -> Self {
+    pub fn new(row: u32, to_row: u32) -> Self {
         assert!(row <= to_row);
         Self { row, to_row }
     }
 
     /// Row
-    pub fn row(&self) -> ucell {
+    pub fn row(&self) -> u32 {
         self.row
     }
 
     /// Row
-    pub fn set_row(&mut self, row: ucell) {
+    pub fn set_row(&mut self, row: u32) {
         self.row = row;
     }
 
     /// To row
-    pub fn to_row(&self) -> ucell {
+    pub fn to_row(&self) -> u32 {
         self.to_row
     }
 
     /// To row
-    pub fn set_to_row(&mut self, row: ucell) {
+    pub fn set_to_row(&mut self, row: u32) {
         self.to_row = row;
     }
 
     /// Is the row in this range.
     /// The range is inclusive with the to_row.
-    pub fn contains(&self, row: ucell) -> bool {
+    pub fn contains(&self, row: u32) -> bool {
         row >= self.row && row <= self.to_row
     }
 }
@@ -506,7 +500,7 @@ impl RowRange {
 /// Parse the colname.
 /// Stops when the colname ends and returns the byte position in end.
 #[allow(clippy::manual_range_contains)]
-pub(crate) fn parse_colname(buf: &str, pos: &mut usize) -> Option<ucell> {
+pub(crate) fn parse_colname(buf: &str, pos: &mut usize) -> Option<u32> {
     let mut col = 0u32;
 
     let mut loop_break = false;
@@ -542,7 +536,7 @@ pub(crate) fn parse_colname(buf: &str, pos: &mut usize) -> Option<ucell> {
 /// Parse the rowname.
 /// Stops when the rowname ends and returns the byte position in end.
 #[allow(clippy::manual_range_contains)]
-pub(crate) fn parse_rowname(buf: &str, pos: &mut usize) -> Option<ucell> {
+pub(crate) fn parse_rowname(buf: &str, pos: &mut usize) -> Option<u32> {
     let mut row = 0u32;
 
     let mut loop_break = false;
@@ -791,11 +785,11 @@ pub(crate) fn parse_cellranges(
 }
 
 /// Appends the spreadsheet column name.
-pub(crate) fn push_colname(buf: &mut String, mut col: ucell) {
+pub(crate) fn push_colname(buf: &mut String, mut col: u32) {
     let mut i = 0;
     let mut dbuf = [0u8; 7];
 
-    if col == ucell::MAX {
+    if col == u32::MAX {
         // unroll first loop because of overflow
         dbuf[0] = 21;
         i += 1;
@@ -826,7 +820,7 @@ pub(crate) fn push_colname(buf: &mut String, mut col: ucell) {
 }
 
 /// Appends the spreadsheet row name
-pub(crate) fn push_rowname(buf: &mut String, row: ucell) {
+pub(crate) fn push_rowname(buf: &mut String, row: u32) {
     let mut i = 0;
     let mut dbuf = [0u8; 10];
 
@@ -939,7 +933,7 @@ mod tests {
         parse_cellrange, parse_cellranges, parse_cellref, parse_colname, parse_rowname,
         push_cellrange, push_cellref, push_colname, push_rowname, push_tablename,
     };
-    use crate::{ucell, CellRange, CellRef, OdsError};
+    use crate::{u32, CellRange, CellRef, OdsError};
 
     #[test]
     fn test_names() {
@@ -965,11 +959,11 @@ mod tests {
         assert_eq!(buf, "ZA");
         buf.clear();
 
-        push_colname(&mut buf, ucell::MAX - 1);
+        push_colname(&mut buf, u32::MAX - 1);
         assert_eq!(buf, "MWLQKWU");
         buf.clear();
 
-        push_colname(&mut buf, ucell::MAX);
+        push_colname(&mut buf, u32::MAX);
         assert_eq!(buf, "MWLQKWV");
         buf.clear();
 
@@ -981,11 +975,11 @@ mod tests {
         assert_eq!(buf, "928");
         buf.clear();
 
-        push_rowname(&mut buf, ucell::MAX - 1);
+        push_rowname(&mut buf, u32::MAX - 1);
         assert_eq!(buf, "4294967295");
         buf.clear();
 
-        push_rowname(&mut buf, ucell::MAX);
+        push_rowname(&mut buf, u32::MAX);
         assert_eq!(buf, "4294967296");
         buf.clear();
 
@@ -1024,12 +1018,12 @@ mod tests {
 
     #[test]
     fn test_parse() -> Result<(), OdsError> {
-        fn rowname(row: ucell) -> String {
+        fn rowname(row: u32) -> String {
             let mut row_str = String::new();
             push_rowname(&mut row_str, row);
             row_str
         }
-        fn colname(col: ucell) -> String {
+        fn colname(col: u32) -> String {
             let mut col_str = String::new();
             push_colname(&mut col_str, col);
             col_str

@@ -1,12 +1,12 @@
 use spreadsheet_ods::*;
 
 // I'm forced to put the functions in the test because they are private outside the crate
-fn push_rowname(buf: &mut String, row: ucell) {
+fn push_rowname(buf: &mut String, row: u32) {
     let row: u64 = row as u64 + 1;
     buf.push_str(&row.to_string());
 }
 
-fn push_colname(buf: &mut String, col: ucell) {
+fn push_colname(buf: &mut String, col: u32) {
     let mut col: u64 = col as u64 + 1;
     let mut _buf = String::new();
 
@@ -20,7 +20,7 @@ fn push_colname(buf: &mut String, col: ucell) {
 
 // the old function
 /// Appends the spreadsheet column name.
-fn old_push_colname(buf: &mut String, mut col: ucell) {
+fn old_push_colname(buf: &mut String, mut col: u32) {
     let mut i = 0;
     let mut dbuf = [0u8; 7];
 
@@ -48,7 +48,7 @@ fn old_push_colname(buf: &mut String, mut col: ucell) {
 
 // the old function
 /// Appends the spreadsheet row name
-fn old_push_rowname(buf: &mut String, mut row: ucell) {
+fn old_push_rowname(buf: &mut String, mut row: u32) {
     let mut i = 0;
     let mut dbuf = [0u8; 10];
 
@@ -97,6 +97,6 @@ fn issue6() {
     assert_eq!(old_buf, buf);
 
     // overlfow test
-    push_colname(&mut buf, ucell::MAX);
-    push_rowname(&mut buf, ucell::MAX);
+    push_colname(&mut buf, u32::MAX);
+    push_rowname(&mut buf, u32::MAX);
 }

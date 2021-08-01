@@ -20,9 +20,7 @@ use crate::style::{
 };
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
-use crate::{
-    ucell, CellContentRef, Length, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook,
-};
+use crate::{CellContentRef, Length, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
 
 type OdsWriter<W> = ZipOut<W>;
 type XmlOdsWriter<'a, W> = XmlWriter<ZipWrite<'a, W>>;
@@ -1023,7 +1021,7 @@ fn write_content_validations<W: Write + Seek>(
 }
 
 /// Is the cell hidden, and if yes how many more columns are hit.
-fn check_hidden(ranges: &[CellRange], row: ucell, col: ucell) -> (bool, ucell) {
+fn check_hidden(ranges: &[CellRange], row: u32, col: u32) -> (bool, u32) {
     if let Some(found) = ranges.iter().find(|s| s.contains(row, col)) {
         (true, found.to_col() - col)
     } else {
@@ -1032,7 +1030,7 @@ fn check_hidden(ranges: &[CellRange], row: ucell, col: ucell) -> (bool, ucell) {
 }
 
 /// Removes any outlived Ranges from the vector.
-pub(crate) fn remove_outlooped(ranges: &mut Vec<CellRange>, row: ucell, col: ucell) {
+pub(crate) fn remove_outlooped(ranges: &mut Vec<CellRange>, row: u32, col: u32) {
     *ranges = ranges
         .drain(..)
         .filter(|s| !s.out_looped(row, col))
@@ -1081,9 +1079,9 @@ fn write_sheet<W: Write + Seek>(
 
     // table-row + table-cell
     let mut first_cell = true;
-    let mut last_r: ucell = 0;
-    let mut last_r_repeat: ucell = 1;
-    let mut last_c: ucell = 0;
+    let mut last_r: u32 = 0;
+    let mut last_r_repeat: u32 = 1;
+    let mut last_c: u32 = 0;
 
     let mut it = sheet.into_iter();
     while let Some(((cur_row, cur_col), cell)) = it.next() {
@@ -1227,7 +1225,7 @@ fn write_empty_cells<W: Write + Seek>(
 
 fn write_start_current_row<W: Write + Seek>(
     sheet: &Sheet,
-    cur_row: ucell,
+    cur_row: u32,
     backward_dc: u32,
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
@@ -1305,10 +1303,10 @@ fn write_end_current_row<W: Write + Seek>(
 
 fn write_empty_rows_before<W: Write + Seek>(
     sheet: &Sheet,
-    cur_row: ucell,
+    cur_row: u32,
     first_cell: bool,
     mut backward_dr: u32,
-    max_cell: (ucell, ucell),
+    max_cell: (u32, u32),
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     // Empty rows in between are 1 less than the delta, except at the very start.
@@ -1367,7 +1365,7 @@ fn write_empty_rows_before<W: Write + Seek>(
 
 fn write_empty_row<W: Write + Seek>(
     sheet: &Sheet,
-    cur_row: ucell,
+    cur_row: u32,
     empty_count: u32,
     max_cell: (u32, u32),
     xml_out: &mut XmlOdsWriter<'_, W>,
@@ -1432,7 +1430,7 @@ fn write_xmltag<W: Write + Seek>(
 
 fn write_table_columns<W: Write + Seek>(
     sheet: &Sheet,
-    max_cell: (ucell, ucell),
+    max_cell: (u32, u32),
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     // table:table-column

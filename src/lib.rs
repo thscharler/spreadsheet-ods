@@ -228,10 +228,6 @@ pub mod text;
 pub mod validation;
 pub mod xmltree;
 
-/// Cell index type for row/column indexes.
-#[allow(non_camel_case_types)]
-pub type ucell = u32;
-
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
 pub struct WorkBook {
@@ -1029,10 +1025,10 @@ pub struct Sheet {
     name: String,
     style: Option<String>,
 
-    data: BTreeMap<(ucell, ucell), CellData>,
+    data: BTreeMap<(u32, u32), CellData>,
 
-    col_header: BTreeMap<ucell, ColHeader>,
-    row_header: BTreeMap<ucell, RowHeader>,
+    col_header: BTreeMap<u32, ColHeader>,
+    row_header: BTreeMap<u32, RowHeader>,
 
     display: bool,
     print: bool,
@@ -1047,7 +1043,7 @@ pub struct Sheet {
 }
 
 impl<'a> IntoIterator for &'a Sheet {
-    type Item = ((ucell, ucell), CellContentRef<'a>);
+    type Item = ((u32, u32), CellContentRef<'a>);
     type IntoIter = CellIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -1064,14 +1060,14 @@ impl<'a> IntoIterator for &'a Sheet {
 // a possible split of the celldata into multiple BTreeMaps
 #[derive(Clone, Debug)]
 pub struct CellIter<'a> {
-    it_data: std::collections::btree_map::Iter<'a, (ucell, ucell), CellData>,
-    k_data: Option<&'a (ucell, ucell)>,
+    it_data: std::collections::btree_map::Iter<'a, (u32, u32), CellData>,
+    k_data: Option<&'a (u32, u32)>,
     v_data: Option<&'a CellData>,
 }
 
 impl CellIter<'_> {
     /// Returns the (row,col) of the next cell.
-    pub fn peek_cell(&mut self) -> Option<(ucell, ucell)> {
+    pub fn peek_cell(&mut self) -> Option<(u32, u32)> {
         self.k_data.copied()
     }
 
@@ -1089,7 +1085,7 @@ impl CellIter<'_> {
 impl FusedIterator for CellIter<'_> {}
 
 impl<'a> Iterator for CellIter<'a> {
-    type Item = ((ucell, ucell), CellContentRef<'a>);
+    type Item = ((u32, u32), CellContentRef<'a>);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.k_data.is_none() {
@@ -1113,13 +1109,13 @@ impl<'a> Iterator for CellIter<'a> {
 /// Range iterator.
 #[derive(Clone, Debug)]
 pub struct Range<'a> {
-    range: std::collections::btree_map::Range<'a, (ucell, ucell), CellData>,
+    range: std::collections::btree_map::Range<'a, (u32, u32), CellData>,
 }
 
 impl FusedIterator for Range<'_> {}
 
 impl<'a> Iterator for Range<'a> {
-    type Item = ((ucell, ucell), CellContentRef<'a>);
+    type Item = ((u32, u32), CellContentRef<'a>);
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((k, v)) = self.range.next() {
@@ -1234,7 +1230,7 @@ impl Sheet {
     /// Iterate a range of cells.
     pub fn range<R>(&self, range: R) -> Range<'_>
     where
-        R: RangeBounds<(ucell, ucell)>,
+        R: RangeBounds<(u32, u32)>,
     {
         Range {
             range: self.data.range(range),
@@ -1272,7 +1268,7 @@ impl Sheet {
     }
 
     /// Column style.
-    pub fn set_colstyle(&mut self, col: ucell, style: &ColStyleRef) {
+    pub fn set_colstyle(&mut self, col: u32, style: &ColStyleRef) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
@@ -1280,7 +1276,7 @@ impl Sheet {
     }
 
     /// Remove the style.
-    pub fn clear_colstyle(&mut self, col: ucell) {
+    pub fn clear_colstyle(&mut self, col: u32) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
@@ -1288,7 +1284,7 @@ impl Sheet {
     }
 
     /// Returns the column style.
-    pub fn colstyle(&self, col: ucell) -> Option<&String> {
+    pub fn colstyle(&self, col: u32) -> Option<&String> {
         if let Some(col_header) = self.col_header.get(&col) {
             col_header.style()
         } else {
@@ -1297,7 +1293,7 @@ impl Sheet {
     }
 
     /// Default cell style for this column.
-    pub fn set_col_cellstyle(&mut self, col: ucell, style: &CellStyleRef) {
+    pub fn set_col_cellstyle(&mut self, col: u32, style: &CellStyleRef) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
@@ -1305,7 +1301,7 @@ impl Sheet {
     }
 
     /// Remove the style.
-    pub fn clear_col_cellstyle(&mut self, col: ucell) {
+    pub fn clear_col_cellstyle(&mut self, col: u32) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
@@ -1313,7 +1309,7 @@ impl Sheet {
     }
 
     /// Returns the default cell style for this column.
-    pub fn col_cellstyle(&self, col: ucell) -> Option<&String> {
+    pub fn col_cellstyle(&self, col: u32) -> Option<&String> {
         if let Some(col_header) = self.col_header.get(&col) {
             col_header.cellstyle()
         } else {
@@ -1322,7 +1318,7 @@ impl Sheet {
     }
 
     /// Visibility of the column
-    pub fn set_col_visible(&mut self, col: ucell, visible: Visibility) {
+    pub fn set_col_visible(&mut self, col: u32, visible: Visibility) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
@@ -1330,7 +1326,7 @@ impl Sheet {
     }
 
     /// Returns the default cell style for this column.
-    pub fn col_visible(&self, col: ucell) -> Visibility {
+    pub fn col_visible(&self, col: u32) -> Visibility {
         if let Some(col_header) = self.col_header.get(&col) {
             col_header.visible()
         } else {
@@ -1339,7 +1335,7 @@ impl Sheet {
     }
 
     /// Sets the column width for this column.
-    pub fn set_col_width(&mut self, col: ucell, width: Length) {
+    pub fn set_col_width(&mut self, col: u32, width: Length) {
         self.col_header
             .entry(col)
             .or_insert_with(ColHeader::new)
@@ -1347,7 +1343,7 @@ impl Sheet {
     }
 
     /// Returns the column-width.
-    pub fn col_width(&self, col: ucell) -> Length {
+    pub fn col_width(&self, col: u32) -> Length {
         if let Some(ch) = self.col_header.get(&col) {
             ch.width()
         } else {
@@ -1356,7 +1352,7 @@ impl Sheet {
     }
 
     /// Row style.
-    pub fn set_rowstyle(&mut self, row: ucell, style: &RowStyleRef) {
+    pub fn set_rowstyle(&mut self, row: u32, style: &RowStyleRef) {
         self.row_header
             .entry(row)
             .or_insert_with(RowHeader::new)
@@ -1364,7 +1360,7 @@ impl Sheet {
     }
 
     /// Remove the style.
-    pub fn clear_rowstyle(&mut self, row: ucell) {
+    pub fn clear_rowstyle(&mut self, row: u32) {
         self.row_header
             .entry(row)
             .or_insert_with(RowHeader::new)
@@ -1372,7 +1368,7 @@ impl Sheet {
     }
 
     /// Returns the row style.
-    pub fn rowstyle(&self, row: ucell) -> Option<&String> {
+    pub fn rowstyle(&self, row: u32) -> Option<&String> {
         if let Some(row_header) = self.row_header.get(&row) {
             row_header.style()
         } else {
@@ -1381,7 +1377,7 @@ impl Sheet {
     }
 
     /// Default cell style for this row.
-    pub fn set_row_cellstyle(&mut self, row: ucell, style: &CellStyleRef) {
+    pub fn set_row_cellstyle(&mut self, row: u32, style: &CellStyleRef) {
         self.row_header
             .entry(row)
             .or_insert_with(RowHeader::new)
@@ -1389,7 +1385,7 @@ impl Sheet {
     }
 
     /// Remove the style.
-    pub fn clear_row_cellstyle(&mut self, row: ucell) {
+    pub fn clear_row_cellstyle(&mut self, row: u32) {
         self.row_header
             .entry(row)
             .or_insert_with(RowHeader::new)
@@ -1397,7 +1393,7 @@ impl Sheet {
     }
 
     /// Returns the default cell style for this row.
-    pub fn row_cellstyle(&self, row: ucell) -> Option<&String> {
+    pub fn row_cellstyle(&self, row: u32) -> Option<&String> {
         if let Some(row_header) = self.row_header.get(&row) {
             row_header.cellstyle()
         } else {
@@ -1406,7 +1402,7 @@ impl Sheet {
     }
 
     /// Visibility of the row
-    pub fn set_row_visible(&mut self, row: ucell, visible: Visibility) {
+    pub fn set_row_visible(&mut self, row: u32, visible: Visibility) {
         self.row_header
             .entry(row)
             .or_insert_with(RowHeader::new)
@@ -1414,7 +1410,7 @@ impl Sheet {
     }
 
     /// Returns the default cell style for this row.
-    pub fn row_visible(&self, row: ucell) -> Visibility {
+    pub fn row_visible(&self, row: u32) -> Visibility {
         if let Some(row_header) = self.row_header.get(&row) {
             row_header.visible()
         } else {
@@ -1426,7 +1422,7 @@ impl Sheet {
     /// with data in a sheet. Setting the repeat count will not change
     /// the row number of following rows. But they will be changed after
     /// writing to an ODS file and reading it again.
-    pub fn set_row_repeat(&mut self, row: ucell, repeat: u32) {
+    pub fn set_row_repeat(&mut self, row: u32, repeat: u32) {
         self.row_header
             .entry(row)
             .or_insert_with(RowHeader::new)
@@ -1434,7 +1430,7 @@ impl Sheet {
     }
 
     /// Returns the repeat count for this row.
-    pub fn row_repeat(&self, row: ucell) -> u32 {
+    pub fn row_repeat(&self, row: u32) -> u32 {
         if let Some(row_header) = self.row_header.get(&row) {
             row_header.repeat()
         } else {
@@ -1443,7 +1439,7 @@ impl Sheet {
     }
 
     /// Sets the row-height.
-    pub fn set_row_height(&mut self, row: ucell, height: Length) {
+    pub fn set_row_height(&mut self, row: u32, height: Length) {
         self.row_header
             .entry(row)
             .or_insert_with(RowHeader::new)
@@ -1451,7 +1447,7 @@ impl Sheet {
     }
 
     /// Returns the row-height
-    pub fn row_height(&self, row: ucell) -> Length {
+    pub fn row_height(&self, row: u32) -> Length {
         if let Some(rh) = self.row_header.get(&row) {
             rh.height()
         } else {
@@ -1460,17 +1456,17 @@ impl Sheet {
     }
 
     /// Returns the maximum used column +1 in the column header
-    pub fn used_cols(&self) -> ucell {
+    pub fn used_cols(&self) -> u32 {
         *self.col_header.keys().max().unwrap_or(&0) + 1
     }
 
     /// Returns the maximum used row +1 in the row header
-    pub fn used_rows(&self) -> ucell {
+    pub fn used_rows(&self) -> u32 {
         *self.row_header.keys().max().unwrap_or(&0) + 1
     }
 
     /// Returns a tuple of (max(row)+1, max(col)+1)
-    pub fn used_grid_size(&self) -> (ucell, ucell) {
+    pub fn used_grid_size(&self) -> (u32, u32) {
         let max = self.data.keys().fold((0, 0), |mut max, (r, c)| {
             max.0 = u32::max(max.0, *r);
             max.1 = u32::max(max.1, *c);
@@ -1501,7 +1497,7 @@ impl Sheet {
     }
 
     /// Returns true if there is no SCell at the given position.
-    pub fn is_empty(&self, row: ucell, col: ucell) -> bool {
+    pub fn is_empty(&self, row: u32, col: u32) -> bool {
         self.data.get(&(row, col)).is_none()
     }
 
@@ -1514,7 +1510,7 @@ impl Sheet {
     // }
 
     /// Returns a copy of the cell content.
-    pub fn cell(&self, row: ucell, col: ucell) -> Option<CellContent> {
+    pub fn cell(&self, row: u32, col: u32) -> Option<CellContent> {
         let value = self.data.get(&(row, col));
 
         value.map(|value| CellContent {
@@ -1527,7 +1523,7 @@ impl Sheet {
     }
 
     /// Consumes the CellContent and sets the values.
-    pub fn add_cell(&mut self, row: ucell, col: ucell, cell: CellContent) {
+    pub fn add_cell(&mut self, row: u32, col: u32, cell: CellContent) {
         self.add_cell_data(
             row,
             col,
@@ -1542,7 +1538,7 @@ impl Sheet {
     }
 
     /// Removes the cell and returns the values as CellContent.
-    pub fn remove_cell(&mut self, row: ucell, col: ucell) -> Option<CellContent> {
+    pub fn remove_cell(&mut self, row: u32, col: u32) -> Option<CellContent> {
         let value = self.data.remove(&(row, col));
 
         if let Some(value) = value {
@@ -1559,15 +1555,15 @@ impl Sheet {
     }
 
     /// Add a new cell. Main use is for reading the spreadsheet.
-    pub(crate) fn add_cell_data(&mut self, row: ucell, col: ucell, cell: CellData) {
+    pub(crate) fn add_cell_data(&mut self, row: u32, col: u32, cell: CellData) {
         self.data.insert((row, col), cell);
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
     pub fn set_styled_value<V: Into<Value>>(
         &mut self,
-        row: ucell,
-        col: ucell,
+        row: u32,
+        col: u32,
         value: V,
         style: &CellStyleRef,
     ) {
@@ -1577,13 +1573,13 @@ impl Sheet {
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
-    pub fn set_value<V: Into<Value>>(&mut self, row: ucell, col: ucell, value: V) {
+    pub fn set_value<V: Into<Value>>(&mut self, row: u32, col: u32, value: V) {
         let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.value = value.into();
     }
 
     /// Returns a value
-    pub fn value(&self, row: ucell, col: ucell) -> &Value {
+    pub fn value(&self, row: u32, col: u32) -> &Value {
         if let Some(cell) = self.data.get(&(row, col)) {
             &cell.value
         } else {
@@ -1592,20 +1588,20 @@ impl Sheet {
     }
 
     /// Sets a formula for the specified cell. Creates a new cell if necessary.
-    pub fn set_formula<V: Into<String>>(&mut self, row: ucell, col: ucell, formula: V) {
+    pub fn set_formula<V: Into<String>>(&mut self, row: u32, col: u32, formula: V) {
         let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.formula = Some(formula.into());
     }
 
     /// Removes the formula.
-    pub fn clear_formula(&mut self, row: ucell, col: ucell) {
+    pub fn clear_formula(&mut self, row: u32, col: u32) {
         if let Some(cell) = self.data.get_mut(&(row, col)) {
             cell.formula = None;
         }
     }
 
     /// Returns a value
-    pub fn formula(&self, row: ucell, col: ucell) -> Option<&String> {
+    pub fn formula(&self, row: u32, col: u32) -> Option<&String> {
         if let Some(c) = self.data.get(&(row, col)) {
             c.formula.as_ref()
         } else {
@@ -1614,20 +1610,20 @@ impl Sheet {
     }
 
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
-    pub fn set_cellstyle(&mut self, row: ucell, col: ucell, style: &CellStyleRef) {
+    pub fn set_cellstyle(&mut self, row: u32, col: u32, style: &CellStyleRef) {
         let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.style = Some(style.to_string());
     }
 
     /// Removes the cell-style.
-    pub fn clear_cellstyle(&mut self, row: ucell, col: ucell) {
+    pub fn clear_cellstyle(&mut self, row: u32, col: u32) {
         if let Some(cell) = self.data.get_mut(&(row, col)) {
             cell.style = None;
         }
     }
 
     /// Returns a value
-    pub fn cellstyle(&self, row: ucell, col: ucell) -> Option<&String> {
+    pub fn cellstyle(&self, row: u32, col: u32) -> Option<&String> {
         if let Some(c) = self.data.get(&(row, col)) {
             c.style.as_ref()
         } else {
@@ -1636,20 +1632,20 @@ impl Sheet {
     }
 
     /// Sets a content-validation for this cell.
-    pub fn set_validation(&mut self, row: ucell, col: ucell, validation: &ValidationRef) {
+    pub fn set_validation(&mut self, row: u32, col: u32, validation: &ValidationRef) {
         let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.validation_name = Some(validation.to_string());
     }
 
     /// Removes the cell-style.
-    pub fn clear_validation(&mut self, row: ucell, col: ucell) {
+    pub fn clear_validation(&mut self, row: u32, col: u32) {
         if let Some(cell) = self.data.get_mut(&(row, col)) {
             cell.validation_name = None;
         }
     }
 
     /// Returns a content-validation name for this cell.
-    pub fn validation(&self, row: ucell, col: ucell) -> Option<&String> {
+    pub fn validation(&self, row: u32, col: u32) -> Option<&String> {
         if let Some(c) = self.data.get(&(row, col)) {
             c.validation_name.as_ref()
         } else {
@@ -1658,13 +1654,13 @@ impl Sheet {
     }
 
     /// Sets the rowspan of the cell. Must be greater than 0.
-    pub fn set_row_span(&mut self, row: ucell, col: ucell, span: ucell) {
+    pub fn set_row_span(&mut self, row: u32, col: u32, span: u32) {
         let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.span.row_span = span;
     }
 
     /// Rowspan of the cell.
-    pub fn row_span(&self, row: ucell, col: ucell) -> ucell {
+    pub fn row_span(&self, row: u32, col: u32) -> u32 {
         if let Some(c) = self.data.get(&(row, col)) {
             c.span.row_span
         } else {
@@ -1673,14 +1669,14 @@ impl Sheet {
     }
 
     /// Sets the colspan of the cell. Must be greater than 0.
-    pub fn set_col_span(&mut self, row: ucell, col: ucell, span: ucell) {
+    pub fn set_col_span(&mut self, row: u32, col: u32, span: u32) {
         assert!(span > 0);
         let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.span.col_span = span;
     }
 
     /// Colspan of the cell.
-    pub fn col_span(&self, row: ucell, col: ucell) -> ucell {
+    pub fn col_span(&self, row: u32, col: u32) -> u32 {
         if let Some(c) = self.data.get(&(row, col)) {
             c.span.col_span
         } else {
@@ -1689,7 +1685,7 @@ impl Sheet {
     }
 
     /// Defines a range of rows as header rows.
-    pub fn set_header_rows(&mut self, row_start: ucell, row_end: ucell) {
+    pub fn set_header_rows(&mut self, row_start: u32, row_end: u32) {
         self.header_rows = Some(RowRange::new(row_start, row_end));
     }
 
@@ -1704,7 +1700,7 @@ impl Sheet {
     }
 
     /// Defines a range of columns as header columns.
-    pub fn set_header_cols(&mut self, col_start: ucell, col_end: ucell) {
+    pub fn set_header_cols(&mut self, col_start: u32, col_end: u32) {
         self.header_cols = Some(ColRange::new(col_start, col_end));
     }
 
@@ -1735,7 +1731,7 @@ impl Sheet {
 
     /// Split horizontally on a cell boundary. The splitting is fixed in
     /// position.
-    pub fn split_col_header(&mut self, col: ucell) {
+    pub fn split_col_header(&mut self, col: u32) {
         self.config_mut().hor_split_mode = SplitMode::Heading;
         self.config_mut().hor_split_pos = col;
         self.config_mut().position_right = col;
@@ -1744,7 +1740,7 @@ impl Sheet {
 
     /// Split vertically on a cell boundary. The splitting is fixed in
     /// position.
-    pub fn split_row_header(&mut self, row: ucell) {
+    pub fn split_row_header(&mut self, row: u32) {
         self.config_mut().vert_split_mode = SplitMode::Heading;
         self.config_mut().vert_split_pos = row;
         self.config_mut().position_bottom = row;
@@ -1794,17 +1790,17 @@ impl TryFrom<i16> for SplitMode {
 #[derive(Clone, Debug)]
 pub struct SheetConfig {
     /// Active column.
-    pub cursor_x: ucell,
+    pub cursor_x: u32,
     /// Active row.
-    pub cursor_y: ucell,
+    pub cursor_y: u32,
     /// Splitting the table.
     pub hor_split_mode: SplitMode,
     /// Splitting the table.
     pub vert_split_mode: SplitMode,
     /// Position of the split.
-    pub hor_split_pos: ucell,
+    pub hor_split_pos: u32,
     /// Position of the split.
-    pub vert_split_pos: ucell,
+    pub vert_split_pos: u32,
     /// SplitMode is Pixel
     /// - 0-4 indicates the quadrant where the focus is.
     /// SplitMode is Cell
@@ -1878,13 +1874,13 @@ impl Default for CellSpan {
     }
 }
 
-impl From<CellSpan> for (ucell, ucell) {
+impl From<CellSpan> for (u32, u32) {
     fn from(span: CellSpan) -> Self {
         (span.row_span, span.col_span)
     }
 }
 
-impl From<&CellSpan> for (ucell, ucell) {
+impl From<&CellSpan> for (u32, u32) {
     fn from(span: &CellSpan) -> Self {
         (span.row_span, span.col_span)
     }
@@ -1901,25 +1897,25 @@ impl CellSpan {
 
     /// Sets the row span of this cell.
     /// Cells below with values will be lost when writing.
-    pub fn set_row_span(&mut self, rows: ucell) {
+    pub fn set_row_span(&mut self, rows: u32) {
         assert!(rows > 0);
         self.row_span = rows;
     }
 
     /// Returns the row span.
-    pub fn row_span(&self) -> ucell {
+    pub fn row_span(&self) -> u32 {
         self.row_span
     }
 
     /// Sets the column span of this cell.
     /// Cells to the right with values will be lost when writing.
-    pub fn set_col_span(&mut self, cols: ucell) {
+    pub fn set_col_span(&mut self, cols: u32) {
         assert!(cols > 0);
         self.col_span = cols;
     }
 
     /// Returns the col span.
-    pub fn col_span(&self) -> ucell {
+    pub fn col_span(&self) -> u32 {
         self.col_span
     }
 }
@@ -2005,7 +2001,7 @@ impl<'a> CellContentRef<'a> {
     }
 
     /// Returns the row span.
-    pub fn row_span(&self) -> ucell {
+    pub fn row_span(&self) -> u32 {
         if let Some(span) = self.span {
             span.row_span
         } else {
@@ -2014,7 +2010,7 @@ impl<'a> CellContentRef<'a> {
     }
 
     /// Returns the col span.
-    pub fn col_span(&self) -> ucell {
+    pub fn col_span(&self) -> u32 {
         if let Some(span) = self.span {
             span.col_span
         } else {
@@ -2107,25 +2103,25 @@ impl CellContent {
 
     /// Sets the row span of this cell.
     /// Cells below with values will be lost when writing.
-    pub fn set_row_span(&mut self, rows: ucell) {
+    pub fn set_row_span(&mut self, rows: u32) {
         assert!(rows > 0);
         self.span.row_span = rows;
     }
 
     /// Returns the row span.
-    pub fn row_span(&self) -> ucell {
+    pub fn row_span(&self) -> u32 {
         self.span.row_span
     }
 
     /// Sets the column span of this cell.
     /// Cells to the right with values will be lost when writing.
-    pub fn set_col_span(&mut self, cols: ucell) {
+    pub fn set_col_span(&mut self, cols: u32) {
         assert!(cols > 0);
         self.span.col_span = cols;
     }
 
     /// Returns the col span.
-    pub fn col_span(&self) -> ucell {
+    pub fn col_span(&self) -> u32 {
         self.span.col_span
     }
 }

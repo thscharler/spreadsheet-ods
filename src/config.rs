@@ -2,8 +2,6 @@ use std::collections::HashMap;
 
 use chrono::NaiveDateTime;
 
-use crate::ucell;
-
 /// The possible value types for the configuration.
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub(crate) enum ConfigValue {
@@ -61,8 +59,8 @@ impl From<i32> for ConfigValue {
     }
 }
 
-impl From<ucell> for ConfigValue {
-    fn from(v: ucell) -> Self {
+impl From<u32> for ConfigValue {
+    fn from(v: u32) -> Self {
         ConfigValue::Int(v as i32)
     }
 }

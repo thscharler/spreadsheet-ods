@@ -28,7 +28,7 @@ use crate::validation::{
 };
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
-    ucell, CellData, CellStyle, ColRange, Length, RowRange, Sheet, SplitMode, Value, ValueFormat,
+    CellData, CellStyle, ColRange, Length, RowRange, Sheet, SplitMode, Value, ValueFormat,
     ValueType, Visibility, WorkBook,
 };
 use std::str::from_utf8;
@@ -158,10 +158,10 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
 
         if let Some(cc) = v {
             if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["CursorPositionX"]) {
-                sheet.config_mut().cursor_x = *n as ucell;
+                sheet.config_mut().cursor_x = *n as u32;
             }
             if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["CursorPositionY"]) {
-                sheet.config_mut().cursor_y = *n as ucell;
+                sheet.config_mut().cursor_y = *n as u32;
             }
             if let Some(ConfigValue::Short(n)) = cc.get_value_rec(&["HorizontalSplitMode"]) {
                 sheet.config_mut().hor_split_mode = SplitMode::try_from(*n)?;
@@ -170,10 +170,10 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
                 sheet.config_mut().vert_split_mode = SplitMode::try_from(*n)?;
             }
             if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["HorizontalSplitPosition"]) {
-                sheet.config_mut().hor_split_pos = *n as ucell;
+                sheet.config_mut().hor_split_pos = *n as u32;
             }
             if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["VerticalSplitPosition"]) {
-                sheet.config_mut().vert_split_pos = *n as ucell;
+                sheet.config_mut().vert_split_pos = *n as u32;
             }
             if let Some(ConfigValue::Short(n)) = cc.get_value_rec(&["ActiveSplitRange"]) {
                 sheet.config_mut().active_split_range = *n;
@@ -329,14 +329,14 @@ fn read_table(
     read_table_attr(&mut sheet, &xml, xml_tag)?;
 
     // Position within table-columns
-    let mut table_col: ucell = 0;
+    let mut table_col: u32 = 0;
 
     // Cell position
-    let mut row: ucell = 0;
-    let mut col: ucell = 0;
+    let mut row: u32 = 0;
+    let mut col: u32 = 0;
 
     // Rows can be repeated. In reality only empty ones ever are.
-    let mut row_repeat: ucell = 1;
+    let mut row_repeat: u32 = 1;
     let mut rowstyle: Option<String> = None;
     let mut row_cellstyle: Option<String> = None;
     let mut row_visible: Visibility = Default::default();
@@ -507,8 +507,8 @@ fn read_table_attr(
 fn read_table_row_attr(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: BytesStart<'_>,
-) -> Result<(ucell, Option<String>, Option<String>, Visibility), OdsError> {
-    let mut row_repeat: ucell = 1;
+) -> Result<(u32, Option<String>, Option<String>, Visibility), OdsError> {
+    let mut row_repeat: u32 = 1;
     let mut row_visible: Visibility = Default::default();
     let mut rowstyle: Option<String> = None;
     let mut row_cellstyle: Option<String> = None;
@@ -518,7 +518,7 @@ fn read_table_row_attr(
             // table:default-cell-style-name 19.615, table:visibility 19.749 and xml:id 19.914.
             attr if attr.key == b"table:number-rows-repeated" => {
                 let v = from_utf8(attr.value.as_ref())?;
-                row_repeat = v.parse::<ucell>()?;
+                row_repeat = v.parse::<u32>()?;
             }
             attr if attr.key == b"table:style-name" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
@@ -549,13 +549,13 @@ fn read_table_row_attr(
 // Reads the table-column attributes. Creates as many copies as indicated.
 fn read_table_col_attr(
     sheet: &mut Sheet,
-    mut table_col: ucell,
+    mut table_col: u32,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
-) -> Result<ucell, OdsError> {
+) -> Result<u32, OdsError> {
     let mut style = None;
     let mut cellstyle = None;
-    let mut repeat: ucell = 1;
+    let mut repeat: u32 = 1;
     let mut visible: Visibility = Default::default();
 
     for attr in xml_tag.attributes().with_checks(false) {
@@ -625,15 +625,15 @@ struct ReadTableCell2 {
 
 fn read_table_cell2(
     sheet: &mut Sheet,
-    row: ucell,
-    mut col: ucell,
+    row: u32,
+    mut col: u32,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: BytesStart<'_>,
-) -> Result<ucell, OdsError> {
+) -> Result<u32, OdsError> {
     // Current cell tag
     let tag_name = xml_tag.name();
 
-    let mut cell_repeat: ucell = 1;
+    let mut cell_repeat: u32 = 1;
 
     let mut cell = CellData {
         value: Default::default(),
@@ -658,15 +658,15 @@ fn read_table_cell2(
         match attr? {
             attr if attr.key == b"table:number-columns-repeated" => {
                 let v = from_utf8(attr.value.as_ref())?;
-                cell_repeat = v.parse::<ucell>()?;
+                cell_repeat = v.parse::<u32>()?;
             }
             attr if attr.key == b"table:number-rows-spanned" => {
                 let v = from_utf8(attr.value.as_ref())?;
-                cell.span.row_span = v.parse::<ucell>()?;
+                cell.span.row_span = v.parse::<u32>()?;
             }
             attr if attr.key == b"table:number-columns-spanned" => {
                 let v = from_utf8(attr.value.as_ref())?;
-                cell.span.col_span = v.parse::<ucell>()?;
+                cell.span.col_span = v.parse::<u32>()?;
             }
             attr if attr.key == b"calcext:value-type" => {
                 // not used. office:value-type seems to be good enough.
@@ -924,11 +924,11 @@ fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError>
 /// And first of all we need the repeat count for the correct placement.
 fn read_empty_table_cell(
     sheet: &mut Sheet,
-    row: ucell,
-    mut col: ucell,
+    row: u32,
+    mut col: u32,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: BytesStart<'_>,
-) -> Result<ucell, OdsError> {
+) -> Result<u32, OdsError> {
     let mut cell = None;
     // Default advance is one column.
     let mut cell_repeat = 1;
@@ -936,7 +936,7 @@ fn read_empty_table_cell(
         match attr? {
             attr if attr.key == b"table:number-columns-repeated" => {
                 let v = from_utf8(attr.value.as_ref())?;
-                cell_repeat = v.parse::<ucell>()?;
+                cell_repeat = v.parse::<u32>()?;
             }
             attr if attr.key == b"table:formula" => {
                 let v = attr.unescape_and_decode_value(&xml)?;
@@ -948,12 +948,12 @@ fn read_empty_table_cell(
             }
             attr if attr.key == b"table:number-rows-spanned" => {
                 let v = from_utf8(attr.value.as_ref())?;
-                let v = v.parse::<ucell>()?;
+                let v = v.parse::<u32>()?;
                 cell.get_or_insert_with(CellData::new).span.row_span = v;
             }
             attr if attr.key == b"table:number-columns-spanned" => {
                 let v = from_utf8(attr.value.as_ref())?;
-                let v = v.parse::<ucell>()?;
+                let v = v.parse::<u32>()?;
                 cell.get_or_insert_with(CellData::new).span.col_span = v;
             }
 
