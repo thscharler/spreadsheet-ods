@@ -8,7 +8,9 @@
   cell_mut was removed, cell, add_cell, remove_cell, work with CellContent now.
   iter() and range() use CellContentRef.
 
-- Implement IntoIterator
+- Throw away ucell. Uses u32 instead.
+
+- Implement IntoIterator, iter(), range()
 
 - Add CellSpan for ease of use.
 
