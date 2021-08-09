@@ -160,7 +160,7 @@
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unreachable_pub)]
-#![warn(unsafe_code)]
+// #![warn(unsafe_code)]
 #![warn(unsafe_op_in_unsafe_fn)]
 #![warn(unstable_features)]
 // NO #![warn(unused_crate_dependencies)]
@@ -204,7 +204,7 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::iter::FusedIterator;
 use std::ops::RangeBounds;
-use std::str::FromStr;
+use std::str::from_utf8;
 
 #[macro_use]
 mod attr_macro;
@@ -850,22 +850,6 @@ pub enum Visibility {
     Visible,
     Collapsed,
     Filtered,
-}
-
-impl FromStr for Visibility {
-    type Err = OdsError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "visible" => Ok(Visibility::Visible),
-            "filter" => Ok(Visibility::Filtered),
-            "collapse" => Ok(Visibility::Collapsed),
-            _ => Err(OdsError::Ods(format!(
-                "Unknown value for table:visibility {}",
-                s
-            ))),
-        }
-    }
 }
 
 impl Default for Visibility {
@@ -2342,7 +2326,7 @@ impl Value {
     /// Returns the currency code or "" if the value is not a currency.
     pub fn currency(&self) -> &str {
         match self {
-            Value::Currency(_, c) => core::str::from_utf8(c).unwrap(),
+            Value::Currency(_, c) => from_utf8(c).unwrap(),
             _ => "",
         }
     }

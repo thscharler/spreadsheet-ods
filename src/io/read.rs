@@ -1,9 +1,9 @@
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::fs::File;
 use std::io::{BufReader, Cursor, Read, Seek};
 use std::path::Path;
 
-use chrono::{Duration, NaiveDate, NaiveDateTime};
+use chrono::{Duration, NaiveDateTime};
 use quick_xml::events::{BytesStart, Event};
 use zip::read::ZipFile;
 use zip::ZipArchive;
@@ -14,8 +14,12 @@ use crate::config::{Config, ConfigItem, ConfigItemType, ConfigValue};
 use crate::ds::detach::Detach;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType};
+use crate::io::parse::{
+    parse_bool, parse_currency, parse_datetime, parse_duration, parse_f64, parse_i16, parse_i32,
+    parse_i64, parse_string, parse_u32, parse_visibility,
+};
 use crate::io::{DUMP_UNUSED, DUMP_XML};
-use crate::refs::{parse_cellranges, parse_cellref, CellRef};
+use crate::refs::{parse_cellranges, parse_cellref};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
@@ -23,14 +27,14 @@ use crate::style::{
     RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::text::{TextP, TextTag};
-use crate::validation::{
-    MessageType, Validation, ValidationDisplay, ValidationError, ValidationHelp,
-};
+use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
     CellData, CellStyle, ColRange, Length, RowRange, Sheet, SplitMode, Value, ValueFormat,
     ValueType, Visibility, WorkBook,
 };
+use quick_xml::events::attributes::Attribute;
+use std::borrow::Cow;
 use std::str::from_utf8;
 
 /// Reads an ODS-file from a buffer
@@ -227,8 +231,7 @@ fn read_content(book: &mut WorkBook, zip_file: &mut ZipFile<'_>) -> Result<(), O
                 for attr in xml_tag.attributes().with_checks(false) {
                     match attr? {
                         attr if attr.key == b"office:version" => {
-                            let v = attr.unescape_and_decode_value(&xml)?;
-                            book.set_version(v);
+                            book.set_version(parse_string(&attr.value)?);
                         }
                         _ => {
                             // noop
@@ -309,7 +312,7 @@ fn read_content(book: &mut WorkBook, zip_file: &mut ZipFile<'_>) -> Result<(), O
                 break;
             }
             _ => {
-                if DUMP_UNUSED { println!(" unused read_content {:?}", evt); }
+                dump_unused2("read_content", &evt)?;
             }
         }
 
@@ -326,7 +329,7 @@ fn read_table(
 ) -> Result<Sheet, OdsError> {
     let mut sheet = Sheet::new();
 
-    read_table_attr(&mut sheet, xml, xml_tag)?;
+    read_table_attr(&mut sheet, xml_tag)?;
 
     // Position within table-columns
     let mut table_col: u32 = 0;
@@ -396,7 +399,7 @@ fn read_table(
 
             Event::Empty(xml_tag)
             if xml_tag.name() == b"table:table-column" => {
-                table_col = read_table_col_attr(&mut sheet, table_col, xml, &xml_tag)?;
+                table_col = read_table_col_attr(&mut sheet, table_col,  &xml_tag)?;
             }
 
             Event::Start(xml_tag)
@@ -411,7 +414,7 @@ fn read_table(
 
             Event::Start(xml_tag)
             if xml_tag.name() == b"table:table-row" => {
-                let (repeat, style, cellstyle, visible) = read_table_row_attr(xml, xml_tag)?;
+                let (repeat, style, cellstyle, visible) = read_table_row_attr( xml_tag)?;
                 row_repeat = repeat;
                 rowstyle = style;
                 row_cellstyle = cellstyle;
@@ -443,7 +446,7 @@ fn read_table(
 
             Event::Empty(xml_tag)
             if xml_tag.name() == b"table:table-cell" || xml_tag.name() == b"table:covered-table-cell" => {
-                col = read_empty_table_cell(&mut sheet, row, col, xml, xml_tag)?;
+                col = read_empty_table_cell(&mut sheet, row, col, xml_tag)?;
             }
 
             Event::Start(xml_tag)
@@ -452,7 +455,7 @@ fn read_table(
             }
 
             _ => {
-                if DUMP_UNUSED { println!(" unused read_table {:?}", evt); }
+                dump_unused2("read_table", &evt)?;
             }
         }
     }
@@ -461,41 +464,28 @@ fn read_table(
 }
 
 // Reads the table attributes.
-fn read_table_attr(
-    sheet: &mut Sheet,
-    xml: &quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
-    xml_tag: BytesStart<'_>,
-) -> Result<(), OdsError> {
+fn read_table_attr(sheet: &mut Sheet, xml_tag: BytesStart<'_>) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                sheet.set_name(v);
+                sheet.set_name(parse_string(&attr.value)?);
             }
             attr if attr.key == b"table:style-name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                sheet.set_style(&v.into());
+                sheet.set_style(&parse_string(&attr.value)?.into());
             }
             attr if attr.key == b"table:print" => {
-                let v = parse_bool(attr.value.as_ref())?;
-                sheet.set_print(v);
+                sheet.set_print(parse_bool(&attr.value)?);
             }
             attr if attr.key == b"table:display" => {
-                let v = parse_bool(attr.value.as_ref())?;
-                sheet.set_display(v);
+                sheet.set_display(parse_bool(&attr.value)?);
             }
             attr if attr.key == b"table:print-ranges" => {
-                let v = attr.unescape_and_decode_value(xml)?;
+                let v = attr.unescaped_value()?;
                 let mut pos = 0usize;
-                sheet.print_ranges = parse_cellranges(v.as_str(), &mut pos)?;
+                sheet.print_ranges = parse_cellranges(from_utf8(v.as_ref())?, &mut pos)?;
             }
             attr => {
-                if DUMP_UNUSED {
-                    let n = xml.decode(xml_tag.name())?;
-                    let k = xml.decode(attr.key)?;
-                    let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_table_attr unused {} {} {}", n, k, v);
-                }
+                dump_unused("read_table_attr", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -505,7 +495,6 @@ fn read_table_attr(
 
 // Reads table-row attributes. Returns the repeat-count.
 fn read_table_row_attr(
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: BytesStart<'_>,
 ) -> Result<(u32, Option<String>, Option<String>, Visibility), OdsError> {
     let mut row_repeat: u32 = 1;
@@ -517,28 +506,19 @@ fn read_table_row_attr(
         match attr? {
             // table:default-cell-style-name 19.615, table:visibility 19.749 and xml:id 19.914.
             attr if attr.key == b"table:number-rows-repeated" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                row_repeat = v.parse::<u32>()?;
+                row_repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key == b"table:style-name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                rowstyle = Some(v);
+                rowstyle = Some(parse_string(&attr.value)?);
             }
             attr if attr.key == b"table:default-cell-style-name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                row_cellstyle = Some(v);
+                row_cellstyle = Some(parse_string(&attr.value)?);
             }
             attr if attr.key == b"table:visibility" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                row_visible = v.parse()?;
+                row_visible = parse_visibility(&attr.value)?;
             }
             attr => {
-                if DUMP_UNUSED {
-                    let n = xml.decode(xml_tag.name())?;
-                    let k = xml.decode(attr.key)?;
-                    let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_table_row_attr unused {} {} {}", n, k, v);
-                }
+                dump_unused("read_table_row_attr", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -550,7 +530,6 @@ fn read_table_row_attr(
 fn read_table_col_attr(
     sheet: &mut Sheet,
     mut table_col: u32,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
 ) -> Result<u32, OdsError> {
     let mut style = None;
@@ -561,28 +540,19 @@ fn read_table_col_attr(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:number-columns-repeated" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                repeat = v.parse()?;
+                repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key == b"table:style-name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                style = Some(v);
+                style = Some(parse_string(&attr.value)?);
             }
             attr if attr.key == b"table:default-cell-style-name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                cellstyle = Some(v);
+                cellstyle = Some(parse_string(&attr.value)?);
             }
             attr if attr.key == b"table:visibility" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                visible = v.parse()?;
+                visible = parse_visibility(&attr.value)?;
             }
             attr => {
-                if DUMP_UNUSED {
-                    let n = xml.decode(xml_tag.name())?;
-                    let k = xml.decode(attr.key)?;
-                    let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_table_column unused {} {} {}", n, k, v);
-                }
+                dump_unused("read_table_col_attr", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -657,16 +627,13 @@ fn read_table_cell2(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:number-columns-repeated" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                cell_repeat = v.parse::<u32>()?;
+                cell_repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key == b"table:number-rows-spanned" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                cell.span.row_span = v.parse::<u32>()?;
+                cell.span.row_span = parse_u32(&attr.value)?;
             }
             attr if attr.key == b"table:number-columns-spanned" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                cell.span.col_span = v.parse::<u32>()?;
+                cell.span.col_span = parse_u32(&attr.value)?;
             }
             attr if attr.key == b"calcext:value-type" => {
                 // not used. office:value-type seems to be good enough.
@@ -684,49 +651,31 @@ fn read_table_cell2(
                 }
             }
             attr if attr.key == b"office:date-value" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                let v = parse_datetime(v)?;
-                tc.val_datetime = Some(v);
+                tc.val_datetime = Some(parse_datetime(&attr.value)?);
             }
             attr if attr.key == b"office:time-value" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                let v = parse_duration(v);
-                tc.val_duration = Some(v);
+                tc.val_duration = Some(parse_duration(&attr.value)?);
             }
             attr if attr.key == b"office:value" => {
-                let v = parse_float(attr.value.as_ref())?;
-                tc.val_float = Some(v);
+                tc.val_float = Some(parse_f64(&attr.value)?);
             }
             attr if attr.key == b"office:boolean-value" => {
-                let v = parse_bool(attr.value.as_ref())?;
-                tc.val_bool = Some(v);
+                tc.val_bool = Some(parse_bool(&attr.value)?);
             }
             attr if attr.key == b"office:string-value" => {
-                tc.val_string = Some(attr.unescape_and_decode_value(xml)?)
+                tc.val_string = Some(parse_string(&attr.value)?);
             }
             attr if attr.key == b"office:currency" => {
-                let v = attr.value.as_ref();
-                tc.val_currency = match v.len() {
-                    0 => Some([b' ', b' ', b' ']),
-                    1 => Some([v[0], b' ', b' ']),
-                    2 => Some([v[0], v[1], b' ']),
-                    3 => Some([v[0], v[1], v[2]]),
-                    _ => return Err(OdsError::Parse(format!("{:?} not a currency", v))),
-                };
+                tc.val_currency = Some(parse_currency(&attr.value)?);
             }
             attr if attr.key == b"table:formula" => {
-                cell.formula = Some(attr.unescape_and_decode_value(xml)?)
+                cell.formula = Some(parse_string(&attr.value)?);
             }
             attr if attr.key == b"table:style-name" => {
-                cell.style = Some(attr.unescape_and_decode_value(xml)?)
+                cell.style = Some(parse_string(&attr.value)?);
             }
             attr => {
-                if DUMP_UNUSED {
-                    let n = xml.decode(xml_tag.name())?;
-                    let k = xml.decode(attr.key)?;
-                    let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_table_cell unused {} {} {}", n, k, v);
-                }
+                dump_unused("read_table_cell2", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -765,9 +714,7 @@ fn read_table_cell2(
             }
 
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_table_cell unused {:?}", evt);
-                }
+                dump_unused2("read_table_cell", &evt)?;
             }
         }
 
@@ -926,7 +873,6 @@ fn read_empty_table_cell(
     sheet: &mut Sheet,
     row: u32,
     mut col: u32,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: BytesStart<'_>,
 ) -> Result<u32, OdsError> {
     let mut cell = None;
@@ -935,35 +881,23 @@ fn read_empty_table_cell(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"table:number-columns-repeated" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                cell_repeat = v.parse::<u32>()?;
+                cell_repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key == b"table:formula" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                cell.get_or_insert_with(CellData::new).formula = Some(v);
+                cell.get_or_insert_with(CellData::new).formula = Some(parse_string(&attr.value)?);
             }
             attr if attr.key == b"table:style-name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                cell.get_or_insert_with(CellData::new).style = Some(v);
+                cell.get_or_insert_with(CellData::new).style = Some(parse_string(&attr.value)?);
             }
             attr if attr.key == b"table:number-rows-spanned" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                let v = v.parse::<u32>()?;
-                cell.get_or_insert_with(CellData::new).span.row_span = v;
+                cell.get_or_insert_with(CellData::new).span.row_span = parse_u32(&attr.value)?;
             }
             attr if attr.key == b"table:number-columns-spanned" => {
-                let v = from_utf8(attr.value.as_ref())?;
-                let v = v.parse::<u32>()?;
-                cell.get_or_insert_with(CellData::new).span.col_span = v;
+                cell.get_or_insert_with(CellData::new).span.col_span = parse_u32(&attr.value)?;
             }
 
             attr => {
-                if DUMP_UNUSED {
-                    let n = xml.decode(xml_tag.name())?;
-                    let k = xml.decode(attr.key)?;
-                    let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_empty_table_cell unused {} {} {}", n, k, v);
-                }
+                dump_unused("read_empty_table_cell", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -981,73 +915,6 @@ fn read_empty_table_cell(
     }
 
     Ok(col)
-}
-
-fn parse_float(val: &[u8]) -> Result<f64, OdsError> {
-    let v = from_utf8(val)?;
-    Ok(v.parse::<f64>()?)
-}
-
-fn parse_bool(val: &[u8]) -> Result<bool, OdsError> {
-    if val == b"true" {
-        Ok(true)
-    } else if val == b"false" {
-        Ok(false)
-    } else {
-        return Err(OdsError::Parse(format!("{:?} not a bool", val)));
-    }
-}
-
-fn parse_datetime(val: &str) -> Result<NaiveDateTime, chrono::ParseError> {
-    if val.len() == 10 {
-        Ok(NaiveDate::parse_from_str(val, "%Y-%m-%d")?.and_hms(0, 0, 0))
-    } else {
-        Ok(NaiveDateTime::parse_from_str(val, "%Y-%m-%dT%H:%M:%S%.f")?)
-    }
-}
-
-fn parse_duration(val: &str) -> Duration {
-    let mut hour: i32 = 0;
-    let mut have_hour = false;
-    let mut min: i32 = 0;
-    let mut have_min = false;
-    let mut sec: i32 = 0;
-    let mut have_sec = false;
-    let mut nanos: i64 = 0;
-    let mut nanos_digits: u8 = 0;
-
-    for c in val.chars() {
-        match c {
-            'P' | 'T' => {}
-            '0'..='9' => {
-                if !have_hour {
-                    hour = hour * 10 + (c as i32 - '0' as i32);
-                } else if !have_min {
-                    min = min * 10 + (c as i32 - '0' as i32);
-                } else if !have_sec {
-                    sec = sec * 10 + (c as i32 - '0' as i32);
-                } else {
-                    nanos = nanos * 10 + (c as i64 - '0' as i64);
-                    nanos_digits += 1;
-                }
-            }
-            'H' => have_hour = true,
-            'M' => have_min = true,
-            '.' => have_sec = true,
-            'S' => {}
-            _ => { // todo: fail
-            }
-        }
-    }
-    // unseen nano digits
-    while nanos_digits < 9 {
-        nanos *= 10;
-        nanos_digits += 1;
-    }
-
-    let secs = (hour * 3600 + min * 60 + sec) as i64;
-
-    Duration::seconds(secs) + Duration::nanoseconds(nanos)
 }
 
 // reads a font-face
@@ -1070,44 +937,28 @@ fn read_fonts(
         match evt {
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
                 b"style:font-face" => {
-                    for attr in xml_tag.attributes().with_checks(false) {
-                        match attr? {
-                            attr if attr.key == b"style:name" => {
-                                let v = attr.unescape_and_decode_value(xml)?;
-                                font.set_name(v);
-                            }
-                            attr => {
-                                let k = xml.decode(attr.key)?;
-                                let v = attr.unescape_and_decode_value(xml)?;
-                                font.attrmap_mut().set_attr(k, v);
-                            }
-                        }
-                    }
+                    let name = proc_style_attr(font.attrmap_mut(), xml_tag)?;
+                    font.set_name(name);
 
                     book.add_font(font);
+
                     font = FontFaceDecl::new();
                     font.set_origin(StyleOrigin::Content);
                 }
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_fonts unused {:?}", evt);
-                    }
+                    dump_unused2("read_fonts", &evt)?;
                 }
             },
-
             Event::End(ref e) => {
                 if e.name() == b"office:font-face-decls" {
                     break;
                 }
             }
-
             Event::Eof => {
                 break;
             }
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_fonts unused {:?}", evt);
-                }
+                dump_unused2("read_fonts", &evt)?;
             }
         }
 
@@ -1129,16 +980,10 @@ fn read_page_style(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                pl.set_name(v);
+                pl.set_name(parse_string(&attr.value)?);
             }
             attr => {
-                if DUMP_UNUSED {
-                    let n = xml.decode(xml_tag.name())?;
-                    let k = xml.decode(attr.key)?;
-                    let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_page_layout unused {} {} {}", n, k, v);
-                }
+                dump_unused("read_page_style", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -1169,9 +1014,7 @@ fn read_page_style(
                         // noop for now. sets the background transparent.
                     }
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_page_layout unused {:?}", evt);
-                        }
+                        dump_unused2("read_page_layout", &evt)?;
                     }
                 }
             }
@@ -1183,16 +1026,12 @@ fn read_page_style(
                 b"style:footer-style" => footerstyle = false,
                 b"style:header-footer-properties" => {}
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_page_layout unused {:?}", evt);
-                    }
+                    dump_unused2("read_page_layout", &evt)?;
                 }
             },
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_page_layout unused {:?}", evt);
-                }
+                dump_unused2("read_page_layout", &evt)?;
             }
         }
 
@@ -1223,31 +1062,30 @@ fn read_validations(
                     for attr in xml_tag.attributes().with_checks(false) {
                         match attr? {
                             attr if attr.key == b"table:name" => {
-                                let v = attr.unescape_and_decode_value(xml)?;
-                                valid.set_name(v);
+                                valid.set_name(parse_string(&attr.value)?);
                             }
                             attr if attr.key == b"table:condition" => {
-                                let v = attr.unescape_and_decode_value(xml)?;
                                 // split off 'of:' prefix
-
+                                let v = parse_string(&attr.value)?;
                                 valid.set_condition(Condition::new(v.split_at(3).1));
                             }
                             attr if attr.key == b"table:allow-empty-cell" => {
-                                let v = attr.unescape_and_decode_value(xml)?;
-                                valid.set_allow_empty(v.parse()?);
+                                valid.set_allow_empty(parse_bool(&attr.value)?);
                             }
                             attr if attr.key == b"table:base-cell-address" => {
-                                let v = attr.unescape_and_decode_value(xml)?;
-                                valid.set_base_cell(CellRef::try_from(v.as_str())?);
+                                // todo: maybe better
+                                let v = attr.unescaped_value()?;
+                                let mut pos = 0usize;
+                                valid.set_base_cell(parse_cellref(
+                                    from_utf8(v.as_ref())?,
+                                    &mut pos,
+                                )?);
                             }
                             attr if attr.key == b"table:display-list" => {
-                                let v = attr.unescape_and_decode_value(xml)?;
-                                valid.set_display(ValidationDisplay::try_from(v.as_str())?);
+                                valid.set_display(attr.value.as_ref().try_into()?);
                             }
                             attr => {
-                                if DUMP_UNUSED {
-                                    println!(" read_validations unused attr {:?}", attr);
-                                }
+                                dump_unused("read_validations", xml_tag.name(), &attr)?;
                             }
                         }
                     }
@@ -1263,32 +1101,27 @@ fn read_validations(
                     for attr in xml_tag.attributes().with_checks(false) {
                         match attr? {
                             attr if attr.key == b"table:display" => {
-                                let v = attr.unescape_and_decode_value(xml)?;
-                                ve.set_display(v.parse()?);
+                                ve.set_display(parse_bool(&attr.value)?);
                             }
                             attr if attr.key == b"table:message-type" => {
-                                let v = attr.unescape_and_decode_value(xml)?;
-                                let mt = match v.as_str() {
-                                    "stop" => MessageType::Error,
-                                    "warning" => MessageType::Warning,
-                                    "information" => MessageType::Info,
+                                let mt = match attr.value.as_ref() {
+                                    b"stop" => MessageType::Error,
+                                    b"warning" => MessageType::Warning,
+                                    b"information" => MessageType::Info,
                                     _ => {
                                         return Err(OdsError::Parse(format!(
                                             "unknown message-type {}",
-                                            v
+                                            parse_string(&attr.value)?
                                         )))
                                     }
                                 };
                                 ve.set_msg_type(mt);
                             }
                             attr if attr.key == b"table:title" => {
-                                let v = attr.unescape_and_decode_value(xml)?;
-                                ve.set_title(Some(v));
+                                ve.set_title(Some(parse_string(&attr.value)?));
                             }
                             attr => {
-                                if DUMP_UNUSED {
-                                    println!(" read_validations unused attr {:?}", attr);
-                                }
+                                dump_unused("read_validations", xml_tag.name(), &attr)?;
                             }
                         }
                     }
@@ -1314,17 +1147,13 @@ fn read_validations(
                     for attr in xml_tag.attributes().with_checks(false) {
                         match attr? {
                             attr if attr.key == b"table:display" => {
-                                let v = attr.unescape_and_decode_value(xml)?;
-                                vh.set_display(v.parse()?);
+                                vh.set_display(parse_bool(&attr.value)?);
                             }
                             attr if attr.key == b"table:title" => {
-                                let v = attr.unescape_and_decode_value(xml)?;
-                                vh.set_title(Some(v));
+                                vh.set_title(Some(parse_string(&attr.value)?));
                             }
                             attr => {
-                                if DUMP_UNUSED {
-                                    println!(" read_validations unused attr {:?}", attr);
-                                }
+                                dump_unused("read_validations", xml_tag.name(), &attr)?;
                             }
                         }
                     }
@@ -1348,9 +1177,7 @@ fn read_validations(
                 // b"office:event-listeners"
                 // b"table:error-macro"
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_validations unused {:?}", evt);
-                    }
+                    dump_unused2("read_validations", &evt)?;
                 }
             },
             Event::End(ref e) => match e.name() {
@@ -1369,9 +1196,7 @@ fn read_validations(
             Event::Text(_) => (),
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_validations unused {:?}", evt);
-                }
+                dump_unused2("read_validations", &evt)?;
             }
         }
     }
@@ -1398,9 +1223,7 @@ fn read_master_styles(
                     read_master_page(book, origin, xml, xml_tag)?;
                 }
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_master_styles unused {:?}", evt);
-                    }
+                    dump_unused2("read_master_styles", &evt)?;
                 }
             },
             Event::Text(_) => (),
@@ -1411,9 +1234,7 @@ fn read_master_styles(
             }
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_master_styles unused {:?}", evt);
-                }
+                dump_unused2("read_master_styles", &evt)?;
             }
         }
 
@@ -1436,20 +1257,13 @@ fn read_master_page(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:name" => {
-                let name = attr.unescape_and_decode_value(xml)?;
-                masterpage.set_name(name);
+                masterpage.set_name(parse_string(&attr.value)?);
             }
             attr if attr.key == b"style:page-layout-name" => {
-                let name = attr.unescape_and_decode_value(xml)?;
-                masterpage.set_pagestyle(&name.into());
+                masterpage.set_pagestyle(&parse_string(&attr.value)?.into());
             }
             attr => {
-                if DUMP_UNUSED {
-                    let n = xml.decode(xml_tag.name())?;
-                    let k = xml.decode(attr.key)?;
-                    let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_master_page unused {} {} {}", n, k, v);
-                }
+                dump_unused("read_master_page", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -1496,9 +1310,7 @@ fn read_master_page(
                     )?);
                 }
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_master_page unused {:?}", evt);
-                    }
+                    dump_unused2("read_master_page", &evt)?;
                 }
             },
 
@@ -1514,9 +1326,7 @@ fn read_master_page(
             }
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_master_page unused {:?}", evt);
-                }
+                dump_unused2("read_master_page", &evt)?;
             }
         }
 
@@ -1541,16 +1351,10 @@ fn read_headerfooter(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:display" => {
-                let display = attr.unescape_and_decode_value(xml)?;
-                hf.set_display(display == "true");
+                hf.set_display(parse_bool(&attr.value)?);
             }
             attr => {
-                if DUMP_UNUSED {
-                    let n = xml.decode(xml_tag.name())?;
-                    let k = xml.decode(attr.key)?;
-                    let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_headerfooter unused {} {} {}", n, k, v);
-                }
+                dump_unused("read_headerfooter", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -1589,9 +1393,7 @@ fn read_headerfooter(
                     }
                     // no other tags supported for now.
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_headerfooter unused {:?}", evt);
-                        }
+                        dump_unused2("read_headerfooter", &evt)?;
                     }
                 }
             }
@@ -1603,9 +1405,7 @@ fn read_headerfooter(
             }
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_headerfooter unused {:?}", evt);
-                }
+                dump_unused2("read_headerfooter", &evt)?;
             }
         }
 
@@ -1666,9 +1466,7 @@ fn read_styles_tag(
                     }
                     // style:default-page-layout
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_styles_tag unused {:?}", evt);
-                        }
+                        dump_unused2("read_styles_tag", &evt)?;
                     }
                 }
             }
@@ -1680,9 +1478,7 @@ fn read_styles_tag(
             }
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_styles_tag unused {:?}", evt);
-                }
+                dump_unused2("read_styles_tag", &evt)?;
             }
         }
 
@@ -1735,9 +1531,7 @@ fn read_auto_styles(
                         read_page_style(book, xml, xml_tag)?;
                     }
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_auto_styles unused {:?}", evt);
-                        }
+                        dump_unused2("read_auto_styles", &evt)?;
                     }
                 }
             }
@@ -1749,9 +1543,7 @@ fn read_auto_styles(
             }
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_auto_styles unused {:?}", evt);
-                }
+                dump_unused2("read_auto_styles", &evt)?;
             }
         }
 
@@ -1779,26 +1571,24 @@ fn read_value_format(
 
     match xml_tag.name() {
         b"number:boolean-style" => {
-            read_value_format_attr(ValueType::Boolean, &mut valuestyle, xml, xml_tag)?
+            read_value_format_attr(ValueType::Boolean, &mut valuestyle, xml_tag)?
         }
         b"number:date-style" => {
-            read_value_format_attr(ValueType::DateTime, &mut valuestyle, xml, xml_tag)?
+            read_value_format_attr(ValueType::DateTime, &mut valuestyle, xml_tag)?
         }
         b"number:time-style" => {
-            read_value_format_attr(ValueType::TimeDuration, &mut valuestyle, xml, xml_tag)?
+            read_value_format_attr(ValueType::TimeDuration, &mut valuestyle, xml_tag)?
         }
         b"number:number-style" => {
-            read_value_format_attr(ValueType::Number, &mut valuestyle, xml, xml_tag)?
+            read_value_format_attr(ValueType::Number, &mut valuestyle, xml_tag)?
         }
         b"number:currency-style" => {
-            read_value_format_attr(ValueType::Currency, &mut valuestyle, xml, xml_tag)?
+            read_value_format_attr(ValueType::Currency, &mut valuestyle, xml_tag)?
         }
         b"number:percentage-style" => {
-            read_value_format_attr(ValueType::Percentage, &mut valuestyle, xml, xml_tag)?
+            read_value_format_attr(ValueType::Percentage, &mut valuestyle, xml_tag)?
         }
-        b"number:text-style" => {
-            read_value_format_attr(ValueType::Text, &mut valuestyle, xml, xml_tag)?
-        }
+        b"number:text-style" => read_value_format_attr(ValueType::Text, &mut valuestyle, xml_tag)?,
         _ => {
             if DUMP_UNUSED {
                 let n = xml.decode(xml_tag.name())?;
@@ -1863,7 +1653,7 @@ fn read_value_format(
                         valuestyle.push_part(read_part(xml_tag, FormatPartType::TextContent)?)
                     }
                     b"style:text" => valuestyle.push_part(read_part(xml_tag, FormatPartType::Day)?),
-                    b"style:map" => valuestyle.push_stylemap(read_stylemap(xml, xml_tag)?),
+                    b"style:map" => valuestyle.push_stylemap(read_stylemap(xml_tag)?),
                     b"number:currency-symbol" => {
                         valuestyle_part = Some(read_part(xml_tag, FormatPartType::CurrencySymbol)?);
 
@@ -1888,9 +1678,7 @@ fn read_value_format(
                     }
                     b"style:text-properties" => copy_attr2(valuestyle.textstyle_mut(), xml_tag)?,
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_value_format unused {:?}", evt);
-                        }
+                        dump_unused2("read_value_format", &evt)?;
                     }
                 }
             }
@@ -1917,16 +1705,12 @@ fn read_value_format(
                     valuestyle_part = None;
                 }
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_value_format unused {:?}", evt);
-                    }
+                    dump_unused2("read_value_format", &evt)?;
                 }
             },
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_value_format unused {:?}", evt);
-                }
+                dump_unused2("read_value_format", &evt)?;
             }
         }
 
@@ -1940,24 +1724,11 @@ fn read_value_format(
 fn read_value_format_attr(
     value_type: ValueType,
     valuestyle: &mut ValueFormat,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
     valuestyle.set_value_type(value_type);
-
-    for attr in xml_tag.attributes().with_checks(false) {
-        match attr? {
-            attr if attr.key == b"style:name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                valuestyle.set_name(v);
-            }
-            attr => {
-                let k = xml.decode(attr.key)?;
-                let v = attr.unescape_and_decode_value(xml)?;
-                valuestyle.attrmap_mut().set_attr(k, v);
-            }
-        }
-    }
+    let name = proc_style_attr(valuestyle.attrmap_mut(), xml_tag)?;
+    valuestyle.set_name(name);
 
     Ok(())
 }
@@ -1978,34 +1749,45 @@ fn read_style_style(
     xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
-    match read_family_attr(xml, xml_tag)?.as_str() {
-        "table" => {
-            read_tablestyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
-        }
-        "table-row" => {
-            read_rowstyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
-        }
-        "table-column" => {
-            read_colstyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
-        }
-        "table-cell" => {
-            read_cellstyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
-        }
-        "paragraph" => {
-            read_paragraphstyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
-        }
-        "graphic" => {
-            read_graphicstyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
-        }
-        "text" => {
-            read_textstyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?;
-        }
-        v => {
-            if DUMP_UNUSED {
-                println!(" read_family_attr unused {:?}", v);
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key == b"style:family" => {
+                match attr.value.as_ref() {
+                    b"table" => {
+                        read_tablestyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+                    }
+                    b"table-column" => {
+                        read_colstyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+                    }
+                    b"table-row" => {
+                        read_rowstyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+                    }
+                    b"table-cell" => {
+                        read_cellstyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+                    }
+                    b"graphic" => {
+                        read_graphicstyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+                    }
+                    b"paragraph" => read_paragraphstyle(
+                        book, origin, styleuse, end_tag, xml, xml_tag, empty_tag,
+                    )?,
+                    b"text" => {
+                        read_textstyle(book, origin, styleuse, end_tag, xml, xml_tag, empty_tag)?
+                    }
+                    value => {
+                        return Err(OdsError::Ods(format!(
+                            "style:family unknown {} ",
+                            from_utf8(value.as_ref())?
+                        )))
+                    }
+                };
+            }
+            attr => {
+                dump_unused("read_style_style", xml_tag.name(), &attr)?;
             }
         }
     }
+
     Ok(())
 }
 
@@ -2025,8 +1807,8 @@ fn read_tablestyle(
     let mut style = TableStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-    style.set_name(style_name(xml, xml_tag)?);
-    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
+    let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
+    style.set_name(name);
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -2041,9 +1823,7 @@ fn read_tablestyle(
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
                     b"style:table-properties" => copy_attr2(style.tablestyle_mut(), xml_tag)?,
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_table_style unused {:?}", evt);
-                        }
+                        dump_unused2("read_table_style", &evt)?;
                     }
                 },
                 Event::Text(_) => (),
@@ -2052,16 +1832,12 @@ fn read_tablestyle(
                         book.add_tablestyle(style);
                         break;
                     } else {
-                        if DUMP_UNUSED {
-                            println!(" read_table_style unused {:?}", evt);
-                        }
+                        dump_unused2("read_table_style", &evt)?;
                     }
                 }
                 Event::Eof => break,
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_table_style unused {:?}", evt);
-                    }
+                    dump_unused2("read_table_style", &evt)?;
                 }
             }
         }
@@ -2086,8 +1862,8 @@ fn read_rowstyle(
     let mut style = RowStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-    style.set_name(style_name(xml, xml_tag)?);
-    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
+    let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
+    style.set_name(name);
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -2102,9 +1878,7 @@ fn read_rowstyle(
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
                     b"style:table-row-properties" => copy_attr2(style.rowstyle_mut(), xml_tag)?,
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_rowstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_rowstyle", &evt)?;
                     }
                 },
                 Event::Text(_) => (),
@@ -2113,16 +1887,12 @@ fn read_rowstyle(
                         book.add_rowstyle(style);
                         break;
                     } else {
-                        if DUMP_UNUSED {
-                            println!(" read_rowstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_rowstyle", &evt)?;
                     }
                 }
                 Event::Eof => break,
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_rowstyle unused {:?}", evt);
-                    }
+                    dump_unused2("read_rowstyle", &evt)?;
                 }
             }
         }
@@ -2147,8 +1917,8 @@ fn read_colstyle(
     let mut style = ColStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-    style.set_name(style_name(xml, xml_tag)?);
-    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
+    let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
+    style.set_name(name);
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -2163,9 +1933,7 @@ fn read_colstyle(
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
                     b"style:table-column-properties" => copy_attr2(style.colstyle_mut(), xml_tag)?,
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_colstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_colstyle", &evt)?;
                     }
                 },
                 Event::Text(_) => (),
@@ -2174,16 +1942,12 @@ fn read_colstyle(
                         book.add_colstyle(style);
                         break;
                     } else {
-                        if DUMP_UNUSED {
-                            println!(" read_colstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_colstyle", &evt)?;
                     }
                 }
                 Event::Eof => break,
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_colstyle unused {:?}", evt);
-                    }
+                    dump_unused2("read_colstyle", &evt)?;
                 }
             }
         }
@@ -2208,8 +1972,8 @@ fn read_cellstyle(
     let mut style = CellStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-    style.set_name(style_name(xml, xml_tag)?);
-    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
+    let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
+    style.set_name(name);
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -2228,7 +1992,7 @@ fn read_cellstyle(
                         copy_attr2(style.paragraphstyle_mut(), xml_tag)?
                     }
                     // b"style:graphic-properties" => copy_attr(style.graphic_mut(), xml, xml_tag)?,
-                    b"style:map" => style.push_stylemap(read_stylemap(xml, xml_tag)?),
+                    b"style:map" => style.push_stylemap(read_stylemap(xml_tag)?),
 
                     // b"style:tab-stops" => (),
                     // b"style:tab-stop" => {
@@ -2237,9 +2001,7 @@ fn read_cellstyle(
                     //     style.paragraph_mut().add_tabstop(ts);
                     // }
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_cellstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_cellstyle", &evt)?;
                     }
                 },
                 Event::Text(_) => (),
@@ -2250,16 +2012,12 @@ fn read_cellstyle(
                     } else if e.name() == b"style:paragraph-properties" {
                         // noop
                     } else {
-                        if DUMP_UNUSED {
-                            println!(" read_cellstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_cellstyle", &evt)?;
                     }
                 }
                 Event::Eof => break,
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_cellstyle unused {:?}", evt);
-                    }
+                    dump_unused2("read_cellstyle", &evt)?;
                 }
             }
         }
@@ -2284,8 +2042,8 @@ fn read_paragraphstyle(
     let mut style = ParagraphStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-    style.set_name(style_name(xml, xml_tag)?);
-    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
+    let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
+    style.set_name(name);
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -2311,9 +2069,7 @@ fn read_paragraphstyle(
                         style.add_tabstop(ts);
                     }
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_paragraphstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_paragraphstyle", &evt)?;
                     }
                 },
                 Event::Text(_) => (),
@@ -2326,16 +2082,12 @@ fn read_paragraphstyle(
                     {
                         // noop
                     } else {
-                        if DUMP_UNUSED {
-                            println!(" read_paragraphstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_paragraphstyle", &evt)?;
                     }
                 }
                 Event::Eof => break,
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_paragraphstyle unused {:?}", evt);
-                    }
+                    dump_unused2("read_paragraphstyle", &evt)?;
                 }
             }
         }
@@ -2360,8 +2112,8 @@ fn read_textstyle(
     let mut style = TextStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-    style.set_name(style_name(xml, xml_tag)?);
-    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
+    let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
+    style.set_name(name);
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -2376,9 +2128,7 @@ fn read_textstyle(
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
                     b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml_tag)?,
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_textstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_textstyle", &evt)?;
                     }
                 },
                 Event::Text(_) => (),
@@ -2387,16 +2137,12 @@ fn read_textstyle(
                         book.add_textstyle(style);
                         break;
                     } else {
-                        if DUMP_UNUSED {
-                            println!(" read_textstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_textstyle", &evt)?;
                     }
                 }
                 Event::Eof => break,
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_textstyle unused {:?}", evt);
-                    }
+                    dump_unused2("read_textstyle", &evt)?;
                 }
             }
         }
@@ -2421,8 +2167,8 @@ fn read_graphicstyle(
     let mut style = GraphicStyle::empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
-    style.set_name(style_name(xml, xml_tag)?);
-    copy_style_attr(style.attrmap_mut(), xml, xml_tag)?;
+    let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
+    style.set_name(name);
 
     // In case of an empty xml-tag we are done here.
     if empty_tag {
@@ -2437,9 +2183,7 @@ fn read_graphicstyle(
                 Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
                     b"style:graphic-properties" => copy_attr2(style.graphicstyle_mut(), xml_tag)?,
                     _ => {
-                        if DUMP_UNUSED {
-                            println!(" read_graphicstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_graphicstyle", &evt)?;
                     }
                 },
                 Event::Text(_) => (),
@@ -2448,16 +2192,12 @@ fn read_graphicstyle(
                         book.add_graphicstyle(style);
                         break;
                     } else {
-                        if DUMP_UNUSED {
-                            println!(" read_graphicstyle unused {:?}", evt);
-                        }
+                        dump_unused2("read_graphicstyle", &evt)?;
                     }
                 }
                 Event::Eof => break,
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_graphicstyle unused {:?}", evt);
-                    }
+                    dump_unused2("read_graphicstyle", &evt)?;
                 }
             }
         }
@@ -2466,33 +2206,24 @@ fn read_graphicstyle(
     Ok(())
 }
 
-fn read_stylemap(
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
-    xml_tag: &BytesStart<'_>,
-) -> Result<StyleMap, OdsError> {
+fn read_stylemap(xml_tag: &BytesStart<'_>) -> Result<StyleMap, OdsError> {
     let mut sm = StyleMap::default();
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:condition" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                sm.set_condition(ValueCondition::new(v));
+                sm.set_condition(ValueCondition::new(parse_string(&attr.value)?));
             }
             attr if attr.key == b"style:apply-style-name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                sm.set_applied_style(v);
+                sm.set_applied_style(parse_string(&attr.value)?);
             }
             attr if attr.key == b"style:base-cell-address" => {
-                let v = attr.unescape_and_decode_value(xml)?;
+                // todo: maybe better?
+                let v = attr.unescaped_value()?;
                 let mut pos = 0usize;
-                sm.set_base_cell(parse_cellref(v.as_str(), &mut pos)?);
+                sm.set_base_cell(parse_cellref(from_utf8(v.as_ref())?, &mut pos)?);
             }
             attr => {
-                if DUMP_UNUSED {
-                    let n = xml.decode(xml_tag.name())?;
-                    let k = xml.decode(attr.key)?;
-                    let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_stylemap unused {} {} {}", n, k, v);
-                }
+                dump_unused("read_stylemap", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -2500,76 +2231,38 @@ fn read_stylemap(
     Ok(sm)
 }
 
-fn read_family_attr(
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
-    xml_tag: &BytesStart<'_>,
-) -> Result<String, OdsError> {
-    for attr in xml_tag.attributes().with_checks(false) {
-        match attr? {
-            attr if attr.key == b"style:family" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                return match v.as_ref() {
-                    "table" | "table-column" | "table-row" | "table-cell" | "graphic"
-                    | "paragraph" | "text" => Ok(v.as_str().to_string()),
-                    _ => Err(OdsError::Ods(format!("style:family unknown {} ", v))),
-                };
-            }
-            attr => {
-                if DUMP_UNUSED {
-                    let n = xml.decode(xml_tag.name())?;
-                    let k = xml.decode(attr.key)?;
-                    let v = attr.unescape_and_decode_value(xml)?;
-                    println!(" read_family_attr unused {} {} {}", n, k, v);
-                }
-            }
-        }
-    }
-
-    Err(OdsError::Ods("no style:family".to_string()))
-}
-
-/// extract the "style:name" attr
-fn style_name(
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
-    xml_tag: &BytesStart<'_>,
-) -> Result<String, OdsError> {
-    for attr in xml_tag.attributes().with_checks(false) {
-        match attr? {
-            attr if attr.key == b"style:name" => return Ok(attr.unescape_and_decode_value(xml)?),
-            _ => {}
-        }
-    }
-
-    Ok("".to_string())
-}
-
-/// Copies all attributes to the given map, excluding "style:name"
-fn copy_style_attr(
+/// Copies all attributes to the map, excluding "style:name" which is returned.
+fn proc_style_attr<'a>(
     attrmap: &mut AttrMap2,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
-    xml_tag: &BytesStart<'_>,
-) -> Result<(), OdsError> {
+    xml_tag: &'a BytesStart<'_>,
+) -> Result<String, OdsError> {
+    let mut name = None;
+
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"style:name" => {}
+            attr if attr.key == b"style:name" => {
+                name = Some(parse_string(&attr.value)?);
+            }
             attr => {
-                let k = xml.decode(attr.key)?;
-                let v = attr.unescape_and_decode_value(xml)?;
+                let k = from_utf8(attr.key)?;
+                let v = parse_string(&attr.value)?;
                 attrmap.set_attr(k, v);
             }
         }
     }
 
-    Ok(())
+    Ok(name.unwrap_or_else(String::new))
 }
-
 /// Copies all attributes to the given map.
 fn copy_attr2(attrmap: &mut AttrMap2, xml_tag: &BytesStart<'_>) -> Result<(), OdsError> {
-    for attr in xml_tag.attributes().with_checks(false).flatten() {
-        let k = from_utf8(attr.key)?;
-        let v = attr.unescaped_value()?;
-        let v = from_utf8(v.as_ref())?;
-        attrmap.set_attr(k, v.to_string());
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr => {
+                let k = from_utf8(attr.key)?;
+                let v = parse_string(&attr.value)?;
+                attrmap.set_attr(k, v);
+            }
+        }
     }
 
     Ok(())
@@ -2615,9 +2308,7 @@ fn read_styles(book: &mut WorkBook, zip_file: &mut ZipFile<'_>) -> Result<(), Od
                 break;
             }
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_styles unused {:?}", evt);
-                }
+                dump_unused2("read_styles", &evt)?;
             }
         }
 
@@ -2747,9 +2438,7 @@ fn read_settings(book: &mut WorkBook, zip_file: &mut ZipFile<'_>) -> Result<(), 
                 break;
             }
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_settings unused {:?}", evt);
-                }
+                dump_unused2("read_settings", &evt)?;
             }
         }
 
@@ -2783,9 +2472,7 @@ fn read_office_settings(
             }
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_auto_styles unused {:?}", evt);
-                }
+                dump_unused2("read_office_settings", &evt)?;
             }
         }
 
@@ -2809,11 +2496,10 @@ fn read_config_item_set(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"config:name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                name = Some(v);
+                name = Some(parse_string(&attr.value)?);
             }
-            _ => {
-                // noop
+            attr => {
+                dump_unused("read_config_item_set", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -2851,9 +2537,7 @@ fn read_config_item_set(
             }
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_office_item_set unused {:?}", evt);
-                }
+                dump_unused2("read_config_item_set", &evt)?;
             }
         }
 
@@ -2877,11 +2561,10 @@ fn read_config_item_map_indexed(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"config:name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                name = Some(v);
+                name = Some(parse_string(&attr.value)?);
             }
-            _ => {
-                // noop
+            attr => {
+                dump_unused("read_config_item_map_indexed", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -2912,9 +2595,7 @@ fn read_config_item_map_indexed(
             }
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_office_item_set unused {:?}", evt);
-                }
+                dump_unused2("read_config_item_map_indexed", &evt)?;
             }
         }
 
@@ -2938,11 +2619,10 @@ fn read_config_item_map_named(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"config:name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                name = Some(v);
+                name = Some(parse_string(&attr.value)?);
             }
-            _ => {
-                // noop
+            attr => {
+                dump_unused("read_config_item_map_named", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -2979,9 +2659,7 @@ fn read_config_item_map_named(
             }
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_config_item_map_named unused {:?}", evt);
-                }
+                dump_unused2("read_config_item_map_named", &evt)?;
             }
         }
 
@@ -3005,11 +2683,10 @@ fn read_config_item_map_entry(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"config:name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                name = Some(v);
+                name = Some(parse_string(&attr.value)?);
             }
-            _ => {
-                // noop
+            attr => {
+                dump_unused("read_config_item_map_entry", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -3041,9 +2718,7 @@ fn read_config_item_map_entry(
             }
             Event::Eof => break,
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_config_item_map_entry unused {:?}", evt);
-                }
+                dump_unused2("read_config_item_map_entry", &evt)?;
             }
         }
 
@@ -3061,22 +2736,48 @@ fn read_config_item(
 ) -> Result<(String, ConfigValue), OdsError> {
     let mut buf = Vec::new();
 
+    #[derive(PartialEq)]
+    enum ConfigValueType {
+        None,
+        Base64Binary,
+        Boolean,
+        DateTime,
+        Double,
+        Int,
+        Long,
+        Short,
+        String,
+    }
+
     let mut name = None;
-    let mut val_type = None;
+    let mut val_type = ConfigValueType::None;
     let mut config_val = None;
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"config:name" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                name = Some(v);
+                name = Some(parse_string(&attr.value)?);
             }
             attr if attr.key == b"config:type" => {
-                let v = attr.unescape_and_decode_value(xml)?;
-                val_type = Some(v);
+                val_type = match attr.value.as_ref() {
+                    b"base64Binary" => ConfigValueType::Base64Binary,
+                    b"boolean" => ConfigValueType::Boolean,
+                    b"datetime" => ConfigValueType::DateTime,
+                    b"double" => ConfigValueType::Double,
+                    b"int" => ConfigValueType::Int,
+                    b"long" => ConfigValueType::Long,
+                    b"short" => ConfigValueType::Short,
+                    b"string" => ConfigValueType::String,
+                    x => {
+                        return Err(OdsError::Ods(format!(
+                            "unknown config:type {}",
+                            from_utf8(x)?
+                        )));
+                    }
+                };
             }
-            _ => {
-                // noop
+            attr => {
+                dump_unused("read_config_item", xml_tag.name(), &attr)?;
             }
         }
     }
@@ -3089,61 +2790,49 @@ fn read_config_item(
         ));
     };
 
-    let valtype = if let Some(val_type) = val_type {
-        val_type
-    } else {
+    if val_type == ConfigValueType::None {
         return Err(OdsError::Ods(
             "config value without config:type".to_string(),
         ));
     };
 
-    let mut value = String::new();
+    // todo: is this a good way?
+    let mut value: Vec<u8> = Vec::new();
 
     loop {
         let evt = xml.read_event(&mut buf)?;
         match evt {
             Event::Text(ref txt) => {
-                let txt = txt.unescape_and_decode(xml)?;
-                value.push_str(txt.as_str());
+                value.append(&mut Vec::from(txt.unescaped()?));
             }
             Event::End(ref e) if e.name() == b"config:config-item" => {
-                match valtype.as_str() {
-                    "base64Binary" => {
-                        config_val = Some(ConfigValue::Base64Binary(value));
+                let value = Cow::from(value);
+                match val_type {
+                    ConfigValueType::None => {}
+                    ConfigValueType::Base64Binary => {
+                        config_val = Some(ConfigValue::Base64Binary(parse_string(&value)?));
                     }
-                    "boolean" => {
-                        let f = value.parse::<bool>()?;
-                        config_val = Some(ConfigValue::Boolean(f));
+                    ConfigValueType::Boolean => {
+                        config_val = Some(ConfigValue::Boolean(parse_bool(&value)?));
                     }
-                    "datetime" => {
-                        let dt = if value.len() == 10 {
-                            NaiveDate::parse_from_str(value.as_str(), "%Y-%m-%d")?.and_hms(0, 0, 0)
-                        } else {
-                            NaiveDateTime::parse_from_str(value.as_str(), "%Y-%m-%dT%H:%M:%S%.f")?
-                        };
-                        config_val = Some(ConfigValue::DateTime(dt));
+                    ConfigValueType::DateTime => {
+                        config_val = Some(ConfigValue::DateTime(parse_datetime(&value)?));
                     }
-                    "double" => {
-                        let f = value.parse::<f64>()?;
-                        config_val = Some(ConfigValue::Double(f));
+                    ConfigValueType::Double => {
+                        config_val = Some(ConfigValue::Double(parse_f64(&value)?));
                     }
-                    "int" => {
-                        let f = value.parse::<i32>()?;
-                        config_val = Some(ConfigValue::Int(f));
+                    ConfigValueType::Int => {
+                        config_val = Some(ConfigValue::Int(parse_i32(&value)?));
                     }
-                    "long" => {
-                        let f = value.parse::<i64>()?;
-                        config_val = Some(ConfigValue::Long(f));
+                    ConfigValueType::Long => {
+                        config_val = Some(ConfigValue::Long(parse_i64(&value)?));
                     }
-                    "short" => {
-                        let f = value.parse::<i16>()?;
-                        config_val = Some(ConfigValue::Short(f));
+                    ConfigValueType::Short => {
+                        config_val = Some(ConfigValue::Short(parse_i16(&value)?));
                     }
-                    "string" => {
-                        config_val = Some(ConfigValue::String(value));
-                    }
-                    x => {
-                        return Err(OdsError::Ods(format!("unknown config:type {}", x)));
+                    ConfigValueType::String => {
+                        config_val =
+                            Some(ConfigValue::String(from_utf8(value.as_ref())?.to_string()));
                     }
                 }
                 break;
@@ -3152,9 +2841,7 @@ fn read_config_item(
                 break;
             }
             _ => {
-                if DUMP_UNUSED {
-                    println!(" read_config_item unused {:?}", evt);
-                }
+                dump_unused2("read_config_item", &evt)?;
             }
         }
 
@@ -3258,9 +2945,7 @@ fn read_xml(
                 }
 
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_xml unused {:?}", evt);
-                    }
+                    dump_unused2("read_xml", &evt)?;
                 }
             }
         }
@@ -3410,13 +3095,28 @@ fn read_text_or_tag(
                 }
 
                 _ => {
-                    if DUMP_UNUSED {
-                        println!(" read_text_or_tag unused {:?}", evt);
-                    }
+                    dump_unused2("read_text_or_tag", &evt)?;
                 }
             }
         }
     }
 
     Ok(cellcontent)
+}
+
+fn dump_unused(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsError> {
+    if DUMP_UNUSED {
+        let tag = from_utf8(tag)?;
+        let key = from_utf8(attr.key)?;
+        let value = from_utf8(attr.value.as_ref())?;
+        println!("unused attr: {} {} ({}:{})", func, tag, key, value);
+    }
+    Ok(())
+}
+
+fn dump_unused2(func: &str, evt: &Event<'_>) -> Result<(), OdsError> {
+    if DUMP_UNUSED {
+        println!("unused attr: {} ({:?})", func, evt);
+    }
+    Ok(())
 }

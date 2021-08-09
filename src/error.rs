@@ -11,6 +11,7 @@ pub enum OdsError {
     Io(std::io::Error),
     Zip(zip::result::ZipError),
     Xml(quick_xml::Error),
+    Escape(String),
     Utf8(std::str::Utf8Error),
     Parse(String),
     ParseInt(std::num::ParseIntError),
@@ -19,6 +20,7 @@ pub enum OdsError {
     Chrono(chrono::format::ParseError),
     Duration(time::OutOfRangeError),
     SystemTime(std::time::SystemTimeError),
+    Nom(nom::error::Error<String>),
 }
 
 impl Display for OdsError {
@@ -26,7 +28,7 @@ impl Display for OdsError {
         match self {
             OdsError::Ods(e) => write!(f, "Ods {}", e)?,
             OdsError::Io(e) => write!(f, "IO {}", e)?,
-            OdsError::Zip(e) => write!(f, "Zip {}", e)?,
+            OdsError::Zip(e) => write!(f, "Zip {:?}", e)?,
             OdsError::Xml(e) => write!(f, "Xml {}", e)?,
             OdsError::Parse(e) => write!(f, "Parse {}", e)?,
             OdsError::ParseInt(e) => write!(f, "ParseInt {}", e)?,
@@ -36,6 +38,8 @@ impl Display for OdsError {
             OdsError::Duration(e) => write!(f, "Duration {}", e)?,
             OdsError::SystemTime(e) => write!(f, "SystemTime {}", e)?,
             OdsError::Utf8(e) => write!(f, "UTF8 {}", e)?,
+            OdsError::Nom(e) => write!(f, "Nom {}", e)?,
+            OdsError::Escape(s) => write!(f, "Escape {}", s)?,
         }
 
         Ok(())
@@ -57,6 +61,8 @@ impl std::error::Error for OdsError {
             OdsError::Duration(e) => Some(e),
             OdsError::SystemTime(e) => Some(e),
             OdsError::Utf8(e) => Some(e),
+            OdsError::Nom(e) => Some(e),
+            OdsError::Escape(_) => None,
         }
     }
 }
@@ -118,5 +124,21 @@ impl From<std::time::SystemTimeError> for OdsError {
 impl From<std::str::Utf8Error> for OdsError {
     fn from(err: std::str::Utf8Error) -> OdsError {
         OdsError::Utf8(err)
+    }
+}
+
+impl<'a> From<nom::Err<nom::error::Error<&'a [u8]>>> for OdsError {
+    fn from(err: nom::Err<nom::error::Error<&'a [u8]>>) -> Self {
+        match err {
+            nom::Err::Incomplete(_) => unreachable!(),
+            nom::Err::Error(err) => OdsError::Nom(nom::error::Error::new(
+                String::from_utf8_lossy(err.input).to_string(),
+                err.code,
+            )),
+            nom::Err::Failure(err) => OdsError::Nom(nom::error::Error::new(
+                String::from_utf8_lossy(err.input).to_string(),
+                err.code,
+            )),
+        }
     }
 }

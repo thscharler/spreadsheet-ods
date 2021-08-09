@@ -8,6 +8,7 @@ use std::fmt::{Display, Formatter};
 use crate::condition::Condition;
 use crate::text::TextTag;
 use crate::{CellRef, OdsError};
+use std::str::from_utf8;
 
 /// This defines how lists of entries are displayed to the user.
 #[derive(Copy, Clone, Debug)]
@@ -37,6 +38,22 @@ impl TryFrom<&str> for ValidationDisplay {
             _ => Err(OdsError::Parse(format!(
                 "unknown value or table:display-list: {}",
                 value
+            ))),
+        }
+    }
+}
+
+impl TryFrom<&[u8]> for ValidationDisplay {
+    type Error = OdsError;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        match value {
+            b"unsorted" => Ok(ValidationDisplay::Unsorted),
+            b"sort-ascending" => Ok(ValidationDisplay::SortAscending),
+            b"none" => Ok(ValidationDisplay::NoDisplay),
+            _ => Err(OdsError::Parse(format!(
+                "unknown value or table:display-list: {}",
+                from_utf8(value)?
             ))),
         }
     }

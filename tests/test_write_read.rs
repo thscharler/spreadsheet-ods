@@ -6,6 +6,7 @@ use spreadsheet_ods::{
     read_ods, read_ods_buf, write_ods, write_ods_buf, OdsError, Sheet, SplitMode, ValueType,
     WorkBook,
 };
+use std::time::Instant;
 
 #[test]
 fn test_write_read() -> Result<(), OdsError> {
@@ -37,6 +38,75 @@ fn read_text() -> Result<(), OdsError> {
 
     Ok(())
 }
+
+pub fn timingr<E, R>(name: &str, mut fun: impl FnMut() -> Result<R, E>) -> Result<R, E> {
+    let now = Instant::now();
+    let result = fun()?;
+    println!("{} {:?}", name, now.elapsed());
+    Ok(result)
+}
+
+pub fn timingn<E>(name: &str, mut fun: impl FnMut()) -> Result<(), E> {
+    let now = Instant::now();
+    fun();
+    println!("{} {:?}", name, now.elapsed());
+    Ok(())
+}
+
+// #[test]
+// fn read_samples() -> Result<(), OdsError> {
+//     let files = vec![
+//         "2015 Balkansauce.ods",
+//         "2018 Gärtnerische Produktion.ods",
+//         "2019 BeVerarbeitet.ods",
+//         "2019 Gärtnerische Produktion.ods",
+//         "2020 Flächen MFA.ods",
+//         "2020 Fruchtsäfte.ods",
+//         "2020 Gemessenes Gewicht.ods",
+//         "2020 Getreide und Mehle.ods",
+//         "2020 Hygieneschulung.ods",
+//         "2020 Mühle Anweisung Kalkulation.ods",
+//         "2020 Produktliste.ods",
+//         "2020 Reinigungsprotokoll.ods",
+//         "2020 Rezepturen Allergene.ods",
+//         "2020 Tierhaltung.ods",
+//         "2020 Verpackung.ods",
+//         "2020 Zeiterfassung.ods",
+//         "2020-06 Kalkulation Paket.ods",
+//         "2021 LK-Duengerrechner_20200720_CC_2020.ods.ods",
+//         "2021 Paradeis Anbauplan.ods",
+//         "2021 Pflanzenschutz.ods",
+//         "2021 Produktion.ods",
+//         "2021 Weideblatt.ods",
+//         "4.17 Rezepturen Allergene.ods",
+//         "ANBOT.ods",
+//         "Bestell-Liste.ods",
+//         "Brotpreise.ods",
+//         "Eier Legeprotokoll.ods",
+//         "Kalender 2020.ods",
+//         "Kalender 2021.ods",
+//         "LIEFERSCHEIN_2020.ods",
+//         "Liste Schneebacher.ods",
+//         "Marktfahrer.ods",
+//         "RECHNUNG.ods",
+//         "RECHNUNG_2020.ods",
+//         "Rindfleisch Preisliste.ods",
+//         "Stundenzettel März-November 2020 Scharler.ods",
+//     ];
+//
+//     let path = Path::new("tests_data");
+//     for f in &files {
+//         timingr(f, move || -> Result<(), OdsError> {
+//             let p = path.join(f);
+//             if let Err(e) = read_ods(p) {
+//                 println!("{:?}", e);
+//             }
+//             Ok(())
+//         })?;
+//     }
+//
+//     Ok(())
+// }
 
 #[test]
 fn read_orders() -> Result<(), OdsError> {

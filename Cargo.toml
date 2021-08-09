@@ -29,6 +29,8 @@ color-rs = "0.6"
 string_cache = "0.8"
 mktemp = "0.4"
 time = "0.1"
+nom = "6.2"
+nom_locate = "3.0.1"
 
 [dependencies.quick-xml]
 version = "0.22"
