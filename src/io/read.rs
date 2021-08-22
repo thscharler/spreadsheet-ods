@@ -74,10 +74,6 @@ fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, Ods
     Ok(book)
 }
 
-fn pbuf(_n: &str, _v: &Vec<u8>) {
-    //println!("vec {} {}", n, v.capacity());
-}
-
 // Loads all unprocessed files as byte blobs into a buffer.
 fn read_filebuf<R: Read + Seek>(
     book: &mut WorkBook,
@@ -215,7 +211,7 @@ fn read_content(
     let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
     xml.trim_text(true);
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -327,7 +323,6 @@ fn read_content(
 
         buf.clear();
     }
-    pbuf("read_content", &buf);
     bs.push(buf);
 
     Ok(())
@@ -359,7 +354,7 @@ fn read_table(
     let mut col_range_from = 0;
     let mut row_range_from = 0;
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -472,7 +467,6 @@ fn read_table(
         }
         buf.clear();
     }
-    pbuf("read_table", &buf);
     bs.push(buf);
 
     Ok(sheet)
@@ -696,7 +690,7 @@ fn read_table_cell2(
         }
     }
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -736,7 +730,6 @@ fn read_table_cell2(
 
         buf.clear();
     }
-    pbuf("read_table_cell2", &buf);
     bs.push(buf);
 
     Ok(col)
@@ -943,11 +936,10 @@ fn read_fonts(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(), OdsError> {
-    let mut buf = bs.get();
-
     let mut font: FontFaceDecl = FontFaceDecl::new();
     font.set_origin(origin);
 
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -983,7 +975,6 @@ fn read_fonts(
 
         buf.clear();
     }
-    pbuf("read_fonts", &buf);
     bs.push(buf);
 
     Ok(())
@@ -1011,7 +1002,7 @@ fn read_page_style(
     let mut headerstyle = false;
     let mut footerstyle = false;
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -1058,7 +1049,6 @@ fn read_page_style(
 
         buf.clear();
     }
-    pbuf("read_page_style", &buf);
     bs.push(buf);
 
     book.add_pagestyle(pl);
@@ -1073,7 +1063,7 @@ fn read_validations(
 ) -> Result<(), OdsError> {
     let mut valid = Validation::new();
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -1225,7 +1215,6 @@ fn read_validations(
             }
         }
     }
-    pbuf("read_validations", &buf);
     bs.push(buf);
 
     Ok(())
@@ -1239,7 +1228,7 @@ fn read_master_styles(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(), OdsError> {
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -1268,7 +1257,6 @@ fn read_master_styles(
 
         buf.clear();
     }
-    pbuf("read_master_styles", &buf);
     bs.push(buf);
 
     Ok(())
@@ -1298,7 +1286,7 @@ fn read_master_page(
         }
     }
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -1367,7 +1355,6 @@ fn read_master_page(
 
         buf.clear();
     }
-    pbuf("read_master_page", &buf);
     bs.push(buf);
 
     book.add_masterpage(masterpage);
@@ -1395,7 +1382,7 @@ fn read_headerfooter(
         }
     }
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -1451,7 +1438,6 @@ fn read_headerfooter(
 
         buf.clear();
     }
-    pbuf("read_headerfooter", &buf);
     bs.push(buf);
 
     Ok(hf)
@@ -1465,7 +1451,7 @@ fn read_styles_tag(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // not attributes
 ) -> Result<(), OdsError> {
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -1528,7 +1514,6 @@ fn read_styles_tag(
 
         buf.clear();
     }
-    pbuf("read_styles_tag", &buf);
     bs.push(buf);
 
     Ok(())
@@ -1542,7 +1527,7 @@ fn read_auto_styles(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(), OdsError> {
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -1596,7 +1581,6 @@ fn read_auto_styles(
 
         buf.clear();
     }
-    pbuf("read_auto_styles", &buf);
     bs.push(buf);
 
     Ok(())
@@ -1645,7 +1629,7 @@ fn read_value_format(
         }
     }
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -1765,7 +1749,6 @@ fn read_value_format(
 
         buf.clear();
     }
-    pbuf("read_value_format", &buf);
     bs.push(buf);
 
     Ok(())
@@ -1865,7 +1848,7 @@ fn read_tablestyle(
     if empty_tag {
         book.add_tablestyle(style);
     } else {
-        let mut buf = bs.get();
+        let mut buf = bs.get_buf();
         loop {
             let evt = xml.read_event(&mut buf)?;
             if DUMP_XML {
@@ -1894,7 +1877,6 @@ fn read_tablestyle(
             }
         }
 
-        pbuf("read_tablestyle", &buf);
         bs.push(buf);
     }
 
@@ -1923,7 +1905,7 @@ fn read_rowstyle(
     if empty_tag {
         book.add_rowstyle(style);
     } else {
-        let mut buf = bs.get();
+        let mut buf = bs.get_buf();
         loop {
             let evt = xml.read_event(&mut buf)?;
             if DUMP_XML {
@@ -1951,7 +1933,6 @@ fn read_rowstyle(
                 }
             }
         }
-        pbuf("read_rowstyle", &buf);
         bs.push(buf);
     }
 
@@ -1980,7 +1961,7 @@ fn read_colstyle(
     if empty_tag {
         book.add_colstyle(style);
     } else {
-        let mut buf = bs.get();
+        let mut buf = bs.get_buf();
         loop {
             let evt = xml.read_event(&mut buf)?;
             if DUMP_XML {
@@ -2009,7 +1990,6 @@ fn read_colstyle(
             }
         }
 
-        pbuf("read_colstyle", &buf);
         bs.push(buf);
     }
     Ok(())
@@ -2037,7 +2017,7 @@ fn read_cellstyle(
     if empty_tag {
         book.add_cellstyle(style);
     } else {
-        let mut buf = bs.get();
+        let mut buf = bs.get_buf();
         loop {
             let evt = xml.read_event(&mut buf)?;
             if DUMP_XML {
@@ -2080,7 +2060,6 @@ fn read_cellstyle(
                 }
             }
         }
-        pbuf("read_cellstyle", &buf);
         bs.push(buf);
     }
 
@@ -2109,7 +2088,7 @@ fn read_paragraphstyle(
     if empty_tag {
         book.add_paragraphstyle(style);
     } else {
-        let mut buf = bs.get();
+        let mut buf = bs.get_buf();
         loop {
             let evt = xml.read_event(&mut buf)?;
             if DUMP_XML {
@@ -2152,7 +2131,6 @@ fn read_paragraphstyle(
                 }
             }
         }
-        pbuf("read_paragraphstyle", &buf);
         bs.push(buf);
     }
 
@@ -2181,7 +2159,7 @@ fn read_textstyle(
     if empty_tag {
         book.add_textstyle(style);
     } else {
-        let mut buf = bs.get();
+        let mut buf = bs.get_buf();
         loop {
             let evt = xml.read_event(&mut buf)?;
             if DUMP_XML {
@@ -2209,7 +2187,6 @@ fn read_textstyle(
                 }
             }
         }
-        pbuf("read_textstyle", &buf);
         bs.push(buf);
     }
 
@@ -2238,7 +2215,7 @@ fn read_graphicstyle(
     if empty_tag {
         book.add_graphicstyle(style);
     } else {
-        let mut buf = bs.get();
+        let mut buf = bs.get_buf();
         loop {
             let evt = xml.read_event(&mut buf)?;
             if DUMP_XML {
@@ -2266,7 +2243,6 @@ fn read_graphicstyle(
                 }
             }
         }
-        pbuf("read_graphicstyle", &buf);
         bs.push(buf);
     }
 
@@ -2343,7 +2319,7 @@ fn read_styles(
     let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
     xml.trim_text(true);
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -2385,7 +2361,6 @@ fn read_styles(
 
         buf.clear();
     }
-    pbuf("read_styles", &buf);
     bs.push(buf);
 
     Ok(())
@@ -2490,7 +2465,7 @@ fn read_settings(
     let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
     xml.trim_text(true);
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -2521,7 +2496,6 @@ fn read_settings(
 
         buf.clear();
     }
-    pbuf("read_settings", &buf);
     bs.push(buf);
 
     Ok(())
@@ -2535,7 +2509,7 @@ fn read_office_settings(
 ) -> Result<Config, OdsError> {
     let mut config = Config::new();
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -2557,7 +2531,6 @@ fn read_office_settings(
 
         buf.clear();
     }
-    pbuf("read_office_settings", &buf);
     bs.push(buf);
 
     Ok(config)
@@ -2590,7 +2563,7 @@ fn read_config_item_set(
         return Err(OdsError::Ods("config-item-set without name".to_string()));
     };
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -2624,7 +2597,6 @@ fn read_config_item_set(
 
         buf.clear();
     }
-    pbuf("read_config_item_set", &buf);
     bs.push(buf);
 
     Ok((name, config_set))
@@ -2661,7 +2633,7 @@ fn read_config_item_map_indexed(
 
     let mut index = 0;
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -2684,7 +2656,6 @@ fn read_config_item_map_indexed(
 
         buf.clear();
     }
-    pbuf("read_config_item_map_indexed", &buf);
     bs.push(buf);
 
     Ok((name, config_vec))
@@ -2719,7 +2690,7 @@ fn read_config_item_map_named(
         ));
     };
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -2750,7 +2721,6 @@ fn read_config_item_map_named(
 
         buf.clear();
     }
-    pbuf("read_config_item_map_named", &buf);
     bs.push(buf);
 
     Ok((name, config_map))
@@ -2777,7 +2747,7 @@ fn read_config_item_map_entry(
         }
     }
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         if DUMP_XML {
@@ -2811,7 +2781,6 @@ fn read_config_item_map_entry(
 
         buf.clear();
     }
-    pbuf("read_config_item_map_entry", &buf);
     bs.push(buf);
 
     Ok((name, config_set))
@@ -2887,7 +2856,7 @@ fn read_config_item(
     // todo: is this a good way?
     let mut value: Vec<u8> = Vec::new();
 
-    let mut buf = bs.get();
+    let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         match evt {
@@ -2939,7 +2908,6 @@ fn read_config_item(
         }
         buf.clear();
     }
-    pbuf("read_config_item", &buf);
     bs.push(buf);
 
     let config_val = if let Some(config_val) = config_val {
@@ -2988,7 +2956,7 @@ fn read_xml(
     stack.push(tag);
 
     if !empty_tag {
-        let mut buf = bs.get();
+        let mut buf = bs.get_buf();
         loop {
             let evt = xml.read_event(&mut buf)?;
             if DUMP_XML {
@@ -3044,7 +3012,7 @@ fn read_xml(
             buf.clear();
         }
 
-        pbuf("read_xml", &buf);
+        bs.push(buf);
     }
 
     assert_eq!(stack.len(), 1);
@@ -3075,7 +3043,7 @@ fn read_text_or_tag(
     };
 
     if !empty_tag {
-        let mut buf = bs.get();
+        let mut buf = bs.get_buf();
         loop {
             let evt = xml.read_event(&mut buf)?;
             if DUMP_XML {
@@ -3196,7 +3164,6 @@ fn read_text_or_tag(
                 }
             }
         }
-        pbuf("read_text_or_tag", &buf);
         bs.push(buf);
     }
 

@@ -46,3 +46,11 @@ features = ["deflate", "time"]
 version = "0.4"
 default-features = false
 features = ["clock", "alloc"]
+
+[dev-dependencies.criterion]
+version = "0.3"
+features = ["html_reports"]
+
+[[bench]]
+name = "bench_read"
+harness = false
