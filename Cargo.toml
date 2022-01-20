@@ -2,7 +2,7 @@
 name = "spreadsheet-ods"
 version = "0.9.0"
 authors = ["thomasscharler <thscharler@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "Read and write ODS files"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/thscharler/spreadsheet-ods"
