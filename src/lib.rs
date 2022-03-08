@@ -922,6 +922,7 @@ impl RowHeader {
     }
 
     pub(crate) fn set_repeat(&mut self, repeat: u32) {
+        assert!(repeat > 0);
         self.repeat = repeat;
     }
 
@@ -1405,6 +1406,10 @@ impl Sheet {
     /// with data in a sheet. Setting the repeat count will not change
     /// the row number of following rows. But they will be changed after
     /// writing to an ODS file and reading it again.
+    ///
+    /// Panics
+    ///
+    /// Panics if the repeat is 0.
     pub fn set_row_repeat(&mut self, row: u32, repeat: u32) {
         self.row_header
             .entry(row)
