@@ -645,6 +645,9 @@ fn read_table_cell2(
             attr if attr.key == b"table:number-columns-spanned" => {
                 cell.span.col_span = parse_u32(&attr.value)?;
             }
+            attr if attr.key == b"table:content-validation-name" => {
+                cell.validation_name = Some(parse_string(&attr.value)?);
+            }
             attr if attr.key == b"calcext:value-type" => {
                 // not used. office:value-type seems to be good enough.
             }
@@ -905,6 +908,10 @@ fn read_empty_table_cell(
             }
             attr if attr.key == b"table:number-columns-spanned" => {
                 cell.get_or_insert_with(CellData::new).span.col_span = parse_u32(&attr.value)?;
+            }
+            attr if attr.key == b"table:content-validation-name" => {
+                cell.get_or_insert_with(CellData::new).validation_name =
+                    Some(parse_string(&attr.value)?);
             }
 
             attr => {
