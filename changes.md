@@ -1,3 +1,15 @@
+# 0.10.0
+
+- Upgraded to edition 2021.
+- Parsing values implemented with nom and changed from str to &[u8] to safe on
+  unnecessary utf8 conversion.  
+- Needed a lot of read buffers for each xml hierarchy level. Keep them around
+  and reuse them.
+- set_row_repeat must not be 0. Panics if so. This doesn't solve all
+  problems with set_row_repeat, there is still some spurious repeat on the 
+  last row. 
+- Content validation was broken.
+
 # 0.9.0
 
 - Throw away SCell. This was used for internal storage and as part of the API.
