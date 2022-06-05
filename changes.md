@@ -1,6 +1,12 @@
 # 0.10.0
 
 - Upgraded to edition 2021.
+- Updated dependencies:
+  - rust_decimal to 1.24
+  - color_rs to 0.7
+  - time to 0.3
+  - zip to 0.6
+  - removed criterion as dev-dependency. 
 - Parsing values implemented with nom and changed from str to &[u8] to safe on
   unnecessary utf8 conversion.  
 - Needed a lot of read buffers for each xml hierarchy level. Keep them around
