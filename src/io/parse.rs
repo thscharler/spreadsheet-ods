@@ -5,7 +5,7 @@
 
 use crate::{OdsError, Visibility};
 use chrono::Duration;
-use chrono::{NaiveDateTime, ParseResult};
+use chrono::NaiveDateTime;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
@@ -15,12 +15,11 @@ use nom::number::complete::double;
 use nom::sequence::{pair, preceded, terminated, tuple};
 use nom::{IResult, Slice};
 use quick_xml::escape::unescape;
-use std::borrow::Cow;
 use std::str::{from_utf8, from_utf8_unchecked};
 
 /// Unescape and decode as UTF8
-pub(crate) fn parse_string(input: &Cow<'_, [u8]>) -> Result<String, OdsError> {
-    let result = match unescape(input.as_ref()) {
+pub(crate) fn parse_string(input: &[u8]) -> Result<String, OdsError> {
+    let result = match unescape(input) {
         Ok(result) => result,
         Err(err) => return Err(OdsError::Parse(err.to_string())),
     };
@@ -31,8 +30,8 @@ pub(crate) fn parse_string(input: &Cow<'_, [u8]>) -> Result<String, OdsError> {
 }
 
 /// Parse as Visibility.
-pub(crate) fn parse_visibility(input: &Cow<'_, [u8]>) -> Result<Visibility, OdsError> {
-    match input.as_ref() {
+pub(crate) fn parse_visibility(input: &[u8]) -> Result<Visibility, OdsError> {
+    match input {
         b"visible" => Ok(Visibility::Visible),
         b"filter" => Ok(Visibility::Filtered),
         b"collapse" => Ok(Visibility::Collapsed),
@@ -44,57 +43,56 @@ pub(crate) fn parse_visibility(input: &Cow<'_, [u8]>) -> Result<Visibility, OdsE
 }
 
 /// Parse a attribute value as a currency.
-pub(crate) fn parse_currency(input: &Cow<'_, [u8]>) -> Result<[u8; 3], OdsError> {
-    let v = input.as_ref();
-    let result = match v.len() {
+pub(crate) fn parse_currency(input: &[u8]) -> Result<[u8; 3], OdsError> {
+    let result = match input.len() {
         0 => Ok([b' ', b' ', b' ']),
-        1 => Ok([v[0], b' ', b' ']),
-        2 => Ok([v[0], v[1], b' ']),
-        3 => Ok([v[0], v[1], v[2]]),
-        _ => Err(OdsError::Parse(format!("{:?} not a currency", v))),
+        1 => Ok([input[0], b' ', b' ']),
+        2 => Ok([input[0], input[1], b' ']),
+        3 => Ok([input[0], input[1], input[2]]),
+        _ => Err(OdsError::Parse(format!("{:?} not a currency", input))),
     };
 
     result
 }
 
 /// Parse a bool.
-pub(crate) fn parse_bool(input: &Cow<'_, [u8]>) -> Result<bool, OdsError> {
-    Ok(token_bool(input.as_ref())?.1)
+pub(crate) fn parse_bool(input: &[u8]) -> Result<bool, OdsError> {
+    Ok(token_bool(input)?.1)
 }
 
 /// Parse a u32.
-pub(crate) fn parse_u32(input: &Cow<'_, [u8]>) -> Result<u32, OdsError> {
-    Ok(token_u32(input.as_ref())?.1)
+pub(crate) fn parse_u32(input: &[u8]) -> Result<u32, OdsError> {
+    Ok(token_u32(input)?.1)
 }
 
 /// Parse a i64.
-pub(crate) fn parse_i64(input: &Cow<'_, [u8]>) -> Result<i64, OdsError> {
-    Ok(token_i64(input.as_ref())?.1)
+pub(crate) fn parse_i64(input: &[u8]) -> Result<i64, OdsError> {
+    Ok(token_i64(input)?.1)
 }
 
 /// Parse a i32.
-pub(crate) fn parse_i32(input: &Cow<'_, [u8]>) -> Result<i32, OdsError> {
-    Ok(token_i32(input.as_ref())?.1)
+pub(crate) fn parse_i32(input: &[u8]) -> Result<i32, OdsError> {
+    Ok(token_i32(input)?.1)
 }
 
 /// Parse a i16.
-pub(crate) fn parse_i16(input: &Cow<'_, [u8]>) -> Result<i16, OdsError> {
-    Ok(token_i16(input.as_ref())?.1)
+pub(crate) fn parse_i16(input: &[u8]) -> Result<i16, OdsError> {
+    Ok(token_i16(input)?.1)
 }
 
 /// Parse a f64.
-pub(crate) fn parse_f64(input: &Cow<'_, [u8]>) -> Result<f64, OdsError> {
-    Ok(token_float(input.as_ref())?.1)
+pub(crate) fn parse_f64(input: &[u8]) -> Result<f64, OdsError> {
+    Ok(token_float(input)?.1)
 }
 
 /// Parse a XML Schema datetime.
-pub(crate) fn parse_datetime(input: &Cow<'_, [u8]>) -> Result<NaiveDateTime, OdsError> {
-    Ok(token_datetime(input.as_ref())?.1)
+pub(crate) fn parse_datetime(input: &[u8]) -> Result<NaiveDateTime, OdsError> {
+    Ok(token_datetime(input)?.1)
 }
 
 /// Parse a XML Schema time duration.
-pub(crate) fn parse_duration(input: &Cow<'_, [u8]>) -> Result<Duration, OdsError> {
-    Ok(token_duration(input.as_ref())?.1)
+pub(crate) fn parse_duration(input: &[u8]) -> Result<Duration, OdsError> {
+    Ok(token_duration(input)?.1)
 }
 
 fn token_bool(input: &[u8]) -> IResult<&[u8], bool> {
@@ -214,28 +212,6 @@ fn token_nano(input: &[u8]) -> IResult<&[u8], i64> {
     Ok((input, v))
 }
 
-fn to_naive_datetime(
-    fields: (i64, i64, i64, Option<(i64, i64, i64, Option<i64>)>),
-) -> ParseResult<NaiveDateTime> {
-    let mut p = chrono::format::Parsed::new();
-    p.set_year(fields.0)?;
-    p.set_month(fields.1)?;
-    p.set_day(fields.2)?;
-    if let Some(fields) = fields.3 {
-        p.set_hour(fields.0)?;
-        p.set_minute(fields.1)?;
-        p.set_second(fields.2)?;
-        if let Some(fields) = fields.3 {
-            p.set_nanosecond(fields)?;
-        }
-    } else {
-        p.set_hour(0)?;
-        p.set_minute(0)?;
-        p.set_second(0)?;
-    }
-    p.to_naive_datetime_with_offset(0)
-}
-
 fn token_datetime(input: &[u8]) -> IResult<&[u8], NaiveDateTime> {
     let (input, result) = terminated(
         tuple((
@@ -263,36 +239,27 @@ fn token_datetime(input: &[u8]) -> IResult<&[u8], NaiveDateTime> {
         None => 1,
     };
 
-    let result = match to_naive_datetime((
-        sign * result.1,
-        result.3,
-        result.5,
+    let mut p = chrono::format::Parsed::new();
+    p.year = Some((sign * result.1) as i32);
+    p.month = Some(result.3 as u32);
+    p.day = Some(result.5 as u32);
+    if let Some(result) = result.6 {
+        p.hour_div_12 = Some((result.1 / 12) as u32);
+        p.hour_mod_12 = Some((result.1 % 12) as u32);
+        p.minute = Some(result.3 as u32);
+        p.second = Some(result.5 as u32);
         if let Some(result) = result.6 {
-            Some((
-                result.1,
-                result.3,
-                result.5,
-                if let Some(result) = result.6 {
-                    Some(result.1)
-                } else {
-                    None
-                },
-            ))
-        } else {
-            None
-        },
-    )) {
-        Ok(result) => result,
-        Err(err) => {
-            return Err(nom::Err::Error(nom::error::Error::from_external_error(
-                input,
-                ErrorKind::Verify,
-                err,
-            )));
+            p.nanosecond = Some(result.1 as u32);
         }
-    };
-
-    Ok((input, result))
+    }
+    match p.to_naive_datetime_with_offset(0) {
+        Ok(v) => Ok((input, v)),
+        Err(err) => Err(nom::Err::Error(nom::error::Error::from_external_error(
+            input,
+            ErrorKind::Verify,
+            err,
+        ))),
+    }
 }
 
 fn token_duration(input: &[u8]) -> IResult<&[u8], Duration> {

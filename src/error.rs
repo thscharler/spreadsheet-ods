@@ -18,7 +18,6 @@ pub enum OdsError {
     ParseBool(std::str::ParseBoolError),
     ParseFloat(std::num::ParseFloatError),
     Chrono(chrono::format::ParseError),
-    Duration(time::OutOfRangeError),
     SystemTime(std::time::SystemTimeError),
     Nom(nom::error::Error<String>),
 }
@@ -35,7 +34,6 @@ impl Display for OdsError {
             OdsError::ParseBool(e) => write!(f, "ParseBool {}", e)?,
             OdsError::ParseFloat(e) => write!(f, "ParseFloat {}", e)?,
             OdsError::Chrono(e) => write!(f, "Chrono {}", e)?,
-            OdsError::Duration(e) => write!(f, "Duration {}", e)?,
             OdsError::SystemTime(e) => write!(f, "SystemTime {}", e)?,
             OdsError::Utf8(e) => write!(f, "UTF8 {}", e)?,
             OdsError::Nom(e) => write!(f, "Nom {}", e)?,
@@ -58,18 +56,11 @@ impl std::error::Error for OdsError {
             OdsError::ParseBool(e) => Some(e),
             OdsError::ParseFloat(e) => Some(e),
             OdsError::Chrono(e) => Some(e),
-            OdsError::Duration(e) => Some(e),
             OdsError::SystemTime(e) => Some(e),
             OdsError::Utf8(e) => Some(e),
             OdsError::Nom(e) => Some(e),
             OdsError::Escape(_) => None,
         }
-    }
-}
-
-impl From<time::OutOfRangeError> for OdsError {
-    fn from(err: time::OutOfRangeError) -> OdsError {
-        OdsError::Duration(err)
     }
 }
 

@@ -203,6 +203,7 @@ impl Display for XmlTag {
 /// A XmlTag can contain any mixture of XmlTags and text content.
 ///
 #[derive(Debug, Clone)]
+#[allow(variant_size_differences)]
 pub enum XmlContent {
     /// Text content.
     Text(String),

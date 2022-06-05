@@ -582,6 +582,7 @@ fn read_table_col_attr(
 }
 
 #[derive(Debug)]
+#[allow(variant_size_differences)]
 enum TextContent {
     Empty,
     Text(String),
@@ -685,7 +686,7 @@ fn read_table_cell2(
                 cell.formula = Some(parse_string(&attr.value)?);
             }
             attr if attr.key == b"table:style-name" => {
-                cell.style = Some(parse_string(&attr.value)?);
+                cell.style = Some(parse_string(attr.value.as_ref())?);
             }
             attr => {
                 dump_unused("read_table_cell2", xml_tag.name(), &attr)?;
@@ -1780,6 +1781,7 @@ fn read_part(xml_tag: &BytesStart<'_>, part_type: FormatPartType) -> Result<Form
     Ok(part)
 }
 
+#[allow(clippy::too_many_arguments)]
 // style:style tag
 fn read_style_style(
     bs: &mut BufStack,
@@ -1819,7 +1821,7 @@ fn read_style_style(
                     value => {
                         return Err(OdsError::Ods(format!(
                             "style:family unknown {} ",
-                            from_utf8(value.as_ref())?
+                            from_utf8(value)?
                         )))
                     }
                 };
@@ -1835,6 +1837,7 @@ fn read_style_style(
 
 // style:style tag
 #[allow(clippy::collapsible_else_if)]
+#[allow(clippy::too_many_arguments)]
 fn read_tablestyle(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -1892,6 +1895,7 @@ fn read_tablestyle(
 
 // style:style tag
 #[allow(clippy::collapsible_else_if)]
+#[allow(clippy::too_many_arguments)]
 fn read_rowstyle(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -1948,6 +1952,7 @@ fn read_rowstyle(
 
 // style:style tag
 #[allow(clippy::collapsible_else_if)]
+#[allow(clippy::too_many_arguments)]
 fn read_colstyle(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -2004,6 +2009,7 @@ fn read_colstyle(
 
 // style:style tag
 #[allow(clippy::collapsible_else_if)]
+#[allow(clippy::too_many_arguments)]
 fn read_cellstyle(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -2075,6 +2081,7 @@ fn read_cellstyle(
 
 // style:style tag
 #[allow(clippy::collapsible_else_if)]
+#[allow(clippy::too_many_arguments)]
 fn read_paragraphstyle(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -2146,6 +2153,7 @@ fn read_paragraphstyle(
 
 // style:style tag
 #[allow(clippy::collapsible_else_if)]
+#[allow(clippy::too_many_arguments)]
 fn read_textstyle(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -2202,6 +2210,7 @@ fn read_textstyle(
 
 // style:style tag
 #[allow(clippy::collapsible_else_if)]
+#[allow(clippy::too_many_arguments)]
 fn read_graphicstyle(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -2301,18 +2310,16 @@ fn proc_style_attr<'a>(
         }
     }
 
-    Ok(name.unwrap_or_else(String::new))
+    Ok(name.unwrap_or_default())
 }
 /// Copies all attributes to the given map.
 fn copy_attr2(attrmap: &mut AttrMap2, xml_tag: &BytesStart<'_>) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
-        match attr? {
-            attr => {
-                let k = from_utf8(attr.key)?;
-                let v = parse_string(&attr.value)?;
-                attrmap.set_attr(k, v);
-            }
-        }
+        let attr = attr?;
+
+        let k = from_utf8(attr.key)?;
+        let v = parse_string(&attr.value)?;
+        attrmap.set_attr(k, v);
     }
 
     Ok(())

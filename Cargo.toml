@@ -23,22 +23,22 @@ use_decimal = []
 check_xml = []
 
 [dependencies]
-rust_decimal = "1.14.3"
-rust_decimal_macros = "1.14.3"
-color-rs = "0.6"
+rust_decimal = "1.24"
+rust_decimal_macros = "1.24"
+color-rs = "0.7"
 string_cache = "0.8"
 mktemp = "0.4"
-time = "0.1"
+time = "0.3"
 nom = "6.2"
 nom_locate = "3.0.1"
 
 [dependencies.quick-xml]
-version = "0.22"
+version = "0.22.0"
 # ?? Should be UTF-8, no need for encoding related stuff.
 #features = ["encoding"]
 
 [dependencies.zip]
-version = "0.5"
+version = "0.6"
 default-features = false
 features = ["deflate", "time"]
 
@@ -46,11 +46,3 @@ features = ["deflate", "time"]
 version = "0.4"
 default-features = false
 features = ["clock", "alloc"]
-
-[dev-dependencies.criterion]
-version = "0.3"
-features = ["html_reports"]
-
-[[bench]]
-name = "bench_read"
-harness = false

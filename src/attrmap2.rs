@@ -10,7 +10,7 @@ use string_cache::DefaultAtom;
 /// Container type for attributes.
 #[derive(Default, Clone, Debug)]
 pub struct AttrMap2 {
-    map: Option<Box<HashMap<DefaultAtom, String>>>,
+    map: Option<HashMap<DefaultAtom, String>>,
 }
 
 impl AttrMap2 {
@@ -27,7 +27,7 @@ impl AttrMap2 {
 
     /// Add from Slice
     pub fn add_all(&mut self, data: &[(&str, String)]) {
-        let attr = self.map.get_or_insert_with(|| Box::new(HashMap::new()));
+        let attr = self.map.get_or_insert_with(HashMap::new);
         for (name, value) in data {
             attr.insert(DefaultAtom::from(*name), value.to_string());
         }
@@ -36,7 +36,7 @@ impl AttrMap2 {
     /// Adds an attribute.
     pub fn set_attr(&mut self, name: &str, value: String) {
         self.map
-            .get_or_insert_with(|| Box::new(HashMap::new()))
+            .get_or_insert_with(HashMap::new)
             .insert(DefaultAtom::from(name), value);
     }
 
