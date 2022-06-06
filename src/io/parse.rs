@@ -308,79 +308,64 @@ mod tests {
 
     #[test]
     fn test_string() -> Result<(), OdsError> {
-        assert_eq!(parse_string(&Cow::Borrowed(b"a&lt;sdf"))?, "a<sdf");
-        assert_eq!(parse_string(&Cow::Borrowed(b"asdf"))?, "asdf");
+        assert_eq!(parse_string(b"a&lt;sdf")?, "a<sdf");
+        assert_eq!(parse_string(b"asdf")?, "asdf");
 
         Ok(())
     }
 
     #[test]
     fn test_u32() -> Result<(), OdsError> {
-        assert_eq!(parse_u32(&Cow::Borrowed(b"1234"))?, 1234);
-        parse_u32(&Cow::Borrowed(b"123456789000")).unwrap_err();
-        parse_u32(&Cow::Borrowed(b"1234 ")).unwrap_err();
-        parse_u32(&Cow::Borrowed(b"-1234 ")).unwrap_err();
-        parse_u32(&Cow::Borrowed(b"-1234")).unwrap_err();
+        assert_eq!(parse_u32(b"1234")?, 1234);
+        parse_u32(b"123456789000").unwrap_err();
+        parse_u32(b"1234 ").unwrap_err();
+        parse_u32(b"-1234 ").unwrap_err();
+        parse_u32(b"-1234").unwrap_err();
 
         Ok(())
     }
 
     #[test]
     fn test_i32() -> Result<(), OdsError> {
-        assert_eq!(parse_i32(&Cow::Borrowed(b"1234"))?, 1234);
-        assert_eq!(parse_i32(&Cow::Borrowed(b"-1234"))?, -1234);
-        parse_i32(&Cow::Borrowed(b"1234 ")).unwrap_err();
-        parse_i32(&Cow::Borrowed(b"-1234 ")).unwrap_err();
-        parse_i32(&Cow::Borrowed(b"123456789000")).unwrap_err();
+        assert_eq!(parse_i32(b"1234")?, 1234);
+        assert_eq!(parse_i32(b"-1234")?, -1234);
+        parse_i32(b"1234 ").unwrap_err();
+        parse_i32(b"-1234 ").unwrap_err();
+        parse_i32(b"123456789000").unwrap_err();
 
         Ok(())
     }
 
     #[test]
     fn test_float() -> Result<(), OdsError> {
-        assert_eq!(parse_f64(&Cow::Borrowed(b"1234"))?, 1234.);
-        assert_eq!(parse_f64(&Cow::Borrowed(b"-1234"))?, -1234.);
-        assert_eq!(parse_f64(&Cow::Borrowed(b"123456789000"))?, 123456789000.);
-        assert_eq!(parse_f64(&Cow::Borrowed(b"1234.5678"))?, 1234.5678);
-        parse_f64(&Cow::Borrowed(b"1234 ")).unwrap_err();
-        parse_f64(&Cow::Borrowed(b"-1234 ")).unwrap_err();
+        assert_eq!(parse_f64(b"1234")?, 1234.);
+        assert_eq!(parse_f64(b"-1234")?, -1234.);
+        assert_eq!(parse_f64(b"123456789000")?, 123456789000.);
+        assert_eq!(parse_f64(b"1234.5678")?, 1234.5678);
+        parse_f64(b"1234 ").unwrap_err();
+        parse_f64(b"-1234 ").unwrap_err();
 
         Ok(())
     }
 
     #[test]
     fn test_datetime() -> Result<(), OdsError> {
-        assert_eq!(
-            parse_datetime(&Cow::Borrowed(b"19999-01-01"))?.timestamp(),
-            568940284800
-        );
-        assert_eq!(
-            parse_datetime(&Cow::Borrowed(b"1999-01-01"))?.timestamp(),
-            915148800
-        );
-        assert_eq!(
-            parse_datetime(&Cow::Borrowed(b"-45-01-01"))?.timestamp(),
-            -63587289600
-        );
-        assert_eq!(
-            parse_datetime(&Cow::Borrowed(b"2004-02-29"))?.timestamp(),
-            1078012800
-        );
-        assert_eq!(
-            parse_datetime(&Cow::Borrowed(b"2000-02-29"))?.timestamp(),
-            951782400
-        );
+        assert_eq!(parse_datetime(b"19999-01-01")?.timestamp(), 568940284800);
+        assert_eq!(parse_datetime(b"1999-01-01")?.timestamp(), 915148800);
+        assert_eq!(parse_datetime(b"-45-01-01")?.timestamp(), -63587289600);
+        assert_eq!(parse_datetime(b"2004-02-29")?.timestamp(), 1078012800);
+        assert_eq!(parse_datetime(b"2000-02-29")?.timestamp(), 951782400);
 
         assert_eq!(
-            parse_datetime(&Cow::Borrowed(b"2000-01-01T11:22:33"))?.timestamp(),
+            parse_datetime(b"2000-01-01T11:22:33")?.timestamp(),
             946725753
         );
         assert_eq!(
-            parse_datetime(&Cow::Borrowed(b"2000-01-01T11:22:33.1234"))?.timestamp(),
+            parse_datetime(b"2000-01-01T11:22:33.1234")?.timestamp(),
             946725753
         );
         assert_eq!(
-            parse_datetime(&Cow::Borrowed(b"2000-01-01T11:22:33.123456789111"))?.timestamp(),
+            parse_datetime(b"2000-01-01T11:22:33.123456789111")?.timestamp(),
             946725753
         );
 
@@ -389,12 +374,9 @@ mod tests {
 
     #[test]
     fn test_duration() -> Result<(), OdsError> {
+        assert_eq!(parse_duration(b"PT12H12M12S")?.num_milliseconds(), 43932000);
         assert_eq!(
-            parse_duration(&Cow::Borrowed(b"PT12H12M12S"))?.num_milliseconds(),
-            43932000
-        );
-        assert_eq!(
-            parse_duration(&Cow::Borrowed(b"PT12H12M12.223S"))?.num_milliseconds(),
+            parse_duration(b"PT12H12M12.223S")?.num_milliseconds(),
             43932223
         );
         Ok(())
@@ -402,9 +384,9 @@ mod tests {
 
     #[test]
     fn test_bool() -> Result<(), OdsError> {
-        assert_eq!(parse_bool(&Cow::Borrowed(b"true"))?, true);
-        assert_eq!(parse_bool(&Cow::Borrowed(b"false"))?, false);
-        parse_bool(&Cow::Borrowed(b"ffoso")).unwrap_err();
+        assert_eq!(parse_bool(b"true")?, true);
+        assert_eq!(parse_bool(b"false")?, false);
+        parse_bool(b"ffoso").unwrap_err();
         Ok(())
     }
 
