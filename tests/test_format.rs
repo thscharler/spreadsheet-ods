@@ -143,7 +143,7 @@ fn write_format() -> Result<(), OdsError> {
     let f6 = wb.add_cellstyle(CellStyle::new("f6", &v6));
     let f7 = wb.add_cellstyle(CellStyle::new("f7", &v7));
 
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
     sh.set_styled_value(0, 0, 1.234567f64, &f1);
     sh.set_styled_value(1, 0, 1.234567f64, &f2);
     sh.set_styled_value(2, 0, 1.234567f64, &f3);

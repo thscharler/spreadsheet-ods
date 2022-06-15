@@ -10,7 +10,7 @@ pub fn timingr<E, R>(
     mut fun: impl FnMut() -> Result<R, E>,
 ) -> Result<R, E> {
     let now = Instant::now();
-    println!("{}", name);
+    // println!("{}", name);
     let result = fun()?;
     let elapsed = now.elapsed();
     println!(
@@ -27,7 +27,7 @@ fn create_wb(rows: u32, cols: u32) -> impl FnMut() -> Result<WorkBook, OdsError>
     move || {
         let mut wb = WorkBook::new();
         create_default_styles(&mut wb);
-        let mut sh = Sheet::new();
+        let mut sh = Sheet::new("1");
 
         for r in 0..rows {
             if r % 2 == 0 {
@@ -36,7 +36,7 @@ fn create_wb(rows: u32, cols: u32) -> impl FnMut() -> Result<WorkBook, OdsError>
                 }
             } else {
                 for c in 0..cols {
-                    sh.set_value(r, c, 1);
+                    sh.set_value(r, c, 1u32);
                 }
             }
             if r % 2 == 0 {
@@ -93,9 +93,9 @@ fn test_b0() -> Result<(), OdsError> {
     const COLS: u32 = 40;
     const CELLS: u64 = ROWS as u64 * COLS as u64;
 
-    println!("sizes {}", size_of::<Value>());
+    // println!("sizes {}", size_of::<Value>());
 
-    println!("{}", ROWS * COLS);
+    // println!("{}", ROWS * COLS);
     let mut wb = timingr(
         "create_wb",
         ROWS as u64 * COLS as u64,

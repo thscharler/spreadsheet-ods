@@ -7,7 +7,7 @@ use spreadsheet_ods::{write_ods, CellRange, OdsError, Sheet, WorkBook};
 fn test_validation0() -> Result<(), OdsError> {
     let mut book = WorkBook::new();
 
-    let mut sheet = Sheet::new_with_name("One");
+    let mut sheet = Sheet::new("One");
 
     let cc: u32 = 0;
     sheet.set_value(0, cc, "Content Length");
@@ -33,7 +33,9 @@ fn test_validation0() -> Result<(), OdsError> {
     let cc: u32 = 3;
     sheet.set_value(0, cc, "In List");
     let mut valid = Validation::new();
-    valid.set_condition(Condition::content_is_in_list(&[1, 3, 5, 7, 11, 13, 17, 19]));
+    valid.set_condition(Condition::content_is_in_list::<u32>(&[
+        1, 3, 5, 7, 11, 13, 17, 19,
+    ]));
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
@@ -109,7 +111,7 @@ fn test_validation0() -> Result<(), OdsError> {
 fn test_validation1() -> Result<(), OdsError> {
     let mut book = WorkBook::new();
 
-    let mut sheet = Sheet::new_with_name("One");
+    let mut sheet = Sheet::new("One");
 
     let cc: u32 = 0;
     sheet.set_value(0, cc, "Content Length");

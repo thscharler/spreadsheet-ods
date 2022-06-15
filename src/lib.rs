@@ -20,7 +20,7 @@
 //!
 //!
 //! if wb.num_sheets() == 0 {
-//!     let mut sheet = Sheet::new();
+//!     let mut sheet = Sheet::new("simple");
 //!     sheet.set_value(0, 0, true);
 //!     wb.push_sheet(sheet);
 //! }
@@ -34,7 +34,7 @@
 //! }
 //!
 //! if wb.num_sheets() == 1 {
-//!     wb.push_sheet(Sheet::new());
+//!     wb.push_sheet(Sheet::new("two"));
 //! }
 //!
 //! let date_format = format::create_date_dmy_format("date_format");
@@ -52,7 +52,7 @@
 //! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), &date_style_ref);
 //! sheet.set_formula(0, 3, format!("of:={}+1", formula::fcellref(0,0)));
 //!
-//! let mut sheet = Sheet::new_with_name("sample");
+//! let mut sheet = Sheet::new("sample");
 //! sheet.set_value(5,5, "sample");
 //! wb.push_sheet(sheet);
 //!
@@ -178,6 +178,7 @@ pub use crate::io::write::{write_ods, write_ods_buf, write_ods_buf_uncompressed}
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
+use std::borrow::Cow;
 
 use crate::config::Config;
 use crate::ds::detach::Detach;
@@ -1152,10 +1153,18 @@ impl fmt::Debug for Sheet {
 }
 
 impl Sheet {
-    /// New, empty
-    pub fn new() -> Self {
+    /// Create an empty sheet.
+    ///
+    /// The name is shown as the tab-title, but also as a reference for
+    /// this sheet in formulas and sheet-metadata. Giving an empty string
+    /// here is allowed and a name will be generated, when the document is
+    /// opened. But any metadata will not be applied.
+    ///
+    /// Renaming the sheet works for metadata, but formulas will not be fixed.  
+    ///
+    pub fn new<S: Into<String>>(name: S) -> Self {
         Sheet {
-            name: String::from(""),
+            name: name.into(),
             data: BTreeMap::new(),
             col_header: Default::default(),
             style: None,
@@ -1167,24 +1176,6 @@ impl Sheet {
             row_header: Default::default(),
             display: true,
             print: true,
-        }
-    }
-
-    /// New, empty, but with a name.
-    pub fn new_with_name<S: Into<String>>(name: S) -> Self {
-        Sheet {
-            name: name.into(),
-            style: None,
-            data: Default::default(),
-            col_header: Default::default(),
-            row_header: Default::default(),
-            display: true,
-            print: true,
-            header_rows: None,
-            header_cols: None,
-            print_ranges: None,
-            sheet_config: Default::default(),
-            extra: Default::default(),
         }
     }
 
@@ -2263,6 +2254,26 @@ impl Value {
         match self {
             Value::Text(s) => s.as_ref(),
             _ => d,
+        }
+    }
+
+    /// Return the content as str if the value is text or markup text.
+    /// When the cell contains markup all the markup is removed, but
+    /// line-breaks are kept as \n.
+    pub fn as_cow_str_or<'a>(&'a self, d: &'a str) -> Cow<'a, str> {
+        match self {
+            Value::Text(s) => Cow::from(s),
+            Value::TextXml(v) => {
+                let mut buf = String::new();
+                for t in v {
+                    if buf.len() > 0 {
+                        buf.push('\n');
+                    }
+                    t.extract_text(&mut buf);
+                }
+                Cow::from(buf)
+            }
+            _ => Cow::from(d),
         }
     }
 

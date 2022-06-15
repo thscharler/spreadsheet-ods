@@ -7,7 +7,7 @@ use spreadsheet_ods::{
 fn test_colwidth() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
 
-    let mut sh = Sheet::new_with_name("Sheet1");
+    let mut sh = Sheet::new("Sheet1");
     sh.set_value(0, 0, 1234);
     sh.set_col_width(0, cm!(2.54));
     sh.set_row_height(0, cm!(1.27));
@@ -24,10 +24,10 @@ fn test_colwidth() -> Result<(), OdsError> {
 
 #[test]
 fn test_cell() {
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
 
-    sh.set_value(5, 5, 1);
-    sh.set_value(6, 6, 2);
+    sh.set_value(5, 5, 1u32);
+    sh.set_value(6, 6, 2u32);
 
     if let Some(c) = sh.cell(5, 5) {
         assert_eq!(c.value().as_i32_or(0), 1);
@@ -43,7 +43,7 @@ fn test_cell() {
 #[test]
 fn test_row_repeat() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
 
     sh.set_value(2, 2, 1);
     sh.set_value(4, 4, 2);
@@ -60,7 +60,7 @@ fn test_row_repeat() -> Result<(), OdsError> {
 
 #[test]
 fn test_currency() {
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
     sh.set_value(0, 0, currency!("€", 20));
     assert_eq!(sh.value(0, 0).value_type(), ValueType::Currency);
 
@@ -72,7 +72,7 @@ fn test_currency() {
 
 #[test]
 fn test_percentage() {
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
 
     sh.set_value(0, 0, percent!(17.22));
     assert_eq!(sh.value(0, 0).value_type(), ValueType::Percentage);
@@ -82,7 +82,7 @@ fn test_percentage() {
 fn test_span() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
 
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
     sh.set_value(0, 0, "A");
     sh.set_value(0, 1, "A2");
     sh.set_value(0, 2, "bomb");
@@ -92,7 +92,7 @@ fn test_span() -> Result<(), OdsError> {
     sh.set_col_span(0, 0, 2);
     wb.push_sheet(sh);
 
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
     sh.set_value(1, 0, "B");
     sh.set_value(2, 0, "B2");
     sh.set_value(1, 1, "bomb");
@@ -102,7 +102,7 @@ fn test_span() -> Result<(), OdsError> {
     sh.set_row_span(1, 0, 2);
     wb.push_sheet(sh);
 
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
     sh.set_value(3, 0, "C");
     sh.set_value(3, 1, "C2");
     sh.set_value(4, 0, "C2");
@@ -137,7 +137,7 @@ fn test_span() -> Result<(), OdsError> {
 fn test_header() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
 
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
     for i in 0..10 {
         for j in 0..10 {
             sh.set_value(i, j, i + j);
@@ -147,19 +147,19 @@ fn test_header() -> Result<(), OdsError> {
     sh.set_header_rows(0, 2);
     wb.push_sheet(sh);
 
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
     sh.set_value(0, 0, 0);
     sh.set_value(9, 0, 0);
     sh.set_header_rows(2, 3);
     wb.push_sheet(sh);
 
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
     sh.set_value(0, 0, 0);
     sh.set_value(9, 0, 0);
     sh.set_header_rows(0, 3);
     wb.push_sheet(sh);
 
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
     sh.set_value(0, 0, 0);
     sh.set_value(9, 0, 0);
     sh.set_header_rows(2, 9);
@@ -182,7 +182,7 @@ fn test_header() -> Result<(), OdsError> {
 fn test_print_range() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
 
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
     for i in 0..10 {
         for j in 0..10 {
             sh.set_value(i, j, i * j);
@@ -212,12 +212,12 @@ fn test_print_range() -> Result<(), OdsError> {
 #[test]
 fn display_print() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
-    let mut s0 = Sheet::new();
+    let mut s0 = Sheet::new("1");
     s0.set_value(0, 0, "display");
     s0.set_display(false);
     wb.push_sheet(s0);
 
-    let mut s1 = Sheet::new();
+    let mut s1 = Sheet::new("1");
     s1.set_value(0, 0, "print");
     s1.set_print(false);
     wb.push_sheet(s1);
@@ -231,7 +231,7 @@ fn display_print() -> Result<(), OdsError> {
 fn split_table() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
 
-    let mut sh = Sheet::new_with_name("Split0");
+    let mut sh = Sheet::new("Split0");
     sh.set_value(0, 0, 1);
     sh.set_value(0, 1, 2);
     sh.set_value(1, 0, 3);
@@ -239,7 +239,7 @@ fn split_table() -> Result<(), OdsError> {
     sh.split_col_header(3);
     wb.push_sheet(sh);
 
-    let mut sh = Sheet::new_with_name("Split1");
+    let mut sh = Sheet::new("Split1");
     sh.set_value(0, 0, 1);
     sh.set_value(0, 1, 2);
     sh.set_value(1, 0, 3);
@@ -254,7 +254,7 @@ fn split_table() -> Result<(), OdsError> {
 
 #[test]
 fn test_iterator() {
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
     for r in 1..100 {
         for c in 1..10 {
             if r % c == 0 {
@@ -266,9 +266,9 @@ fn test_iterator() {
     let mut it = sh.into_iter();
     while let Some(((cur_row, cur_col), _cell)) = it.next() {
         if let Some(p) = it.peek_cell() {
-            println!("{:?} -> {:?}", (cur_row, cur_col), p);
+            // println!("{:?} -> {:?}", (cur_row, cur_col), p);
         } else {
-            println!("{:?} -> {:?}", (cur_row, cur_col), ());
+            // println!("{:?} -> {:?}", (cur_row, cur_col), ());
         }
     }
 }

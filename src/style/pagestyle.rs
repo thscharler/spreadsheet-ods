@@ -1,5 +1,5 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::units::Border;
+use crate::style::units::{Border, PrintOrientation};
 use crate::style::{
     border_line_width_string, border_string, color_string, percent_string, shadow_string,
 };
@@ -94,7 +94,7 @@ impl PageStyle {
     // style:num-suffix 20.325,
     // style:paper-tray-name 20.329,
     // style:print 20.330,
-    // style:print-orientation 20.333,
+    // ok style:print-orientation 20.333,
     // style:print-pageorder 20.332,
     // style:register-truth-ref-style-name 20.337,
     // style:scale-to 20.352,
@@ -104,6 +104,12 @@ impl PageStyle {
     // style:shadow 20.359,
     // style:table-centering 20.363
     // style:writingmode 20.404.
+
+    /// Print orientation
+    pub fn set_print_orientation(&mut self, orientation: PrintOrientation) {
+        self.style_mut()
+            .set_attr("style:print-orientation", orientation.to_string());
+    }
 
     /// Page Height
     pub fn set_page_height(&mut self, height: Length) {

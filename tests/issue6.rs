@@ -1,5 +1,3 @@
-use spreadsheet_ods::*;
-
 // I'm forced to put the functions in the test because they are private outside the crate
 fn push_rowname(buf: &mut String, row: u32) {
     let row: u64 = row as u64 + 1;

@@ -53,7 +53,7 @@ fn test_crpagelayout() -> Result<(), OdsError> {
     ts.set_master_page_name(&mp);
     let _ts = wb.add_tablestyle(ts);
 
-    wb.push_sheet(Sheet::new());
+    wb.push_sheet(Sheet::new("1"));
 
     write_ods(&mut wb, "test_out/hf0.ods")?;
 

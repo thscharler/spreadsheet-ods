@@ -535,3 +535,20 @@ impl Display for LineWidth {
         }
     }
 }
+
+/// Page orientation
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub enum PrintOrientation {
+    Landscape,
+    Portrait,
+}
+
+impl Display for PrintOrientation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PrintOrientation::Landscape => write!(f, "landscape"),
+            PrintOrientation::Portrait => write!(f, "portrait"),
+        }
+    }
+}

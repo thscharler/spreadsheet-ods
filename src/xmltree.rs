@@ -168,6 +168,20 @@ impl XmlTag {
     pub fn content_mut(&mut self) -> &mut Vec<XmlContent> {
         &mut self.content
     }
+
+    /// Extracts the plain text from this tag and its content.
+    pub fn extract_text(&self, buf: &mut String) {
+        for c in &self.content {
+            match c {
+                XmlContent::Text(t) => {
+                    buf.push_str(&t);
+                }
+                XmlContent::Tag(t) => {
+                    t.extract_text(buf);
+                }
+            }
+        }
+    }
 }
 
 impl Display for XmlTag {

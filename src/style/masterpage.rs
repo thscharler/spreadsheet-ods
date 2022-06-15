@@ -30,7 +30,7 @@ style_ref!(MasterPageRef);
 /// ts.set_master_page_name(&mp1_ref);
 /// let ts_ref = wb.add_tablestyle(ts);
 ///
-/// let mut sheet = Sheet::new();
+/// let mut sheet = Sheet::new("sheet 1");
 /// sheet.set_style(&ts_ref);
 /// ```  
 ///

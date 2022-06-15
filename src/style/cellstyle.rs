@@ -29,7 +29,7 @@ style_ref!(CellStyleRef);
 /// st_header.set_font_size(pt!(18));
 /// let ref_header = book.add_cellstyle(st_header);
 ///
-/// let mut sheet0 = Sheet::new();
+/// let mut sheet0 = Sheet::new("sheet 1");
 /// sheet0.set_styled_value(0,0, "title", &ref_header);
 ///
 /// // use a style defined later or elsewhere:

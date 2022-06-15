@@ -251,14 +251,22 @@ fn token_datetime(input: &[u8]) -> IResult<&[u8], NaiveDateTime> {
         if let Some(result) = result.6 {
             p.nanosecond = Some(result.1 as u32);
         }
+    } else {
+        p.hour_div_12 = Some(0);
+        p.hour_mod_12 = Some(0);
+        p.minute = Some(0);
+        p.second = Some(0);
     }
     match p.to_naive_datetime_with_offset(0) {
         Ok(v) => Ok((input, v)),
-        Err(err) => Err(nom::Err::Error(nom::error::Error::from_external_error(
-            input,
-            ErrorKind::Verify,
-            err,
-        ))),
+        Err(err) => {
+            dbg!(&err);
+            Err(nom::Err::Error(nom::error::Error::from_external_error(
+                input,
+                ErrorKind::Verify,
+                err,
+            )))
+        }
     }
 }
 
@@ -304,7 +312,6 @@ mod tests {
         token_nano,
     };
     use crate::OdsError;
-    use std::borrow::Cow;
 
     #[test]
     fn test_string() -> Result<(), OdsError> {

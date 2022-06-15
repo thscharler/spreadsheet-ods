@@ -334,7 +334,7 @@ fn read_table(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: BytesStart<'_>,
 ) -> Result<Sheet, OdsError> {
-    let mut sheet = Sheet::new();
+    let mut sheet = Sheet::new("");
 
     read_table_attr(&mut sheet, xml_tag)?;
 

@@ -12,7 +12,7 @@ fn issue1() {
     // style.row_mut().set_row_height(Length::Cm(10.0));
     // wb.add_style(style);
 
-    let mut sheet = spreadsheet_ods::Sheet::new_with_name("test");
+    let mut sheet = spreadsheet_ods::Sheet::new("test");
     sheet.set_row_height(1, cm!(10));
     sheet.set_col_width(1, cm!(10));
     sheet.set_value(1, 1, ());

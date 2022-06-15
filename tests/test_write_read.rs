@@ -11,7 +11,7 @@ use std::time::Instant;
 #[test]
 fn test_write_read() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
 
     sh.set_value(0, 0, "A");
 
@@ -53,61 +53,6 @@ pub fn timingn<E>(name: &str, mut fun: impl FnMut()) -> Result<(), E> {
     Ok(())
 }
 
-// #[test]
-// fn read_samples() -> Result<(), OdsError> {
-//     let files = vec![
-//         "2015 Balkansauce.ods",
-//         "2018 Gärtnerische Produktion.ods",
-//         "2019 BeVerarbeitet.ods",
-//         "2019 Gärtnerische Produktion.ods",
-//         "2020 Flächen MFA.ods",
-//         "2020 Fruchtsäfte.ods",
-//         "2020 Gemessenes Gewicht.ods",
-//         "2020 Getreide und Mehle.ods",
-//         "2020 Hygieneschulung.ods",
-//         "2020 Mühle Anweisung Kalkulation.ods",
-//         "2020 Produktliste.ods",
-//         "2020 Reinigungsprotokoll.ods",
-//         "2020 Rezepturen Allergene.ods",
-//         "2020 Tierhaltung.ods",
-//         "2020 Verpackung.ods",
-//         "2020 Zeiterfassung.ods",
-//         "2020-06 Kalkulation Paket.ods",
-//         "2021 LK-Duengerrechner_20200720_CC_2020.ods.ods",
-//         "2021 Paradeis Anbauplan.ods",
-//         "2021 Pflanzenschutz.ods",
-//         "2021 Produktion.ods",
-//         "2021 Weideblatt.ods",
-//         "4.17 Rezepturen Allergene.ods",
-//         "ANBOT.ods",
-//         "Bestell-Liste.ods",
-//         "Brotpreise.ods",
-//         "Eier Legeprotokoll.ods",
-//         "Kalender 2020.ods",
-//         "Kalender 2021.ods",
-//         "LIEFERSCHEIN_2020.ods",
-//         "Liste Schneebacher.ods",
-//         "Marktfahrer.ods",
-//         "RECHNUNG.ods",
-//         "RECHNUNG_2020.ods",
-//         "Rindfleisch Preisliste.ods",
-//         "Stundenzettel März-November 2020 Scharler.ods",
-//     ];
-//
-//     let path = Path::new("tests_data");
-//     for f in &files {
-//         timingr(f, move || -> Result<(), OdsError> {
-//             let p = path.join(f);
-//             if let Err(e) = read_ods(p) {
-//                 println!("{:?}", e);
-//             }
-//             Ok(())
-//         })?;
-//     }
-//
-//     Ok(())
-// }
-
 #[test]
 fn read_orders() -> Result<(), OdsError> {
     let mut wb = read_ods("tests/orders.ods")?;
@@ -140,7 +85,7 @@ fn test_write_read_write_read() -> Result<(), OdsError> {
 #[test]
 fn test_write_repeat_overlapped() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
 
     sh.set_value(0, 0, "A");
     sh.set_row_repeat(0, 3);
@@ -154,7 +99,6 @@ fn test_write_repeat_overlapped() -> Result<(), OdsError> {
     write_ods(&mut wb, path)?;
 
     let _ods = read_ods(path)?;
-    dbg!(_ods);
 
     Ok(())
 }
@@ -162,7 +106,7 @@ fn test_write_repeat_overlapped() -> Result<(), OdsError> {
 #[test]
 fn test_write_buf() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
-    let mut sh = Sheet::new();
+    let mut sh = Sheet::new("1");
 
     sh.set_value(0, 0, "A");
     wb.push_sheet(sh);
@@ -170,8 +114,6 @@ fn test_write_buf() -> Result<(), OdsError> {
     let p = Path::new("test_out/bufnot.ods");
     write_ods(&mut wb, p)?;
     let len = p.to_path_buf().metadata()?.len() as usize;
-
-    dbg!(len);
 
     let v = Vec::new();
     let v = write_ods_buf(&mut wb, v)?;
