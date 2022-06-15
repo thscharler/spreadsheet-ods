@@ -1,3 +1,9 @@
+///! The configuration format is a convoluted tree of typed key/value pairs.
+///! With some complications.
+///!
+///! This is only used internally and is mapped to WorkBookConfig and
+///! SheetConfig which are more accessible.
+///!
 use std::collections::HashMap;
 
 use chrono::NaiveDateTime;
@@ -72,24 +78,26 @@ impl From<i64> for ConfigValue {
 }
 
 /// Configuration mappings.
+///
+/// It behaves like a map, but the insertion order is retained.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ConfigMap {
-    ki: HashMap<String, usize>,
-    vl: Vec<(String, ConfigItem)>,
+    key_index: HashMap<String, usize>,
+    values: Vec<(String, ConfigItem)>,
 }
 
 impl ConfigMap {
     pub(crate) fn new() -> Self {
         Self {
-            ki: Default::default(),
-            vl: Default::default(),
+            key_index: Default::default(),
+            values: Default::default(),
         }
     }
 
     /// Iterate over this map.
     pub(crate) fn iter(&self) -> ConfigIter<'_> {
         ConfigIter {
-            it: Some(self.vl.iter()),
+            it: Some(self.values.iter()),
         }
     }
 
@@ -99,13 +107,14 @@ impl ConfigMap {
         S: AsRef<str>,
         V: Into<ConfigItem>,
     {
-        let idx = self.ki.get(name.as_ref());
+        let idx = self.key_index.get(name.as_ref());
 
         if let Some(idx) = idx {
-            self.vl.get_mut(*idx).unwrap().1 = item.into();
+            self.values.get_mut(*idx).unwrap().1 = item.into();
         } else {
-            self.vl.push((name.as_ref().to_string(), item.into()));
-            self.ki.insert(name.as_ref().to_string(), self.vl.len() - 1);
+            self.values.push((name.as_ref().to_string(), item.into()));
+            self.key_index
+                .insert(name.as_ref().to_string(), self.values.len() - 1);
         }
     }
 
@@ -114,10 +123,10 @@ impl ConfigMap {
     where
         S: AsRef<str>,
     {
-        let idx = self.ki.get(name.as_ref());
+        let idx = self.key_index.get(name.as_ref());
 
         if let Some(idx) = idx {
-            self.vl.get(*idx).map(|v| &v.1)
+            self.values.get(*idx).map(|v| &v.1)
         } else {
             None
         }
@@ -129,18 +138,19 @@ impl ConfigMap {
         S: AsRef<str>,
         F: Fn() -> ConfigItem,
     {
-        let idx = self.ki.get(name.as_ref());
+        let idx = self.key_index.get(name.as_ref());
 
         let idx = if let Some(idx) = idx {
             *idx
         } else {
-            self.vl.push((name.as_ref().to_string(), default()));
-            self.ki.insert(name.as_ref().to_string(), self.vl.len() - 1);
+            self.values.push((name.as_ref().to_string(), default()));
+            self.key_index
+                .insert(name.as_ref().to_string(), self.values.len() - 1);
 
-            self.vl.len() - 1
+            self.values.len() - 1
         };
 
-        &mut self.vl.get_mut(idx).unwrap().1
+        &mut self.values.get_mut(idx).unwrap().1
     }
 }
 
