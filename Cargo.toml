@@ -1,6 +1,6 @@
 [package]
 name = "spreadsheet-ods"
-version = "0.10.0"
+version = "0.11.0"
 authors = ["thomasscharler <thscharler@gmail.com>"]
 edition = "2021"
 description = "Read and write ODS files"
@@ -18,9 +18,14 @@ exclude = [
 
 [features]
 default = ["use_decimal"]
+# Add conversions from rust_decimal.
 use_decimal = []
 # Check the xml output for wellformedness.
 check_xml = []
+
+all_locales = [ "locale_de_AT", "locale_en_US" ]
+locale_de_AT = []
+locale_en_US = []
 
 [dependencies]
 rust_decimal = "1.24"
@@ -31,6 +36,8 @@ mktemp = "0.4"
 time = "0.3"
 nom = "6.2"
 nom_locate = "3.0.1"
+icu_locid = "0.6.0"
+lazy_static = "1.4.0"
 
 [dependencies.quick-xml]
 version = "0.22.0"

@@ -106,6 +106,7 @@ impl DefaultStyle {
 /// This function is best seen as an example, as there is currently now
 /// I18N support. So I set this up as it suited me.
 ///
+#[deprecated]
 pub fn create_default_styles(book: &mut WorkBook) {
     book.add_format(format::create_boolean_format(
         DefaultFormat::bool().to_string(),

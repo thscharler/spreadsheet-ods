@@ -76,7 +76,7 @@ pub fn value_format() {
     let mut f9 = ValueFormat::new();
     f9.push_hours(FormatNumberStyle::Long);
     f9.push_minutes(FormatNumberStyle::Long);
-    f9.push_seconds(FormatNumberStyle::Long);
+    f9.push_seconds(FormatNumberStyle::Long, 0);
     assert_eq!(
         f9.format_datetime(&NaiveDateTime::from_timestamp(1234442333, 12234332)),
         "123853"

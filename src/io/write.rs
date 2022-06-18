@@ -361,7 +361,7 @@ fn write_meta<W: Write + Seek>(
 
         xml_out.elem("office:meta")?;
 
-        xml_out.elem_text("meta:generator", "spreadsheet-ods 0.8.1")?;
+        xml_out.elem_text("meta:generator", "spreadsheet-ods 0.11.0")?;
         let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
         let d = NaiveDateTime::from_timestamp(s.as_secs() as i64, 0);
         xml_out.elem_text(
@@ -2022,7 +2022,7 @@ fn write_valuestyles<W: Write + Seek>(
         .filter(|s| s.origin() == origin && s.styleuse() == styleuse)
     {
         let tag = match value_format.value_type() {
-            ValueType::Empty => "number:empty_style", // ???
+            ValueType::Empty => unreachable!(),
             ValueType::Boolean => "number:boolean-style",
             ValueType::Number => "number:number-style",
             ValueType::Text => "number:text-style",
@@ -2035,6 +2035,15 @@ fn write_valuestyles<W: Write + Seek>(
 
         xml_out.elem(tag)?;
         xml_out.attr_esc("style:name", value_format.name().as_str())?;
+        if let Some(country) = value_format.country() {
+            xml_out.attr_esc("number:country", country.as_str())?;
+        }
+        if let Some(language) = value_format.language() {
+            xml_out.attr_esc("number:language", language.as_str())?;
+        }
+        if let Some(script) = value_format.script() {
+            xml_out.attr_esc("number:script", script.as_str())?;
+        }
         for (a, v) in value_format.attrmap().iter() {
             xml_out.attr_esc(a.as_ref(), v.as_str())?;
         }

@@ -552,3 +552,35 @@ impl Display for PrintOrientation {
         }
     }
 }
+
+/// Transliteration style
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub enum TransliterationStyle {
+    Short,
+    Medium,
+    Long,
+}
+
+impl Display for TransliterationStyle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransliterationStyle::Short => write!(f, "short"),
+            TransliterationStyle::Medium => write!(f, "medium"),
+            TransliterationStyle::Long => write!(f, "long"),
+        }
+    }
+}
+
+impl FromStr for TransliterationStyle {
+    type Err = OdsError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "short" => Ok(TransliterationStyle::Short),
+            "medium" => Ok(TransliterationStyle::Medium),
+            "long" => Ok(TransliterationStyle::Long),
+            _ => Err(OdsError::Parse(s.to_string())),
+        }
+    }
+}

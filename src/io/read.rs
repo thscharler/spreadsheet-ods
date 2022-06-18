@@ -2312,6 +2312,7 @@ fn proc_style_attr<'a>(
 
     Ok(name.unwrap_or_default())
 }
+
 /// Copies all attributes to the given map.
 fn copy_attr2(attrmap: &mut AttrMap2, xml_tag: &BytesStart<'_>) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {

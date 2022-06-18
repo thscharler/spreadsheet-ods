@@ -1,8 +1,7 @@
-use std::mem::size_of;
+use icu_locid::locale;
 use std::time::Instant;
 
-use spreadsheet_ods::defaultstyles::create_default_styles;
-use spreadsheet_ods::{write_ods_buf, Length, OdsError, Sheet, Value, Visibility, WorkBook};
+use spreadsheet_ods::{write_ods_buf, Length, OdsError, Sheet, Visibility, WorkBook};
 
 pub fn timingr<E, R>(
     name: &str,
@@ -26,7 +25,7 @@ pub fn timingr<E, R>(
 fn create_wb(rows: u32, cols: u32) -> impl FnMut() -> Result<WorkBook, OdsError> {
     move || {
         let mut wb = WorkBook::new();
-        create_default_styles(&mut wb);
+        wb.init_defaults(locale!("en_US"));
         let mut sh = Sheet::new("1");
 
         for r in 0..rows {

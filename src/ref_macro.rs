@@ -29,6 +29,12 @@ macro_rules! style_ref {
             }
         }
 
+        impl From<$l> for String {
+            fn from(name: $l) -> Self {
+                name.to_string()
+            }
+        }
+
         impl $l {
             /// Reference as str.
             pub fn as_str(&self) -> &str {

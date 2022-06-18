@@ -181,6 +181,7 @@ pub use crate::style::{CellStyle, CellStyleRef};
 use std::borrow::Cow;
 
 use crate::config::Config;
+use crate::defaultstyles::{DefaultFormat, DefaultStyle};
 use crate::ds::detach::Detach;
 use crate::ds::detach::Detached;
 use crate::io::filebuf::FileBuf;
@@ -195,6 +196,7 @@ use crate::validation::{Validation, ValidationRef};
 use crate::xmltree::XmlTag;
 use chrono::Duration;
 use chrono::{NaiveDate, NaiveDateTime};
+use icu_locid::Locale;
 #[cfg(feature = "use_decimal")]
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 #[cfg(feature = "use_decimal")]
@@ -222,6 +224,7 @@ pub mod error;
 pub mod format;
 pub mod formula;
 mod io;
+pub mod locale;
 pub mod refs;
 pub mod style;
 pub mod text;
@@ -358,7 +361,7 @@ fn auto_style_name<T>(
 }
 
 impl WorkBook {
-    /// Empty.
+    /// Creates a new, completely empty workbook.
     pub fn new() -> Self {
         WorkBook {
             sheets: Default::default(),
@@ -384,12 +387,73 @@ impl WorkBook {
         }
     }
 
-    /// Set ODS version.
+    /// Creates a new workbook, and initializes default styles according
+    /// to the given locale.
+    ///
+    /// If the locale is not supported yet it falls back to ISO 8601
+    /// formatting. The available locales can be activated via feature-flags.
+    pub fn new_loc(locale: Locale) -> Self {
+        let mut wb = WorkBook::new();
+        wb.init_defaults(locale);
+        wb
+    }
+
+    /// Creates a set of default formats and styles for every value-type.
+    pub fn init_defaults(&mut self, locale: Locale) {
+        let lf = locale::localized_format(locale);
+
+        self.add_format(lf.boolean_format());
+        self.add_format(lf.number_format());
+        self.add_format(lf.percentage_format());
+        self.add_format(lf.currency_format());
+        self.add_format(lf.date_format());
+        self.add_format(lf.datetime_format());
+        self.add_format(lf.time_format());
+
+        self.add_cellstyle(CellStyle::new(
+            DefaultStyle::bool().to_string(),
+            &DefaultFormat::bool(),
+        ));
+        self.add_cellstyle(CellStyle::new(
+            DefaultStyle::num().to_string(),
+            &DefaultFormat::num(),
+        ));
+        self.add_cellstyle(CellStyle::new(
+            DefaultStyle::percent().to_string(),
+            &DefaultFormat::percent(),
+        ));
+        self.add_cellstyle(CellStyle::new(
+            DefaultStyle::currency().to_string(),
+            &DefaultFormat::currency(),
+        ));
+        self.add_cellstyle(CellStyle::new(
+            DefaultStyle::date().to_string(),
+            &DefaultFormat::date(),
+        ));
+        self.add_cellstyle(CellStyle::new(
+            DefaultStyle::datetime().to_string(),
+            &DefaultFormat::datetime(),
+        ));
+        self.add_cellstyle(CellStyle::new(
+            DefaultStyle::time().to_string(),
+            &DefaultFormat::time(),
+        ));
+
+        self.add_def_style(ValueType::Boolean, &DefaultStyle::bool());
+        self.add_def_style(ValueType::Number, &DefaultStyle::num());
+        self.add_def_style(ValueType::Percentage, &DefaultStyle::percent());
+        self.add_def_style(ValueType::Currency, &DefaultStyle::currency());
+        self.add_def_style(ValueType::DateTime, &DefaultStyle::date());
+        self.add_def_style(ValueType::TimeDuration, &DefaultStyle::time());
+    }
+
+    /// ODS version. Defaults to 1.3.
     pub fn version(&self) -> &String {
         &self.version
     }
 
-    /// ODS version.
+    /// ODS version. Defaults to 1.3. It's not advised to set it to another
+    /// value.
     pub fn set_version(&mut self, version: String) {
         self.version = version;
     }

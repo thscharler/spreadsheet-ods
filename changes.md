@@ -1,3 +1,5 @@
+# 0.11.0
+
 # 0.10.0
 
 - Upgraded to edition 2021.
