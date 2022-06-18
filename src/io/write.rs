@@ -2035,13 +2035,13 @@ fn write_valuestyles<W: Write + Seek>(
 
         xml_out.elem(tag)?;
         xml_out.attr_esc("style:name", value_format.name().as_str())?;
-        if let Some(country) = value_format.country() {
+        if let Some(country) = value_format.attrmap().attr("number:country") {
             xml_out.attr_esc("number:country", country.as_str())?;
         }
-        if let Some(language) = value_format.language() {
+        if let Some(language) = value_format.attrmap().attr("number:language") {
             xml_out.attr_esc("number:language", language.as_str())?;
         }
-        if let Some(script) = value_format.script() {
+        if let Some(script) = value_format.attrmap().attr("number:script") {
             xml_out.attr_esc("number:script", script.as_str())?;
         }
         for (a, v) in value_format.attrmap().iter() {

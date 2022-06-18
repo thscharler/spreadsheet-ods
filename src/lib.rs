@@ -2330,7 +2330,7 @@ impl Value {
             Value::TextXml(v) => {
                 let mut buf = String::new();
                 for t in v {
-                    if buf.len() > 0 {
+                    if !buf.is_empty() {
                         buf.push('\n');
                     }
                     t.extract_text(&mut buf);

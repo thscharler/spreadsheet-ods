@@ -174,7 +174,7 @@ impl XmlTag {
         for c in &self.content {
             match c {
                 XmlContent::Text(t) => {
-                    buf.push_str(&t);
+                    buf.push_str(t.as_str());
                 }
                 XmlContent::Tag(t) => {
                     t.extract_text(buf);

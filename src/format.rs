@@ -298,10 +298,7 @@ impl ValueFormat {
     pub fn transliteration_format(&self) -> Option<char> {
         match self.attr.attr("number:transliteration-format") {
             None => None,
-            Some(v) => match v.chars().next() {
-                None => None,
-                Some(c) => Some(c),
-            },
+            Some(v) => v.chars().next(),
         }
     }
 
@@ -354,10 +351,7 @@ impl ValueFormat {
     pub fn fill_character(&self) -> Option<char> {
         match self.attr.attr("number:fill-character") {
             None => None,
-            Some(v) => match v.chars().next() {
-                None => None,
-                Some(c) => Some(c),
-            },
+            Some(v) => v.chars().next(),
         }
     }
 
