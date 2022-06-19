@@ -51,7 +51,7 @@ impl LocalizedValueFormat for LocaleEnUs {
     }
 
     fn time_format(&self) -> ValueFormat {
-        let mut v = ValueFormat::new_with_locale(
+        let mut v = ValueFormat::new_localized(
             DefaultFormat::time(),
             LocaleEnUs::LOCALE,
             ValueType::TimeDuration,

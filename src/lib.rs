@@ -394,7 +394,7 @@ impl WorkBook {
     ///
     /// If the locale is not supported yet it falls back to ISO 8601
     /// formatting. The available locales can be activated via feature-flags.
-    pub fn new_loc(locale: Locale) -> Self {
+    pub fn new_localized(locale: Locale) -> Self {
         let mut wb = WorkBook::new();
         wb.init_defaults(locale);
         wb

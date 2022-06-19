@@ -2050,7 +2050,7 @@ fn write_valuestyles<W: Write + Seek>(
             let part_tag = match part.part_type() {
                 FormatPartType::Boolean => "number:boolean",
                 FormatPartType::Number => "number:number",
-                FormatPartType::Scientific => "number:scientific-number",
+                FormatPartType::ScientificNumber => "number:scientific-number",
                 FormatPartType::CurrencySymbol => "number:currency-symbol",
                 FormatPartType::Day => "number:day",
                 FormatPartType::Month => "number:month",
@@ -2064,13 +2064,15 @@ fn write_valuestyles<W: Write + Seek>(
                 FormatPartType::Seconds => "number:seconds",
                 FormatPartType::Fraction => "number:fraction",
                 FormatPartType::AmPm => "number:am-pm",
-                FormatPartType::EmbeddedText => "number:embedded-text",
+                // FormatPartType::EmbeddedText => "number:embedded-text",
                 FormatPartType::Text => "number:text",
                 FormatPartType::TextContent => "number:text-content",
+                FormatPartType::FillCharacter => "number:fill-character",
             };
 
             if part.part_type() == FormatPartType::Text
                 || part.part_type() == FormatPartType::CurrencySymbol
+                || part.part_type() == FormatPartType::FillCharacter
             {
                 xml_out.elem(part_tag)?;
                 for (a, v) in part.attrmap().iter() {

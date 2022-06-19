@@ -5,7 +5,7 @@ use crate::format::{
 };
 use crate::locale::LocalizedValueFormat;
 use crate::ValueFormat;
-use icu_locid::Locale;
+use icu_locid::{locale, Locale};
 
 pub(crate) struct LocaleUnd {}
 
@@ -29,7 +29,7 @@ impl LocalizedValueFormat for LocaleUnd {
     }
 
     fn currency_format(&self) -> ValueFormat {
-        create_currency_prefix(DefaultFormat::currency(), "", "", "")
+        create_currency_prefix(DefaultFormat::currency(), locale!("en_US"), "")
     }
 
     fn date_format(&self) -> ValueFormat {

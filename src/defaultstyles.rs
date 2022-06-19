@@ -5,6 +5,7 @@
 use crate::format::ValueFormatRef;
 use crate::style::CellStyle;
 use crate::{format, CellStyleRef, ValueType, WorkBook};
+use icu_locid::locale;
 
 ///
 /// Allows access to the value-format names for the default formats
@@ -99,13 +100,7 @@ impl DefaultStyle {
     }
 }
 
-/// Adds default-styles for all basic ValueTypes. These are also set as default
-/// styles for the respective types. By calling this function for a new workbook,
-/// the basic formatting is done.
-///
-/// This function is best seen as an example, as there is currently now
-/// I18N support. So I set this up as it suited me.
-///
+/// Replaced with WorkBook::init_defaults() or WorkBook::new_localized().
 #[deprecated]
 pub fn create_default_styles(book: &mut WorkBook) {
     book.add_format(format::create_boolean_format(
@@ -122,8 +117,7 @@ pub fn create_default_styles(book: &mut WorkBook) {
     ));
     book.add_format(format::create_currency_prefix(
         DefaultFormat::currency().to_string(),
-        "de",
-        "AT",
+        locale!("de_AT"),
         "€",
     ));
     book.add_format(format::create_date_dmy_format(

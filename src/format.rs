@@ -3,14 +3,14 @@
 //!
 //! ```
 //! use spreadsheet_ods::{ValueFormat, ValueType};
-//! use spreadsheet_ods::format::FormatNumberStyle;
+//! use spreadsheet_ods::format::{FormatCalendar, FormatMonth, FormatNumberStyle, FormatTextual};
 //!
-//! let mut v = ValueFormat::new_with_name("dt0", ValueType::DateTime);
-//! v.push_day(FormatNumberStyle::Long);
+//! let mut v = ValueFormat::new_named("dt0", ValueType::DateTime);
+//! v.push_day(FormatNumberStyle::Long, FormatCalendar::Default);
 //! v.push_text(".");
-//! v.push_month(FormatNumberStyle::Long, false);
+//! v.push_month(FormatNumberStyle::Long, FormatTextual::Numeric, FormatMonth::Nominativ, FormatCalendar::Default);
 //! v.push_text(".");
-//! v.push_year(FormatNumberStyle::Long);
+//! v.push_year(FormatNumberStyle::Long, FormatCalendar::Default);
 //! v.push_text(" ");
 //! v.push_hours(FormatNumberStyle::Long);
 //! v.push_text(":");
@@ -18,7 +18,7 @@
 //! v.push_text(":");
 //! v.push_seconds(FormatNumberStyle::Long, 0);
 //!
-//! let mut v = ValueFormat::new_with_name("n3", ValueType::Number);
+//! let mut v = ValueFormat::new_named("n3", ValueType::Number);
 //! v.push_number(3, false);
 //! ```
 //! The output formatting is a rough approximation with the possibilities
@@ -67,20 +67,44 @@ impl std::error::Error for ValueFormatError {}
 
 style_ref!(ValueFormatRef);
 
-// The <number:boolean-style> element has the following attributes:
+// Styles and attributes
 //
+// Attributes for all styles:
 // ok number:country 19.342
 // ok number:language 19.351
 // ignore number:rfc-language-tag 19.360
 // ok number:script 19.361
-// ok number:title 19.364,
+// ok number:title 19.364
 // ok number:transliteration-country 19.365
 // ok number:transliteration-format 19.366
-// ok number:transliteration-language 19.367,
+// ok number:transliteration-language 19.367
 // ok number:transliteration-style 19.368
 // ok style:display-name 19.476
-// Ok style:name 19.502
+// ok style:name 19.502
 // ok style:volatile 19.521
+//
+// ValueType:Number -> number:number-style
+//      no extras
+//
+// ValueType:Currency -> number:currency-style
+// number:automatic-order 19.340
+//
+// ValueType:Percentage -> number:percentage-style
+//      no extras
+//
+// ValueType:DateTime -> number:date-style
+// number:automaticorder 19.340
+// number:format-source 19.347,
+//
+// ValueType:TimeDuration -> number:time-style
+// number:format-source 19.347
+// number:truncate-on-overflow 19.365
+//
+// ValueType:Boolean -> number:boolean-style
+//      no extras
+//
+// ValueType:Text -> number:text-style
+//      no extras
 
 /// Actual textual formatting of values.
 #[derive(Debug, Clone)]
@@ -125,7 +149,7 @@ impl ValueFormat {
     }
 
     /// New, with name.
-    pub fn new_with_name<S: Into<String>>(name: S, value_type: ValueType) -> Self {
+    pub fn new_named<S: Into<String>>(name: S, value_type: ValueType) -> Self {
         assert_ne!(value_type, ValueType::Empty);
         ValueFormat {
             name: name.into(),
@@ -140,11 +164,7 @@ impl ValueFormat {
     }
 
     /// New, with name.
-    pub fn new_with_locale<S: Into<String>>(
-        name: S,
-        locale: Locale,
-        value_type: ValueType,
-    ) -> Self {
+    pub fn new_localized<S: Into<String>>(name: S, locale: Locale, value_type: ValueType) -> Self {
         assert_ne!(value_type, ValueType::Empty);
         let mut v = ValueFormat {
             name: name.into(),
@@ -337,24 +357,6 @@ impl ValueFormat {
         }
     }
 
-    ///The <number:fill-character> element specifies a Unicode character that is displayed
-    /// repeatedly at the position where the element occurs. The character specified is repeated as many
-    /// times as possible, but the total resulting string shall not exceed the given cell content area
-    /// Fill characters may not fill all the available space in a cell. The distribution of the remaining space
-    /// is implementation-dependent.
-    pub fn set_fill_character(&mut self, fill: char) {
-        self.attr
-            .set_attr("number:fill-character", fill.to_string());
-    }
-
-    /// Fill character.
-    pub fn fill_character(&self) -> Option<char> {
-        match self.attr.attr("number:fill-character") {
-            None => None,
-            Some(v) => v.chars().next(),
-        }
-    }
-
     /// The number:automatic-order attribute specifies whether data is ordered to match the default
     /// order for the language and country of a data style.
     /// The defined values for the number:automatic-order attribute are:
@@ -408,10 +410,12 @@ impl ValueFormat {
         self.styleuse
     }
 
+    /// All direct attributes of the number:xxx-style tag.
     pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
+    /// All direct attributes of the number:xxx-style tag.
     pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
@@ -428,131 +432,273 @@ impl ValueFormat {
 
     text!(textstyle_mut);
 
-    /// Appends a format part.
-    pub fn push_boolean(&mut self) {
-        self.push_part(FormatPart::new_boolean());
-    }
-
-    /// Appends a format part.
-    pub fn push_number(&mut self, decimal: u8, grouping: bool) {
-        self.push_part(FormatPart::new_number(decimal, grouping));
-    }
-
-    /// Appends a format part.
-    pub fn push_number_fix(&mut self, decimal: u8, grouping: bool) {
-        self.push_part(FormatPart::new_number_fix(decimal, grouping));
-    }
-
-    /// Appends a format part.
-    pub fn push_fraction(
+    /// The <number:number> element specifies the display formatting properties for a decimal
+    /// number.
+    ///
+    /// Can be used with ValueTypes:
+    /// * Currency
+    /// * Number
+    /// * Percentage
+    pub fn push_number_full(
         &mut self,
-        denominator: u32,
-        min_den_digits: u8,
-        min_int_digits: u8,
-        min_num_digits: u8,
+        decimal_places: u8,
         grouping: bool,
+        min_decimal_places: u8,
+        mininteger_digits: u8,
+        display_factor: Option<f64>,
+        decimal_replacement: Option<char>,
     ) {
-        self.push_part(FormatPart::new_fraction(
-            denominator,
-            min_den_digits,
-            min_int_digits,
-            min_num_digits,
+        // TODO: embedded-text
+        self.push_part(FormatPart::new_number(
+            decimal_places,
             grouping,
+            min_decimal_places,
+            mininteger_digits,
+            display_factor,
+            decimal_replacement,
         ));
     }
 
-    /// Appends a format part.
-    pub fn push_scientific(&mut self, dec_places: u8) {
-        self.push_part(FormatPart::new_scientific(dec_places));
+    /// The <number:number> element specifies the display formatting properties for a decimal
+    /// number.
+    pub fn push_number(&mut self, decimal_places: u8, grouping: bool) {
+        self.push_part(FormatPart::new_number(
+            decimal_places,
+            grouping,
+            0,
+            1,
+            None,
+            None,
+        ));
     }
 
-    /// Appends a format part.
-    pub fn push_loc_currency<S>(&mut self, locale: Locale, symbol: S)
+    /// The <number:number> element specifies the display formatting properties for a decimal
+    /// number.
+    pub fn push_number_fix(&mut self, decimal_places: u8, grouping: bool) {
+        self.push_part(FormatPart::new_number(
+            decimal_places,
+            grouping,
+            decimal_places,
+            1,
+            None,
+            None,
+        ));
+    }
+
+    /// The <number:fill-character> element specifies a Unicode character that is displayed
+    /// repeatedly at the position where the element occurs. The character specified is repeated as many
+    /// times as possible, but the total resulting string shall not exceed the given cell content area.
+    ///
+    /// Can be used with ValueTypes:
+    /// * Currency
+    /// * DateTime
+    /// * Number
+    /// * Percentage
+    /// * Text
+    /// * TimeDuration
+    pub fn push_fill_character(&mut self, fill_character: char) {
+        self.push_part(FormatPart::new_fill_character(fill_character));
+    }
+
+    /// The <number:scientific-number> element specifies the display formatting properties for a
+    /// number style that should be displayed in scientific format.
+    ///
+    /// Can be used with ValueTypes:
+    /// * Number
+    pub fn push_scientific_number(
+        &mut self,
+        decimal_places: u8,
+        grouping: bool,
+        min_exponentdigits: Option<u8>,
+        min_integer_digits: Option<u8>,
+    ) {
+        self.push_part(FormatPart::new_scientific_number(
+            decimal_places,
+            grouping,
+            min_exponentdigits,
+            min_integer_digits,
+        ));
+    }
+
+    /// The <number:fraction> element specifies the display formatting properties for a number style
+    /// that should be displayed as a fraction.
+    ///
+    /// Can be used with ValueTypes:
+    /// * Number
+    pub fn push_fraction(
+        &mut self,
+        denominatorvalue: u32,
+        min_denominator_digits: u8,
+        min_integer_digits: u8,
+        min_numerator_digits: u8,
+        grouping: bool,
+        max_denominator_value: Option<u8>,
+    ) {
+        self.push_part(FormatPart::new_fraction(
+            denominatorvalue,
+            min_denominator_digits,
+            min_integer_digits,
+            min_numerator_digits,
+            grouping,
+            max_denominator_value,
+        ));
+    }
+
+    /// The <number:currency-symbol> element specifies whether a currency symbol is displayed in
+    /// a currency style.
+    ///
+    /// Can be used with ValueTypes:
+    /// * Currency
+    pub fn push_currency_symbol<S>(&mut self, locale: Locale, symbol: S)
     where
         S: Into<String>,
     {
-        self.push_part(FormatPart::new_loc_currency(locale, symbol));
+        self.push_part(FormatPart::new_currency_symbol(locale, symbol));
     }
 
-    /// Appends a format part.
-    pub fn push_currency<S1, S2, S3>(&mut self, country: S1, language: S2, symbol: S3)
-    where
-        S1: Into<String>,
-        S2: Into<String>,
-        S3: Into<String>,
-    {
-        self.push_part(FormatPart::new_currency(country, language, symbol));
+    /// The <number:day> element specifies a day of a month in a date.
+    ///
+    /// Can be used with ValueTypes:
+    /// * DateTime
+    pub fn push_day(&mut self, style: FormatNumberStyle, calendar: FormatCalendar) {
+        self.push_part(FormatPart::new_day(style, calendar));
     }
 
-    /// Appends a format part.
-    pub fn push_day(&mut self, number: FormatNumberStyle) {
-        self.push_part(FormatPart::new_day(number));
+    /// The <number:month> element specifies a month in a date.
+    ///
+    /// Can be used with ValueTypes:
+    /// * DateTime
+    pub fn push_month(
+        &mut self,
+        style: FormatNumberStyle,
+        textual: FormatTextual,
+        possessive_form: FormatMonth,
+        calendar: FormatCalendar,
+    ) {
+        self.push_part(FormatPart::new_month(
+            style,
+            textual,
+            possessive_form,
+            calendar,
+        ));
     }
 
-    /// Appends a format part.
-    pub fn push_month(&mut self, number: FormatNumberStyle, text: bool) {
-        self.push_part(FormatPart::new_month(number, text));
+    /// The <number:year> element specifies a year in a date
+    ///
+    /// Can be used with ValueTypes:
+    /// * DateTime
+    pub fn push_year(&mut self, style: FormatNumberStyle, calendar: FormatCalendar) {
+        self.push_part(FormatPart::new_year(style, calendar));
     }
 
-    /// Appends a format part.
-    pub fn push_year(&mut self, number: FormatNumberStyle) {
-        self.push_part(FormatPart::new_year(number));
+    /// The <number:era> element specifies an era in which a year is counted
+    ///
+    /// Can be used with ValueTypes:
+    /// * DateTime
+    pub fn push_era(&mut self, style: FormatNumberStyle, calendar: FormatCalendar) {
+        self.push_part(FormatPart::new_era(style, calendar));
     }
 
-    /// Appends a format part.
-    pub fn push_era(&mut self, number: FormatNumberStyle, calendar: FormatCalendarStyle) {
-        self.push_part(FormatPart::new_era(number, calendar));
+    /// The <number:day-of-week> element specifies a day of a week in a date
+    ///
+    /// Can be used with ValueTypes:
+    /// * DateTime
+    pub fn push_day_of_week(&mut self, style: FormatNumberStyle, calendar: FormatCalendar) {
+        self.push_part(FormatPart::new_day_of_week(style, calendar));
     }
 
-    /// Appends a format part.
-    pub fn push_day_of_week(&mut self, number: FormatNumberStyle, calendar: FormatCalendarStyle) {
-        self.push_part(FormatPart::new_day_of_week(number, calendar));
-    }
-
-    /// Appends a format part.
-    pub fn push_week_of_year(&mut self, calendar: FormatCalendarStyle) {
+    /// The <number:week-of-year> element specifies a week of a year in a date.
+    ///
+    /// Can be used with ValueTypes:
+    /// * DateTime
+    pub fn push_week_of_year(&mut self, calendar: FormatCalendar) {
         self.push_part(FormatPart::new_week_of_year(calendar));
     }
 
-    /// Appends a format part.
-    pub fn push_quarter(&mut self, number: FormatNumberStyle, calendar: FormatCalendarStyle) {
-        self.push_part(FormatPart::new_quarter(number, calendar));
+    /// The <number:quarter> element specifies a quarter of the year in a date
+    ///
+    /// Can be used with ValueTypes:
+    /// * DateTime
+    pub fn push_quarter(&mut self, style: FormatNumberStyle, calendar: FormatCalendar) {
+        self.push_part(FormatPart::new_quarter(style, calendar));
     }
 
-    /// Appends a format part.
-    pub fn push_hours(&mut self, number: FormatNumberStyle) {
-        self.push_part(FormatPart::new_hours(number));
+    /// The <number:hours> element specifies whether hours are displayed as part of a date or time.
+    ///
+    /// Can be used with ValueTypes:
+    /// * DateTime
+    /// * TimeDuration
+    pub fn push_hours(&mut self, style: FormatNumberStyle) {
+        self.push_part(FormatPart::new_hours(style));
     }
 
-    /// Appends a format part.
-    pub fn push_minutes(&mut self, number: FormatNumberStyle) {
-        self.push_part(FormatPart::new_minutes(number));
+    /// The <number:minutes> element specifies whether minutes are displayed as part of a date or
+    /// time.
+    ///
+    /// Can be used with ValueTypes:
+    /// * DateTime
+    /// * TimeDuration
+    pub fn push_minutes(&mut self, style: FormatNumberStyle) {
+        self.push_part(FormatPart::new_minutes(style));
     }
 
-    /// Appends a format part.
-    pub fn push_seconds(&mut self, number: FormatNumberStyle, dec_places: u8) {
-        self.push_part(FormatPart::new_seconds(number, dec_places));
+    /// The <number:seconds> element specifies whether seconds are displayed as part of a date or
+    /// time.
+    ///
+    /// Can be used with ValueTypes:
+    /// * DateTime
+    /// * TimeDuration
+    pub fn push_seconds(&mut self, style: FormatNumberStyle, decimal_places: u8) {
+        self.push_part(FormatPart::new_seconds(style, decimal_places));
     }
 
-    /// Appends a format part.
+    /// The <number:am-pm> element specifies whether AM/PM is included as part of a date or time.
+    /// If a <number:am-pm> element is contained in a date or time style, hours are displayed using
+    /// values from 1 to 12 only.
+    ///
+    /// Can be used with ValueTypes:
+    /// * DateTime
+    /// * TimeDuration
     pub fn push_am_pm(&mut self) {
         self.push_part(FormatPart::new_am_pm());
     }
 
-    /// Appends a format part.
-    pub fn push_embedded_text(&mut self, position: u8) {
-        self.push_part(FormatPart::new_embedded_text(position));
+    /// The <number:boolean> element marks the position of the Boolean value of a Boolean style.
+    ///
+    /// Can be used with ValueTypes:
+    /// * Boolean
+    pub fn push_boolean(&mut self) {
+        self.push_part(FormatPart::new_boolean());
     }
 
-    /// Appends a format part.
+    /// The <number:text> element contains any fixed text for a data style.
+    ///
+    /// Can be used with ValueTypes:
+    /// * Boolean
+    /// * Currency
+    /// * DateTime
+    /// * Number
+    /// * Percentage
+    /// * Text
+    /// * TimeDuration
     pub fn push_text<S: Into<String>>(&mut self, text: S) {
         self.push_part(FormatPart::new_text(text));
     }
 
-    /// Appends a format part.
+    /// The <number:text-content> element marks the position of variable text content of a text
+    /// style.
+    ///
+    /// Can be used with ValueTypes:
+    /// * Text
     pub fn push_text_content(&mut self) {
         self.push_part(FormatPart::new_text_content());
     }
+
+    // /// The <number:///-text> element specifies text that is displayed at one specific position
+    // /// within a number.
+    // pub fn push_embedded_text<S: Into<String>>(&mut self, position: u8, text: S) {
+    //     self.push_part(FormatPart::new_embedded_text(position, text));
+    // }
 
     /// Adds a format part.
     pub fn push_part(&mut self, part: FormatPart) {
@@ -652,10 +798,10 @@ impl ValueFormat {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub enum FormatPartType {
-    Boolean,
     Number,
+    FillCharacter,
+    ScientificNumber,
     Fraction,
-    Scientific,
     CurrencySymbol,
     Day,
     Month,
@@ -668,7 +814,8 @@ pub enum FormatPartType {
     Minutes,
     Seconds,
     AmPm,
-    EmbeddedText,
+    Boolean,
+    //EmbeddedText,
     Text,
     TextContent,
 }
@@ -701,10 +848,45 @@ impl Display for FormatNumberStyle {
     }
 }
 
+/// Flag for several PartTypes.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub enum FormatTextual {
+    Numeric,
+    Textual,
+}
+
+impl Display for FormatTextual {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            FormatTextual::Numeric => write!(f, "false"),
+            FormatTextual::Textual => write!(f, "true"),
+        }
+    }
+}
+
+/// Flag for several PartTypes.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub enum FormatMonth {
+    Nominativ,
+    Possessiv,
+}
+
+impl Display for FormatMonth {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            FormatMonth::Nominativ => write!(f, "false"),
+            FormatMonth::Possessiv => write!(f, "true"),
+        }
+    }
+}
+
 /// Calendar types.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
-pub enum FormatCalendarStyle {
+pub enum FormatCalendar {
+    Default,
     Gregorian,
     Gengou,
     Roc,
@@ -714,16 +896,17 @@ pub enum FormatCalendarStyle {
     Buddhist,
 }
 
-impl Display for FormatCalendarStyle {
+impl Display for FormatCalendar {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            FormatCalendarStyle::Gregorian => write!(f, "gregorian"),
-            FormatCalendarStyle::Gengou => write!(f, "gengou"),
-            FormatCalendarStyle::Roc => write!(f, "ROC"),
-            FormatCalendarStyle::Hanja => write!(f, "hanja"),
-            FormatCalendarStyle::Hijri => write!(f, "hijri"),
-            FormatCalendarStyle::Jewish => write!(f, "jewish"),
-            FormatCalendarStyle::Buddhist => write!(f, "buddhist"),
+            FormatCalendar::Gregorian => write!(f, "gregorian"),
+            FormatCalendar::Gengou => write!(f, "gengou"),
+            FormatCalendar::Roc => write!(f, "ROC"),
+            FormatCalendar::Hanja => write!(f, "hanja"),
+            FormatCalendar::Hijri => write!(f, "hijri"),
+            FormatCalendar::Jewish => write!(f, "jewish"),
+            FormatCalendar::Buddhist => write!(f, "buddhist"),
+            FormatCalendar::Default => Ok(()),
         }
     }
 }
@@ -747,63 +930,175 @@ impl FormatPart {
         }
     }
 
-    /// Boolean Part
-    pub fn new_boolean() -> Self {
-        FormatPart::new(FormatPartType::Boolean)
-    }
-
-    /// Number format part.
-    pub fn new_number(decimal: u8, grouping: bool) -> Self {
+    /// The <number:number> element specifies the display formatting properties for a decimal
+    /// number.
+    /// The <number:number> element is usable within the following elements:
+    /// * <number:currencystyle> 16.29.8,
+    /// * <number:number-style> 16.29.2 and
+    /// * <number:percentage-style> 16.29.10.
+    ///
+    /// The <number:number> element has the following attributes:
+    /// * number:decimal-places 19.343,
+    /// * number:decimal-replacement 19.344
+    /// * number:display-factor 19.346
+    /// * number:grouping 19.350
+    /// * number:min-decimal-places 19.356 and
+    /// * number:mininteger-digits 19.355.
+    ///
+    /// The <number:number> element has the following child element: <number:embedded-text>
+    /// 16.29.4.
+    ///
+    pub fn new_number(
+        decimal_places: u8,
+        grouping: bool,
+        min_decimal_places: u8,
+        mininteger_digits: u8,
+        display_factor: Option<f64>,
+        decimal_replacement: Option<char>,
+    ) -> Self {
         let mut p = FormatPart::new(FormatPartType::Number);
         p.set_attr("number:min-integer-digits", 1.to_string());
-        p.set_attr("number:decimal-places", decimal.to_string());
-        p.set_attr("number:min-decimal-places", 0.to_string());
+        p.set_attr("number:decimal-places", decimal_places.to_string());
+        if let Some(decimal_replacement) = decimal_replacement {
+            p.set_attr(
+                "number:decimal-replacement",
+                decimal_replacement.to_string(),
+            );
+        }
+        if let Some(display_factor) = display_factor {
+            p.set_attr("number:display-factor", display_factor.to_string());
+        }
+        p.set_attr("number:mininteger-digits", mininteger_digits.to_string());
+        p.set_attr("number:min-decimal-places", min_decimal_places.to_string());
         if grouping {
             p.set_attr("number:grouping", String::from("true"));
         }
+
+        // TODO: number:embedded-text
         p
     }
 
-    /// Number format part with fixed decimal places.
-    pub fn new_number_fix(decimal: u8, grouping: bool) -> Self {
-        let mut p = Self::new(FormatPartType::Number);
-        p.set_attr("number:min-integer-digits", 1.to_string());
-        p.set_attr("number:decimal-places", decimal.to_string());
-        p.set_attr("number:min-decimal-places", decimal.to_string());
-        if grouping {
-            p.set_attr("number:grouping", String::from("true"));
-        }
+    /// The <number:fill-character> element specifies a Unicode character that is displayed
+    /// repeatedly at the position where the element occurs. The character specified is repeated as many
+    /// times as possible, but the total resulting string shall not exceed the given cell content area.
+    ///
+    /// Fill characters may not fill all the available space in a cell. The distribution of the
+    /// remaining space is implementation-dependent.
+    ///
+    /// The <number:fill-character> element is usable within the following elements:
+    /// * <number:currency-style> 16.29.8,
+    /// * <number:date-style> 16.29.11,
+    /// * <number:number-style> 16.29.2,
+    /// * <number:percentage-style> 16.29.10,
+    /// * <number:text-style> 16.29.26 and
+    /// * <number:time-style> 16.29.19.
+    ///
+    /// The <number:fill-character> element has no attributes.
+    /// The <number:fill-character> element has no child elements.
+    /// The <number:fill-character> element has character data content.
+    pub fn new_fill_character(fill_character: char) -> Self {
+        let mut p = FormatPart::new(FormatPartType::FillCharacter);
+        p.set_content(fill_character.to_string());
         p
     }
 
-    /// Format as a fraction.
+    /// The <number:fraction> element specifies the display formatting properties for a number style
+    /// that should be displayed as a fraction.
+    ///
+    /// The <number:fraction> element is usable within the following element:
+    /// * <number:numberstyle> 16.29.2.
+    ///
+    /// The <number:fraction> element has the following attributes:
+    /// * number:denominatorvalue 19.345,
+    /// * number:grouping 19.350,
+    /// * number:max-denominator-value 19.352,
+    /// * number:min-denominator-digits 19.353,
+    /// * number:min-integer-digits 19.355 and
+    /// * number:min-numerator-digits 19.357.
+    ///
+    /// The <number:fraction> element has no child elements.
     pub fn new_fraction(
-        denominator: u32,
-        min_den_digits: u8,
-        min_int_digits: u8,
-        min_num_digits: u8,
+        denominatorvalue: u32,
+        min_denominator_digits: u8,
+        min_integer_digits: u8,
+        min_numerator_digits: u8,
         grouping: bool,
+        max_denominator_value: Option<u8>,
     ) -> Self {
         let mut p = Self::new(FormatPartType::Fraction);
-        p.set_attr("number:denominator-value", denominator.to_string());
-        p.set_attr("number:min-denominator-digits", min_den_digits.to_string());
-        p.set_attr("number:min-integer-digits", min_int_digits.to_string());
-        p.set_attr("number:min-numerator-digits", min_num_digits.to_string());
+        p.set_attr("number:denominator-value", denominatorvalue.to_string());
+        if let Some(max_denominator_value) = max_denominator_value {
+            p.set_attr(
+                "number:max-denominator-value",
+                max_denominator_value.to_string(),
+            );
+        }
+        p.set_attr(
+            "number:min-denominator-digits",
+            min_denominator_digits.to_string(),
+        );
+        p.set_attr("number:min-integer-digits", min_integer_digits.to_string());
+        p.set_attr(
+            "number:min-numerator-digits",
+            min_numerator_digits.to_string(),
+        );
         if grouping {
             p.set_attr("number:grouping", String::from("true"));
         }
         p
     }
 
-    /// Format with scientific notation.
-    pub fn new_scientific(dec_places: u8) -> Self {
-        let mut p = Self::new(FormatPartType::Scientific);
-        p.set_attr("number:decimal-places", dec_places.to_string());
+    /// The <number:scientific-number> element specifies the display formatting properties for a
+    /// number style that should be displayed in scientific format.
+    ///
+    /// The <number:scientific-number> element is usable within the following element:
+    /// * <number:number-style> 16.27.2.
+    ///
+    /// The <number:scientific-number> element has the following attributes:
+    /// * number:decimal-places 19.343.4,
+    /// * number:grouping 19.348,
+    /// * number:min-exponentdigits 19.351 and
+    /// * number:min-integer-digits 19.352.
+    ///
+    /// The <number:scientific-number> element has no child elements.
+    pub fn new_scientific_number(
+        decimal_places: u8,
+        grouping: bool,
+        min_exponentdigits: Option<u8>,
+        min_integer_digits: Option<u8>,
+    ) -> Self {
+        let mut p = Self::new(FormatPartType::ScientificNumber);
+        p.set_attr("number:decimal-places", decimal_places.to_string());
+        if grouping {
+            p.set_attr("number:grouping", String::from("true"));
+        }
+        if let Some(min_exponentdigits) = min_exponentdigits {
+            p.set_attr("number:min-exponentdigits", min_exponentdigits.to_string());
+        }
+        if let Some(min_integer_digits) = min_integer_digits {
+            p.set_attr("number:min-integer-digits", min_integer_digits.to_string());
+        }
         p
     }
 
-    /// Currency symbol.
-    pub fn new_loc_currency<S>(locale: Locale, symbol: S) -> Self
+    /// The <number:currency-symbol> element specifies whether a currency symbol is displayed in
+    /// a currency style.
+    /// The content of this element is the text that is displayed as the currency symbol.
+    /// If the element is empty or contains white space characters only, the default currency
+    /// symbol for the currency style or the language and country of the currency style is displayed.
+    ///
+    /// The <number:currency-symbol> element is usable within the following element:
+    /// * <number:currency-style> 16.27.7.
+    ///
+    /// The <number:currency-symbol> element has the following attributes:
+    /// * number:country 19.342,
+    /// * number:language 19.349,
+    /// * number:rfc-language-tag 19.356 and
+    /// * number:script 19.357.
+    ///
+    /// The <number:currency-symbol> element has no child elements.
+    /// The <number:currency-symbol> element has character data content.
+    pub fn new_currency_symbol<S>(locale: Locale, symbol: S) -> Self
     where
         S: Into<String>,
     {
@@ -815,115 +1110,268 @@ impl FormatPart {
         p
     }
 
-    /// Currency symbol.
-    pub fn new_currency<S1, S2, S3>(country: S1, language: S2, symbol: S3) -> Self
-    where
-        S1: Into<String>,
-        S2: Into<String>,
-        S3: Into<String>,
-    {
-        let mut p = Self::new_with_content(FormatPartType::CurrencySymbol, symbol);
-        p.set_attr("number:country", country.into());
-        p.set_attr("number:language", language.into());
-        p
-    }
-
-    /// Create a part for a date.
-    pub fn new_day(number: FormatNumberStyle) -> Self {
+    /// The <number:day> element specifies a day of a month in a date.
+    ///
+    /// The <number:day> element is usable within the following element:
+    /// * <number:date-style> 16.27.10.
+    ///
+    /// The <number:day> element has the following attributes:
+    /// * number:calendar 19.341 and
+    /// * number:style 19.358.2.
+    ///
+    /// The <number:day> element has no child elements.
+    pub fn new_day(style: FormatNumberStyle, calendar: FormatCalendar) -> Self {
         let mut p = Self::new(FormatPartType::Day);
-        p.set_attr("number:style", number.to_string());
+        p.set_attr("number:style", style.to_string());
+        if calendar != FormatCalendar::Default {
+            p.set_attr("number:calendar", calendar.to_string());
+        }
         p
     }
 
-    /// Create a part for a month.
-    pub fn new_month(number: FormatNumberStyle, text: bool) -> Self {
+    /// The <number:month> element specifies a month in a date.
+    /// The <number:month> element is usable within the following element:
+    /// * <number:date-style> 16.27.10.
+    /// The <number:month> element has the following attributes:
+    /// number:calendar 19.341,
+    /// number:possessive-form 19.355,
+    /// number:style 19.358.7 and
+    /// number:textual 19.359.
+    ///
+    /// The <number:month> element has no child elements
+    pub fn new_month(
+        style: FormatNumberStyle,
+        textual: FormatTextual,
+        possessive_form: FormatMonth,
+        calendar: FormatCalendar,
+    ) -> Self {
         let mut p = Self::new(FormatPartType::Month);
-        p.set_attr("number:style", number.to_string());
-        p.set_attr("number:textual", text.to_string());
+        p.set_attr("number:style", style.to_string());
+        p.set_attr("number:textual", textual.to_string());
+        if possessive_form != FormatMonth::Possessiv {
+            p.set_attr("number:possessive-form", true.to_string());
+        }
+        if calendar != FormatCalendar::Default {
+            p.set_attr("number:calendar", calendar.to_string());
+        }
         p
     }
 
-    /// Create a part for a year.
-    pub fn new_year(number: FormatNumberStyle) -> Self {
+    /// The <number:year> element specifies a year in a date.
+    /// The <number:year> element is usable within the following element:
+    /// * <number:date-style> 16.27.10.
+    ///
+    /// The <number:year> element has the following attributes:
+    /// * number:calendar 19.341 and
+    /// * number:style 19.358.10.
+    ///
+    /// The <number:year> element has no child elements.
+    pub fn new_year(style: FormatNumberStyle, calendar: FormatCalendar) -> Self {
         let mut p = Self::new(FormatPartType::Year);
-        p.set_attr("number:style", number.to_string());
+        p.set_attr("number:style", style.to_string());
+        if calendar != FormatCalendar::Default {
+            p.set_attr("number:calendar", calendar.to_string());
+        }
         p
     }
 
-    /// Create a part for a era marker.
-    pub fn new_era(number: FormatNumberStyle, calendar: FormatCalendarStyle) -> Self {
+    /// The <number:era> element specifies an era in which a year is counted.
+    ///
+    /// The <number:era> element is usable within the following element:
+    /// * <number:date-style> 16.27.10.
+    ///
+    /// The <number:era> element has the following attributes:
+    /// * number:calendar 19.341 and
+    /// * number:style 19.358.4.
+    ///
+    /// The <number:era> element has no child elements
+    pub fn new_era(number: FormatNumberStyle, calendar: FormatCalendar) -> Self {
         let mut p = Self::new(FormatPartType::Era);
         p.set_attr("number:style", number.to_string());
-        p.set_attr("number:calendar", calendar.to_string());
+        if calendar != FormatCalendar::Default {
+            p.set_attr("number:calendar", calendar.to_string());
+        }
         p
     }
 
-    /// Create a part for a week day.
-    pub fn new_day_of_week(number: FormatNumberStyle, calendar: FormatCalendarStyle) -> Self {
+    /// The <number:day-of-week> element specifies a day of a week in a date.
+    ///
+    /// The <number:day-of-week> element is usable within the following element:
+    /// * <number:datestyle> 16.27.10.
+    ///
+    /// The <number:day-of-week> element has the following attributes:
+    /// * number:calendar 19.341 and
+    /// * number:style 19.358.3.
+    ///
+    /// The <number:day-of-week> element has no child elements.
+    pub fn new_day_of_week(style: FormatNumberStyle, calendar: FormatCalendar) -> Self {
         let mut p = Self::new(FormatPartType::DayOfWeek);
-        p.set_attr("number:style", number.to_string());
-        p.set_attr("number:calendar", calendar.to_string());
+        p.set_attr("number:style", style.to_string());
+        if calendar != FormatCalendar::Default {
+            p.set_attr("number:calendar", calendar.to_string());
+        }
         p
     }
 
-    /// Create a part for the week of year.
-    pub fn new_week_of_year(calendar: FormatCalendarStyle) -> Self {
+    /// The <number:week-of-year> element specifies a week of a year in a date.
+    ///
+    /// The <number:week-of-year> element is usable within the following element:
+    /// * <number:date-style> 16.27.10.
+    ///
+    /// The <number:week-of-year> element has the following attribute:
+    /// * number:calendar 19.341.
+    ///
+    /// The <number:week-of-year> element has no child elements.
+    pub fn new_week_of_year(calendar: FormatCalendar) -> Self {
         let mut p = Self::new(FormatPartType::WeekOfYear);
-        p.set_attr("number:calendar", calendar.to_string());
+        if calendar != FormatCalendar::Default {
+            p.set_attr("number:calendar", calendar.to_string());
+        }
         p
     }
 
-    /// Create a part for a quarter of a year.
-    pub fn new_quarter(number: FormatNumberStyle, calendar: FormatCalendarStyle) -> Self {
+    /// The <number:quarter> element specifies a quarter of the year in a date.
+    ///
+    /// The <number:quarter> element is usable within the following element:
+    /// * <number:datestyle> 16.27.10.
+    ///
+    /// The <number:quarter> element has the following attributes:
+    /// * number:calendar 19.341 and
+    /// * number:style 19.358.8.
+    ///
+    /// The <number:quarter> element has no child elements
+    pub fn new_quarter(style: FormatNumberStyle, calendar: FormatCalendar) -> Self {
         let mut p = Self::new(FormatPartType::Quarter);
-        p.set_attr("number:style", number.to_string());
-        p.set_attr("number:calendar", calendar.to_string());
+        p.set_attr("number:style", style.to_string());
+        if calendar != FormatCalendar::Default {
+            p.set_attr("number:calendar", calendar.to_string());
+        }
         p
     }
 
-    /// Create a part for hours.
-    pub fn new_hours(number: FormatNumberStyle) -> Self {
+    /// The <number:hours> element specifies whether hours are displayed as part of a date or time.
+    ///
+    /// The <number:hours> element is usable within the following elements:
+    /// * <number:datestyle> 16.27.10 and
+    /// * <number:time-style> 16.27.18.
+    ///
+    /// The <number:hours> element has the following attribute:
+    /// * number:style 19.358.5.
+    ///
+    /// The <number:hours> element has no child elements.
+    pub fn new_hours(style: FormatNumberStyle) -> Self {
         let mut p = Self::new(FormatPartType::Hours);
-        p.set_attr("number:style", number.to_string());
+        p.set_attr("number:style", style.to_string());
         p
     }
 
-    /// Create a part for minutes.
-    pub fn new_minutes(number: FormatNumberStyle) -> Self {
+    /// The <number:minutes> element specifies whether minutes are displayed as part of a date or
+    /// time.
+    /// The <number:minutes> element is usable within the following elements:
+    /// * <number:datestyle> 16.27.10 and
+    /// * <number:time-style> 16.27.18.
+    ///
+    /// The <number:minutes> element has the following attribute:
+    /// * number:style 19.358.6.
+    ///
+    /// The <number:minutes> element has no child elements.
+    pub fn new_minutes(style: FormatNumberStyle) -> Self {
         let mut p = Self::new(FormatPartType::Minutes);
-        p.set_attr("number:style", number.to_string());
+        p.set_attr("number:style", style.to_string());
         p
     }
 
-    /// Create a part for seconds.
-    pub fn new_seconds(number: FormatNumberStyle, dec_places: u8) -> Self {
+    /// The <number:seconds> element specifies whether seconds are displayed as part of a date or
+    /// time.
+    ///
+    /// The <number:seconds> element is usable within the following elements:
+    /// * <number:datestyle> 16.27.10 and
+    /// * <number:time-style> 16.27.18.
+    ///
+    /// The <number:seconds> element has the following attributes:
+    /// * number:decimal-places 19.343.3 and
+    /// * number:style 19.358.9.
+    ///
+    /// The <number:seconds> element has no child elements.
+    pub fn new_seconds(style: FormatNumberStyle, decimal_places: u8) -> Self {
         let mut p = Self::new(FormatPartType::Seconds);
-        p.set_attr("number:style", number.to_string());
-        p.set_attr("number:decimal-places", dec_places.to_string());
+        p.set_attr("number:style", style.to_string());
+        p.set_attr("number:decimal-places", decimal_places.to_string());
         p
     }
 
-    /// Create a part for a AM/PM marker.
+    /// The <number:am-pm> element specifies whether AM/PM is included as part of a date or time.
+    /// If a <number:am-pm> element is contained in a date or time style, hours are displayed using
+    /// values from 1 to 12 only.
+    ///
+    /// The <number:am-pm> element is usable within the following elements:
+    /// * <number:datestyle> 16.27.10 and
+    /// * <number:time-style> 16.27.18.
+    ///
+    /// The <number:am-pm> element has no attributes.
+    /// The <number:am-pm> element has no child elements.
     pub fn new_am_pm() -> Self {
         Self::new(FormatPartType::AmPm)
     }
 
-    /// Whatever this is for ...
-    pub fn new_embedded_text(position: u8) -> Self {
-        let mut p = Self::new(FormatPartType::EmbeddedText);
-        p.set_attr("number:position", position.to_string());
-        p
+    /// The <number:boolean> element marks the position of the Boolean value of a Boolean style.
+    ///
+    /// The <number:boolean> element is usable within the following element:
+    /// * <number:booleanstyle> 16.29.24.
+    ///
+    /// The <number:boolean> element has no attributes.
+    /// The <number:boolean> element has no child elements.
+    pub fn new_boolean() -> Self {
+        FormatPart::new(FormatPartType::Boolean)
     }
 
-    /// Part with fixed text.
+    /// The <number:text> element contains any fixed text for a data style.
+    ///
+    /// The <number:text> element is usable within the following elements:
+    /// * <number:booleanstyle> 16.27.23,
+    /// * <number:currency-style> 16.27.7,
+    /// * <number:date-style> 16.27.10,
+    /// * <number:number-style> 16.27.2,
+    /// * <number:percentage-style> 16.27.9,
+    /// * <number:text-style> 16.27.25 and
+    /// * <number:time-style> 16.27.18.
+    ///
+    /// The <number:text> element has no attributes.
+    /// The <number:text> element has no child elements.
+    /// The <number:text> element has character data content
     pub fn new_text<S: Into<String>>(text: S) -> Self {
         Self::new_with_content(FormatPartType::Text, text)
     }
 
-    /// Whatever this is for ...
+    /// The <number:text-content> element marks the position of variable text content of a text
+    /// style.
+    ///
+    /// The <number:text-content> element is usable within the following element:
+    /// * <number:text-style> 16.27.25.
+    ///
+    /// The <number:text-content> element has no attributes.
+    /// The <number:text-content> element has no child elements.
     pub fn new_text_content() -> Self {
         Self::new(FormatPartType::TextContent)
     }
+
+    // The <number:embedded-text> element specifies text that is displayed at one specific position
+    // within a number.
+    //
+    // The <number:embedded-text> element is usable within the following element:
+    // * <number:number> 16.27.3.
+    //
+    // The <number:embedded-text> element has the following attribute:
+    // * number:position 19.354.
+    //
+    // The <number:embedded-text> element has no child elements.
+    // The <number:embedded-text> element has character data content.
+    // pub fn new_embedded_text<S: Into<String>>(position: u8, text: S) -> Self {
+    //     let mut p = Self::new(FormatPartType::EmbeddedText);
+    //     p.set_attr("number:position", position.to_string());
+    //     p.set_content(text);
+    //     p
+    // }
 
     /// Sets the kind of the part.
     pub fn set_part_type(&mut self, p_type: FormatPartType) {
@@ -1000,7 +1448,7 @@ impl FormatPart {
                     buf.push_str(&format!("{:.*}", dec, f));
                 }
             }
-            FormatPartType::Scientific => {
+            FormatPartType::ScientificNumber => {
                 buf.push_str(&format!("{:e}", f));
             }
             FormatPartType::CurrencySymbol => {
@@ -1157,7 +1605,7 @@ impl FormatPart {
 
 /// Creates a new number format.
 pub fn create_loc_boolean_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
-    let mut v = ValueFormat::new_with_locale(name.into(), locale, ValueType::Boolean);
+    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Boolean);
     v.push_boolean();
     v
 }
@@ -1169,7 +1617,7 @@ pub fn create_loc_number_format<S: Into<String>>(
     decimal: u8,
     grouping: bool,
 ) -> ValueFormat {
-    let mut v = ValueFormat::new_with_locale(name.into(), locale, ValueType::Number);
+    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Number);
     v.push_number(decimal, grouping);
     v
 }
@@ -1180,7 +1628,7 @@ pub fn create_loc_percentage_format<S: Into<String>>(
     locale: Locale,
     decimal: u8,
 ) -> ValueFormat {
-    let mut v = ValueFormat::new_with_locale(name.into(), locale, ValueType::Percentage);
+    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Percentage);
     v.push_number_fix(decimal, false);
     v.push_text("%");
     v
@@ -1197,8 +1645,8 @@ where
     S1: Into<String>,
     S2: Into<String>,
 {
-    let mut v = ValueFormat::new_with_locale(name.into(), locale, ValueType::Currency);
-    v.push_loc_currency(symbol_locale, symbol.into());
+    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Currency);
+    v.push_currency_symbol(symbol_locale, symbol.into());
     v.push_text(" ");
     v.push_number_fix(2, true);
     v
@@ -1215,43 +1663,58 @@ where
     S1: Into<String>,
     S2: Into<String>,
 {
-    let mut v = ValueFormat::new_with_locale(name.into(), locale, ValueType::Currency);
+    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Currency);
     v.push_number_fix(2, true);
     v.push_text(" ");
-    v.push_loc_currency(symbol_locale, symbol.into());
+    v.push_currency_symbol(symbol_locale, symbol.into());
     v
 }
 
 /// Creates a new date format D.M.Y
 pub fn create_loc_date_dmy_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
-    let mut v = ValueFormat::new_with_locale(name.into(), locale, ValueType::DateTime);
-    v.push_day(FormatNumberStyle::Long);
+    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::DateTime);
+    v.push_day(FormatNumberStyle::Long, FormatCalendar::Default);
     v.push_text(".");
-    v.push_month(FormatNumberStyle::Long, false);
+    v.push_month(
+        FormatNumberStyle::Long,
+        FormatTextual::Numeric,
+        FormatMonth::Nominativ,
+        FormatCalendar::Default,
+    );
     v.push_text(".");
-    v.push_year(FormatNumberStyle::Long);
+    v.push_year(FormatNumberStyle::Long, FormatCalendar::Default);
     v
 }
 
 /// Creates a new date format M/D/Y
 pub fn create_loc_date_mdy_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
-    let mut v = ValueFormat::new_with_locale(name.into(), locale, ValueType::DateTime);
-    v.push_month(FormatNumberStyle::Long, false);
+    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::DateTime);
+    v.push_month(
+        FormatNumberStyle::Long,
+        FormatTextual::Numeric,
+        FormatMonth::Nominativ,
+        FormatCalendar::Default,
+    );
     v.push_text("/");
-    v.push_day(FormatNumberStyle::Long);
+    v.push_day(FormatNumberStyle::Long, FormatCalendar::Default);
     v.push_text("/");
-    v.push_year(FormatNumberStyle::Long);
+    v.push_year(FormatNumberStyle::Long, FormatCalendar::Default);
     v
 }
 
 /// Creates a datetime format Y-M-D H:M:S
 pub fn create_loc_datetime_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
-    let mut v = ValueFormat::new_with_locale(name.into(), locale, ValueType::DateTime);
-    v.push_day(FormatNumberStyle::Long);
+    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::DateTime);
+    v.push_day(FormatNumberStyle::Long, FormatCalendar::Default);
     v.push_text(".");
-    v.push_month(FormatNumberStyle::Long, false);
+    v.push_month(
+        FormatNumberStyle::Long,
+        FormatTextual::Numeric,
+        FormatMonth::Nominativ,
+        FormatCalendar::Default,
+    );
     v.push_text(".");
-    v.push_year(FormatNumberStyle::Long);
+    v.push_year(FormatNumberStyle::Long, FormatCalendar::Default);
     v.push_text(" ");
     v.push_hours(FormatNumberStyle::Long);
     v.push_text(":");
@@ -1263,7 +1726,7 @@ pub fn create_loc_datetime_format<S: Into<String>>(name: S, locale: Locale) -> V
 
 /// Creates a new time-Duration format H:M:S
 pub fn create_loc_time_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
-    let mut v = ValueFormat::new_with_locale(name.into(), locale, ValueType::TimeDuration);
+    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::TimeDuration);
     v.push_hours(FormatNumberStyle::Long);
     v.push_text(":");
     v.push_minutes(FormatNumberStyle::Long);
@@ -1274,14 +1737,14 @@ pub fn create_loc_time_format<S: Into<String>>(name: S, locale: Locale) -> Value
 
 /// Creates a new number format.
 pub fn create_boolean_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Boolean);
+    let mut v = ValueFormat::new_named(name.into(), ValueType::Boolean);
     v.push_boolean();
     v
 }
 
 /// Creates a new number format.
 pub fn create_number_format<S: Into<String>>(name: S, decimal: u8, grouping: bool) -> ValueFormat {
-    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Number);
+    let mut v = ValueFormat::new_named(name.into(), ValueType::Number);
     v.push_number(decimal, grouping);
     v
 }
@@ -1292,100 +1755,106 @@ pub fn create_number_format_fixed<S: Into<String>>(
     decimal: u8,
     grouping: bool,
 ) -> ValueFormat {
-    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Number);
+    let mut v = ValueFormat::new_named(name.into(), ValueType::Number);
     v.push_number_fix(decimal, grouping);
     v
 }
 
 /// Creates a new percentage format.
 pub fn create_percentage_format<S: Into<String>>(name: S, decimal: u8) -> ValueFormat {
-    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Percentage);
+    let mut v = ValueFormat::new_named(name.into(), ValueType::Percentage);
     v.push_number_fix(decimal, false);
     v.push_text("%");
     v
 }
 
 /// Creates a new currency format.
-pub fn create_currency_prefix<S1, S2, S3, S4>(
-    name: S1,
-    country: S2,
-    language: S3,
-    symbol: S4,
-) -> ValueFormat
+pub fn create_currency_prefix<S1, S2>(name: S1, symbol_locale: Locale, symbol: S2) -> ValueFormat
 where
     S1: Into<String>,
     S2: Into<String>,
-    S3: Into<String>,
-    S4: Into<String>,
 {
-    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Currency);
-    v.push_currency(country.into(), language.into(), symbol.into());
+    let mut v = ValueFormat::new_named(name.into(), ValueType::Currency);
+    v.push_currency_symbol(symbol_locale, symbol.into());
     v.push_text(" ");
     v.push_number_fix(2, true);
     v
 }
 
 /// Creates a new currency format.
-pub fn create_currency_suffix<S1, S2, S3, S4>(
-    name: S1,
-    country: S2,
-    language: S3,
-    symbol: S4,
-) -> ValueFormat
+pub fn create_currency_suffix<S1, S2>(name: S1, symbol_locale: Locale, symbol: S2) -> ValueFormat
 where
     S1: Into<String>,
     S2: Into<String>,
-    S3: Into<String>,
-    S4: Into<String>,
 {
-    let mut v = ValueFormat::new_with_name(name.into(), ValueType::Currency);
+    let mut v = ValueFormat::new_named(name.into(), ValueType::Currency);
     v.push_number_fix(2, true);
     v.push_text(" ");
-    v.push_currency(country.into(), language.into(), symbol.into());
+    v.push_currency_symbol(symbol_locale, symbol.into());
     v
 }
 
 /// Creates a new date format YYYY-MM-DD
 pub fn create_date_iso_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_with_name(name.into(), ValueType::DateTime);
-    v.push_year(FormatNumberStyle::Long);
+    let mut v = ValueFormat::new_named(name.into(), ValueType::DateTime);
+    v.push_year(FormatNumberStyle::Long, FormatCalendar::Default);
     v.push_text("-");
-    v.push_month(FormatNumberStyle::Long, false);
+    v.push_month(
+        FormatNumberStyle::Long,
+        FormatTextual::Numeric,
+        FormatMonth::Nominativ,
+        FormatCalendar::Default,
+    );
     v.push_text("-");
-    v.push_day(FormatNumberStyle::Long);
+    v.push_day(FormatNumberStyle::Long, FormatCalendar::Default);
     v
 }
 
 /// Creates a new date format D.M.Y
 pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_with_name(name.into(), ValueType::DateTime);
-    v.push_day(FormatNumberStyle::Long);
+    let mut v = ValueFormat::new_named(name.into(), ValueType::DateTime);
+    v.push_day(FormatNumberStyle::Long, FormatCalendar::Default);
     v.push_text(".");
-    v.push_month(FormatNumberStyle::Long, false);
+    v.push_month(
+        FormatNumberStyle::Long,
+        FormatTextual::Numeric,
+        FormatMonth::Nominativ,
+        FormatCalendar::Default,
+    );
     v.push_text(".");
-    v.push_year(FormatNumberStyle::Long);
+    v.push_year(FormatNumberStyle::Long, FormatCalendar::Default);
     v
 }
 
 /// Creates a new date format M/D/Y
 pub fn create_date_mdy_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_with_name(name.into(), ValueType::DateTime);
-    v.push_month(FormatNumberStyle::Long, false);
+    let mut v = ValueFormat::new_named(name.into(), ValueType::DateTime);
+    v.push_month(
+        FormatNumberStyle::Long,
+        FormatTextual::Numeric,
+        FormatMonth::Nominativ,
+        FormatCalendar::Default,
+    );
     v.push_text("/");
-    v.push_day(FormatNumberStyle::Long);
+    v.push_day(FormatNumberStyle::Long, FormatCalendar::Default);
     v.push_text("/");
-    v.push_year(FormatNumberStyle::Long);
+    v.push_year(FormatNumberStyle::Long, FormatCalendar::Default);
     v
 }
 
 /// Creates a datetime format Y-M-D H:M:S
 pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_with_name(name.into(), ValueType::DateTime);
-    v.push_year(FormatNumberStyle::Long);
+    let mut v = ValueFormat::new_named(name.into(), ValueType::DateTime);
+    v.push_year(FormatNumberStyle::Long, FormatCalendar::Default);
     v.push_text("-");
-    v.push_month(FormatNumberStyle::Long, false);
+    v.push_month(
+        FormatNumberStyle::Long,
+        FormatTextual::Numeric,
+        FormatMonth::Nominativ,
+        FormatCalendar::Default,
+    );
     v.push_text("-");
-    v.push_day(FormatNumberStyle::Long);
+    v.push_day(FormatNumberStyle::Long, FormatCalendar::Default);
     v.push_text(" ");
     v.push_hours(FormatNumberStyle::Long);
     v.push_text(":");
@@ -1397,7 +1866,7 @@ pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
 
 /// Creates a new time-Duration format H:M:S
 pub fn create_time_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_with_name(name.into(), ValueType::TimeDuration);
+    let mut v = ValueFormat::new_named(name.into(), ValueType::TimeDuration);
     v.push_hours(FormatNumberStyle::Long);
     v.push_text(":");
     v.push_minutes(FormatNumberStyle::Long);

@@ -17,7 +17,7 @@ exclude = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["use_decimal"]
+default = ["use_decimal", "all_locales"]
 # Add conversions from rust_decimal.
 use_decimal = []
 # Check the xml output for wellformedness.

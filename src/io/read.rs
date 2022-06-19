@@ -1656,7 +1656,7 @@ fn read_value_format(
                         valuestyle.push_part(read_part(xml_tag, FormatPartType::Number)?)
                     }
                     b"number:scientific-number" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Scientific)?)
+                        valuestyle.push_part(read_part(xml_tag, FormatPartType::ScientificNumber)?)
                     }
                     b"number:day" => valuestyle.push_part(read_part(xml_tag, FormatPartType::Day)?),
                     b"number:month" => {
@@ -1690,14 +1690,25 @@ fn read_value_format(
                     b"number:am-pm" => {
                         valuestyle.push_part(read_part(xml_tag, FormatPartType::AmPm)?)
                     }
-                    b"number:embedded-text" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::EmbeddedText)?)
-                    }
+                    // b"number:embedded-text" => {
+                    //     valuestyle.push_part(read_part(xml_tag, FormatPartType::EmbeddedText)?)
+                    // }
                     b"number:text-content" => {
                         valuestyle.push_part(read_part(xml_tag, FormatPartType::TextContent)?)
                     }
                     b"style:text" => valuestyle.push_part(read_part(xml_tag, FormatPartType::Day)?),
                     b"style:map" => valuestyle.push_stylemap(read_stylemap(xml_tag)?),
+                    b"number:fill-character" => {
+                        valuestyle_part = Some(read_part(xml_tag, FormatPartType::FillCharacter)?);
+
+                        // Empty-Tag. Finish here.
+                        if let Event::Empty(_) = evt {
+                            if let Some(part) = valuestyle_part {
+                                valuestyle.push_part(part);
+                            }
+                            valuestyle_part = None;
+                        }
+                    }
                     b"number:currency-symbol" => {
                         valuestyle_part = Some(read_part(xml_tag, FormatPartType::CurrencySymbol)?);
 
@@ -1742,7 +1753,7 @@ fn read_value_format(
                     book.add_format(valuestyle);
                     break;
                 }
-                b"number:currency-symbol" | b"number:text" => {
+                b"number:currency-symbol" | b"number:text" | b"number:fill-character" => {
                     if let Some(part) = valuestyle_part {
                         valuestyle.push_part(part);
                     }
