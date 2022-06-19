@@ -88,6 +88,9 @@
 //! * Value formatting
 //!   * The whole set is available.
 //!   * Utility functions for common formats.
+//!   * Basic localization support.
+//!
+//! * Content validation
 //!
 //! * Fonts
 //!   * Preserves all font attributes.
@@ -117,7 +120,6 @@
 //! * user-field-decls
 //! * dde-connection-decls
 //! * calculation-settings
-//! * content-validations
 //! * label-ranges
 //! * named-expressions
 //! * database-ranges
@@ -224,7 +226,7 @@ pub mod error;
 pub mod format;
 pub mod formula;
 mod io;
-pub mod locale;
+mod locale;
 pub mod refs;
 pub mod style;
 pub mod text;
@@ -237,7 +239,7 @@ pub struct WorkBook {
     /// The data.
     sheets: Vec<Detach<Sheet>>,
 
-    // ODS Version
+    /// ODS Version
     version: String,
 
     /// FontDecl hold the style:font-face elements
@@ -399,6 +401,9 @@ impl WorkBook {
     }
 
     /// Creates a set of default formats and styles for every value-type.
+    ///
+    /// If the locale is not supported yet it falls back to ISO 8601
+    /// formatting. The available locales can be activated via feature-flags.
     pub fn init_defaults(&mut self, locale: Locale) {
         let lf = locale::localized_format(locale);
 
@@ -452,8 +457,8 @@ impl WorkBook {
         &self.version
     }
 
-    /// ODS version. Defaults to 1.3. It's not advised to set it to another
-    /// value.
+    /// ODS version. Defaults to 1.3.
+    /// It's not advised to set another value.
     pub fn set_version(&mut self, version: String) {
         self.version = version;
     }
