@@ -1,5 +1,6 @@
 use crate::attrmap2::AttrMap2;
 use crate::style::{StyleOrigin, StyleUse};
+use std::fmt::{Display, Formatter};
 
 style_ref!(GraphicStyleRef);
 

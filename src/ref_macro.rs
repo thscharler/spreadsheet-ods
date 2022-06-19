@@ -35,15 +35,22 @@ macro_rules! style_ref {
             }
         }
 
+        impl AsRef<$l> for $l {
+            fn as_ref(&self) -> &$l {
+                self
+            }
+        }
+
+        impl Display for $l {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.name)
+            }
+        }
+
         impl $l {
             /// Reference as str.
             pub fn as_str(&self) -> &str {
                 self.name.as_str()
-            }
-
-            /// Reference as String.
-            pub fn to_string(&self) -> String {
-                self.name.clone()
             }
         }
     };

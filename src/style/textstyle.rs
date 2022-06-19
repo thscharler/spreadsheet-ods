@@ -5,6 +5,7 @@ use crate::style::units::{
 };
 use crate::style::{color_string, percent_string, shadow_string, StyleOrigin, StyleUse};
 use color::Rgb;
+use std::fmt::{Display, Formatter};
 
 style_ref!(TextStyleRef);
 

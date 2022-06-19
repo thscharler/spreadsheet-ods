@@ -1,5 +1,6 @@
 use crate::style::pagestyle::PageStyleRef;
 use crate::text::TextTag;
+use std::fmt::{Display, Formatter};
 
 style_ref!(MasterPageRef);
 

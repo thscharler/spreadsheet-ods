@@ -5,6 +5,7 @@ use crate::style::{
 };
 use crate::Length;
 use color::Rgb;
+use std::fmt::{Display, Formatter};
 
 style_ref!(PageStyleRef);
 

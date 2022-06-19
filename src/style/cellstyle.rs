@@ -11,6 +11,7 @@ use crate::style::{
     StyleOrigin, StyleUse, TextStyleRef,
 };
 use color::Rgb;
+use std::fmt::{Display, Formatter};
 
 style_ref!(CellStyleRef);
 

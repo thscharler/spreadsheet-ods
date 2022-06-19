@@ -2,6 +2,7 @@ use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak, TextKeep, WritingMode};
 use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
 use color::Rgb;
+use std::fmt::{Display, Formatter};
 
 style_ref!(TableStyleRef);
 
