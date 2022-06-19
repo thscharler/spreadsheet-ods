@@ -1345,7 +1345,7 @@ where
     v
 }
 
-/// Creates a new date format D.M.Y
+/// Creates a new date format YYYY-MM-DD
 pub fn create_date_iso_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::new_with_name(name.into(), ValueType::DateTime);
     v.push_year(FormatNumberStyle::Long);
