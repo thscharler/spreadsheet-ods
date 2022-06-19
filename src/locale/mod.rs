@@ -15,7 +15,8 @@ use std::collections::HashMap;
 
 /// Defines functions that generate the standard formats for various
 /// value types.
-pub trait LocalizedValueFormat: Sync {
+pub(crate) trait LocalizedValueFormat: Sync {
+    fn locale(&self) -> Locale;
     /// Default boolean format.
     fn boolean_format(&self) -> ValueFormat;
     /// Default number format.
@@ -39,18 +40,18 @@ lazy_static! {
 
         #[cfg(feature = "locale_de_AT")]
         {
-            lm.insert(locale!("de_AT"), &de_at::LOCALE_DE_AT);
+            lm.insert(icu_locid::locale!("de_AT"), &de_at::LOCALE_DE_AT);
         }
         #[cfg(feature = "locale_en_US")]
         {
-            lm.insert(locale!("en_US"), &en_us::LOCALE_EN_US);
+            lm.insert(icu_locid::locale!("en_US"), &en_us::LOCALE_EN_US);
         }
         lm
     };
 }
 
 /// Returns the localized format or a fallback.
-pub fn localized_format(locale: Locale) -> &'static dyn LocalizedValueFormat {
+pub(crate) fn localized_format(locale: Locale) -> &'static dyn LocalizedValueFormat {
     match LOCALE_DATA.get(&locale) {
         None => &und::LOCALE_UND,
         Some(loc) => *loc,

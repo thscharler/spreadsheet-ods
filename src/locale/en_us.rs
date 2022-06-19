@@ -17,6 +17,10 @@ impl LocaleEnUs {
 }
 
 impl LocalizedValueFormat for LocaleEnUs {
+    fn locale(&self) -> Locale {
+        LocaleEnUs::LOCALE
+    }
+
     fn boolean_format(&self) -> ValueFormat {
         create_loc_boolean_format(DefaultFormat::bool(), LocaleEnUs::LOCALE)
     }

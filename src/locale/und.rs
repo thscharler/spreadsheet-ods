@@ -5,12 +5,17 @@ use crate::format::{
 };
 use crate::locale::LocalizedValueFormat;
 use crate::ValueFormat;
+use icu_locid::Locale;
 
 pub(crate) struct LocaleUnd {}
 
 pub(crate) static LOCALE_UND: LocaleUnd = LocaleUnd {};
 
 impl LocalizedValueFormat for LocaleUnd {
+    fn locale(&self) -> Locale {
+        Locale::UND
+    }
+
     fn boolean_format(&self) -> ValueFormat {
         create_boolean_format(DefaultFormat::bool())
     }
