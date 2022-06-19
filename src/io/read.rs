@@ -209,7 +209,10 @@ fn read_content(
 ) -> Result<(), OdsError> {
     // xml parser
     let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
-    xml.trim_text(true);
+    // Do not trim text data. All text read contains significant whitespace.
+    // The rest is ignored anyway.
+    //
+    // xml.trim_text(true);
 
     let mut buf = bs.get_buf();
     loop {
@@ -2332,7 +2335,10 @@ fn read_styles(
     zip_file: &mut ZipFile<'_>,
 ) -> Result<(), OdsError> {
     let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
-    xml.trim_text(true);
+    // Do not trim text data. All text read contains significant whitespace.
+    // The rest is ignored anyway.
+    //
+    // xml.trim_text(true);
 
     let mut buf = bs.get_buf();
     loop {
@@ -2478,7 +2484,10 @@ fn read_settings(
     zip_file: &mut ZipFile<'_>,
 ) -> Result<(), OdsError> {
     let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
-    xml.trim_text(true);
+    // Do not trim text data. All text read contains significant whitespace.
+    // The rest is ignored anyway.
+    //
+    // xml.trim_text(true);
 
     let mut buf = bs.get_buf();
     loop {
