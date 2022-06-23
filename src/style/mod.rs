@@ -86,7 +86,7 @@ pub enum StyleUse {
     /// The style:default-style element represents default styles. A default style specifies
     /// default formatting properties for a style family. These defaults are used if a formatting property is
     /// neither specified by an automatic nor a common style. Default styles exist for all style families that
-    /// are represented by the <style:style> element specified by the style:family attribute
+    /// are represented by the style:style element specified by the style:family attribute
     /// 19.480.
     /// An OpenDocument document should contain the default styles of the style families for which are
     /// used in common or automatic styles in the document.

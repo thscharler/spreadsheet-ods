@@ -510,12 +510,12 @@ impl ValueFormat {
 
     /// The number:truncate-on-overflow attribute specifies if a time or duration for which the
     /// value to be displayed by the largest time component specified in the style is too large to be
-    /// displayed using the value range for <number:hours> 16.29.20 (0 to 23), or
-    /// <number:minutes> 16.29.21 or <number:seconds> 16.29.22 (0 to 59) is truncated or if the
+    /// displayed using the value range for number:hours 16.29.20 (0 to 23), or
+    /// number:minutes 16.29.21 or number:seconds 16.29.22 (0 to 59) is truncated or if the
     /// value range of this component is extended. The largest time component is those for which a value
     /// of "1" represents the longest period of time.
-    /// If a value gets truncated, then its value is displayed modulo 24 (for <number:hours>) or modulo
-    /// 60 (for <number:minutes> and <number:seconds>).
+    /// If a value gets truncated, then its value is displayed modulo 24 (for number:hours) or modulo
+    /// 60 (for number:minutes and number:seconds).
     ///
     /// If the value range of a component get extended, then values larger than 23 or 59 are displayed.
     /// The defined values for the number:truncate-on-overflow element are:
