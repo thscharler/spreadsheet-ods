@@ -9,9 +9,9 @@ pub fn test_locale1() -> Result<(), OdsError> {
     let mut sheet = Sheet::new("sheet1");
 
     let mut v0 = ValueFormat::new_localized("v0", locale!("ru_RU"), ValueType::Currency);
-    v0.push_number(2, true);
-    v0.push_text(" ");
-    v0.push_currency_symbol(locale!("ru_RU"), "");
+    v0.part_number().decimal_places(2).grouping().push();
+    v0.part_text(" ");
+    v0.part_currency().locale(locale!("ru_RU")).push();
     let v0 = wb.add_format(v0);
 
     let s0 = CellStyle::new("s0", v0.as_ref());

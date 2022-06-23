@@ -1,5 +1,20 @@
 # 0.11.0
 
+- Refactoring of ValueFormat.
+  - Moved to directory module format and split up in valueformat, formatpart
+    and builder modules.
+  - ValueFormat::push_xxx replaced with part_xxx which allow for a builder pattern.
+  - FormatPart::new_xxx removed.
+  - builder module contains builders for all nontrivial parts.
+    As almost all part attributes are optional this is a better approach.
+- Add icu_locid to the dependencies. Used where language/country/script 
+  attributes exist.
+- Add locale module that contains localized default formats.
+  - Available locales are behind feature-gates.
+  - Needs ca 60 loc for a new locale.
+  - Fallback available.
+  - create_default_styles replaced with WorkBook::init_defaults and WorkBook::new_localized.
+
 # 0.10.0
 
 - Upgraded to edition 2021.

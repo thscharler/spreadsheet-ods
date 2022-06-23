@@ -1,19 +1,19 @@
 use chrono::NaiveDateTime;
 use icu_locid::locale;
 
-use spreadsheet_ods::format::{FormatCalendar, FormatMonth, FormatNumberStyle, FormatTextual};
+use spreadsheet_ods::format::{FormatCalendar, FormatNumberStyle};
 use spreadsheet_ods::style::CellStyle;
 use spreadsheet_ods::{write_ods, OdsError, Sheet, ValueFormat, ValueType, WorkBook};
 
 #[test]
 pub fn value_format() {
     let mut f0 = ValueFormat::new();
-    f0.push_boolean();
+    f0.part_boolean();
     assert_eq!(f0.format_boolean(true), "true");
     assert_eq!(f0.format_float(1f64), "");
 
     let mut f1 = ValueFormat::new();
-    f1.push_number(3, true);
+    f1.part_number().decimal_places(3).grouping().push();
     assert_eq!(f1.format_boolean(true), "");
     // these are questionable ...
     // but i wrote somewhere there is no i18n support yet, so ...
@@ -23,34 +23,39 @@ pub fn value_format() {
     assert_eq!(f1.format_float(1.2f64), "1.200");
 
     let mut f2 = ValueFormat::new();
-    f2.push_currency_symbol(locale!("de_AT"), "€");
-    f2.push_number_fix(2, true);
+    f2.part_currency()
+        .locale(locale!("de_AT"))
+        .symbol("€")
+        .push();
+    f2.part_number().fixed_decimal_places(2).grouping().push();
     // todo: should be '€ 1,33'
     assert_eq!(f2.format_float(1.333f64), "€1.33");
 
     let mut f3 = ValueFormat::new();
-    f3.push_fraction(10, 1, 1, 1, false, None);
+    f3.part_fraction()
+        .denominator(10)
+        .min_denominator_digits(1)
+        .min_numerator_digits(1)
+        .push();
     // todo: should be '1 32/10' or the like
     assert_eq!(f3.format_float(1.3223f64), "");
 
     let mut f4 = ValueFormat::new();
-    f4.push_scientific_number(5, false, None, None);
+    f4.part_scientific().min_decimal_places(5).push();
     // todo: should be '3.12345e0'
     assert_eq!(f4.format_float(3.123456), "3.123456e0");
 
     let mut f5 = ValueFormat::new();
-    f5.push_era(FormatNumberStyle::Short, FormatCalendar::Gregorian);
-    f5.push_text(" ");
-    f5.push_day(FormatNumberStyle::Short, FormatCalendar::Default);
-    f5.push_text(" ");
-    f5.push_month(
-        FormatNumberStyle::Long,
-        FormatTextual::Numeric,
-        FormatMonth::Nominativ,
-        FormatCalendar::Default,
-    );
-    f5.push_text(" ");
-    f5.push_year(FormatNumberStyle::Long, FormatCalendar::Default);
+    f5.part_era()
+        .style(FormatNumberStyle::Short)
+        .calendar(FormatCalendar::Gregorian)
+        .push();
+    f5.part_text(" ");
+    f5.part_day().style(FormatNumberStyle::Short).push();
+    f5.part_text(" ");
+    f5.part_month().style(FormatNumberStyle::Long).push();
+    f5.part_text(" ");
+    f5.part_year().style(FormatNumberStyle::Long).push();
     // todo: should be 'AD 12 02 2009'
     assert_eq!(
         f5.format_datetime(&NaiveDateTime::from_timestamp(1234442333, 12234332)),
@@ -58,21 +63,29 @@ pub fn value_format() {
     );
 
     let mut f6 = ValueFormat::new();
-    f6.push_day_of_week(FormatNumberStyle::Long, FormatCalendar::Gregorian);
+    f6.part_day_of_week()
+        .style(FormatNumberStyle::Long)
+        .calendar(FormatCalendar::Gregorian)
+        .push();
     assert_eq!(
         f6.format_datetime(&NaiveDateTime::from_timestamp(1234442333, 12234332)),
         "Thursday"
     );
 
     let mut f7 = ValueFormat::new();
-    f7.push_week_of_year(FormatCalendar::Gregorian);
+    f7.part_week_of_year()
+        .calendar(FormatCalendar::Gregorian)
+        .push();
     assert_eq!(
         f7.format_datetime(&NaiveDateTime::from_timestamp(1234442333, 12234332)),
         "6"
     );
 
     let mut f8 = ValueFormat::new();
-    f8.push_quarter(FormatNumberStyle::Long, FormatCalendar::Gregorian);
+    f8.part_quarter()
+        .style(FormatNumberStyle::Long)
+        .calendar(FormatCalendar::Gregorian)
+        .push();
     // todo: ???
     assert_eq!(
         f8.format_datetime(&NaiveDateTime::from_timestamp(1234442333, 12234332)),
@@ -80,9 +93,9 @@ pub fn value_format() {
     );
 
     let mut f9 = ValueFormat::new();
-    f9.push_hours(FormatNumberStyle::Long);
-    f9.push_minutes(FormatNumberStyle::Long);
-    f9.push_seconds(FormatNumberStyle::Long, 0);
+    f9.part_hours().style(FormatNumberStyle::Long).push();
+    f9.part_minutes().style(FormatNumberStyle::Long).push();
+    f9.part_seconds().style(FormatNumberStyle::Long).push();
     assert_eq!(
         f9.format_datetime(&NaiveDateTime::from_timestamp(1234442333, 12234332)),
         "123853"
@@ -94,55 +107,69 @@ fn write_format() -> Result<(), OdsError> {
     let mut wb = WorkBook::new();
 
     let mut v1 = ValueFormat::new_named("f1", ValueType::Number);
-    v1.push_scientific_number(4, false, None, None);
+    v1.part_scientific().decimal_places(4).push();
     let v1 = wb.add_format(v1);
 
     let mut v2 = ValueFormat::new_named("f2", ValueType::Number);
-    v2.push_number_fix(2, false);
+    v2.part_number().fixed_decimal_places(2).push();
     let v2 = wb.add_format(v2);
 
     let mut v3 = ValueFormat::new_named("f3", ValueType::Number);
-    v3.push_number(2, false);
+    v3.part_number().decimal_places(2).push();
     let v3 = wb.add_format(v3);
 
     let mut v31 = ValueFormat::new_named("f31", ValueType::Number);
-    v31.push_fraction(13, 1, 1, 1, false, None);
+    v31.part_fraction()
+        .denominator(13)
+        .min_denominator_digits(1)
+        .min_integer_digits(1)
+        .min_numerator_digits(1)
+        .push();
     let v31 = wb.add_format(v31);
 
     let mut v4 = ValueFormat::new_named("f4", ValueType::Currency);
-    v4.push_currency_symbol(locale!("de_AT"), "€");
-    v4.push_text(" ");
-    v4.push_number(2, false);
+    v4.part_currency()
+        .locale(locale!("de_AT"))
+        .symbol("€")
+        .push();
+    v4.part_text(" ");
+    v4.part_number().decimal_places(2).push();
     let v4 = wb.add_format(v4);
 
     let mut v5 = ValueFormat::new_named("f5", ValueType::Percentage);
-    v5.push_number(2, false);
-    v5.push_text("/ct");
+    v5.part_number().decimal_places(2).push();
+    v5.part_text("/ct");
     let v5 = wb.add_format(v5);
 
     let mut v6 = ValueFormat::new_named("f6", ValueType::Boolean);
-    v6.push_boolean();
+    v6.part_boolean();
     let v6 = wb.add_format(v6);
 
     let mut v7 = ValueFormat::new_named("f7", ValueType::DateTime);
-    v7.push_era(FormatNumberStyle::Long, FormatCalendar::Gregorian);
-    v7.push_text(" ");
-    v7.push_year(FormatNumberStyle::Long, FormatCalendar::Default);
-    v7.push_text(" ");
-    v7.push_month(
-        FormatNumberStyle::Long,
-        FormatTextual::Numeric,
-        FormatMonth::Nominativ,
-        FormatCalendar::Default,
-    );
-    v7.push_text(" ");
-    v7.push_day(FormatNumberStyle::Long, FormatCalendar::Default);
-    v7.push_text(" ");
-    v7.push_day_of_week(FormatNumberStyle::Long, FormatCalendar::Gregorian);
-    v7.push_text(" ");
-    v7.push_week_of_year(FormatCalendar::Gregorian);
-    v7.push_text(" ");
-    v7.push_quarter(FormatNumberStyle::Long, FormatCalendar::Gregorian);
+    v7.part_era()
+        .style(FormatNumberStyle::Long)
+        .calendar(FormatCalendar::Gregorian)
+        .push();
+    v7.part_text(" ");
+    v7.part_year().style(FormatNumberStyle::Long).push();
+    v7.part_text(" ");
+    v7.part_month().style(FormatNumberStyle::Long).push();
+    v7.part_text(" ");
+    v7.part_day().style(FormatNumberStyle::Long).push();
+    v7.part_text(" ");
+    v7.part_day_of_week()
+        .style(FormatNumberStyle::Long)
+        .calendar(FormatCalendar::Gregorian)
+        .push();
+    v7.part_text(" ");
+    v7.part_week_of_year()
+        .calendar(FormatCalendar::Gregorian)
+        .push();
+    v7.part_text(" ");
+    v7.part_quarter()
+        .style(FormatNumberStyle::Long)
+        .calendar(FormatCalendar::Gregorian)
+        .push();
     let v7 = wb.add_format(v7);
 
     let f1 = wb.add_cellstyle(CellStyle::new("f1", &v1));

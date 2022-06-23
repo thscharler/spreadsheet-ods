@@ -56,13 +56,13 @@ impl LocalizedValueFormat for LocaleEnUs {
             LocaleEnUs::LOCALE,
             ValueType::TimeDuration,
         );
-        v.push_hours(FormatNumberStyle::Long);
-        v.push_text(":");
-        v.push_minutes(FormatNumberStyle::Long);
-        v.push_text(":");
-        v.push_seconds(FormatNumberStyle::Long, 0);
-        v.push_text(" ");
-        v.push_am_pm();
+        v.part_hours().style(FormatNumberStyle::Long).push();
+        v.part_text(":");
+        v.part_minutes().style(FormatNumberStyle::Long).push();
+        v.part_text(":");
+        v.part_seconds().style(FormatNumberStyle::Long).push();
+        v.part_text(" ");
+        v.part_am_pm();
         v
     }
 }
