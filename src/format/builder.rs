@@ -510,7 +510,7 @@ impl<'vf> PartDayBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn long(mut self) -> Self {
+    pub fn long_style(mut self) -> Self {
         self.part.set_attr("number:style", "long".to_string());
         self
     }
@@ -520,7 +520,7 @@ impl<'vf> PartDayBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn short(mut self) -> Self {
+    pub fn short_style(mut self) -> Self {
         self.part.set_attr("number:style", "short".to_string());
         self
     }
@@ -601,7 +601,7 @@ impl<'vf> PartMonthBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn long(mut self) -> Self {
+    pub fn long_style(mut self) -> Self {
         self.part.set_attr("number:style", "long".to_string());
         self
     }
@@ -611,7 +611,7 @@ impl<'vf> PartMonthBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn short(mut self) -> Self {
+    pub fn short_style(mut self) -> Self {
         self.part.set_attr("number:style", "short".to_string());
         self
     }
@@ -715,7 +715,7 @@ impl<'vf> PartYearBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn long(mut self) -> Self {
+    pub fn long_style(mut self) -> Self {
         self.part.set_attr("number:style", "long".to_string());
         self
     }
@@ -725,7 +725,7 @@ impl<'vf> PartYearBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn short(mut self) -> Self {
+    pub fn short_style(mut self) -> Self {
         self.part.set_attr("number:style", "short".to_string());
         self
     }
@@ -802,7 +802,7 @@ impl<'vf> PartEraBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn long(mut self) -> Self {
+    pub fn long_style(mut self) -> Self {
         self.part.set_attr("number:style", "long".to_string());
         self
     }
@@ -812,7 +812,7 @@ impl<'vf> PartEraBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn short(mut self) -> Self {
+    pub fn short_style(mut self) -> Self {
         self.part.set_attr("number:style", "short".to_string());
         self
     }
@@ -889,7 +889,7 @@ impl<'vf> PartDayOfWeekBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn long(mut self) -> Self {
+    pub fn long_style(mut self) -> Self {
         self.part.set_attr("number:style", "long".to_string());
         self
     }
@@ -899,7 +899,7 @@ impl<'vf> PartDayOfWeekBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn short(mut self) -> Self {
+    pub fn short_style(mut self) -> Self {
         self.part.set_attr("number:style", "short".to_string());
         self
     }
@@ -1032,7 +1032,7 @@ impl<'vf> PartQuarterBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn long(mut self) -> Self {
+    pub fn long_style(mut self) -> Self {
         self.part.set_attr("number:style", "long".to_string());
         self
     }
@@ -1042,7 +1042,7 @@ impl<'vf> PartQuarterBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn short(mut self) -> Self {
+    pub fn short_style(mut self) -> Self {
         self.part.set_attr("number:style", "short".to_string());
         self
     }
@@ -1119,7 +1119,7 @@ impl<'vf> PartHoursBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn long(mut self) -> Self {
+    pub fn long_style(mut self) -> Self {
         self.part.set_attr("number:style", "long".to_string());
         self
     }
@@ -1129,7 +1129,7 @@ impl<'vf> PartHoursBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn short(mut self) -> Self {
+    pub fn short_style(mut self) -> Self {
         self.part.set_attr("number:style", "short".to_string());
         self
     }
@@ -1196,7 +1196,7 @@ impl<'vf> PartMinutesBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn long(mut self) -> Self {
+    pub fn long_style(mut self) -> Self {
         self.part.set_attr("number:style", "long".to_string());
         self
     }
@@ -1206,7 +1206,7 @@ impl<'vf> PartMinutesBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn short(mut self) -> Self {
+    pub fn short_style(mut self) -> Self {
         self.part.set_attr("number:style", "short".to_string());
         self
     }
@@ -1284,7 +1284,7 @@ impl<'vf> PartSecondsBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn long(mut self) -> Self {
+    pub fn long_style(mut self) -> Self {
         self.part.set_attr("number:style", "long".to_string());
         self
     }
@@ -1294,7 +1294,7 @@ impl<'vf> PartSecondsBuilder<'vf> {
     /// depends on the value of the number:format-source 19.348 attribute that is attached to a date
     /// or time style.
     #[must_use]
-    pub fn short(mut self) -> Self {
+    pub fn short_style(mut self) -> Self {
         self.part.set_attr("number:style", "short".to_string());
         self
     }

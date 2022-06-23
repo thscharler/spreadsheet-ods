@@ -83,11 +83,25 @@ impl Default for StyleOrigin {
 /// Defines the usage pattern for the style.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StyleUse {
-    /// Default style, when no style is defined.
+    /// The style:default-style element represents default styles. A default style specifies
+    /// default formatting properties for a style family. These defaults are used if a formatting property is
+    /// neither specified by an automatic nor a common style. Default styles exist for all style families that
+    /// are represented by the <style:style> element specified by the style:family attribute
+    /// 19.480.
+    /// An OpenDocument document should contain the default styles of the style families for which are
+    /// used in common or automatic styles in the document.
     Default,
-    /// This style is a named style that the user can choose in the ui.
+    /// The office:styles element contains common styles used in a document. A common style
+    /// is a style chosen by a user for a document or portion thereof.
     Named,
-    /// An automatic style that is generated performs any formatting.
+    /// The office:automatic-styles element contains automatic styles used in a document.
+    /// An automatic style is a set of formatting properties treated as properties of the object to which the
+    /// style is assigned.
+    ///
+    /// Note: Common and automatic styles behave differently in OpenDocument editing
+    /// consumers. Common styles present to a user as a named set of formatting
+    /// properties. The formatting properties of an automatic style present to a user as
+    /// properties of the object to which the style is applied.
     Automatic,
 }
 

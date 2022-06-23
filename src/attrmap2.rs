@@ -58,6 +58,22 @@ impl AttrMap2 {
         }
     }
 
+    /// Returns a property or a default.
+    pub fn attr_def<'a, 'b, S>(&'a self, name: &'b str, default: S) -> &'a str
+    where
+        S: Into<&'a str>,
+    {
+        if let Some(ref prp) = self.map {
+            if let Some(value) = prp.get(&DefaultAtom::from(name)) {
+                value.as_ref()
+            } else {
+                default.into()
+            }
+        } else {
+            default.into()
+        }
+    }
+
     pub fn iter(&self) -> AttrMapIter<'_> {
         From::from(self)
     }

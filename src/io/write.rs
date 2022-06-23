@@ -1521,13 +1521,15 @@ fn write_cell<W: Write + Seek>(
         }
     }
 
-    // Might not yield a useful result. Could not exist, or be in styles.xml
-    // which I don't read. Defaulting to to_string() seems reasonable.
-    let valuestyle = if let Some(style_name) = cell.style {
-        book.find_value_format(style_name)
-    } else {
-        None
-    };
+    // This finds the correct ValueFormat, but there is no way to use it.
+    // Falls back to: Output the same string as needed for the value-attribute
+    // and hope for the best. Seems to work well enough.
+    //
+    // let valuestyle = if let Some(style_name) = cell.style {
+    //     book.find_value_format(style_name)
+    // } else {
+    //     None
+    // };
 
     match cell.value {
         None | Some(Value::Empty) => {}
@@ -1550,11 +1552,7 @@ fn write_cell<W: Write + Seek>(
             let value = d.format("%Y-%m-%dT%H:%M:%S%.f").to_string();
             xml_out.attr("office:date-value", value.as_str())?;
             xml_out.elem("text:p")?;
-            if let Some(valuestyle) = valuestyle {
-                xml_out.text_esc(valuestyle.format_datetime(d).as_str())?;
-            } else {
-                xml_out.text(d.format("%d.%m.%Y").to_string().as_str())?;
-            }
+            xml_out.text_esc(value)?;
             xml_out.end_elem("text:p")?;
         }
         Some(Value::TimeDuration(d)) => {
@@ -1573,28 +1571,14 @@ fn write_cell<W: Write + Seek>(
             xml_out.attr("office:time-value", value.as_str())?;
 
             xml_out.elem("text:p")?;
-            if let Some(valuestyle) = valuestyle {
-                xml_out.text_esc(valuestyle.format_time_duration(d).as_str())?;
-            } else {
-                xml_out.text(&d.num_hours().to_string())?;
-                xml_out.text(":")?;
-                xml_out.text(&(d.num_minutes() % 60).to_string())?;
-                xml_out.text(":")?;
-                xml_out.text(&(d.num_seconds() % 60).to_string())?;
-                xml_out.text(".")?;
-                xml_out.text(&(d.num_milliseconds() % 1000).to_string())?;
-            }
+            xml_out.text(value)?;
             xml_out.end_elem("text:p")?;
         }
         Some(Value::Boolean(b)) => {
             xml_out.attr("office:value-type", "boolean")?;
             xml_out.attr("office:boolean-value", if *b { "true" } else { "false" })?;
             xml_out.elem("text:p")?;
-            if let Some(valuestyle) = valuestyle {
-                xml_out.text_esc(valuestyle.format_boolean(*b).as_str())?;
-            } else {
-                xml_out.text(if *b { "true" } else { "false" })?;
-            }
+            xml_out.text(if *b { "true" } else { "false" })?;
             xml_out.end_elem("text:p")?;
         }
         Some(Value::Currency(v, c)) => {
@@ -1603,13 +1587,9 @@ fn write_cell<W: Write + Seek>(
             let value = v.to_string();
             xml_out.attr("office:value", value.as_str())?;
             xml_out.elem("text:p")?;
-            if let Some(valuestyle) = valuestyle {
-                xml_out.text_esc(valuestyle.format_float(*v).as_str())?;
-            } else {
-                xml_out.text(String::from_utf8_lossy(c))?;
-                xml_out.text(" ")?;
-                xml_out.text(&value)?;
-            }
+            xml_out.text(String::from_utf8_lossy(c))?;
+            xml_out.text(" ")?;
+            xml_out.text(value)?;
             xml_out.end_elem("text:p")?;
         }
         Some(Value::Number(v)) => {
@@ -1617,22 +1597,15 @@ fn write_cell<W: Write + Seek>(
             let value = v.to_string();
             xml_out.attr("office:value", value.as_str())?;
             xml_out.elem("text:p")?;
-            if let Some(valuestyle) = valuestyle {
-                xml_out.text_esc(valuestyle.format_float(*v).as_str())?;
-            } else {
-                xml_out.text(value.as_str())?;
-            }
+            xml_out.text(value)?;
             xml_out.end_elem("text:p")?;
         }
         Some(Value::Percentage(v)) => {
             xml_out.attr("office:value-type", "percentage")?;
-            xml_out.attr("office:value", format!("{}%", v).as_str())?;
+            let value = format!("{}%", v);
+            xml_out.attr("office:value", value.as_str())?;
             xml_out.elem("text:p")?;
-            if let Some(valuestyle) = valuestyle {
-                xml_out.text_esc(valuestyle.format_float(*v * 100.0).as_str())?;
-            } else {
-                xml_out.text(&(v * 100.0).to_string())?;
-            }
+            xml_out.text(value)?;
             xml_out.end_elem("text:p")?;
         }
     }

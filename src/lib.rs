@@ -103,13 +103,18 @@
 //! * Cell/range references
 //!   * Parsing and formatting
 //!
+//! What might be problematic:
+//! * The text content of each cell is not formatted according to the given ValueFormat,
+//!   but instead is a simple to_string() of the data type. This data is not necessary
+//!   to read the contents correctly. LibreOffice seems to ignore this completely
+//!   and display everything correctly.
+//!
 //! What is not supported:
 //! * Spreadsheets
 //!   * Row and column grouping
-//! * ...
 //!
-//! There are a number of features that are not parsed completely,
-//! but which are stored as a XML structure. This might work as long as
+//! There are a number of features that are not parsed to a structure,
+//! but which are stored as a XML. This might work as long as
 //! these features don't refer to data that is no longer valid after
 //! some modification. But they are written back to the ods.
 //!

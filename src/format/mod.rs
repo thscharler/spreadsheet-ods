@@ -6,22 +6,23 @@
 //! use spreadsheet_ods::format::{FormatCalendar, FormatMonth, FormatNumberStyle, FormatTextual};
 //!
 //! let mut v = ValueFormat::new_named("dt0", ValueType::DateTime);
-//! v.part_day().long().push();
+//! v.part_day().long_style().push();
 //! v.part_text(".");
-//! v.part_month().long().push();
+//! v.part_month().long_style().push();
 //! v.part_text(".");
-//! v.part_year().long().push();
+//! v.part_year().long_style().push();
 //! v.part_text(" ");
-//! v.part_hours().long().push();
+//! v.part_hours().long_style().push();
 //! v.part_text(":");
-//! v.part_minutes().long().push();
+//! v.part_minutes().long_style().push();
 //! v.part_text(":");
-//! v.part_seconds().long().push();
+//! v.part_seconds().long_style().push();
 //!
 //! let mut v = ValueFormat::new_named("n3", ValueType::Number);
 //! v.part_number().decimal_places(3);
 //! ```
 //!
+//! X!!
 //! The output formatting is a rough approximation with the possibilities
 //! offered by format! and chrono::format. Especially there is no trace of
 //! i18n. But on the other hand the formatting rules are applied by LibreOffice
@@ -50,10 +51,9 @@ use crate::style::{
     color_string, percent_string, shadow_string, StyleOrigin, StyleUse, TextStyleRef,
 };
 use crate::{OdsError, ValueType};
-use chrono::{Duration, NaiveDateTime};
 use color::Rgb;
 use icu_locid::subtags::{Language, Region, Script};
-use icu_locid::Locale;
+use icu_locid::{LanguageIdentifier, Locale};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -111,6 +111,35 @@ impl FromStr for TransliterationStyle {
     }
 }
 
+/// Format source
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub enum FormatSource {
+    Fixed,
+    Language,
+}
+
+impl Display for FormatSource {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FormatSource::Fixed => write!(f, "fixed"),
+            FormatSource::Language => write!(f, "language"),
+        }
+    }
+}
+
+impl FromStr for FormatSource {
+    type Err = OdsError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "fixed" => Ok(FormatSource::Fixed),
+            "language" => Ok(FormatSource::Language),
+            _ => Err(OdsError::Parse(s.to_string())),
+        }
+    }
+}
+
 // Styles and attributes
 //
 // Attributes for all styles:
@@ -131,18 +160,18 @@ impl FromStr for TransliterationStyle {
 //      no extras
 //
 // ValueType:Currency -> number:currency-style
-// number:automatic-order 19.340
+// ok number:automatic-order 19.340
 //
 // ValueType:Percentage -> number:percentage-style
 //      no extras
 //
 // ValueType:DateTime -> number:date-style
-// number:automaticorder 19.340
-// number:format-source 19.347,
+// ok number:automaticorder 19.340
+// ok number:format-source 19.347,
 //
 // ValueType:TimeDuration -> number:time-style
-// number:format-source 19.347
-// number:truncate-on-overflow 19.365
+// ok number:format-source 19.347
+// ok number:truncate-on-overflow 19.365
 //
 // ValueType:Boolean -> number:boolean-style
 //      no extras
@@ -220,13 +249,7 @@ impl ValueFormat {
             parts: Default::default(),
             stylemaps: None,
         };
-        v.set_language(locale.id.language);
-        if let Some(region) = locale.id.region {
-            v.set_country(region);
-        }
-        if let Some(script) = locale.id.script {
-            v.set_script(script);
-        }
+        v.set_locale(locale);
         v
     }
 
@@ -240,7 +263,7 @@ impl ValueFormat {
         self.name = name.into();
     }
 
-    /// Style name.
+    /// The style:name attribute specifies names that reference style mechanisms.
     pub fn name(&self) -> &String {
         &self.name
     }
@@ -250,7 +273,7 @@ impl ValueFormat {
         self.attr.set_attr("number:title", title.into());
     }
 
-    /// Title
+    /// The number:title attribute specifies the title of a data style.
     pub fn title(&self) -> Option<&String> {
         self.attr.attr("number:title")
     }
@@ -261,97 +284,128 @@ impl ValueFormat {
         self.attr.set_attr("number:country", name.into());
     }
 
-    /// Display name.
+    /// The style:display-name attribute specifies the name of a style as it should appear in the user
+    /// interface. If this attribute is not present, the display name should be the same as the style name.
     pub fn display_name(&self) -> Option<&String> {
         self.attr.attr("number:country")
-    }
-
-    /// The number:country attribute specifies a country code for a data style. The country code is
-    /// used for formatting properties whose evaluation is locale-dependent.
-    /// If a country is not specified, the system settings are used
-    pub fn set_country(&mut self, country: Region) {
-        self.attr.set_attr("number:country", country.to_string());
-    }
-
-    /// Country
-    pub fn country(&self) -> Option<Region> {
-        match self.attr.attr("number:country") {
-            None => None,
-            Some(v) => v.parse().ok(),
-        }
     }
 
     /// The number:language attribute specifies a language code. The country code is used for
     /// formatting properties whose evaluation is locale-dependent.
     /// If a language code is not specified, either the system settings or the setting for the system's
     /// language are used, depending on the property whose value should be evaluated.
-    pub fn set_language(&mut self, language: Language) {
-        self.attr.set_attr("number:language", language.to_string());
-    }
-
-    /// Language
-    pub fn language(&self) -> Option<Language> {
-        match self.attr.attr("number:language") {
-            None => None,
-            Some(v) => v.parse().ok(),
-        }
-    }
-
+    ///
+    /// The number:country attribute specifies a country code for a data style. The country code is
+    /// used for formatting properties whose evaluation is locale-dependent.
+    /// If a country is not specified, the system settings are used.
+    ///
     /// The number:script attribute specifies a script code. The script code is used for formatting
     /// properties whose evaluation is locale-dependent. The attribute should be used only if necessary
     /// according to the rules of §2.2.3 of [RFC5646](https://datatracker.ietf.org/doc/html/rfc5646), or its successors.
-    pub fn set_script(&mut self, script: Script) {
-        self.attr.set_attr("number:script", script.to_string());
-    }
-
-    /// Script
-    pub fn script(&self) -> Option<Script> {
-        match self.attr.attr("number:script") {
-            None => None,
-            Some(v) => v.parse().ok(),
+    pub fn set_locale(&mut self, locale: Locale) {
+        if locale != Locale::UND {
+            self.attr
+                .set_attr("number:language", locale.id.language.to_string());
+            if let Some(region) = locale.id.region {
+                self.attr.set_attr("number:country", region.to_string());
+            } else {
+                self.attr.clear_attr("number:country");
+            }
+            if let Some(script) = locale.id.script {
+                self.attr.set_attr("number:script", script.to_string());
+            } else {
+                self.attr.clear_attr("number:script");
+            }
+        } else {
+            self.attr.clear_attr("number:language");
+            self.attr.clear_attr("number:country");
+            self.attr.clear_attr("number:script");
         }
     }
 
-    /// The number:transliteration-country attribute specifies a country code in conformance
-    /// with [RFC5646](https://datatracker.ietf.org/doc/html/rfc5646).
-    /// If no language/country (locale) combination is specified, the locale of the data style is used.
-    pub fn set_transliteration_country(&mut self, country: Region) {
-        self.attr
-            .set_attr("number:transliteration-country", country.to_string());
-    }
+    /// Returns number:language, number:country and number:script as a locale.
+    pub fn locale(&self) -> Option<Locale> {
+        if let Some(language) = self.attr.attr("number:language") {
+            if let Some(language) = Language::from_bytes(language.as_bytes()).ok() {
+                let region = if let Some(region) = self.attr.attr("number:country") {
+                    Region::from_bytes(region.as_bytes()).ok()
+                } else {
+                    None
+                };
+                let script = if let Some(script) = self.attr.attr("number:script") {
+                    Script::from_bytes(script.as_bytes()).ok()
+                } else {
+                    None
+                };
 
-    /// Transliteration country.
-    pub fn transliteration_country(&self) -> Option<Region> {
-        match self.attr.attr("number:transliteration-country") {
-            None => None,
-            Some(v) => v.parse().ok(),
+                let id = LanguageIdentifier::from((language, script, region));
+
+                Some(Locale::from(id))
+            } else {
+                None
+            }
+        } else {
+            None
         }
     }
 
     /// The number:transliteration-language attribute specifies a language code in
     /// conformance with [RFC5646](https://datatracker.ietf.org/doc/html/rfc5646).
     /// If no language/country (locale) combination is specified, the locale of the data style is used
-    pub fn set_transliteration_language(&mut self, language: Language) {
-        self.attr
-            .set_attr("number:transliteration-language", language.to_string());
+    ///
+    /// The number:transliteration-country attribute specifies a country code in conformance
+    /// with [RFC5646](https://datatracker.ietf.org/doc/html/rfc5646).
+    /// If no language/country (locale) combination is specified, the locale of the data style is used.
+    pub fn set_transliteration_locale(&mut self, locale: Locale) {
+        if locale != Locale::UND {
+            self.attr.set_attr(
+                "number:transliteration-language",
+                locale.id.language.to_string(),
+            );
+            if let Some(region) = locale.id.region {
+                self.attr
+                    .set_attr("number:transliteration-country", region.to_string());
+            } else {
+                self.attr.clear_attr("number:transliteration-country");
+            }
+        } else {
+            self.attr.clear_attr("number:transliteration-language");
+            self.attr.clear_attr("number:transliteration-country");
+        }
     }
 
-    /// Transliteration language.
-    pub fn transliteration_language(&self) -> Option<Language> {
-        match self.attr.attr("number:transliteration-language") {
-            None => None,
-            Some(v) => v.parse().ok(),
+    /// Returns number:transliteration_language and number:transliteration_country as a locale.
+    pub fn transliteration_locale(&self) -> Option<Locale> {
+        if let Some(language) = self.attr.attr("number:language") {
+            if let Some(language) = Language::from_bytes(language.as_bytes()).ok() {
+                let region = if let Some(region) = self.attr.attr("number:country") {
+                    Region::from_bytes(region.as_bytes()).ok()
+                } else {
+                    None
+                };
+
+                let id = LanguageIdentifier::from((language, None, region));
+
+                Some(Locale::from(id))
+            } else {
+                None
+            }
+        } else {
+            None
         }
     }
 
     /// The number:transliteration-format attribute specifies which number characters to use.
+    ///
     /// The value of the number:transliteration-format attribute shall be a decimal "DIGIT ONE"
     /// character with numeric value 1 as listed in the Unicode Character Database file UnicodeData.txt
     /// with value 'Nd' (Numeric decimal digit) in the General_Category/Numeric_Type property field 6
     /// and value '1' in the Numeric_Value fields 7 and 8, respectively as listed in
     /// DerivedNumericValues.txt
+    ///
     /// If no format is specified the default ASCII representation of Latin-Indic digits is used, other
     /// transliteration attributes present in that case are ignored.
+    ///
     /// The default value for this attribute is 1
     pub fn set_transliteration_format(&mut self, format: char) {
         self.attr
@@ -368,8 +422,10 @@ impl ValueFormat {
 
     /// The number:transliteration-style attribute specifies the transliteration format of a
     /// number system.
+    ///
     /// The semantics of the values of the number:transliteration-style attribute are locale- and
     /// implementation-dependent.
+    ///
     /// The default value for this attribute is short.
     pub fn set_transliteration_style(&mut self, style: TransliterationStyle) {
         self.attr
@@ -387,13 +443,13 @@ impl ValueFormat {
     /// The style:volatile attribute specifies whether unused style in a document are retained or
     /// discarded by consumers.
     /// The defined values for the style:volatile attribute are:
-    ///   false: consumers should discard the unused styles.
-    ///   true: consumers should keep unused styles.
+    /// * false: consumers should discard the unused styles.
+    /// * true: consumers should keep unused styles.
     pub fn set_volatile(&mut self, volatile: bool) {
         self.attr.set_attr("style:volatile", volatile.to_string());
     }
 
-    /// Transliteration style.
+    /// Volatile format.
     pub fn volatile(&self) -> Option<bool> {
         match self.attr.attr("style:volatile") {
             None => None,
@@ -404,12 +460,12 @@ impl ValueFormat {
     /// The number:automatic-order attribute specifies whether data is ordered to match the default
     /// order for the language and country of a data style.
     /// The defined values for the number:automatic-order attribute are:
-    /// - false: data is not ordered to match the default order for the language and country of a data
+    /// * false: data is not ordered to match the default order for the language and country of a data
     /// style.
-    /// - true: data is ordered to match the default order for the language and country of a data style.
+    /// * true: data is ordered to match the default order for the language and country of a data style.
     /// The default value for this attribute is false.
     ///
-    /// This attribute is valid for date and currency formats.
+    /// This attribute is valid for ValueType::DateTime and ValueType::TimeDuration.
     pub fn set_automatic_order(&mut self, volatile: bool) {
         self.attr
             .set_attr("number:automatic-order", volatile.to_string());
@@ -417,9 +473,69 @@ impl ValueFormat {
 
     /// Automatic order.
     pub fn automatic_order(&self) -> Option<bool> {
-        match self.attr.attr("number:automatic-order") {
-            None => None,
-            Some(s) => FromStr::from_str(s.as_str()).ok(),
+        if let Some(v) = self.attr.attr("number:automatic-order") {
+            v.parse().ok()
+        } else {
+            None
+        }
+    }
+
+    /// The number:format-source attribute specifies the source of definitions of the short and
+    /// long display formats.
+    ///
+    /// The defined values for the number:format-source attribute are:
+    /// * fixed: the values short and long of the number:style attribute are defined by this
+    /// standard.
+    /// * language: the meaning of the values long and short of the number:style attribute
+    /// depend upon the number:language and number:country attributes of the date style. If
+    /// neither of those attributes are specified, consumers should use their default locale for short
+    /// and long date and time formats.
+    ///
+    /// The default value for this attribute is fixed.
+    ///
+    /// This attribute is valid for ValueType::DateTime and ValueType::TimeDuration.
+    pub fn set_format_source(&mut self, source: FormatSource) {
+        self.attr
+            .set_attr("number:format-source", source.to_string());
+    }
+
+    /// The source of definitions of the short and long display formats.
+    pub fn format_source(&mut self) -> Option<FormatSource> {
+        if let Some(v) = self.attr.attr("number:format-source") {
+            v.parse().ok()
+        } else {
+            None
+        }
+    }
+
+    /// The number:truncate-on-overflow attribute specifies if a time or duration for which the
+    /// value to be displayed by the largest time component specified in the style is too large to be
+    /// displayed using the value range for <number:hours> 16.29.20 (0 to 23), or
+    /// <number:minutes> 16.29.21 or <number:seconds> 16.29.22 (0 to 59) is truncated or if the
+    /// value range of this component is extended. The largest time component is those for which a value
+    /// of "1" represents the longest period of time.
+    /// If a value gets truncated, then its value is displayed modulo 24 (for <number:hours>) or modulo
+    /// 60 (for <number:minutes> and <number:seconds>).
+    ///
+    /// If the value range of a component get extended, then values larger than 23 or 59 are displayed.
+    /// The defined values for the number:truncate-on-overflow element are:
+    /// * false: the value range of the component is extended.
+    /// * true: the value range of the component is not extended.
+    ///
+    /// The default value for this attribute is true.
+    ///
+    /// This attribute is valid for ValueType::TimeDuration.
+    pub fn set_truncate_on_overflow(&mut self, truncate: bool) {
+        self.attr
+            .set_attr("number:truncate-on-overflow", truncate.to_string());
+    }
+
+    /// Truncate time-values on overflow.
+    pub fn truncate_on_overflow(&mut self) -> Option<bool> {
+        if let Some(v) = self.attr.attr("number:truncate-on-overflow") {
+            v.parse().ok()
+        } else {
+            None
         }
     }
 
@@ -434,22 +550,23 @@ impl ValueFormat {
         self.v_type
     }
 
-    /// Sets the origin.
+    /// Sets the storage location for this ValueFormat. Either content.xml
+    /// or styles.xml.
     pub fn set_origin(&mut self, origin: StyleOrigin) {
         self.origin = origin;
     }
 
-    /// Returns the origin.
+    /// Returns the storage location.
     pub fn origin(&self) -> StyleOrigin {
         self.origin
     }
 
-    /// Style usage.
+    /// How is the style used in the document.
     pub fn set_styleuse(&mut self, styleuse: StyleUse) {
         self.styleuse = styleuse;
     }
 
-    /// Returns the usage.
+    /// How is the style used in the document.
     pub fn styleuse(&self) -> StyleUse {
         self.styleuse
     }
@@ -892,64 +1009,6 @@ impl ValueFormat {
     pub fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap> {
         self.stylemaps.get_or_insert_with(Vec::new)
     }
-
-    /// Tries to format.
-    /// If there are no matching parts, does nothing.
-    pub fn format_boolean(&self, b: bool) -> String {
-        let mut buf = String::new();
-        for p in &self.parts {
-            p.format_boolean(&mut buf, b);
-        }
-        buf
-    }
-
-    /// Tries to format.
-    /// If there are no matching parts, does nothing.
-    pub fn format_float(&self, f: f64) -> String {
-        let mut buf = String::new();
-        for p in &self.parts {
-            p.format_float(&mut buf, f);
-        }
-        buf
-    }
-
-    /// Tries to format.
-    /// If there are no matching parts, does nothing.
-    pub fn format_str<'a, S: Into<&'a str>>(&self, s: S) -> String {
-        let mut buf = String::new();
-        let s = s.into();
-        for p in &self.parts {
-            p.format_str(&mut buf, s);
-        }
-        buf
-    }
-
-    /// Tries to format.
-    /// If there are no matching parts, does nothing.
-    /// Should work reasonably. Don't ask me about other calenders.
-    pub fn format_datetime(&self, d: &NaiveDateTime) -> String {
-        let mut buf = String::new();
-
-        let h12 = self
-            .parts
-            .iter()
-            .any(|v| v.part_type() == FormatPartType::AmPm);
-
-        for p in &self.parts {
-            p.format_datetime(&mut buf, d, h12);
-        }
-        buf
-    }
-
-    /// Tries to format. Should work reasonably.
-    /// If there are no matching parts, does nothing.
-    pub fn format_time_duration(&self, d: &Duration) -> String {
-        let mut buf = String::new();
-        for p in &self.parts {
-            p.format_time_duration(&mut buf, d);
-        }
-        buf
-    }
 }
 
 /// Identifies the structural parts of a value format.
@@ -1069,16 +1128,11 @@ impl FormatPart {
     }
 
     /// Returns a property or a default.
-    pub fn attr_def<'a0, 'a1, S0, S1>(&'a1 self, name: S0, default: S1) -> &'a1 str
+    pub fn attr_def<'a, 'b, S>(&'a self, name: &'b str, default: S) -> &'a str
     where
-        S0: Into<&'a0 str>,
-        S1: Into<&'a1 str>,
+        S: Into<&'a str>,
     {
-        if let Some(v) = self.attr.attr(name.into()) {
-            v
-        } else {
-            default.into()
-        }
+        self.attr.attr_def(name, default)
     }
 
     /// Sets a textual content for this part. This is only used
@@ -1090,185 +1144,5 @@ impl FormatPart {
     /// Returns the text content.
     pub fn content(&self) -> Option<&String> {
         self.content.as_ref()
-    }
-
-    /// Tries to format the given boolean, and appends the result to buf.
-    /// If this part does'nt match does nothing
-    pub(crate) fn format_boolean(&self, buf: &mut String, b: bool) {
-        match self.part_type {
-            FormatPartType::Boolean => {
-                buf.push_str(if b { "true" } else { "false" });
-            }
-            FormatPartType::Text => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// Tries to format the given float, and appends the result to buf.
-    /// If this part does'nt match does nothing
-    pub(crate) fn format_float(&self, buf: &mut String, f: f64) {
-        match self.part_type {
-            FormatPartType::Number => {
-                let dec = self.attr_def("number:decimal-places", "0").parse::<usize>();
-                if let Ok(dec) = dec {
-                    buf.push_str(&format!("{:.*}", dec, f));
-                }
-            }
-            FormatPartType::ScientificNumber => {
-                buf.push_str(&format!("{:e}", f));
-            }
-            FormatPartType::CurrencySymbol => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            FormatPartType::Text => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// Tries to format the given string, and appends the result to buf.
-    /// If this part does'nt match does nothing
-    pub(crate) fn format_str(&self, buf: &mut String, s: &str) {
-        match self.part_type {
-            FormatPartType::TextContent => {
-                buf.push_str(s);
-            }
-            FormatPartType::Text => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// Tries to format the given DateTime, and appends the result to buf.
-    /// Uses chrono::strftime for the implementation.
-    /// If this part does'nt match does nothing
-    #[allow(clippy::collapsible_else_if)]
-    pub(crate) fn format_datetime(&self, buf: &mut String, d: &NaiveDateTime, h12: bool) {
-        match self.part_type {
-            FormatPartType::Day => {
-                let is_long = self.attr_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%d").to_string());
-                } else {
-                    buf.push_str(&d.format("%-d").to_string());
-                }
-            }
-            FormatPartType::Month => {
-                let is_long = self.attr_def("number:style", "") == "long";
-                let is_text = self.attr_def("number:textual", "") == "true";
-                if is_text {
-                    if is_long {
-                        buf.push_str(&d.format("%b").to_string());
-                    } else {
-                        buf.push_str(&d.format("%B").to_string());
-                    }
-                } else {
-                    if is_long {
-                        buf.push_str(&d.format("%m").to_string());
-                    } else {
-                        buf.push_str(&d.format("%-m").to_string());
-                    }
-                }
-            }
-            FormatPartType::Year => {
-                let is_long = self.attr_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%Y").to_string());
-                } else {
-                    buf.push_str(&d.format("%y").to_string());
-                }
-            }
-            FormatPartType::DayOfWeek => {
-                let is_long = self.attr_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%A").to_string());
-                } else {
-                    buf.push_str(&d.format("%a").to_string());
-                }
-            }
-            FormatPartType::WeekOfYear => {
-                let is_long = self.attr_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%W").to_string());
-                } else {
-                    buf.push_str(&d.format("%-W").to_string());
-                }
-            }
-            FormatPartType::Hours => {
-                let is_long = self.attr_def("number:style", "") == "long";
-                if !h12 {
-                    if is_long {
-                        buf.push_str(&d.format("%H").to_string());
-                    } else {
-                        buf.push_str(&d.format("%-H").to_string());
-                    }
-                } else {
-                    if is_long {
-                        buf.push_str(&d.format("%I").to_string());
-                    } else {
-                        buf.push_str(&d.format("%-I").to_string());
-                    }
-                }
-            }
-            FormatPartType::Minutes => {
-                let is_long = self.attr_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%M").to_string());
-                } else {
-                    buf.push_str(&d.format("%-M").to_string());
-                }
-            }
-            FormatPartType::Seconds => {
-                let is_long = self.attr_def("number:style", "") == "long";
-                if is_long {
-                    buf.push_str(&d.format("%S").to_string());
-                } else {
-                    buf.push_str(&d.format("%-S").to_string());
-                }
-            }
-            FormatPartType::AmPm => {
-                buf.push_str(&d.format("%p").to_string());
-            }
-            FormatPartType::Text => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// Tries to format the given Duration, and appends the result to buf.
-    /// If this part does'nt match does nothing
-    pub(crate) fn format_time_duration(&self, buf: &mut String, d: &Duration) {
-        match self.part_type {
-            FormatPartType::Hours => {
-                buf.push_str(&d.num_hours().to_string());
-            }
-            FormatPartType::Minutes => {
-                buf.push_str(&(d.num_minutes() % 60).to_string());
-            }
-            FormatPartType::Seconds => {
-                buf.push_str(&(d.num_seconds() % 60).to_string());
-            }
-            FormatPartType::Text => {
-                if let Some(content) = &self.content {
-                    buf.push_str(content)
-                }
-            }
-            _ => {}
-        }
     }
 }
