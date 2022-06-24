@@ -3,7 +3,7 @@
 //!
 //! ```
 //! use spreadsheet_ods::{ValueFormat, ValueType};
-//! use spreadsheet_ods::format::{FormatCalendar, FormatMonth, FormatNumberStyle, FormatTextual};
+//! use spreadsheet_ods::format::{FormatCalendarStyle, FormatMonth, FormatNumberStyle, FormatTextual};
 //!
 //! let mut v = ValueFormat::new_named("dt0", ValueType::DateTime);
 //! v.part_day().long_style().push();
@@ -219,6 +219,12 @@ impl ValueFormat {
             parts: Default::default(),
             stylemaps: None,
         }
+    }
+
+    /// New, with name.
+    #[deprecated]
+    pub fn new_with_name<S: Into<String>>(name: S, value_type: ValueType) -> Self {
+        Self::new_named(name, value_type)
     }
 
     /// New, with name.
@@ -899,13 +905,13 @@ impl ValueFormat {
 
     /// Use part_era instead.
     #[deprecated]
-    pub fn push_era(&mut self, style: FormatNumberStyle, calendar: FormatCalendar) {
+    pub fn push_era(&mut self, style: FormatNumberStyle, calendar: FormatCalendarStyle) {
         self.part_era().style(style).calendar(calendar).push();
     }
 
     /// Use part_day_of_week instead.
     #[deprecated]
-    pub fn push_day_of_week(&mut self, style: FormatNumberStyle, calendar: FormatCalendar) {
+    pub fn push_day_of_week(&mut self, style: FormatNumberStyle, calendar: FormatCalendarStyle) {
         self.part_day_of_week()
             .style(style)
             .calendar(calendar)
@@ -914,13 +920,13 @@ impl ValueFormat {
 
     /// Use part_week_of_year instead.
     #[deprecated]
-    pub fn push_week_of_year(&mut self, calendar: FormatCalendar) {
+    pub fn push_week_of_year(&mut self, calendar: FormatCalendarStyle) {
         self.part_week_of_year().calendar(calendar).push();
     }
 
     /// Use part_quarter instead.
     #[deprecated]
-    pub fn push_quarter(&mut self, style: FormatNumberStyle, calendar: FormatCalendar) {
+    pub fn push_quarter(&mut self, style: FormatNumberStyle, calendar: FormatCalendarStyle) {
         self.part_quarter().style(style).calendar(calendar).push();
     }
 
@@ -1068,7 +1074,7 @@ impl Display for FormatNumberStyle {
 /// Calendar types.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
-pub enum FormatCalendar {
+pub enum FormatCalendarStyle {
     Gregorian,
     Gengou,
     Roc,
@@ -1078,16 +1084,16 @@ pub enum FormatCalendar {
     Buddhist,
 }
 
-impl Display for FormatCalendar {
+impl Display for FormatCalendarStyle {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            FormatCalendar::Gregorian => write!(f, "gregorian"),
-            FormatCalendar::Gengou => write!(f, "gengou"),
-            FormatCalendar::Roc => write!(f, "ROC"),
-            FormatCalendar::Hanja => write!(f, "hanja"),
-            FormatCalendar::Hijri => write!(f, "hijri"),
-            FormatCalendar::Jewish => write!(f, "jewish"),
-            FormatCalendar::Buddhist => write!(f, "buddhist"),
+            FormatCalendarStyle::Gregorian => write!(f, "gregorian"),
+            FormatCalendarStyle::Gengou => write!(f, "gengou"),
+            FormatCalendarStyle::Roc => write!(f, "ROC"),
+            FormatCalendarStyle::Hanja => write!(f, "hanja"),
+            FormatCalendarStyle::Hijri => write!(f, "hijri"),
+            FormatCalendarStyle::Jewish => write!(f, "jewish"),
+            FormatCalendarStyle::Buddhist => write!(f, "buddhist"),
         }
     }
 }

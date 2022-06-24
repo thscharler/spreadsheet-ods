@@ -1,4 +1,4 @@
-use crate::format::{FormatCalendar, FormatNumberStyle, FormatPart, FormatPartType};
+use crate::format::{FormatCalendarStyle, FormatNumberStyle, FormatPart, FormatPartType};
 use crate::ValueFormat;
 use icu_locid::Locale;
 
@@ -540,7 +540,7 @@ impl<'vf> PartDayBuilder<'vf> {
     /// The attribute value may also be a string value. If this attribute is not specified, the default calendar
     /// system for the locale of the data style is used.
     #[must_use]
-    pub fn calendar(mut self, calendar: FormatCalendar) -> Self {
+    pub fn calendar(mut self, calendar: FormatCalendarStyle) -> Self {
         self.part.set_attr("number:calendar", calendar.to_string());
         self
     }
@@ -659,7 +659,7 @@ impl<'vf> PartMonthBuilder<'vf> {
     /// The attribute value may also be a string value. If this attribute is not specified, the default calendar
     /// system for the locale of the data style is used.
     #[must_use]
-    pub fn calendar(mut self, calendar: FormatCalendar) -> Self {
+    pub fn calendar(mut self, calendar: FormatCalendarStyle) -> Self {
         self.part.set_attr("number:calendar", calendar.to_string());
         self
     }
@@ -745,7 +745,7 @@ impl<'vf> PartYearBuilder<'vf> {
     /// The attribute value may also be a string value. If this attribute is not specified, the default calendar
     /// system for the locale of the data style is used.
     #[must_use]
-    pub fn calendar(mut self, calendar: FormatCalendar) -> Self {
+    pub fn calendar(mut self, calendar: FormatCalendarStyle) -> Self {
         self.part.set_attr("number:calendar", calendar.to_string());
         self
     }
@@ -832,7 +832,7 @@ impl<'vf> PartEraBuilder<'vf> {
     /// The attribute value may also be a string value. If this attribute is not specified, the default calendar
     /// system for the locale of the data style is used.
     #[must_use]
-    pub fn calendar(mut self, calendar: FormatCalendar) -> Self {
+    pub fn calendar(mut self, calendar: FormatCalendarStyle) -> Self {
         self.part.set_attr("number:calendar", calendar.to_string());
         self
     }
@@ -919,7 +919,7 @@ impl<'vf> PartDayOfWeekBuilder<'vf> {
     /// The attribute value may also be a string value. If this attribute is not specified, the default calendar
     /// system for the locale of the data style is used.
     #[must_use]
-    pub fn calendar(mut self, calendar: FormatCalendar) -> Self {
+    pub fn calendar(mut self, calendar: FormatCalendarStyle) -> Self {
         self.part.set_attr("number:calendar", calendar.to_string());
         self
     }
@@ -975,7 +975,7 @@ impl<'vf> PartWeekOfYearBuilder<'vf> {
     /// The attribute value may also be a string value. If this attribute is not specified, the default calendar
     /// system for the locale of the data style is used.
     #[must_use]
-    pub fn calendar(mut self, calendar: FormatCalendar) -> Self {
+    pub fn calendar(mut self, calendar: FormatCalendarStyle) -> Self {
         self.part.set_attr("number:calendar", calendar.to_string());
         self
     }
@@ -1062,7 +1062,7 @@ impl<'vf> PartQuarterBuilder<'vf> {
     /// The attribute value may also be a string value. If this attribute is not specified, the default calendar
     /// system for the locale of the data style is used.
     #[must_use]
-    pub fn calendar(mut self, calendar: FormatCalendar) -> Self {
+    pub fn calendar(mut self, calendar: FormatCalendarStyle) -> Self {
         self.part.set_attr("number:calendar", calendar.to_string());
         self
     }

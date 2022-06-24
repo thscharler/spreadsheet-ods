@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use icu_locid::locale;
 
-use spreadsheet_ods::format::{FormatCalendar, FormatNumberStyle};
+use spreadsheet_ods::format::{FormatCalendarStyle, FormatNumberStyle};
 use spreadsheet_ods::style::CellStyle;
 use spreadsheet_ods::{write_ods, OdsError, Sheet, ValueFormat, ValueType, WorkBook};
 
@@ -51,7 +51,7 @@ fn write_format() -> Result<(), OdsError> {
     let mut v7 = ValueFormat::new_named("f7", ValueType::DateTime);
     v7.part_era()
         .style(FormatNumberStyle::Long)
-        .calendar(FormatCalendar::Gregorian)
+        .calendar(FormatCalendarStyle::Gregorian)
         .push();
     v7.part_text(" ");
     v7.part_year().style(FormatNumberStyle::Long).push();
@@ -62,16 +62,16 @@ fn write_format() -> Result<(), OdsError> {
     v7.part_text(" ");
     v7.part_day_of_week()
         .style(FormatNumberStyle::Long)
-        .calendar(FormatCalendar::Gregorian)
+        .calendar(FormatCalendarStyle::Gregorian)
         .push();
     v7.part_text(" ");
     v7.part_week_of_year()
-        .calendar(FormatCalendar::Gregorian)
+        .calendar(FormatCalendarStyle::Gregorian)
         .push();
     v7.part_text(" ");
     v7.part_quarter()
         .style(FormatNumberStyle::Long)
-        .calendar(FormatCalendar::Gregorian)
+        .calendar(FormatCalendarStyle::Gregorian)
         .push();
     let v7 = wb.add_format(v7);
 
