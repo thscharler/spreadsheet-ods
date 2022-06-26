@@ -2037,7 +2037,6 @@ fn write_valuestyles<W: Write + Seek>(
                 FormatPartType::Seconds => "number:seconds",
                 FormatPartType::Fraction => "number:fraction",
                 FormatPartType::AmPm => "number:am-pm",
-                // FormatPartType::EmbeddedText => "number:embedded-text",
                 FormatPartType::Text => "number:text",
                 FormatPartType::TextContent => "number:text-content",
                 FormatPartType::FillCharacter => "number:fill-character",
@@ -2055,6 +2054,26 @@ fn write_valuestyles<W: Write + Seek>(
                     xml_out.text_esc(content)?;
                 }
                 xml_out.end_elem(part_tag)?;
+            } else if part.part_type() == FormatPartType::Number {
+                if let Some(embedded_text) = part.content() {
+                    xml_out.elem(part_tag)?;
+                    for (a, v) in part.attrmap().iter() {
+                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                    }
+
+                    // embedded text
+                    xml_out.elem("number:embedded-text")?;
+                    xml_out.attr_esc("number:position", part.position().to_string())?;
+                    xml_out.text_esc(embedded_text)?;
+                    xml_out.end_elem("number:embedded-text")?;
+
+                    xml_out.end_elem(part_tag)?;
+                } else {
+                    xml_out.empty(part_tag)?;
+                    for (a, v) in part.attrmap().iter() {
+                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                    }
+                }
             } else {
                 xml_out.empty(part_tag)?;
                 for (a, v) in part.attrmap().iter() {

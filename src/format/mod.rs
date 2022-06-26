@@ -22,12 +22,6 @@
 //! v.part_number().decimal_places(3);
 //! ```
 //!
-//! X!!
-//! The output formatting is a rough approximation with the possibilities
-//! offered by format! and chrono::format. Especially there is no trace of
-//! i18n. But on the other hand the formatting rules are applied by LibreOffice
-//! when opening the spreadsheet so typically nobody notices this.
-//!
 
 mod builder;
 mod create;
@@ -1050,6 +1044,15 @@ pub struct FormatPart {
     part_type: FormatPartType,
     /// Properties of this part.
     attr: AttrMap2,
+    /// Textposition for embedded text when acting as a number format part.
+    ///
+    /// The number:position attribute specifies the position where text appears.
+    /// The index of a position starts with 1 and is counted by digits from right to left in the integer part of
+    /// a number, starting left from a decimal separator if one exists, or from the last digit of the number.
+    /// Text is inserted before the digit at the specified position. If the value of number:position
+    /// attribute is greater than the value of number:min-integer-digits 19.355 and greater than
+    /// the number of integer digits in the number, text is prepended to the number.
+    position: u32,
     /// Some content.
     content: Option<String>,
 }
@@ -1104,6 +1107,7 @@ impl FormatPart {
         FormatPart {
             part_type: ftype,
             attr: Default::default(),
+            position: 0,
             content: None,
         }
     }
@@ -1139,6 +1143,16 @@ impl FormatPart {
         S: Into<&'a str>,
     {
         self.attr.attr_def(name, default)
+    }
+
+    /// Sets the position for embedded text in a number format part.
+    pub fn set_position(&mut self, pos: u32) {
+        self.position = pos;
+    }
+
+    /// The position for embedded text in a number format part.
+    pub fn position(&self) -> u32 {
+        self.position
     }
 
     /// Sets a textual content for this part. This is only used

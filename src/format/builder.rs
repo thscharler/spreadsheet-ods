@@ -118,23 +118,49 @@ impl<'vf> PartNumberBuilder<'vf> {
         );
         self
     }
+
+    /// The number:embedded-text element specifies text that is displayed at one specific position
+    /// within a number.
+
+    ///
+    /// The number:embedded-text element is usable within the following element:
+    /// * number:number 16.29.3.
+    ///
+    /// The number:embedded-text element has the following attribute:
+    /// * number:position 19.358.
+    ///
+    /// The number:position attribute specifies the position where text appears.
+    /// The index of a position starts with 1 and is counted by digits from right to left in the integer part of
+    /// a number, starting left from a decimal separator if one exists, or from the last digit of the number.
+    /// Text is inserted before the digit at the specified position. If the value of number:position
+    /// attribute is greater than the value of number:min-integer-digits 19.355 and greater than
+    /// the number of integer digits in the number, text is prepended to the number.    
+    ///
+    /// The number:embedded-text element has no child elements.
+    /// The number:embedded-text element has character data content
+    #[must_use]
+    pub fn embedded_text<S: Into<String>>(mut self, text: S, pos: u32) -> Self {
+        self.part.position = pos;
+        self.part.content = Some(text.into());
+        self
+    }
 }
 
 /// Builder for FormatPart with type ScientificNumber.
 ///
-/// The <number:scientific-number> element specifies the display formatting properties for a
+/// The number:scientific-number element specifies the display formatting properties for a
 /// number style that should be displayed in scientific format.
 ///
-/// The <number:scientific-number> element is usable within the following element:
-/// * <number:number-style> 16.27.2.
+/// The number:scientific-number element is usable within the following element:
+/// * number:number-style 16.27.2.
 ///
-/// The <number:scientific-number> element has the following attributes:
+/// The number:scientific-number element has the following attributes:
 /// * number:decimal-places 19.343.4,
 /// * number:grouping 19.348,
 /// * number:min-exponentdigits 19.351 and
 /// * number:min-integer-digits 19.352.
 ///
-/// The <number:scientific-number> element has no child elements.
+/// The number:scientific-number element has no child elements.
 #[derive(Debug)]
 pub struct PartScientificBuilder<'vf> {
     part: FormatPart,
@@ -370,23 +396,23 @@ impl<'vf> PartFractionBuilder<'vf> {
     }
 }
 
-/// The <number:currency-symbol> element specifies whether a currency symbol is displayed in
+/// The number:currency-symbol element specifies whether a currency symbol is displayed in
 /// a currency style.
 /// The content of this element is the text that is displayed as the currency symbol.
 /// If the element is empty or contains white space characters only, the default currency
 /// symbol for the currency style or the language and country of the currency style is displayed.
 ///
-/// The <number:currency-symbol> element is usable within the following element:
-/// * <number:currency-style> 16.27.7.
+/// The number:currency-symbol element is usable within the following element:
+/// * number:currency-style 16.27.7.
 ///
-/// The <number:currency-symbol> element has the following attributes:
+/// The number:currency-symbol element has the following attributes:
 /// * number:country 19.342,
 /// * number:language 19.349,
 /// * number:rfc-language-tag 19.356 and
 /// * number:script 19.357.
 ///
-/// The <number:currency-symbol> element has no child elements.
-/// The <number:currency-symbol> element has character data content.
+/// The number:currency-symbol element has no child elements.
+/// The number:currency-symbol element has character data content.
 #[derive(Debug)]
 pub struct PartCurrencySymbolBuilder<'vf> {
     part: FormatPart,
@@ -431,7 +457,7 @@ impl<'vf> PartCurrencySymbolBuilder<'vf> {
     /// The number:country attribute specifies a country code for a data style. The country code is
     /// used for formatting properties whose evaluation is locale-dependent.
     /// If a country is not specified, the system settings are used.
-    /// The number:country attribute on a <number:currency-symbol> element, specifies the
+    /// The number:country attribute on a number:currency-symbol element, specifies the
     /// country of a currency symbol.
     ///
     /// The number:script attribute specifies a script code. The script code is used for formatting

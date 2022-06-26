@@ -75,6 +75,14 @@ fn write_format() -> Result<(), OdsError> {
         .push();
     let v7 = wb.add_format(v7);
 
+    let mut v8 = ValueFormat::new_named("v8", ValueType::Number);
+    v8.part_number()
+        .min_integer_digits(4)
+        .decimal_places(2)
+        .embedded_text("RR", 2)
+        .push();
+    let v8 = wb.add_format(v8);
+
     let f1 = wb.add_cellstyle(CellStyle::new("f1", &v1));
     let f2 = wb.add_cellstyle(CellStyle::new("f2", &v2));
     let f3 = wb.add_cellstyle(CellStyle::new("f3", &v3));
@@ -83,6 +91,7 @@ fn write_format() -> Result<(), OdsError> {
     let f5 = wb.add_cellstyle(CellStyle::new("f5", &v5));
     let f6 = wb.add_cellstyle(CellStyle::new("f6", &v6));
     let f7 = wb.add_cellstyle(CellStyle::new("f7", &v7));
+    let f8 = wb.add_cellstyle(CellStyle::new("f8", &v8));
 
     let mut sh = Sheet::new("1");
     sh.set_styled_value(0, 0, 1.234567f64, &f1);
@@ -91,15 +100,14 @@ fn write_format() -> Result<(), OdsError> {
     sh.set_styled_value(2, 1, 1.234567f64, &f31);
     sh.set_styled_value(3, 0, 1.234567f64, &f4);
     sh.set_styled_value(4, 0, 1.234567f64, &f5);
-
     sh.set_styled_value(6, 0, 1.234567f64, &f6);
-
     sh.set_styled_value(
         7,
         0,
         NaiveDateTime::from_timestamp(1_223_222_222, 22992),
         &f7,
     );
+    sh.set_styled_value(8, 0, 1.234567f64, &f8);
 
     wb.push_sheet(sh);
     let path = std::path::Path::new("test_out/format.ods");

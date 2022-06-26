@@ -1650,56 +1650,72 @@ fn read_value_format(
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
                     b"number:boolean" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Boolean)?)
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Boolean)?)
                     }
                     b"number:number" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Number)?)
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Number)?)
                     }
-                    b"number:scientific-number" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::ScientificNumber)?)
+                    b"number:scientific-number" => valuestyle.push_part(read_part(
+                        bs,
+                        xml,
+                        xml_tag,
+                        FormatPartType::ScientificNumber,
+                    )?),
+                    b"number:day" => {
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Day)?)
                     }
-                    b"number:day" => valuestyle.push_part(read_part(xml_tag, FormatPartType::Day)?),
                     b"number:month" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Month)?)
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Month)?)
                     }
                     b"number:year" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Year)?)
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Year)?)
                     }
-                    b"number:era" => valuestyle.push_part(read_part(xml_tag, FormatPartType::Era)?),
-                    b"number:day-of-week" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::DayOfWeek)?)
+                    b"number:era" => {
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Era)?)
                     }
-                    b"number:week-of-year" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::WeekOfYear)?)
-                    }
+                    b"number:day-of-week" => valuestyle.push_part(read_part(
+                        bs,
+                        xml,
+                        xml_tag,
+                        FormatPartType::DayOfWeek,
+                    )?),
+                    b"number:week-of-year" => valuestyle.push_part(read_part(
+                        bs,
+                        xml,
+                        xml_tag,
+                        FormatPartType::WeekOfYear,
+                    )?),
                     b"number:quarter" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Quarter)?)
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Quarter)?)
                     }
                     b"number:hours" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Hours)?)
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Hours)?)
                     }
                     b"number:minutes" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Minutes)?)
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Minutes)?)
                     }
                     b"number:seconds" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Seconds)?)
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Seconds)?)
                     }
                     b"number:fraction" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::Fraction)?)
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Fraction)?)
                     }
                     b"number:am-pm" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::AmPm)?)
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::AmPm)?)
                     }
-                    // b"number:embedded-text" => {
-                    //     valuestyle.push_part(read_part(xml_tag, FormatPartType::EmbeddedText)?)
-                    // }
-                    b"number:text-content" => {
-                        valuestyle.push_part(read_part(xml_tag, FormatPartType::TextContent)?)
+                    b"number:text-content" => valuestyle.push_part(read_part(
+                        bs,
+                        xml,
+                        xml_tag,
+                        FormatPartType::TextContent,
+                    )?),
+                    b"style:text" => {
+                        valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Day)?)
                     }
-                    b"style:text" => valuestyle.push_part(read_part(xml_tag, FormatPartType::Day)?),
                     b"style:map" => valuestyle.push_stylemap(read_stylemap(xml_tag)?),
                     b"number:fill-character" => {
-                        valuestyle_part = Some(read_part(xml_tag, FormatPartType::FillCharacter)?);
+                        valuestyle_part =
+                            Some(read_part(bs, xml, xml_tag, FormatPartType::FillCharacter)?);
 
                         // Empty-Tag. Finish here.
                         if let Event::Empty(_) = evt {
@@ -1710,7 +1726,8 @@ fn read_value_format(
                         }
                     }
                     b"number:currency-symbol" => {
-                        valuestyle_part = Some(read_part(xml_tag, FormatPartType::CurrencySymbol)?);
+                        valuestyle_part =
+                            Some(read_part(bs, xml, xml_tag, FormatPartType::CurrencySymbol)?);
 
                         // Empty-Tag. Finish here.
                         if let Event::Empty(_) = evt {
@@ -1721,7 +1738,7 @@ fn read_value_format(
                         }
                     }
                     b"number:text" => {
-                        valuestyle_part = Some(read_part(xml_tag, FormatPartType::Text)?);
+                        valuestyle_part = Some(read_part(bs, xml, xml_tag, FormatPartType::Text)?);
 
                         // Empty-Tag. Finish here.
                         if let Event::Empty(_) = evt {
@@ -1789,9 +1806,60 @@ fn read_value_format_attr(
     Ok(())
 }
 
-fn read_part(xml_tag: &BytesStart<'_>, part_type: FormatPartType) -> Result<FormatPart, OdsError> {
+fn read_part(
+    bs: &mut BufStack,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
+    part_type: FormatPartType,
+) -> Result<FormatPart, OdsError> {
     let mut part = FormatPart::new(part_type);
     copy_attr2(part.attrmap_mut(), xml_tag)?;
+
+    // There is one relevant subtag embedded-text.
+    let mut buf = bs.get_buf();
+    loop {
+        let evt = xml.read_event(&mut buf)?;
+        if DUMP_XML {
+            println!(" read_part {:?}", evt);
+        }
+        match evt {
+            Event::Start(ref xml_tag2) | Event::Empty(ref xml_tag2) => match xml_tag2.name() {
+                b"number:embedded-text" => {
+                    for attr in xml_tag2.attributes().with_checks(false) {
+                        let attr = attr?;
+                        match attr.key {
+                            b"number:position" => {
+                                part.set_position(parse_u32(&attr.value)?);
+                            }
+                            attr => {
+                                return Err(OdsError::Ods(format!(
+                                    "embedded-text: attribute unknown {} ",
+                                    from_utf8(attr)?
+                                )))
+                            }
+                        }
+                    }
+                }
+                _ => dump_unused2("read_value_format", &evt)?,
+            },
+            Event::Text(ref e) => {
+                part.set_content(e.unescape_and_decode(xml)?);
+            }
+            Event::End(ref e) => match e.name() {
+                b"number:embedded-text" => {
+                    break;
+                }
+                _ => {
+                    dump_unused2("read_value_format", &evt)?;
+                }
+            },
+            Event::Eof => break,
+            _ => {}
+        }
+    }
+
+    bs.push(buf);
+
     Ok(part)
 }
 
