@@ -8,6 +8,7 @@
 //! use spreadsheet_ods::{cm, mm};
 //! use spreadsheet_ods::style::{CellStyle};
 //! use color::Rgb;
+//! use icu_locid::locale;
 //! use spreadsheet_ods::style::units::{TextRelief, Border, Length};
 //!
 //!
@@ -15,7 +16,7 @@
 //! let mut wb = if path.exists() {
 //!     spreadsheet_ods::read_ods(path).unwrap()
 //! } else {
-//!     WorkBook::new()
+//!     WorkBook::new(locale!("en_US"))
 //! };
 //!
 //!
@@ -201,7 +202,7 @@ use crate::style::{
 use crate::text::TextTag;
 use crate::validation::{Validation, ValidationRef};
 use crate::xmltree::XmlTag;
-use chrono::Duration;
+use chrono::{Duration, NaiveTime};
 use chrono::{NaiveDate, NaiveDateTime};
 use icu_locid::Locale;
 #[cfg(feature = "use_decimal")]
@@ -369,7 +370,9 @@ fn auto_style_name<T>(
 
 impl WorkBook {
     /// Creates a new, completely empty workbook.
-    pub fn new() -> Self {
+    ///
+    /// WorkBook::locale_settings can be used to initialize default styles.
+    pub fn new_empty() -> Self {
         WorkBook {
             sheets: Default::default(),
             version: "1.3".to_string(),
@@ -397,36 +400,41 @@ impl WorkBook {
     /// Creates a new workbook, and initializes default styles according
     /// to the given locale.
     ///
-    /// If the locale is not supported yet it falls back to ISO 8601
-    /// formatting. The available locales can be activated via feature-flags.
-    pub fn new_localized(locale: Locale) -> Self {
-        let mut wb = WorkBook::new();
-        wb.init_defaults(locale);
+    /// If the locale is not supported no ValueFormat's are set and all
+    /// depends on the application opening the spreadsheet.
+    ///
+    /// The available locales can be activated via feature-flags.
+    pub fn new(locale: Locale) -> Self {
+        let mut wb = WorkBook::new_empty();
+        wb.locale_settings(locale);
         wb
     }
 
     /// Creates a set of default formats and styles for every value-type.
     ///
-    /// If the locale is not supported yet it falls back to ISO 8601
-    /// formatting. The available locales can be activated via feature-flags.
-    pub fn init_defaults(&mut self, locale: Locale) {
-        let lf = locale::localized_format(locale);
-
-        self.add_format(lf.boolean_format());
-        self.add_format(lf.number_format());
-        self.add_format(lf.percentage_format());
-        self.add_format(lf.currency_format());
-        self.add_format(lf.date_format());
-        self.add_format(lf.datetime_format());
-        self.add_format(lf.time_format());
+    /// If the locale is not supported no ValueFormat's are set and all
+    /// depends on the application opening the spreadsheet.
+    ///
+    /// The available locales can be activated via feature-flags.
+    pub fn locale_settings(&mut self, locale: Locale) {
+        if let Some(lf) = locale::localized_format(locale) {
+            self.add_format(lf.boolean_format());
+            self.add_format(lf.number_format());
+            self.add_format(lf.percentage_format());
+            self.add_format(lf.currency_format());
+            self.add_format(lf.date_format());
+            self.add_format(lf.datetime_format());
+            self.add_format(lf.time_of_day_format());
+            self.add_format(lf.time_interval_format());
+        }
 
         self.add_cellstyle(CellStyle::new(
             DefaultStyle::bool().to_string(),
             &DefaultFormat::bool(),
         ));
         self.add_cellstyle(CellStyle::new(
-            DefaultStyle::num().to_string(),
-            &DefaultFormat::num(),
+            DefaultStyle::number().to_string(),
+            &DefaultFormat::number(),
         ));
         self.add_cellstyle(CellStyle::new(
             DefaultStyle::percent().to_string(),
@@ -445,16 +453,20 @@ impl WorkBook {
             &DefaultFormat::datetime(),
         ));
         self.add_cellstyle(CellStyle::new(
-            DefaultStyle::time().to_string(),
-            &DefaultFormat::time(),
+            DefaultStyle::time_of_day().to_string(),
+            &DefaultFormat::time_of_day(),
+        ));
+        self.add_cellstyle(CellStyle::new(
+            DefaultStyle::time_interval().to_string(),
+            &DefaultFormat::time_interval(),
         ));
 
         self.add_def_style(ValueType::Boolean, &DefaultStyle::bool());
-        self.add_def_style(ValueType::Number, &DefaultStyle::num());
+        self.add_def_style(ValueType::Number, &DefaultStyle::number());
         self.add_def_style(ValueType::Percentage, &DefaultStyle::percent());
         self.add_def_style(ValueType::Currency, &DefaultStyle::currency());
         self.add_def_style(ValueType::DateTime, &DefaultStyle::date());
-        self.add_def_style(ValueType::TimeDuration, &DefaultStyle::time());
+        self.add_def_style(ValueType::TimeDuration, &DefaultStyle::time_interval());
     }
 
     /// ODS version. Defaults to 1.3.
@@ -2647,6 +2659,22 @@ impl From<Option<NaiveDate>> for Value {
     fn from(dt: Option<NaiveDate>) -> Self {
         if let Some(dt) = dt {
             Value::DateTime(dt.and_hms(0, 0, 0))
+        } else {
+            Value::Empty
+        }
+    }
+}
+
+impl From<NaiveTime> for Value {
+    fn from(ti: NaiveTime) -> Self {
+        Value::DateTime(NaiveDateTime::new(NaiveDate::from_ymd(1900, 1, 1), ti))
+    }
+}
+
+impl From<Option<NaiveTime>> for Value {
+    fn from(dt: Option<NaiveTime>) -> Self {
+        if let Some(ti) = dt {
+            Value::DateTime(NaiveDateTime::new(NaiveDate::from_ymd(1900, 1, 1), ti))
         } else {
             Value::Empty
         }

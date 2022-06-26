@@ -5,7 +5,7 @@ use spreadsheet_ods::{write_ods, CellRange, OdsError, Sheet, WorkBook};
 
 #[test]
 fn test_validation0() -> Result<(), OdsError> {
-    let mut book = WorkBook::new();
+    let mut book = WorkBook::new_empty();
 
     let mut sheet = Sheet::new("One");
 
@@ -109,7 +109,7 @@ fn test_validation0() -> Result<(), OdsError> {
 
 #[test]
 fn test_validation1() -> Result<(), OdsError> {
-    let mut book = WorkBook::new();
+    let mut book = WorkBook::new_empty();
 
     let mut sheet = Sheet::new("One");
 

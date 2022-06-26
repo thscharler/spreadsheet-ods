@@ -2,7 +2,7 @@ use spreadsheet_ods::{Sheet, ValueType, WorkBook};
 
 #[test]
 fn test_workbook() {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
 
     let sh = Sheet::new("1");
     // println!("sizeof Sheet {}", size_of_val(&sh));
@@ -20,7 +20,7 @@ fn test_workbook() {
 
 #[test]
 fn test_def_style() {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
 
     wb.add_def_style(ValueType::Number, &"val0".into());
     assert_eq!(wb.def_style(ValueType::Number), Some(&"val0".to_string()));

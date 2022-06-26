@@ -32,7 +32,7 @@ fn test_pagelayout() -> Result<(), OdsError> {
 
 #[test]
 fn test_crpagelayout() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
 
     let mut ps = PageStyle::new("ps1");
     ps.set_background_color(Rgb::new(12, 129, 252));

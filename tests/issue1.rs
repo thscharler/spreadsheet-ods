@@ -5,7 +5,7 @@ use spreadsheet_ods::*;
 fn issue1() {
     let output_file = std::path::Path::new("test_out/test.ods");
 
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
 
     // let mut style = Style::new_cell_style("Square style", "");
     // style.col_mut().set_col_width(Length::Cm(10.0));

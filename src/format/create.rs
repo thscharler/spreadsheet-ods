@@ -21,7 +21,6 @@ pub fn create_loc_number_format<S: Into<String>>(
         .decimal_places(decimal)
         .test(grouping, |p| p.grouping())
         .push();
-    // v.push_number(decimal, grouping);
     v
 }
 
@@ -263,9 +262,23 @@ pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
     v
 }
 
-/// Creates a new time-Duration format H:M:S
-pub fn create_time_format<S: Into<String>>(name: S) -> ValueFormat {
+/// Creates a new time format H:M:S
+pub fn create_time_of_day_format<S: Into<String>>(name: S) -> ValueFormat {
     let mut v = ValueFormat::new_named(name.into(), ValueType::TimeDuration);
+
+    v.part_hours().style(FormatNumberStyle::Long).push();
+    v.part_text(":");
+    v.part_minutes().style(FormatNumberStyle::Long).push();
+    v.part_text(":");
+    v.part_seconds().style(FormatNumberStyle::Long).push();
+    v
+}
+
+/// Creates a new time-Duration format H:M:S
+pub fn create_time_interval_format<S: Into<String>>(name: S) -> ValueFormat {
+    let mut v = ValueFormat::new_named(name.into(), ValueType::TimeDuration);
+    v.set_truncate_on_overflow(false);
+
     v.part_hours().style(FormatNumberStyle::Long).push();
     v.part_text(":");
     v.part_minutes().style(FormatNumberStyle::Long).push();

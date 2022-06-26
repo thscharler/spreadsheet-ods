@@ -10,7 +10,7 @@ use std::time::Instant;
 
 #[test]
 fn test_write_read() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
     let mut sh = Sheet::new("1");
 
     sh.set_value(0, 0, "A");
@@ -84,7 +84,7 @@ fn test_write_read_write_read() -> Result<(), OdsError> {
 
 #[test]
 fn test_write_repeat_overlapped() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
     let mut sh = Sheet::new("1");
 
     sh.set_value(0, 0, "A");
@@ -105,7 +105,7 @@ fn test_write_repeat_overlapped() -> Result<(), OdsError> {
 
 #[test]
 fn test_write_buf() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
     let mut sh = Sheet::new("1");
 
     sh.set_value(0, 0, "A");

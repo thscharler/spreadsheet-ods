@@ -5,7 +5,7 @@ use spreadsheet_ods::{
 
 #[test]
 fn test_colwidth() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
 
     let mut sh = Sheet::new("Sheet1");
     sh.set_value(0, 0, 1234);
@@ -42,7 +42,7 @@ fn test_cell() {
 
 #[test]
 fn test_row_repeat() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
     let mut sh = Sheet::new("1");
 
     sh.set_value(2, 2, 1);
@@ -80,7 +80,7 @@ fn test_percentage() {
 
 #[test]
 fn test_span() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
 
     let mut sh = Sheet::new("1");
     sh.set_value(0, 0, "A");
@@ -135,7 +135,7 @@ fn test_span() -> Result<(), OdsError> {
 
 #[test]
 fn test_header() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
 
     let mut sh = Sheet::new("1");
     for i in 0..10 {
@@ -180,7 +180,7 @@ fn test_header() -> Result<(), OdsError> {
 
 #[test]
 fn test_print_range() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
 
     let mut sh = Sheet::new("1");
     for i in 0..10 {
@@ -211,7 +211,7 @@ fn test_print_range() -> Result<(), OdsError> {
 
 #[test]
 fn display_print() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
     let mut s0 = Sheet::new("1");
     s0.set_value(0, 0, "display");
     s0.set_display(false);
@@ -229,7 +229,7 @@ fn display_print() -> Result<(), OdsError> {
 
 #[test]
 fn split_table() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
 
     let mut sh = Sheet::new("Split0");
     sh.set_value(0, 0, 1);

@@ -53,7 +53,7 @@ pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
 
 /// Reads an ODS-file.
 fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, OdsError> {
-    let mut book = WorkBook::new();
+    let mut book = WorkBook::new_empty();
     let mut bufstack = BufStack::new();
 
     read_content(&mut bufstack, &mut book, &mut zip.by_name("content.xml")?)?;

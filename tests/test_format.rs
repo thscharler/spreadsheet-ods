@@ -7,7 +7,7 @@ use spreadsheet_ods::{write_ods, OdsError, Sheet, ValueFormat, ValueType, WorkBo
 
 #[test]
 fn write_format() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
 
     let mut v1 = ValueFormat::new_named("f1", ValueType::Number);
     v1.part_scientific().decimal_places(4).push();

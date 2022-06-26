@@ -26,7 +26,7 @@ impl DefaultFormat {
     }
 
     /// Default number format.
-    pub fn num() -> ValueFormatRef {
+    pub fn number() -> ValueFormatRef {
         ValueFormatRef::from("num1")
     }
 
@@ -51,8 +51,13 @@ impl DefaultFormat {
     }
 
     /// Default time format.
-    pub fn time() -> ValueFormatRef {
+    pub fn time_of_day() -> ValueFormatRef {
         ValueFormatRef::from("time1")
+    }
+
+    /// Default time format.
+    pub fn time_interval() -> ValueFormatRef {
+        ValueFormatRef::from("interval1")
     }
 }
 
@@ -70,7 +75,7 @@ impl DefaultStyle {
     }
 
     /// Default number style.
-    pub fn num() -> CellStyleRef {
+    pub fn number() -> CellStyleRef {
         CellStyleRef::from("default-num")
     }
 
@@ -95,8 +100,13 @@ impl DefaultStyle {
     }
 
     /// Default time style.
-    pub fn time() -> CellStyleRef {
+    pub fn time_of_day() -> CellStyleRef {
         CellStyleRef::from("default-time")
+    }
+
+    /// Default time style.
+    pub fn time_interval() -> CellStyleRef {
+        CellStyleRef::from("default-interval")
     }
 }
 
@@ -107,7 +117,7 @@ pub fn create_default_styles(book: &mut WorkBook) {
         DefaultFormat::bool().to_string(),
     ));
     book.add_format(format::create_number_format(
-        DefaultFormat::num().to_string(),
+        DefaultFormat::number().to_string(),
         2,
         false,
     ));
@@ -126,8 +136,11 @@ pub fn create_default_styles(book: &mut WorkBook) {
     book.add_format(format::create_datetime_format(
         DefaultFormat::datetime().to_string(),
     ));
-    book.add_format(format::create_time_format(
-        DefaultFormat::time().to_string(),
+    book.add_format(format::create_time_of_day_format(
+        DefaultFormat::time_of_day().to_string(),
+    ));
+    book.add_format(format::create_time_interval_format(
+        DefaultFormat::time_interval().to_string(),
     ));
 
     book.add_cellstyle(CellStyle::new(
@@ -135,8 +148,8 @@ pub fn create_default_styles(book: &mut WorkBook) {
         &DefaultFormat::bool(),
     ));
     book.add_cellstyle(CellStyle::new(
-        DefaultStyle::num().to_string(),
-        &DefaultFormat::num(),
+        DefaultStyle::number().to_string(),
+        &DefaultFormat::number(),
     ));
     book.add_cellstyle(CellStyle::new(
         DefaultStyle::percent().to_string(),
@@ -155,14 +168,18 @@ pub fn create_default_styles(book: &mut WorkBook) {
         &DefaultFormat::datetime(),
     ));
     book.add_cellstyle(CellStyle::new(
-        DefaultStyle::time().to_string(),
-        &DefaultFormat::time(),
+        DefaultStyle::time_of_day().to_string(),
+        &DefaultFormat::time_of_day(),
+    ));
+    book.add_cellstyle(CellStyle::new(
+        DefaultStyle::time_interval().to_string(),
+        &DefaultFormat::time_interval(),
     ));
 
     book.add_def_style(ValueType::Boolean, &DefaultStyle::bool());
-    book.add_def_style(ValueType::Number, &DefaultStyle::num());
+    book.add_def_style(ValueType::Number, &DefaultStyle::number());
     book.add_def_style(ValueType::Percentage, &DefaultStyle::percent());
     book.add_def_style(ValueType::Currency, &DefaultStyle::currency());
     book.add_def_style(ValueType::DateTime, &DefaultStyle::date());
-    book.add_def_style(ValueType::TimeDuration, &DefaultStyle::time());
+    book.add_def_style(ValueType::TimeDuration, &DefaultStyle::time_interval());
 }

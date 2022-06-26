@@ -330,7 +330,7 @@ fn testtablestyle() {
 
 #[test]
 fn test_stylemap() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new();
+    let mut wb = WorkBook::new_empty();
 
     let mut ce12 = CellStyle::new("ce12", &"num2".into());
     ce12.set_origin(StyleOrigin::Styles);

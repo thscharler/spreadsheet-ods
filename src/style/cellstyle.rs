@@ -21,8 +21,9 @@ style_ref!(CellStyleRef);
 /// use spreadsheet_ods::{pt, Length, CellStyle, WorkBook, Sheet, CellStyleRef};
 /// use spreadsheet_ods::defaultstyles::DefaultFormat;
 /// use color::Rgb;
+/// use icu_locid::locale;
 ///
-/// let mut book = WorkBook::new();
+/// let mut book = WorkBook::new(locale!("en_US"));
 ///
 /// let mut st_header = CellStyle::new("header", &DefaultFormat::default());
 /// st_header.set_font_bold();

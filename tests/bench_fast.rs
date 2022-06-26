@@ -24,8 +24,8 @@ pub fn timingr<E, R>(
 
 fn create_wb(rows: u32, cols: u32) -> impl FnMut() -> Result<WorkBook, OdsError> {
     move || {
-        let mut wb = WorkBook::new();
-        wb.init_defaults(locale!("en_US"));
+        let mut wb = WorkBook::new_empty();
+        wb.locale_settings(locale!("en_US"));
         let mut sh = Sheet::new("1");
 
         for r in 0..rows {

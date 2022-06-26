@@ -13,8 +13,9 @@ style_ref!(MasterPageRef);
 /// use spreadsheet_ods::style::{PageStyle, MasterPage, TableStyle};
 /// use spreadsheet_ods::style::units::Border;
 /// use color::Rgb;
+/// use icu_locid::locale;
 ///
-/// let mut wb = WorkBook::new();
+/// let mut wb = WorkBook::new(locale!("en_US"));
 ///
 /// let mut ps = PageStyle::new("ps1");
 /// ps.set_border(pt!(0.5), Border::Groove, Rgb::new(128,128,128));

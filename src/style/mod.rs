@@ -5,10 +5,11 @@
 //! use spreadsheet_ods::{CellRef, WorkBook};
 //! use spreadsheet_ods::style::{StyleOrigin, StyleUse, CellStyle};
 //! use color::Rgb;
+//! use icu_locid::locale;
 //! use spreadsheet_ods::style::stylemap::StyleMap;
 //! use spreadsheet_ods::condition::ValueCondition;
 //!
-//! let mut wb = WorkBook::new();
+//! let mut wb = WorkBook::new(locale!("en_US"));
 //!
 //! let mut st = CellStyle::new("ce12", &"num2".into());
 //! st.set_color(Rgb::new(192, 128, 0));

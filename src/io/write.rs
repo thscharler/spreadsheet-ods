@@ -1602,7 +1602,7 @@ fn write_cell<W: Write + Seek>(
         }
         Some(Value::Percentage(v)) => {
             xml_out.attr("office:value-type", "percentage")?;
-            let value = format!("{}%", v);
+            let value = v.to_string();
             xml_out.attr("office:value", value.as_str())?;
             xml_out.elem("text:p")?;
             xml_out.text(value)?;

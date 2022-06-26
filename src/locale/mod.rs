@@ -6,7 +6,6 @@
 mod de_at;
 #[cfg(feature = "locale_en_US")]
 mod en_us;
-mod und;
 
 use crate::ValueFormat;
 use icu_locid::Locale;
@@ -29,8 +28,10 @@ pub(crate) trait LocalizedValueFormat: Sync {
     fn date_format(&self) -> ValueFormat;
     /// Default date/time format.
     fn datetime_format(&self) -> ValueFormat;
-    /// Default time format.
-    fn time_format(&self) -> ValueFormat;
+    /// Default time of day format.
+    fn time_of_day_format(&self) -> ValueFormat;
+    /// Default time interval format.
+    fn time_interval_format(&self) -> ValueFormat;
 }
 
 lazy_static! {
@@ -51,9 +52,6 @@ lazy_static! {
 }
 
 /// Returns the localized format or a fallback.
-pub(crate) fn localized_format(locale: Locale) -> &'static dyn LocalizedValueFormat {
-    match LOCALE_DATA.get(&locale) {
-        None => &und::LOCALE_UND,
-        Some(loc) => *loc,
-    }
+pub(crate) fn localized_format(locale: Locale) -> Option<&'static dyn LocalizedValueFormat> {
+    LOCALE_DATA.get(&locale).map(|v| *v)
 }

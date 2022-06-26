@@ -3,7 +3,7 @@
 //!
 //! ```
 //! use spreadsheet_ods::{ValueFormat, ValueType};
-//! use spreadsheet_ods::format::{FormatCalendarStyle, FormatMonth, FormatNumberStyle, FormatTextual};
+//! use spreadsheet_ods::format::{FormatCalendarStyle, FormatNumberStyle};
 //!
 //! let mut v = ValueFormat::new_named("dt0", ValueType::DateTime);
 //! v.part_day().long_style().push();
