@@ -223,16 +223,18 @@ mod attr_macro;
 mod unit_macro;
 #[macro_use]
 mod ref_macro;
+
 mod attrmap2;
-pub mod condition;
 mod config;
-pub mod defaultstyles;
 mod ds;
+mod io;
+mod locale;
+
+pub mod condition;
+pub mod defaultstyles;
 pub mod error;
 pub mod format;
 pub mod formula;
-mod io;
-mod locale;
 pub mod refs;
 pub mod style;
 pub mod text;

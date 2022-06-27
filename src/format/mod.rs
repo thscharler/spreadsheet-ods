@@ -194,15 +194,9 @@ pub struct ValueFormat {
     stylemaps: Option<Vec<StyleMap>>,
 }
 
-impl Default for ValueFormat {
-    fn default() -> Self {
-        ValueFormat::new()
-    }
-}
-
 impl ValueFormat {
     /// New, empty.
-    pub fn new() -> Self {
+    pub fn new_empty() -> Self {
         ValueFormat {
             name: String::from(""),
             v_type: ValueType::Text,

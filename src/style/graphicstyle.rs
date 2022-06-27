@@ -36,7 +36,7 @@ pub struct GraphicStyle {
 
 impl GraphicStyle {
     // Empty.
-    pub(crate) fn empty() -> Self {
+    pub(crate) fn new_empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -47,7 +47,7 @@ impl GraphicStyle {
     }
 
     /// New graphic style.
-    pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
+    pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),

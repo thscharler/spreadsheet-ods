@@ -52,7 +52,7 @@ pub struct MasterPage {
 
 impl MasterPage {
     /// Empty.
-    pub fn empty() -> Self {
+    pub(crate) fn new_empty() -> Self {
         Self {
             name: "".to_string(),
             pagestyle: "".to_string(),

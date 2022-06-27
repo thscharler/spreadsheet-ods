@@ -947,7 +947,7 @@ fn read_fonts(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     // no attributes
 ) -> Result<(), OdsError> {
-    let mut font: FontFaceDecl = FontFaceDecl::new();
+    let mut font: FontFaceDecl = FontFaceDecl::new_empty();
     font.set_origin(origin);
 
     let mut buf = bs.get_buf();
@@ -964,7 +964,7 @@ fn read_fonts(
 
                     book.add_font(font);
 
-                    font = FontFaceDecl::new();
+                    font = FontFaceDecl::new_empty();
                     font.set_origin(StyleOrigin::Content);
                 }
                 _ => {
@@ -998,7 +998,7 @@ fn read_page_style(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
-    let mut pl = PageStyle::new("");
+    let mut pl = PageStyle::new_empty();
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key == b"style:name" => {
@@ -1281,7 +1281,7 @@ fn read_master_page(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
-    let mut masterpage = MasterPage::empty();
+    let mut masterpage = MasterPage::new_empty();
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -1606,7 +1606,7 @@ fn read_value_format(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
-    let mut valuestyle = ValueFormat::new();
+    let mut valuestyle = ValueFormat::new_empty();
     valuestyle.set_origin(origin);
     valuestyle.set_styleuse(styleuse);
     // Styles with content information are stored before completion.
@@ -1930,7 +1930,7 @@ fn read_tablestyle(
     xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
-    let mut style = TableStyle::empty();
+    let mut style = TableStyle::new_empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
     let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
@@ -1988,7 +1988,7 @@ fn read_rowstyle(
     xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
-    let mut style = RowStyle::empty();
+    let mut style = RowStyle::new_empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
     let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
@@ -2045,7 +2045,7 @@ fn read_colstyle(
     xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
-    let mut style = ColStyle::empty();
+    let mut style = ColStyle::new_empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
     let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
@@ -2102,7 +2102,7 @@ fn read_cellstyle(
     xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
-    let mut style = CellStyle::empty();
+    let mut style = CellStyle::new_empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
     let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
@@ -2174,7 +2174,7 @@ fn read_paragraphstyle(
     xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
-    let mut style = ParagraphStyle::empty();
+    let mut style = ParagraphStyle::new_empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
     let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
@@ -2246,7 +2246,7 @@ fn read_textstyle(
     xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
-    let mut style = TextStyle::empty();
+    let mut style = TextStyle::new_empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
     let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
@@ -2303,7 +2303,7 @@ fn read_graphicstyle(
     xml_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<(), OdsError> {
-    let mut style = GraphicStyle::empty();
+    let mut style = GraphicStyle::new_empty();
     style.set_origin(origin);
     style.set_styleuse(styleuse);
     let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;

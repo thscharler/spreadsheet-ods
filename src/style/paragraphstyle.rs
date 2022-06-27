@@ -49,7 +49,7 @@ pub struct ParagraphStyle {
 
 impl ParagraphStyle {
     /// Empty
-    pub(crate) fn empty() -> Self {
+    pub(crate) fn new_empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),

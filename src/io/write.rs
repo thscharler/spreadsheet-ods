@@ -108,7 +108,7 @@ fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
             // Any non default values?
             if ch.width() != Length::Default {
                 if ch.style().is_none() {
-                    let colstyle = book.add_colstyle(ColStyle::empty());
+                    let colstyle = book.add_colstyle(ColStyle::new_empty());
                     ch.set_style(&colstyle);
                 }
             }
@@ -129,7 +129,7 @@ fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
         for rh in sheet.row_header.values_mut() {
             if rh.height() != Length::Default {
                 if rh.style().is_none() {
-                    let rowstyle = book.add_rowstyle(RowStyle::empty());
+                    let rowstyle = book.add_rowstyle(RowStyle::new_empty());
                     rh.set_style(&rowstyle);
                 }
             }

@@ -22,6 +22,16 @@ pub struct PageStyle {
 
 impl PageStyle {
     /// New pagestyle.
+    pub(crate) fn new_empty() -> Self {
+        Self {
+            name: Default::default(),
+            style: Default::default(),
+            header: Default::default(),
+            footer: Default::default(),
+        }
+    }
+
+    /// New pagestyle.
     pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),

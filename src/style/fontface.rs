@@ -14,7 +14,7 @@ pub struct FontFaceDecl {
 
 impl FontFaceDecl {
     /// New, empty.
-    pub fn new() -> Self {
+    pub(crate) fn new_empty() -> Self {
         Self {
             name: "".to_string(),
             origin: Default::default(),
@@ -23,7 +23,7 @@ impl FontFaceDecl {
     }
 
     /// New, with a name.
-    pub fn new_with_name<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
             origin: StyleOrigin::Content,
