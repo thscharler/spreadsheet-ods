@@ -20,7 +20,13 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-spreadsheet-ods = "0.5.2"
+spreadsheet-ods = "0.10.0"
+```
+
+Or use `cargo add`
+
+```sh
+$ cargo add spreadsheet-ods
 ```
 
 ## Features
