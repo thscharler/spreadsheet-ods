@@ -16,7 +16,7 @@ use crate::io::zip_out::{ZipOut, ZipWrite};
 use crate::refs::{cellranges_string, CellRange};
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
-    ParagraphStyle, RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
+    ParagraphStyle, RowStyle, Style, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
@@ -1310,6 +1310,7 @@ fn write_empty_rows_before<W: Write + Seek>(
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     // Empty rows in between are 1 less than the delta, except at the very start.
+    #[allow(clippy::bool_to_int_with_if)]
     let mut corr = if first_cell { 0u32 } else { 1u32 };
 
     // Only deltas greater 1 are relevant.
@@ -2103,7 +2104,7 @@ fn write_pagestyles<W: Write + Seek>(
 ) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:page-layout")?;
-        xml_out.attr_esc("style:name", &style.name())?;
+        xml_out.attr_esc("style:name", style.name())?;
 
         if !style.style().is_empty() {
             xml_out.empty("style:page-layout-properties")?;
@@ -2142,8 +2143,8 @@ fn write_masterpage<W: Write + Seek>(
 ) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:master-page")?;
-        xml_out.attr("style:name", &style.name())?;
-        xml_out.attr("style:page-layout-name", &style.pagestyle())?;
+        xml_out.attr("style:name", style.name())?;
+        xml_out.attr("style:page-layout-name", style.pagestyle())?;
 
         xml_out.elem("style:header")?;
         if !style.header().display() {

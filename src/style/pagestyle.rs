@@ -1,8 +1,6 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::units::{Border, PrintOrientation};
-use crate::style::{
-    border_line_width_string, border_string, color_string, percent_string, shadow_string,
-};
+use crate::style::units::{Border, Margin, PrintOrientation};
+use crate::style::{border_string, color_string, percent_string, shadow_string};
 use crate::Length;
 use color::Rgb;
 use std::fmt::{Display, Formatter};
@@ -77,12 +75,12 @@ impl PageStyle {
     }
 
     /// Access to all style attributes.
-    pub fn style(&self) -> &AttrMap2 {
+    pub(crate) fn style(&self) -> &AttrMap2 {
         &self.style
     }
 
     /// Access to all style attributes.
-    pub fn style_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn style_mut(&mut self) -> &mut AttrMap2 {
         &mut self.style
     }
 
@@ -151,12 +149,12 @@ pub struct HeaderFooterStyle {
 
 impl HeaderFooterStyle {
     /// General attributes.
-    pub fn style(&self) -> &AttrMap2 {
+    pub(crate) fn style(&self) -> &AttrMap2 {
         &self.style
     }
 
     /// General attributes.
-    pub fn style_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn style_mut(&mut self) -> &mut AttrMap2 {
         &mut self.style
     }
 

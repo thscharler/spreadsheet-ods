@@ -185,8 +185,7 @@ pub use crate::io::read::{read_ods, read_ods_buf};
 pub use crate::io::write::{write_ods, write_ods_buf, write_ods_buf_uncompressed};
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 pub use crate::style::units::{Angle, Length};
-pub use crate::style::{CellStyle, CellStyleRef};
-use std::borrow::Cow;
+pub use crate::style::{CellStyle, CellStyleRef, Style};
 
 use crate::config::Config;
 use crate::defaultstyles::{DefaultFormat, DefaultStyle};
@@ -209,6 +208,7 @@ use icu_locid::Locale;
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 #[cfg(feature = "use_decimal")]
 use rust_decimal::Decimal;
+use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::convert::TryFrom;
 use std::fmt;
@@ -948,7 +948,7 @@ impl Default for Visibility {
 }
 
 impl Display for Visibility {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
             Visibility::Visible => write!(f, "visible"),
             Visibility::Collapsed => write!(f, "collapse"),

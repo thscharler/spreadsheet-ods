@@ -1,5 +1,5 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::units::{Length, PageBreak, TextKeep, WritingMode};
+use crate::style::units::{Length, Margin, PageBreak, TextKeep, WritingMode};
 use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
 use color::Rgb;
 use std::fmt::{Display, Formatter};
@@ -105,22 +105,22 @@ impl TableStyle {
     }
 
     /// Access to all stored attributes.
-    pub fn attrmap(&self) -> &AttrMap2 {
+    pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// Access to all stored attributes.
-    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Access to all style attributes.
-    pub fn tablestyle(&self) -> &AttrMap2 {
+    pub(crate) fn tablestyle(&self) -> &AttrMap2 {
         &self.tablestyle
     }
 
     /// Access to all style attributes.
-    pub fn tablestyle_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn tablestyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.tablestyle
     }
 

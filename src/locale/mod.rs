@@ -53,5 +53,5 @@ lazy_static! {
 
 /// Returns the localized format or a fallback.
 pub(crate) fn localized_format(locale: Locale) -> Option<&'static dyn LocalizedValueFormat> {
-    LOCALE_DATA.get(&locale).map(|v| *v)
+    LOCALE_DATA.get(&locale).copied()
 }

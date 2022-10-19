@@ -98,22 +98,22 @@ impl ColStyle {
     }
 
     /// Attributes
-    pub fn attrmap(&self) -> &AttrMap2 {
+    pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// Attributes
-    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Style attributes
-    pub fn colstyle(&self) -> &AttrMap2 {
+    pub(crate) fn colstyle(&self) -> &AttrMap2 {
         &self.colstyle
     }
 
     /// Style attributes
-    pub fn colstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn colstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.colstyle
     }
 

@@ -2,15 +2,19 @@ use crate::attrmap2::AttrMap2;
 use crate::format::ValueFormatRef;
 use crate::style::stylemap::StyleMap;
 use crate::style::units::{
-    Angle, Border, CellAlignVertical, FontStyle, FontWeight, Length, LineMode, LineStyle, LineType,
-    LineWidth, PageBreak, ParaAlignVertical, RotationAlign, TextAlign, TextAlignSource, TextKeep,
-    TextPosition, TextRelief, TextTransform, WrapOption, WritingMode,
+    Angle, Border, CellAlignVertical, CellProtect, FontStyle, FontVariant, FontWeight,
+    GlyphOrientation, Hyphenation, HyphenationLadderCount, Indent, Length, LineBreak, LineHeight,
+    LineMode, LineStyle, LineType, LineWidth, Margin, PageBreak, PageNumber, ParaAlignVertical,
+    Percent, PunctuationWrap, RotationAlign, RotationScale, TextAlign, TextAlignLast,
+    TextAlignSource, TextAutoSpace, TextCombine, TextCondition, TextDisplay, TextEmphasize,
+    TextKeep, TextPosition, TextRelief, TextTransform, WrapOption, WritingDirection, WritingMode,
 };
 use crate::style::{
     border_line_width_string, border_string, color_string, percent_string, shadow_string,
-    StyleOrigin, StyleUse, TextStyleRef,
+    text_position, Style, StyleOrigin, StyleUse, TextStyleRef,
 };
 use color::Rgb;
+use icu_locid::Locale;
 use std::fmt::{Display, Formatter};
 
 style_ref!(CellStyleRef);
@@ -48,15 +52,19 @@ pub struct CellStyle {
     styleuse: StyleUse,
     /// Style name.
     name: String,
-    /// General attributes
+    /// General attributes.
     attr: AttrMap2,
-    //
+    /// Cell style attributes.
     cellstyle: AttrMap2,
+    /// Paragraph style attributes.
     paragraphstyle: AttrMap2,
+    /// Text style attributes.
     textstyle: AttrMap2,
     /// Style maps
     stylemaps: Option<Vec<StyleMap>>,
 }
+
+styles_styles!(CellStyle, CellStyleRef);
 
 impl CellStyle {
     /// Creates an empty style.
@@ -90,41 +98,6 @@ impl CellStyle {
         s
     }
 
-    /// Returns the name as a CellStyleRef.
-    pub fn style_ref(&self) -> CellStyleRef {
-        CellStyleRef::from(self.name())
-    }
-
-    /// Origin of the style, either styles.xml oder content.xml
-    pub fn origin(&self) -> StyleOrigin {
-        self.origin
-    }
-
-    /// Changes the origin.
-    pub fn set_origin(&mut self, origin: StyleOrigin) {
-        self.origin = origin;
-    }
-
-    /// Usage for the style.
-    pub fn styleuse(&self) -> StyleUse {
-        self.styleuse
-    }
-
-    /// Usage for the style.
-    pub fn set_styleuse(&mut self, styleuse: StyleUse) {
-        self.styleuse = styleuse;
-    }
-
-    /// Stylename
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Stylename
-    pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.name = name.into();
-    }
-
     /// Reference to the value format.
     pub fn value_format(&self) -> Option<&String> {
         self.attr.attr("style:data-style-name")
@@ -136,64 +109,43 @@ impl CellStyle {
             .set_attr("style:data-style-name", name.to_string());
     }
 
-    /// Display name.
-    pub fn display_name(&self) -> Option<&String> {
-        self.attr.attr("style:display-name")
-    }
-
-    /// Display name.
-    pub fn set_display_name<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:display-name", name.into());
-    }
-
-    /// The parent style this derives from.
-    pub fn parent_style(&self) -> Option<&String> {
-        self.attr.attr("style:parent-style-name")
-    }
-
-    /// The parent style this derives from.
-    pub fn set_parent_style(&mut self, name: &CellStyleRef) {
-        self.attr
-            .set_attr("style:parent-style-name", name.to_string());
-    }
-
     /// Allows access to all attributes of the style itself.
-    pub fn attrmap(&self) -> &AttrMap2 {
+    pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// Allows access to all attributes of the style itself.
-    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Allows access to all cell-style like attributes.
-    pub fn cellstyle(&self) -> &AttrMap2 {
+    pub(crate) fn cellstyle(&self) -> &AttrMap2 {
         &self.cellstyle
     }
 
     /// Allows access to all cell-style like attributes.
-    pub fn cellstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn cellstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.cellstyle
     }
 
     /// Allows access to all paragraph-style like attributes.
-    pub fn paragraphstyle(&self) -> &AttrMap2 {
+    pub(crate) fn paragraphstyle(&self) -> &AttrMap2 {
         &self.paragraphstyle
     }
 
     /// Allows access to all paragraph-style like attributes.
-    pub fn paragraphstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn paragraphstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.paragraphstyle
     }
 
     /// Allows access to all text-style like attributes.
-    pub fn textstyle(&self) -> &AttrMap2 {
+    pub(crate) fn textstyle(&self) -> &AttrMap2 {
         &self.textstyle
     }
 
     /// Allows access to all text-style like attributes.
-    pub fn textstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn textstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.textstyle
     }
 
@@ -212,92 +164,72 @@ impl CellStyle {
         self.stylemaps.get_or_insert_with(Vec::new)
     }
 
-    fo_break!(paragraphstyle_mut);
-    fo_keep_together!(paragraphstyle_mut);
-    fo_keep_with_next!(paragraphstyle_mut);
-    fo_margin!(paragraphstyle_mut);
-    paragraph!(paragraphstyle_mut);
-
-    text!(textstyle_mut);
-
-    // missing:
-    // style:cell-protect 20.253,
-    // style:decimal-places 20.258,
-    // style:direction 20.263,
-    // style:glyph-orientation-vertical 20.297,
-    // style:text-align-source 20.364,
+    // Cell attributes.
     fo_background_color!(cellstyle_mut);
     fo_border!(cellstyle_mut);
     fo_padding!(cellstyle_mut);
+    fo_wrap_option!(cellstyle_mut);
+    fo_border_line_width!(cellstyle_mut);
+    style_cell_protect!(cellstyle_mut);
+    style_decimal_places!(cellstyle_mut);
+    style_diagonal!(cellstyle_mut);
+    style_direction!(cellstyle_mut);
+    style_glyph_orientation_vertical!(cellstyle_mut);
+    style_print_content!(cellstyle_mut);
+    style_repeat_content!(cellstyle_mut);
+    style_rotation_align!(cellstyle_mut);
+    style_rotation_angle!(cellstyle_mut);
     style_shadow!(cellstyle_mut);
+    style_shrink_to_fit!(cellstyle_mut);
+    style_text_align_source!(cellstyle_mut);
+    style_vertical_align!(cellstyle_mut);
     style_writing_mode!(cellstyle_mut);
 
-    /// Wrap text.
-    pub fn set_wrap_option(&mut self, wrap: WrapOption) {
-        self.cellstyle.set_attr("fo:wrap-option", wrap.to_string());
-    }
+    // Paragraph attributes.
+    // TODO: Some attributes exist as both cell and as paragraph properties. Can't be mapped this way...
 
-    /// Printing?
-    pub fn set_print_content(&mut self, print: bool) {
-        self.cellstyle
-            .set_attr("style:print-content", print.to_string());
-    }
+    // fo_background_color!(paragraphstyle_mut);
+    // fo_border!(paragraphstyle_mut);
+    fo_break!(paragraphstyle_mut);
+    fo_hyphenation!(paragraphstyle_mut);
+    fo_keep_together!(paragraphstyle_mut);
+    fo_keep_with_next!(paragraphstyle_mut);
+    fo_line_height!(paragraphstyle_mut);
+    fo_margin!(paragraphstyle_mut);
+    fo_orphans!(paragraphstyle_mut);
+    // fo_padding!(paragraphstyle_mut);
+    fo_text_align!(paragraphstyle_mut);
+    fo_text_align_last!(paragraphstyle_mut);
+    fo_text_indent!(paragraphstyle_mut);
+    fo_widows!(paragraphstyle_mut);
+    style_autotext_indent!(paragraphstyle_mut);
+    style_background_transparency!(paragraphstyle_mut);
+    // fo_border_line_width!(paragraphstyle_mut);
+    style_contextual_spacing!(paragraphstyle_mut);
+    style_font_independent_line_spacing!(paragraphstyle_mut);
+    style_join_border!(paragraphstyle_mut);
+    style_justify_single_word!(paragraphstyle_mut);
+    style_line_break!(paragraphstyle_mut);
+    style_line_height_at_least!(paragraphstyle_mut);
+    style_line_spacing!(paragraphstyle_mut);
+    style_page_number!(paragraphstyle_mut);
+    style_punctuation_wrap!(paragraphstyle_mut);
+    style_register_true!(paragraphstyle_mut);
+    // style_shadow!(paragraphstyle_mut);
+    style_snap_to_layout_grid!(paragraphstyle_mut);
+    style_tab_stop_distance!(paragraphstyle_mut);
+    style_text_autospace!(paragraphstyle_mut);
+    style_vertical_align_para!(paragraphstyle_mut);
+    // style_writing_mode!(paragraphstyle_mut);
+    style_writing_mode_automatic!(paragraphstyle_mut);
+    style_line_number!(paragraphstyle_mut);
+    style_number_lines!(paragraphstyle_mut);
 
-    /// Repeat to fill.
-    pub fn set_repeat_content(&mut self, print: bool) {
-        self.cellstyle
-            .set_attr("style:repeat-content", print.to_string());
-    }
+    text!(textstyle_mut);
+    text_locale!(textstyle_mut);
+    // style_rotation_angle!(textstyle_mut);
+    style_rotation_scale!(textstyle_mut);
+    // fo_background_color!(textstyle_mut);
 
-    /// Rotation
-    pub fn set_rotation_align(&mut self, align: RotationAlign) {
-        self.cellstyle
-            .set_attr("style:rotation-align", align.to_string());
-    }
-
-    /// Rotation
-    pub fn set_rotation_angle(&mut self, angle: Angle) {
-        self.cellstyle
-            .set_attr("style:rotation-angle", angle.to_string());
-    }
-
-    /// Shrink text to fit.
-    pub fn set_shrink_to_fit(&mut self, shrink: bool) {
-        self.cellstyle
-            .set_attr("style:shrink-to-fit", shrink.to_string());
-    }
-
-    /// Vertical alignment.
-    pub fn set_vertical_align(&mut self, align: CellAlignVertical) {
-        self.cellstyle
-            .set_attr("style:vertical-align", align.to_string());
-    }
-
-    /// Diagonal style.
-    pub fn set_diagonal_bl_tr(&mut self, width: Length, border: Border, color: Rgb<u8>) {
-        self.cellstyle
-            .set_attr("style:diagonal-bl-tr", border_string(width, border, color));
-    }
-
-    /// Widths for double borders.
-    pub fn set_diagonal_bl_tr_widths(&mut self, inner: Length, spacing: Length, outer: Length) {
-        self.cellstyle.set_attr(
-            "style:diagonal-bl-tr-widths",
-            border_line_width_string(inner, spacing, outer),
-        );
-    }
-
-    /// Diagonal style.
-    pub fn set_diagonal_tl_br(&mut self, width: Length, border: Border, color: Rgb<u8>) {
-        self.cellstyle
-            .set_attr("style:diagonal-tl-br", border_string(width, border, color));
-    }
-
-    /// Widths for double borders.
-    pub fn set_diagonal_tl_br_widths(&mut self, inner: Length, spacing: Length, outer: Length) {
-        self.cellstyle.set_attr(
-            "style:diagonal-tl-br-widths",
-            border_line_width_string(inner, spacing, outer),
-        );
-    }
+    // TODO: background image
 }

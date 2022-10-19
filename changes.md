@@ -1,5 +1,13 @@
 # 0.11.0
 
+- Uses icu_locid for localization.
+    - WorkBook::new() now needs a Locale for the workbook. The old behaviour
+      can found as WorkBook::new_empty().
+    - 
+
+
+
+
 - Refactoring of ValueFormat.
   - Moved to directory module format and split up in valueformat, formatpart
     and builder modules.
@@ -14,6 +22,10 @@
   - Needs ca 60 loc for a new locale.
   - Fallback available.
   - create_default_styles replaced with WorkBook::init_defaults and WorkBook::new_localized.
+
+- Sheet::new() now always needs a name for the sheet.
+
+
 
 # 0.10.0
 

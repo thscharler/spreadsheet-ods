@@ -25,7 +25,7 @@ use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
     ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle, ParagraphStyle,
-    RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
+    RowStyle, Style, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};

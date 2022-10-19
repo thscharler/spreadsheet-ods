@@ -30,19 +30,20 @@ pub use builder::*;
 pub use create::*;
 
 use crate::attrmap2::AttrMap2;
-use crate::format::{
-    PartCurrencySymbolBuilder, PartDayBuilder, PartDayOfWeekBuilder, PartEraBuilder,
-    PartFractionBuilder, PartHoursBuilder, PartMinutesBuilder, PartMonthBuilder, PartNumberBuilder,
-    PartQuarterBuilder, PartScientificBuilder, PartSecondsBuilder, PartWeekOfYearBuilder,
-    PartYearBuilder,
-};
+// use crate::format::{
+//     PartCurrencySymbolBuilder, PartDayBuilder, PartDayOfWeekBuilder, PartEraBuilder,
+//     PartFractionBuilder, PartHoursBuilder, PartMinutesBuilder, PartMonthBuilder, PartNumberBuilder,
+//     PartQuarterBuilder, PartScientificBuilder, PartSecondsBuilder, PartWeekOfYearBuilder,
+//     PartYearBuilder,
+// };
 use crate::style::stylemap::StyleMap;
 use crate::style::units::{
-    FontStyle, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth, TextPosition,
+    FontStyle, FontVariant, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth, Percent,
+    RotationScale, TextCombine, TextCondition, TextDisplay, TextEmphasize, TextPosition,
     TextRelief, TextTransform,
 };
 use crate::style::{
-    color_string, percent_string, shadow_string, StyleOrigin, StyleUse, TextStyleRef,
+    color_string, percent_string, shadow_string, text_position, StyleOrigin, StyleUse, TextStyleRef,
 };
 use crate::{OdsError, ValueType};
 use color::Rgb;
@@ -172,6 +173,8 @@ impl FromStr for FormatSource {
 //
 // ValueType:Text -> number:text-style
 //      no extras
+
+// TODO: Is there a better way to describe this? All the "is valid for"s are somewhat annoying...
 
 /// Actual textual formatting of values.
 #[derive(Debug, Clone)]
@@ -320,7 +323,7 @@ impl ValueFormat {
     /// Returns number:language, number:country and number:script as a locale.
     pub fn locale(&self) -> Option<Locale> {
         if let Some(language) = self.attr.attr("number:language") {
-            if let Some(language) = Language::from_bytes(language.as_bytes()).ok() {
+            if let Ok(language) = Language::from_bytes(language.as_bytes()) {
                 let region = if let Some(region) = self.attr.attr("number:country") {
                     Region::from_bytes(region.as_bytes()).ok()
                 } else {
@@ -371,7 +374,7 @@ impl ValueFormat {
     /// Returns number:transliteration_language and number:transliteration_country as a locale.
     pub fn transliteration_locale(&self) -> Option<Locale> {
         if let Some(language) = self.attr.attr("number:language") {
-            if let Some(language) = Language::from_bytes(language.as_bytes()).ok() {
+            if let Ok(language) = Language::from_bytes(language.as_bytes()) {
                 let region = if let Some(region) = self.attr.attr("number:country") {
                     Region::from_bytes(region.as_bytes()).ok()
                 } else {
@@ -576,16 +579,20 @@ impl ValueFormat {
     }
 
     /// Text style attributes.
-    pub fn textstyle(&self) -> &AttrMap2 {
+    pub(crate) fn textstyle(&self) -> &AttrMap2 {
         &self.textstyle
     }
 
     /// Text style attributes.
-    pub fn textstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn textstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.textstyle
     }
 
     text!(textstyle_mut);
+    // text_locale!(textstyle_mut);
+    // style_rotation_angle!(textstyle_mut);
+    style_rotation_scale!(textstyle_mut);
+    fo_background_color!(textstyle_mut);
 
     /// Adds a format part to this format.
     ///
@@ -1117,12 +1124,12 @@ impl FormatPart {
     }
 
     /// General attributes.
-    pub fn attrmap(&self) -> &AttrMap2 {
+    pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// General attributes.
-    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 

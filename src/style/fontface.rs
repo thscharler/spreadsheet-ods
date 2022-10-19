@@ -52,12 +52,12 @@ impl FontFaceDecl {
     }
 
     /// General attributes.
-    pub fn attrmap(&self) -> &AttrMap2 {
+    pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// General attributes.
-    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 

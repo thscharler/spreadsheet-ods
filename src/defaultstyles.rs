@@ -16,6 +16,7 @@ pub struct DefaultFormat {}
 
 impl DefaultFormat {
     /// Default format.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> ValueFormatRef {
         ValueFormatRef::from("")
     }
@@ -110,7 +111,7 @@ impl DefaultStyle {
     }
 }
 
-/// Replaced with WorkBook::init_defaults() or WorkBook::new_localized().
+/// Replaced with WorkBook::locale_settings() or WorkBook::new(l: Locale).
 #[deprecated]
 pub fn create_default_styles(book: &mut WorkBook) {
     book.add_format(format::create_boolean_format(

@@ -100,22 +100,22 @@ impl RowStyle {
     }
 
     /// General attributes.
-    pub fn attrmap(&self) -> &AttrMap2 {
+    pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// General attributes.
-    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Style attributes.
-    pub fn rowstyle(&self) -> &AttrMap2 {
+    pub(crate) fn rowstyle(&self) -> &AttrMap2 {
         &self.rowstyle
     }
 
     /// Style attributes.
-    pub fn rowstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn rowstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.rowstyle
     }
 

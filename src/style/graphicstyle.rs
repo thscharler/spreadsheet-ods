@@ -93,22 +93,22 @@ impl GraphicStyle {
     }
 
     /// General attributes.
-    pub fn attrmap(&self) -> &AttrMap2 {
+    pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// General attributes.
-    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Graphic style attributes.
-    pub fn graphicstyle(&self) -> &AttrMap2 {
+    pub(crate) fn graphicstyle(&self) -> &AttrMap2 {
         &self.graphicstyle
     }
 
     /// Graphic style attributes.
-    pub fn graphicstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn graphicstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.graphicstyle
     }
 }

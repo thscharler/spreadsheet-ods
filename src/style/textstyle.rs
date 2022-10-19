@@ -1,10 +1,14 @@
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{
-    FontStyle, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth, TextPosition,
+    FontStyle, FontVariant, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth, Percent,
+    RotationScale, TextCombine, TextCondition, TextDisplay, TextEmphasize, TextPosition,
     TextRelief, TextTransform,
 };
-use crate::style::{color_string, percent_string, shadow_string, StyleOrigin, StyleUse};
+use crate::style::{
+    color_string, percent_string, shadow_string, text_position, StyleOrigin, StyleUse,
+};
 use color::Rgb;
+use icu_locid::Locale;
 use std::fmt::{Display, Formatter};
 
 style_ref!(TextStyleRef);
@@ -118,24 +122,28 @@ impl TextStyle {
     }
 
     /// General attributes for the style.
-    pub fn attrmap(&self) -> &AttrMap2 {
+    pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// General attributes for the style.
-    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// All text-attributes for the style.
-    pub fn textstyle(&self) -> &AttrMap2 {
+    pub(crate) fn textstyle(&self) -> &AttrMap2 {
         &self.textstyle
     }
 
     /// All text-attributes for the style.
-    pub fn textstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub(crate) fn textstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.textstyle
     }
 
     text!(textstyle_mut);
+    text_locale!(textstyle_mut);
+    // style_rotation_angle!(textstyle_mut);
+    style_rotation_scale!(textstyle_mut);
+    fo_background_color!(textstyle_mut);
 }
