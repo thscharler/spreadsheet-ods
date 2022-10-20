@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter};
-use std::str::{FromStr, ParseBoolError};
 
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak};
+use crate::style::ParseStyleAttr;
 use crate::style::{rel_width_string, StyleOrigin, StyleUse};
 use crate::OdsError;
 
@@ -20,6 +20,7 @@ pub struct ColStyle {
     styleuse: StyleUse,
     /// Style name
     name: String,
+
     /// General attributes
     // ??? style:auto-update 19.467,
     // ??? style:class 19.470,
@@ -35,7 +36,12 @@ pub struct ColStyle {
     // ignore style:parent-style-name 19.510,
     // ignore style:percentage-data-style-name 19.511.
     attr: AttrMap2,
-    /// Table style properties
+    /// Column style properties
+    // ok fo:break-after 20.184,
+    // ok fo:break-before 20.185,
+    // ok style:column-width 20.254,
+    // ok style:rel-column-width 20.338
+    // ok style:use-optimal-column-width 20.393
     colstyle: AttrMap2,
 }
 
@@ -119,13 +125,16 @@ impl ColStyle {
 
     fo_break!(colstyle_mut);
 
-    /// Relative weights for the column width
+    /// The style:rel-column-width attribute specifies a relative width of a column with a number
+    /// value, followed by a ”*” (U+002A, ASTERISK) character. If rc is the relative with of the column, rs
+    /// the sum of all relative columns widths, and ws the absolute width that is available for these
+    /// columns the absolute width wc of the column is wc=rcws/rs.
     pub fn set_rel_col_width(&mut self, rel: f64) {
         self.colstyle
             .set_attr("style:rel-column-width", rel_width_string(rel));
     }
 
-    /// Column width
+    /// The style:column-width attribute specifies a fixed width for a column.
     pub fn set_col_width(&mut self, width: Length) {
         if width == Length::Default {
             self.colstyle.clear_attr("style:column-width");
@@ -135,27 +144,20 @@ impl ColStyle {
         }
     }
 
-    /// Parses the column width
+    /// Parses the column width.
     pub fn col_width(&self) -> Result<Length, OdsError> {
-        if let Some(s) = self.colstyle.attr("style:column-width") {
-            Ok(Length::from_str(s)?)
-        } else {
-            Ok(Length::Default)
-        }
+        Length::parse_attr_def(self.colstyle.attr("style:column-width"), Length::Default)
     }
 
-    /// Override switch for the column width.
+    /// The style:use-optimal-column-width attribute specifies that a column width should be
+    /// recalculated automatically if content in the column changes.
     pub fn set_use_optimal_col_width(&mut self, opt: bool) {
         self.colstyle
             .set_attr("style:use-optimal-column-width", opt.to_string());
     }
 
     /// Parses the flag.
-    pub fn use_optimal_col_width(&self) -> Result<bool, ParseBoolError> {
-        if let Some(s) = self.colstyle.attr("style:use-optimal-column-width") {
-            Ok(bool::from_str(s)?)
-        } else {
-            Ok(false)
-        }
+    pub fn use_optimal_col_width(&self) -> Result<bool, OdsError> {
+        bool::parse_attr_def(self.colstyle.attr("style:use-optimal-column-width"), false)
     }
 }

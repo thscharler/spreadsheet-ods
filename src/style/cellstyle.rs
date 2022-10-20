@@ -5,9 +5,9 @@ use crate::style::units::{
     Angle, Border, CellAlignVertical, CellProtect, FontStyle, FontVariant, FontWeight,
     GlyphOrientation, Hyphenation, HyphenationLadderCount, Indent, Length, LineBreak, LineHeight,
     LineMode, LineStyle, LineType, LineWidth, Margin, PageBreak, PageNumber, ParaAlignVertical,
-    Percent, PunctuationWrap, RotationAlign, RotationScale, TextAlign, TextAlignLast,
-    TextAlignSource, TextAutoSpace, TextCombine, TextCondition, TextDisplay, TextEmphasize,
-    TextKeep, TextPosition, TextRelief, TextTransform, WrapOption, WritingDirection, WritingMode,
+    Percent, PunctuationWrap, RotationAlign, TextAlign, TextAlignLast, TextAlignSource,
+    TextAutoSpace, TextCombine, TextCondition, TextDisplay, TextEmphasize, TextKeep, TextPosition,
+    TextRelief, TextTransform, WrapOption, WritingDirection, WritingMode,
 };
 use crate::style::{
     border_line_width_string, border_string, color_string, percent_string, shadow_string,
@@ -186,7 +186,10 @@ impl CellStyle {
     style_writing_mode!(cellstyle_mut);
 
     // Paragraph attributes.
-    // TODO: Some attributes exist as both cell and as paragraph properties. Can't be mapped this way...
+
+    // NOTE: Some attributes exist as both cell and as paragraph properties.
+    //       They can't be mapped this way. On the other hand you cannot set
+    //       them via LibreOffice either.
 
     // fo_background_color!(paragraphstyle_mut);
     // fo_border!(paragraphstyle_mut);
@@ -225,10 +228,14 @@ impl CellStyle {
     style_line_number!(paragraphstyle_mut);
     style_number_lines!(paragraphstyle_mut);
 
+    // NOTE: Some attributes exist as both cell and as text properties.
+    //       They can't be mapped this way. On the other hand you cannot set
+    //       them via LibreOffice either.
+
     text!(textstyle_mut);
     text_locale!(textstyle_mut);
     // style_rotation_angle!(textstyle_mut);
-    style_rotation_scale!(textstyle_mut);
+    // style_rotation_scale!(textstyle_mut);
     // fo_background_color!(textstyle_mut);
 
     // TODO: background image

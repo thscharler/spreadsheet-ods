@@ -42,7 +42,10 @@
 //!
 //! ```
 
+use crate::style::units::{Border, Length, Percent, TextPosition};
+use crate::OdsError;
 use color::Rgb;
+use std::str::FromStr;
 
 pub use cellstyle::*;
 pub use colstyle::*;
@@ -54,8 +57,6 @@ pub use paragraphstyle::*;
 pub use rowstyle::*;
 pub use tablestyle::*;
 pub use textstyle::*;
-
-use crate::style::units::{Border, Length, Percent, TextPosition};
 
 pub mod stylemap;
 pub mod tabstop;
@@ -261,6 +262,28 @@ pub enum StyleUse {
 impl Default for StyleUse {
     fn default() -> Self {
         StyleUse::Automatic
+    }
+}
+
+/// Parses an attribute string.
+pub(crate) trait ParseStyleAttr<T> {
+    fn parse_attr(attr: Option<&String>) -> Result<Option<T>, OdsError>;
+
+    fn parse_attr_def(attr: Option<&String>, default: T) -> Result<T, OdsError> {
+        match Self::parse_attr(attr)? {
+            None => Ok(default),
+            Some(v) => Ok(v),
+        }
+    }
+}
+
+impl ParseStyleAttr<bool> for bool {
+    fn parse_attr(attr: Option<&String>) -> Result<Option<bool>, OdsError> {
+        if let Some(s) = attr {
+            Ok(Some(bool::from_str(s)?))
+        } else {
+            Ok(None)
+        }
     }
 }
 

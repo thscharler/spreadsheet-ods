@@ -2,9 +2,9 @@
 //! All kinds of units for use in style attributes.
 //!
 
+use crate::style::ParseStyleAttr;
 use crate::OdsError;
 use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 
 /// Value type for angles.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -66,27 +66,51 @@ impl Display for Length {
     }
 }
 
-impl FromStr for Length {
-    type Err = OdsError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.ends_with("cm") {
-            Ok(Length::Cm(s.split_at(s.len() - 2).0.parse()?))
-        } else if s.ends_with("mm") {
-            Ok(Length::Mm(s.split_at(s.len() - 2).0.parse()?))
-        } else if s.ends_with("in") {
-            Ok(Length::In(s.split_at(s.len() - 2).0.parse()?))
-        } else if s.ends_with("pt") {
-            Ok(Length::Pt(s.split_at(s.len() - 2).0.parse()?))
-        } else if s.ends_with("pc") {
-            Ok(Length::Pc(s.split_at(s.len() - 2).0.parse()?))
-        } else if s.ends_with("em") {
-            Ok(Length::Em(s.split_at(s.len() - 2).0.parse()?))
+impl ParseStyleAttr<Length> for Length {
+    fn parse_attr(attr: Option<&String>) -> Result<Option<Length>, OdsError> {
+        if let Some(s) = attr {
+            if s.ends_with("cm") {
+                Ok(Some(Length::Cm(s.split_at(s.len() - 2).0.parse()?)))
+            } else if s.ends_with("mm") {
+                Ok(Some(Length::Mm(s.split_at(s.len() - 2).0.parse()?)))
+            } else if s.ends_with("in") {
+                Ok(Some(Length::In(s.split_at(s.len() - 2).0.parse()?)))
+            } else if s.ends_with("pt") {
+                Ok(Some(Length::Pt(s.split_at(s.len() - 2).0.parse()?)))
+            } else if s.ends_with("pc") {
+                Ok(Some(Length::Pc(s.split_at(s.len() - 2).0.parse()?)))
+            } else if s.ends_with("em") {
+                Ok(Some(Length::Em(s.split_at(s.len() - 2).0.parse()?)))
+            } else {
+                Err(OdsError::Parse(format!("invalid length {}", s)))
+            }
         } else {
-            Err(OdsError::Parse(s.to_string()))
+            Ok(None)
         }
     }
 }
+
+// impl FromStr for Length {
+//     type Err = OdsError;
+//
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         if s.ends_with("cm") {
+//             Ok(Length::Cm(s.split_at(s.len() - 2).0.parse()?))
+//         } else if s.ends_with("mm") {
+//             Ok(Length::Mm(s.split_at(s.len() - 2).0.parse()?))
+//         } else if s.ends_with("in") {
+//             Ok(Length::In(s.split_at(s.len() - 2).0.parse()?))
+//         } else if s.ends_with("pt") {
+//             Ok(Length::Pt(s.split_at(s.len() - 2).0.parse()?))
+//         } else if s.ends_with("pc") {
+//             Ok(Length::Pc(s.split_at(s.len() - 2).0.parse()?))
+//         } else if s.ends_with("em") {
+//             Ok(Length::Em(s.split_at(s.len() - 2).0.parse()?))
+//         } else {
+//             Err(OdsError::Parse(s.to_string()))
+//         }
+//     }
+// }
 
 /// Value type that combines lengths and percentages.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -720,6 +744,74 @@ impl Display for PrintOrientation {
     }
 }
 
+/// The style:print attribute specifies the components in a spreadsheet document to print.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub enum PrintContent {
+    Headers,
+    Grid,
+    Annotations,
+    Objects,
+    Charts,
+    Drawings,
+    Formulas,
+    ZeroValues,
+}
+
+impl Display for PrintContent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PrintContent::Headers => write!(f, "headers"),
+            PrintContent::Grid => write!(f, "grid"),
+            PrintContent::Annotations => write!(f, "annotations"),
+            PrintContent::Objects => write!(f, "objects"),
+            PrintContent::Charts => write!(f, "charts"),
+            PrintContent::Drawings => write!(f, "drawings"),
+            PrintContent::Formulas => write!(f, "formulas"),
+            PrintContent::ZeroValues => write!(f, "zero-values"),
+        }
+    }
+}
+
+/// Page ordering
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub enum PrintOrder {
+    Ltr,
+    Ttb,
+}
+
+impl Display for PrintOrder {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PrintOrder::Ltr => write!(f, "ltr"),
+            PrintOrder::Ttb => write!(f, "ttb"),
+        }
+    }
+}
+
+/// The style:table-centering attribute specifies whether tables are centered horizontally
+/// and/or vertically on the page. This attribute only applies to spreadsheet documents.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub enum PrintCentering {
+    None,
+    Horizontal,
+    Vertical,
+    Both,
+}
+
+impl Display for PrintCentering {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PrintCentering::None => write!(f, "none"),
+            PrintCentering::Horizontal => write!(f, "horizontal"),
+            PrintCentering::Vertical => write!(f, "vertical"),
+            PrintCentering::Both => write!(f, "both"),
+        }
+    }
+}
+
 /// The style:cell-protect attribute specifies how a cell is protected.
 /// This attribute is only evaluated if the current table is protected.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -1014,6 +1106,127 @@ impl Display for TextDisplay {
             TextDisplay::None => write!(f, "none"),
             TextDisplay::Condition => write!(f, "condition"),
             TextDisplay::True => write!(f, "true"),
+        }
+    }
+}
+
+/// Generic font descriptors.
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(missing_docs)]
+pub enum FontFamilyGeneric {
+    Decorative,
+    Modern,
+    Roman,
+    Script,
+    Swiss,
+    System,
+}
+
+impl Display for FontFamilyGeneric {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FontFamilyGeneric::Decorative => write!(f, "decorative"),
+            FontFamilyGeneric::Modern => write!(f, "modern"),
+            FontFamilyGeneric::Roman => write!(f, "roman"),
+            FontFamilyGeneric::Script => write!(f, "script"),
+            FontFamilyGeneric::Swiss => write!(f, "swiss"),
+            FontFamilyGeneric::System => write!(f, "system"),
+        }
+    }
+}
+
+/// Font stretch.
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(missing_docs)]
+pub enum FontStretch {
+    Normal,
+    UltraCondensed,
+    ExtraCondensed,
+    Condensed,
+    SemiCondensed,
+    SemiExpanded,
+    Expanded,
+    ExtraExpanded,
+    UltraExpanded,
+}
+
+impl Display for FontStretch {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FontStretch::Normal => write!(f, "normal"),
+            FontStretch::UltraCondensed => write!(f, "ultra-condensed"),
+            FontStretch::ExtraCondensed => write!(f, "extra-condensed"),
+            FontStretch::Condensed => write!(f, "condensed"),
+            FontStretch::SemiCondensed => write!(f, "semi-condensed"),
+            FontStretch::SemiExpanded => write!(f, "semi-expanded"),
+            FontStretch::Expanded => write!(f, "expanded"),
+            FontStretch::ExtraExpanded => write!(f, "extra-expanded"),
+            FontStretch::UltraExpanded => write!(f, "ultra-expanded"),
+        }
+    }
+}
+
+/// The style:page-usage attribute specifies the type of pages that a page master should
+/// generate.
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(missing_docs)]
+pub enum MasterPageUsage {
+    All,
+    Left,
+    Mirrored,
+    Right,
+}
+
+impl Display for MasterPageUsage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MasterPageUsage::All => write!(f, "all"),
+            MasterPageUsage::Left => write!(f, "left"),
+            MasterPageUsage::Mirrored => write!(f, "mirrored"),
+            MasterPageUsage::Right => write!(f, "right"),
+        }
+    }
+}
+
+impl ParseStyleAttr<MasterPageUsage> for MasterPageUsage {
+    fn parse_attr(attr: Option<&String>) -> Result<Option<MasterPageUsage>, OdsError> {
+        if let Some(attr) = attr {
+            match attr.as_str() {
+                "all" => Ok(Some(MasterPageUsage::All)),
+                "left" => Ok(Some(MasterPageUsage::Left)),
+                "mirrored" => Ok(Some(MasterPageUsage::Mirrored)),
+                "right" => Ok(Some(MasterPageUsage::Right)),
+                v => Err(OdsError::Parse(format!("invalid style:page-usage {}", v))),
+            }
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+/// The style:num-format attribute specifies a numbering sequence.
+#[derive(Debug, Clone, PartialEq)]
+#[allow(missing_docs)]
+pub enum StyleNumFormat {
+    None,
+    Number,
+    LowerAlpha,
+    Alpha,
+    LowerRoman,
+    Roman,
+    Text(String),
+}
+
+impl Display for StyleNumFormat {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StyleNumFormat::None => write!(f, ""),
+            StyleNumFormat::Number => write!(f, "1"),
+            StyleNumFormat::LowerAlpha => write!(f, "a"),
+            StyleNumFormat::Alpha => write!(f, "A"),
+            StyleNumFormat::LowerRoman => write!(f, "i"),
+            StyleNumFormat::Roman => write!(f, "I"),
+            StyleNumFormat::Text(v) => write!(f, "{}", v),
         }
     }
 }

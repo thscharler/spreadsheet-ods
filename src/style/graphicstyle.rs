@@ -31,6 +31,7 @@ pub struct GraphicStyle {
     // ignore style:percentage-data-style-name 19.511.
     attr: AttrMap2,
     /// Table style properties
+    // ignore these attributes for now.
     graphicstyle: AttrMap2,
 }
 

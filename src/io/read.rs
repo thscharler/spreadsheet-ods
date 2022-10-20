@@ -1004,6 +1004,9 @@ fn read_page_style(
             attr if attr.key == b"style:name" => {
                 pl.set_name(parse_string(&attr.value)?);
             }
+            attr if attr.key == b"style:page-usage" => {
+                pl.master_page_usage = Some(parse_string(&attr.value)?);
+            }
             attr => {
                 dump_unused("read_page_style", xml_tag.name(), &attr)?;
             }

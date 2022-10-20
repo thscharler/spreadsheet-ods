@@ -2105,6 +2105,9 @@ fn write_pagestyles<W: Write + Seek>(
     for style in styles.values() {
         xml_out.elem("style:page-layout")?;
         xml_out.attr_esc("style:name", style.name())?;
+        if let Some(master_page_usage) = &style.master_page_usage {
+            xml_out.attr_esc("style:page-usage", master_page_usage)?;
+        }
 
         if !style.style().is_empty() {
             xml_out.empty("style:page-layout-properties")?;

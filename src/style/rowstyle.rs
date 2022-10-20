@@ -1,9 +1,8 @@
-use std::str::{FromStr, ParseBoolError};
-
 use color::Rgb;
 
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak, TextKeep};
+use crate::style::ParseStyleAttr;
 use crate::style::{color_string, StyleOrigin, StyleUse};
 use crate::OdsError;
 use std::fmt::{Display, Formatter};
@@ -137,11 +136,7 @@ impl RowStyle {
 
     /// Parses the row height
     pub fn row_height(&self) -> Result<Length, OdsError> {
-        if let Some(s) = self.rowstyle.attr("style:row-height") {
-            Ok(Length::from_str(s)?)
-        } else {
-            Ok(Length::Default)
-        }
+        Length::parse_attr_def(self.rowstyle.attr("style:row-height"), Length::Default)
     }
 
     /// Optimal row-height.
@@ -151,11 +146,7 @@ impl RowStyle {
     }
 
     /// Parses the flag.
-    pub fn use_optimal_row_height(&self) -> Result<bool, ParseBoolError> {
-        if let Some(s) = self.rowstyle.attr("style:use-optimal-row-height") {
-            Ok(bool::from_str(s)?)
-        } else {
-            Ok(false)
-        }
+    pub fn use_optimal_row_height(&self) -> Result<bool, OdsError> {
+        bool::parse_attr_def(self.rowstyle.attr("style:use-optimal-row-height"), false)
     }
 }
