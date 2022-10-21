@@ -1,9 +1,10 @@
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{
-    FontStyle, FontVariant, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth, Percent,
-    RotationScale, TextCombine, TextCondition, TextDisplay, TextEmphasize, TextPosition,
+    Angle, FontStyle, FontVariant, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth,
+    Percent, RotationScale, TextCombine, TextCondition, TextDisplay, TextEmphasize, TextPosition,
     TextRelief, TextTransform,
 };
+use crate::style::Style;
 use crate::style::{
     color_string, percent_string, shadow_string, text_position, StyleOrigin, StyleUse,
 };
@@ -25,22 +26,24 @@ pub struct TextStyle {
     /// Style name
     name: String,
     /// General attributes
-    // ??? style:auto-update 19.467,
-    // ??? style:class 19.470,
-    // ignore style:data-style-name 19.473,
-    // ignore style:default-outlinelevel 19.474,
-    // ok style:display-name 19.476,
-    // ok style:family 19.480,
-    // ignore style:list-level 19.499,
-    // ignore style:list-style-name 19.500,
-    // ignore style:master-page-name 19.501,
-    // ok style:name 19.502,
-    // ignore style:next-style-name 19.503,
-    // ok style:parent-style-name 19.510,
-    // ignore style:percentage-data-style-name 19.511.
+    // ok style:auto-update 19.467 => ALL
+    // ok style:class 19.470, => ALL
+    // ignore style:data-style-name 19.473, => CELL, CHART
+    // ignore style:default-outlinelevel 19.474, => PARAGRAPH
+    // ok style:display-name 19.476, => ALL
+    // ignore style:family 19.480, => Not mapped as an attribute.
+    // ignore style:list-level 19.499, => PARAGRAPH
+    // ignore style:list-style-name 19.500, => PARAGRAPH
+    // ignore style:master-page-name 19.501, => PARAGRAPH, TABLE
+    // ignore style:name 19.502, => Not mapped as an attribute.
+    // ignore style:next-style-name 19.503, => PARAGRAPH
+    // ok style:parent-style-name 19.510 => ALL
+    // ignore style:percentage-data-style-name 19.511. => PARAGRAPH?
     attr: AttrMap2,
     textstyle: AttrMap2,
 }
+
+styles_styles!(TextStyle, TextStyleRef);
 
 impl TextStyle {
     /// Empty.
@@ -65,62 +68,6 @@ impl TextStyle {
         }
     }
 
-    /// Creates a reference to this style.
-    pub fn style_ref(&self) -> TextStyleRef {
-        TextStyleRef::from(self.name())
-    }
-
-    /// Origin of the style.
-    pub fn origin(&self) -> StyleOrigin {
-        self.origin
-    }
-
-    /// Origin of the style.
-    pub fn set_origin(&mut self, origin: StyleOrigin) {
-        self.origin = origin;
-    }
-
-    /// Usage of the style.
-    pub fn styleuse(&self) -> StyleUse {
-        self.styleuse
-    }
-
-    /// Usage of the style.
-    pub fn set_styleuse(&mut self, styleuse: StyleUse) {
-        self.styleuse = styleuse;
-    }
-
-    /// Stylename
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Stylename
-    pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.name = name.into();
-    }
-
-    /// Display name for named styles.
-    pub fn display_name(&self) -> Option<&String> {
-        self.attr.attr("style:display-name")
-    }
-
-    /// Display name for named styles.
-    pub fn set_display_name<S: Into<String>>(&mut self, name: S) {
-        self.attr.set_attr("style:display-name", name.into());
-    }
-
-    /// Parent style.
-    pub fn parent_style(&self) -> Option<&String> {
-        self.attr.attr("style:parent-style-name")
-    }
-
-    /// Parent style.
-    pub fn set_parent_style(&mut self, name: &TextStyleRef) {
-        self.attr
-            .set_attr("style:parent-style-name", name.to_string());
-    }
-
     /// General attributes for the style.
     pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
@@ -141,9 +88,50 @@ impl TextStyle {
         &mut self.textstyle
     }
 
-    text!(textstyle_mut);
-    text_locale!(textstyle_mut);
-    // style_rotation_angle!(textstyle_mut);
-    style_rotation_scale!(textstyle_mut);
     fo_background_color!(textstyle_mut);
+    fo_color!(textstyle_mut);
+    fo_locale!(textstyle_mut);
+    style_font_name!(textstyle_mut);
+    fo_font_size!(textstyle_mut);
+    fo_font_size_rel!(textstyle_mut);
+    fo_font_style!(textstyle_mut);
+    fo_font_weight!(textstyle_mut);
+    fo_font_variant!(textstyle_mut);
+    fo_font_attr!(textstyle_mut);
+    style_locale_asian!(textstyle_mut);
+    style_font_name_asian!(textstyle_mut);
+    style_font_size_asian!(textstyle_mut);
+    style_font_size_rel_asian!(textstyle_mut);
+    style_font_style_asian!(textstyle_mut);
+    style_font_weight_asian!(textstyle_mut);
+    style_font_attr_asian!(textstyle_mut);
+    style_locale_complex!(textstyle_mut);
+    style_font_name_complex!(textstyle_mut);
+    style_font_size_complex!(textstyle_mut);
+    style_font_size_rel_complex!(textstyle_mut);
+    style_font_style_complex!(textstyle_mut);
+    style_font_weight_complex!(textstyle_mut);
+    style_font_attr_complex!(textstyle_mut);
+    fo_hyphenate!(textstyle_mut);
+    fo_hyphenation_push_char_count!(textstyle_mut);
+    fo_hyphenation_remain_char_count!(textstyle_mut);
+    fo_letter_spacing!(textstyle_mut);
+    fo_text_shadow!(textstyle_mut);
+    fo_text_transform!(textstyle_mut);
+    style_font_relief!(textstyle_mut);
+    style_text_position!(textstyle_mut);
+    style_rotation_angle!(textstyle_mut);
+    style_rotation_scale!(textstyle_mut);
+    style_letter_kerning!(textstyle_mut);
+    style_text_combine!(textstyle_mut);
+    style_text_combine_start_char!(textstyle_mut);
+    style_text_combine_end_char!(textstyle_mut);
+    style_text_emphasize!(textstyle_mut);
+    style_text_line_through!(textstyle_mut);
+    style_text_outline!(textstyle_mut);
+    style_text_overline!(textstyle_mut);
+    style_text_underline!(textstyle_mut);
+    style_use_window_font_color!(textstyle_mut);
+    text_condition!(textstyle_mut);
+    text_display!(textstyle_mut);
 }

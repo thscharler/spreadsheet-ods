@@ -1,5 +1,4 @@
 use crate::attrmap2::AttrMap2;
-use crate::io::parse::parse_u32;
 use crate::style::tabstop::TabStop;
 use crate::style::units::{
     Border, FontStyle, FontVariant, FontWeight, Hyphenation, HyphenationLadderCount, Indent,
@@ -33,6 +32,19 @@ pub struct ParagraphStyle {
     /// Style name
     name: String,
     /// General attributes
+    // ok style:auto-update 19.467 => ALL
+    // ok style:class 19.470, => ALL
+    // ignore style:data-style-name 19.473, => CELL, CHART
+    // ok style:default-outlinelevel 19.474, => PARAGRAPH
+    // ok style:display-name 19.476, => ALL
+    // ignore style:family 19.480, => Not mapped as an attribute.
+    // ignore style:list-level 19.499, => PARAGRAPH
+    // ignore style:list-style-name 19.500, => PARAGRAPH
+    // ok style:master-page-name 19.501, => PARAGRAPH, TABLE
+    // ignore style:name 19.502, => Not mapped as an attribute.
+    // ok style:next-style-name 19.503, => PARAGRAPH
+    // ok style:parent-style-name 19.510 => ALL
+    // ignore style:percentage-data-style-name 19.511. => PARAGRAPH?
     attr: AttrMap2,
     /// Paragraph attributes
     paragraphstyle: AttrMap2,
@@ -71,85 +83,6 @@ impl ParagraphStyle {
         }
     }
 
-    /// Within styles for paragraphs, style:next-style-name attribute specifies the style to be used
-    /// for the next paragraph if a paragraph break is inserted in the user interface. By default, the current
-    /// style is used as the next style.
-    pub fn next_style(&self) -> Option<&String> {
-        self.attr.attr("style:next-style-name")
-    }
-
-    /// Within styles for paragraphs, style:next-style-name attribute specifies the style to be used
-    /// for the next paragraph if a paragraph break is inserted in the user interface. By default, the current
-    /// style is used as the next style.
-    pub fn set_next_style(&mut self, name: &ParagraphStyleRef) {
-        self.attr
-            .set_attr("style:next-style-name", name.to_string());
-    }
-
-    /// The style:default-outline-level attribute specifies a default outline level for a style with
-    /// the style:family 19.480 attribute value paragraph.
-    ///
-    /// If the style:default-outline-level attribute is present in a paragraph style, and if this
-    /// paragraph style is assigned to a paragraph or heading by user action, then the consumer should
-    /// replace the paragraph or heading with a heading of the specified level, which has the same
-    /// content and attributes as the original paragraph or heading.
-    ///
-    /// Note: This attribute does not modify the behavior of <text:p> 5.1.3 or
-    /// <text:h> 5.1.2 elements, but only instructs a consumer to create one or the
-    /// other when assigning a paragraph style as a result of user interface action while
-    /// the document is edited.
-    ///
-    /// The style:default-outline-level attribute value can be empty. If empty, this attribute
-    /// does not inherit a list style value from a parent style.
-    pub fn default_outline_level(&self) -> Option<u32> {
-        match self.attr.attr("style:default-outline-level") {
-            None => None,
-            Some(v) => match parse_u32(v.as_bytes()) {
-                Ok(v) => Some(v),
-                Err(_) => None,
-            },
-        }
-    }
-
-    /// The style:default-outline-level attribute specifies a default outline level for a style with
-    /// the style:family 19.480 attribute value paragraph.
-    pub fn set_default_outline_level(&mut self, level: u32) {
-        self.attr
-            .set_attr("style:default-outline-level", level.to_string());
-    }
-
-    /// The style:master-page-name attribute defines a master page for a paragraph or table style.
-    /// This applies to automatic and common styles.
-    ///
-    /// If this attribute is associated with a style, a page break is inserted when the style is applied and
-    /// the specified master page is applied to the resulting page.
-    ///
-    /// This attribute is ignored if it is associated with a paragraph style that is applied to a paragraph
-    /// within a table.
-    pub fn master_page_name(&self) -> Option<MasterPageRef> {
-        self.attr
-            .attr("style:master-page-name")
-            .map(MasterPageRef::from)
-    }
-
-    /// The style:master-page-name attribute defines a master page for a paragraph or table style.
-    /// This applies to automatic and common styles.
-    pub fn set_master_page_name(&mut self, masterpage: &MasterPageRef) {
-        self.attr
-            .set_attr("style:master-page-name", masterpage.to_string());
-    }
-
-    /// Tabstops.
-    pub fn add_tabstop(&mut self, ts: TabStop) {
-        let tabstops = self.tabstops.get_or_insert_with(Vec::new);
-        tabstops.push(ts);
-    }
-
-    /// Tabstops.
-    pub fn tabstops(&self) -> Option<&Vec<TabStop>> {
-        self.tabstops.as_ref()
-    }
-
     /// General attributes.
     pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
@@ -178,6 +111,47 @@ impl ParagraphStyle {
     /// Text style attributes.
     pub(crate) fn textstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.textstyle
+    }
+
+    /// The style:default-outline-level attribute specifies a default outline level for a style with
+    /// the style:family 19.480 attribute value paragraph.
+    ///
+    /// If the style:default-outline-level attribute is present in a paragraph style, and if this
+    /// paragraph style is assigned to a paragraph or heading by user action, then the consumer should
+    /// replace the paragraph or heading with a heading of the specified level, which has the same
+    /// content and attributes as the original paragraph or heading.
+    ///
+    /// Note: This attribute does not modify the behavior of <text:p> 5.1.3 or
+    /// <text:h> 5.1.2 elements, but only instructs a consumer to create one or the
+    /// other when assigning a paragraph style as a result of user interface action while
+    /// the document is edited.
+    ///
+    /// The style:default-outline-level attribute value can be empty. If empty, this attribute
+    /// does not inherit a list style value from a parent style.
+    pub fn set_default_outline_level(&mut self, level: u32) {
+        self.attr
+            .set_attr("style:default-outline-level", level.to_string());
+    }
+
+    styles_master_page!(attrmap_mut);
+
+    /// Within styles for paragraphs, style:next-style-name attribute specifies the style to be used
+    /// for the next paragraph if a paragraph break is inserted in the user interface. By default, the current
+    /// style is used as the next style.
+    pub fn set_next_style(&mut self, name: &ParagraphStyleRef) {
+        self.attr
+            .set_attr("style:next-style-name", name.to_string());
+    }
+
+    /// Tabstops.
+    pub fn add_tabstop(&mut self, ts: TabStop) {
+        let tabstops = self.tabstops.get_or_insert_with(Vec::new);
+        tabstops.push(ts);
+    }
+
+    /// Tabstops.
+    pub fn tabstops(&self) -> Option<&Vec<TabStop>> {
+        self.tabstops.as_ref()
     }
 
     fo_background_color!(paragraphstyle_mut);
@@ -219,11 +193,51 @@ impl ParagraphStyle {
 
     // TODO: background-image
     // TODO: drop-cap
-    // TODO: tab-stops
 
-    text!(textstyle_mut);
-    text_locale!(textstyle_mut);
+    // fo_background_color!(textstyle_mut);
+    fo_color!(textstyle_mut);
+    fo_locale!(textstyle_mut);
+    style_font_name!(textstyle_mut);
+    fo_font_size!(textstyle_mut);
+    fo_font_size_rel!(textstyle_mut);
+    fo_font_style!(textstyle_mut);
+    fo_font_weight!(textstyle_mut);
+    fo_font_variant!(textstyle_mut);
+    fo_font_attr!(textstyle_mut);
+    style_locale_asian!(textstyle_mut);
+    style_font_name_asian!(textstyle_mut);
+    style_font_size_asian!(textstyle_mut);
+    style_font_size_rel_asian!(textstyle_mut);
+    style_font_style_asian!(textstyle_mut);
+    style_font_weight_asian!(textstyle_mut);
+    style_font_attr_asian!(textstyle_mut);
+    style_locale_complex!(textstyle_mut);
+    style_font_name_complex!(textstyle_mut);
+    style_font_size_complex!(textstyle_mut);
+    style_font_size_rel_complex!(textstyle_mut);
+    style_font_style_complex!(textstyle_mut);
+    style_font_weight_complex!(textstyle_mut);
+    style_font_attr_complex!(textstyle_mut);
+    fo_hyphenate!(textstyle_mut);
+    fo_hyphenation_push_char_count!(textstyle_mut);
+    fo_hyphenation_remain_char_count!(textstyle_mut);
+    fo_letter_spacing!(textstyle_mut);
+    fo_text_shadow!(textstyle_mut);
+    fo_text_transform!(textstyle_mut);
+    style_font_relief!(textstyle_mut);
+    style_text_position!(textstyle_mut);
     // style_rotation_angle!(textstyle_mut);
     style_rotation_scale!(textstyle_mut);
-    // fo_background_color!(textstyle_mut);
+    style_letter_kerning!(textstyle_mut);
+    style_text_combine!(textstyle_mut);
+    style_text_combine_start_char!(textstyle_mut);
+    style_text_combine_end_char!(textstyle_mut);
+    style_text_emphasize!(textstyle_mut);
+    style_text_line_through!(textstyle_mut);
+    style_text_outline!(textstyle_mut);
+    style_text_overline!(textstyle_mut);
+    style_text_underline!(textstyle_mut);
+    style_use_window_font_color!(textstyle_mut);
+    text_condition!(textstyle_mut);
+    text_display!(textstyle_mut);
 }

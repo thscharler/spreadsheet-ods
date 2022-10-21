@@ -3,6 +3,7 @@ use color::Rgb;
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak, TextKeep};
 use crate::style::ParseStyleAttr;
+use crate::style::Style;
 use crate::style::{color_string, StyleOrigin, StyleUse};
 use crate::OdsError;
 use std::fmt::{Display, Formatter};
@@ -22,23 +23,25 @@ pub struct RowStyle {
     /// Style name
     name: String,
     /// General attributes
-    // ??? style:auto-update 19.467,
-    // ??? style:class 19.470,
-    // ignore style:data-style-name 19.473,
-    // ??? style:default-outlinelevel 19.474,
-    // ignore style:display-name 19.476,
-    // ok style:family 19.480,
-    // ignore style:list-level 19.499,
-    // ignore style:list-style-name 19.500,
-    // ignore style:master-page-name 19.501,
-    // ok style:name 19.502,
-    // ignore style:next-style-name 19.503,
-    // ignore style:parent-style-name 19.510,
-    // ignore style:percentage-data-style-name 19.511.
+    // ok style:auto-update 19.467 => ALL
+    // ok style:class 19.470, => ALL
+    // ignore style:data-style-name 19.473, => CELL, CHART
+    // ignore style:default-outlinelevel 19.474, => PARAGRAPH
+    // ok style:display-name 19.476, => ALL
+    // ignore style:family 19.480, => Not mapped as an attribute.
+    // ignore style:list-level 19.499, => PARAGRAPH
+    // ignore style:list-style-name 19.500, => PARAGRAPH
+    // ignore style:master-page-name 19.501, => PARAGRAPH, TABLE
+    // ignore style:name 19.502, => Not mapped as an attribute.
+    // ignore style:next-style-name 19.503, => PARAGRAPH
+    // ok style:parent-style-name 19.510 => ALL
+    // ignore style:percentage-data-style-name 19.511. => PARAGRAPH?
     attr: AttrMap2,
     /// Table style properties
     rowstyle: AttrMap2,
 }
+
+styles_styles!(RowStyle, RowStyleRef);
 
 impl RowStyle {
     /// empty
@@ -61,41 +64,6 @@ impl RowStyle {
             attr: Default::default(),
             rowstyle: Default::default(),
         }
-    }
-
-    /// Reference to the style.
-    pub fn style_ref(&self) -> RowStyleRef {
-        RowStyleRef::from(self.name())
-    }
-
-    /// Origin. Should always be Content.
-    pub fn origin(&self) -> StyleOrigin {
-        self.origin
-    }
-
-    /// Origin. Should always be Content.
-    pub fn set_origin(&mut self, origin: StyleOrigin) {
-        self.origin = origin;
-    }
-
-    /// Usage. Should always be Automatic.
-    pub fn styleuse(&self) -> StyleUse {
-        self.styleuse
-    }
-
-    /// Usage. Should always be Automatic.
-    pub fn set_styleuse(&mut self, styleuse: StyleUse) {
-        self.styleuse = styleuse;
-    }
-
-    /// Name
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Name
-    pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.name = name.into();
     }
 
     /// General attributes.

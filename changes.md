@@ -1,20 +1,25 @@
 # 0.11.0
 
-- Uses icu_locid for localization.
-    - WorkBook::new() now needs a Locale for the workbook. The old behaviour
-      can found as WorkBook::new_empty().
-    - 
+BREAKING: 
+Localization has been added via icu_locid. This leads to a few but central breaks in the api.
 
+- WorkBook::new() now needs a Locale. This obsoletes the call to create_default_styles()
+  which never was really satisfying. The old behaviour can be had with WorkBook::new_empty()
 
+- ValueFormat: set_country(), set_language(), set_script() were replaced with set_locale().
+- ValueFormat: all the format_xxx() functions were a train-wreck and have been
+removed. They were only ever used to write the cell-content in a nicer way. A value
+that is immediately thrown away when the spreadsheet is openend. So I now write the
+same format that is used for the xxx-value attribute anyway.
+- FormatPart: all new_xxx functions removed.
 
+CHANGES:
 
-- Refactoring of ValueFormat.
-  - Moved to directory module format and split up in valueformat, formatpart
-    and builder modules.
-  - ValueFormat::push_xxx replaced with part_xxx which allow for a builder pattern.
-  - FormatPart::new_xxx removed.
-  - builder module contains builders for all nontrivial parts.
-    As almost all part attributes are optional this is a better approach.
+- Overhauled ValueFormat.
+  - All the ValueFormat::push_xxx were broken and missing attributes. 
+    As most of these attributes are optional these functions were replaced
+    with new ValueFormat::part_xxx which return a builder for each pattern.
+  - 
 - Add icu_locid to the dependencies. Used where language/country/script 
   attributes exist.
 - Add locale module that contains localized default formats.
@@ -25,6 +30,9 @@
 
 - Sheet::new() now always needs a name for the sheet.
 
+- All the style attributes are crosschecked with the specification, and a lot
+  of missing ones where added. I only excluded obviously obsolete ones and
+  things that are out of scope. 
 
 
 # 0.10.0

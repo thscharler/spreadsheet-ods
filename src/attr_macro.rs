@@ -33,49 +33,64 @@ macro_rules! styles_styles {
                 self.name = name.into();
             }
 
-            /// Returns the name as a CellStyleRef.
+            /// Returns the name as a style reference.
             fn style_ref(&self) -> <Self as Style>::Ref {
                 <Self as Style>::Ref::from(self.name())
             }
 
-            /// Display name.
-            fn display_name(&self) -> Option<&String> {
-                self.attr.attr("style:display-name")
+            /// The style:auto-update attribute specifies whether styles are automatically updated when the
+            /// formatting properties of an object that has the style assigned to it are changed.
+            /// The defined values for the style:auto-update attribute are:
+            /// * false: a change to a formatting property is applied for the object where the change was
+            /// made. If necessary, a new automatic style will be created which is applied to the object where
+            /// the change was made.
+            /// * true: a change to a formatting property results in the updating of the common style that is
+            /// applied to an object. The formatting change is applied to all objects subject to the common
+            /// style where the change was made.
+            /// The default value for this attribute is false.
+            fn set_auto_update(&mut self, auto: bool) {
+                self.attr.set_attr("style:auto-update", auto.to_string());
             }
 
-            /// Display name.
-            fn set_display_name<S: Into<String>>(&mut self, name: S) {
-                self.attr.set_attr("style:display-name", name.into());
-            }
-
-            /// The parent style this derives from.
-            fn parent_style(&self) -> Option<<Self as Style>::Ref> {
-                self.attr
-                    .attr("style:parent-style-name")
-                    .map(|v| $styleref::from(v))
-            }
-
-            /// The parent style this derives from.
-            fn set_parent_style(&mut self, name: &<Self as Style>::Ref) {
-                self.attr
-                    .set_attr("style:parent-style-name", name.to_string());
-            }
-
-            fn class(&self) -> Option<&String> {
-                self.attr.attr("style:class")
-            }
-
+            /// The style:class attribute specifies a style class name.
+            /// A style may belong to an arbitrary class of styles. The style class name is an arbitrary string. The
+            /// style class name has no meaning within the file format itself, but it can for instance be evaluated
+            /// by user interfaces to show a list of styles where the styles are grouped by its name.
             fn set_class<S: Into<String>>(&mut self, class: S) {
                 self.attr.set_attr("style:class", class.into());
             }
 
-            fn auto_update(&self) -> Option<bool> {
-                self.attr.attr("style:auto-update").map(|v| v == "true")
+            /// The style:display-name attribute specifies the name of a style as it should appear in the user
+            /// interface. If this attribute is not present, the display name should be the same as the style name.
+            fn set_display_name<S: Into<String>>(&mut self, name: S) {
+                self.attr.set_attr("style:display-name", name.into());
             }
 
-            fn set_auto_update(&mut self, auto: bool) {
-                self.attr.set_attr("style:auto-update", auto.to_string());
+            /// The style:parent-style-name attribute specifies the name of a parent style. The parent
+            /// style cannot be an automatic style and shall exist.
+            /// If a parent style is not specified, the default style which has the same style:family 19.480
+            /// attribute value as the current style is used.
+            fn set_parent_style(&mut self, name: &<Self as Style>::Ref) {
+                self.attr
+                    .set_attr("style:parent-style-name", name.to_string());
             }
+        }
+    };
+}
+
+macro_rules! styles_master_page {
+    ($acc:ident) => {
+        /// The style:master-page-name attribute defines a master page for a paragraph or table style.
+        /// This applies to automatic and common styles.
+        ///
+        /// If this attribute is associated with a style, a page break is inserted when the style is applied and
+        /// the specified master page is applied to the resulting page.
+        ///
+        /// This attribute is ignored if it is associated with a paragraph style that is applied to a paragraph
+        /// within a table.
+        pub fn set_master_page(&mut self, masterpage: &MasterPageRef) {
+            self.$acc()
+                .set_attr("style:master-page-name", masterpage.to_string());
         }
     };
 }
@@ -1245,99 +1260,18 @@ macro_rules! style_number_lines {
     };
 }
 
-// ok fo:background-color 20.182,
-// ok fo:color 20.187,
+macro_rules! fo_color {
+    ($acc:ident) => {
+        /// See §7.17.1 of [XSL].
+        /// In the OpenDocument XSL-compatible namespace, the fo:color attribute does not support the
+        /// inherit value.
+        pub fn set_color(&mut self, color: Rgb<u8>) {
+            self.$acc().set_attr("fo:color", color_string(color));
+        }
+    };
+}
 
-// ** Kind of a switch for the group of attributes used. I don't understand what
-// ** this is for, ignored for now.
-// ignore style:script-type 20.358,
-
-// ok fo:country 20.188,
-// ok fo:language 20.202,
-// ok fo:script 20.222,
-// obsolete style:font-charset 20.268,
-// obsolete fo:font-family 20.189,
-// obsolete style:font-family-generic 20.273,
-// ok style:font-name 20.277,
-// obsolete style:fontpitch 20.280,
-// ok fo:fontsize 20.190,
-// ok style:font-size-rel 20.286,
-// ok fo:font-style 20.191,
-// obsolete style:font-style-name 20.291,
-// ok fo:font-weight 20.193,
-// obsolete style:rfc-language-tag 20.343,
-// ok fo:font-variant 20.192,
-
-// ok style:country-asian 20.256,
-// ok style:language-asian 20.302,
-// ok style:script-asian 20.356,
-// obsolete style:font-charset-asian 20.269,
-// obsolete style:font-family-asian 20.271,
-// obsolete style:font-family-generic-asian 20.274,
-// ok style:font-name-asian 20.278,
-// obsolete style:font-pitch-asian 20.281,
-// ok style:font-size-asian 20.284,
-// ok style:font-size-rel-asian 20.287,
-// ok style:font-style-asian 20.289,
-// obsolete style:fontstyle-name-asian 20.292,
-// ok style:fontweight-asian 20.294,
-// obsolete style:rfc-language-tag-asian 20.344,
-
-// ok style:country-complex 20.257,
-// ok style:language-complex 20.303,
-// ok style:script-complex 20.357,
-// obsolete style:font-charset-complex 20.270,
-// obsolete style:font-family-complex 20.272,
-// obsolete style:font-family-generic-complex 20.275,
-// ok style:font-name-complex 20.279,
-// obsolete style:font-pitch-complex 20.282,
-// ok style:font-size-complex 20.285,
-// ok style:font-size-rel-complex 20.288,
-// ok style:font-style-complex 20.290,
-// obsolete style:font-style-name-complex 20.293,
-// ok style:font-weight-complex 20.295,
-// obsolete style:rfclanguage-tag-complex 20.345,
-
-// ok fo:hyphenate 20.195,
-// ok fo:hyphenation-push-char-count 20.198,
-// ok fo:hyphenation-remain-char-count 20.199,
-// ok fo:letter-spacing 20.203,
-// ok fo:text-shadow 20.226,
-// ok fo:text-transform 20.227,
-// ok style:font-relief 20.283,
-// ok style:letter-kerning 20.316,
-// never style:text-blinking 20.366,
-// ok style:text-combine 20.367,
-// ok style:text-combine-end-char 20.369,
-// ok style:text-combine-start-char 20.368,
-// ok style:text-emphasize 20.370,
-// ok style:text-line-through-color 20.371,
-// ok style:text-line-through-mode 20.372,
-// ok style:text-line-through-style 20.373,
-// ok style:text-line-through-text 20.374,
-// ok style:text-line-through-text-style 20.375,
-// ok style:text-line-through-type 20.376,
-// ok style:text-line-through-width 20.377,
-// ok style:text-outline 20.378,
-// ok style:text-overline-color 20.379,
-// ok style:text-overline-mode 20.380,
-// ok style:text-overline-style 20.381,
-// ok style:text-overline-type 20.382,
-// ok style:text-overline-width 20.383,
-// ok style:text-position 20.384,
-// ok style:text-rotation-angle 20.385,
-// ok style:text-rotation-scale 20.386,
-// ok style:text-scale 20.387,
-// ok style:text-underline-color 20.388,
-// ok style:text-underline-mode 20.389,
-// ok style:text-underline-style 20.390,
-// ok style:text-underline-type 20.391,
-// ok style:text-underline-width 20.392,
-// ok style:use-window-font-color 20.395,
-// ok text:condition 20.426,
-// ok text:display 20.427.
-
-macro_rules! text_locale {
+macro_rules! fo_locale {
     ($acc:ident) => {
         /// Sets the attributes for fo:language, fo:country and fo:script
         /// to the given locale.
@@ -1366,15 +1300,8 @@ macro_rules! text_locale {
     };
 }
 
-macro_rules! text {
+macro_rules! style_font_name {
     ($acc:ident) => {
-        /// See §7.17.1 of [XSL].
-        /// In the OpenDocument XSL-compatible namespace, the fo:color attribute does not support the
-        /// inherit value.
-        pub fn set_color(&mut self, color: Rgb<u8>) {
-            self.$acc().set_attr("fo:color", color_string(color));
-        }
-
         // LATIN
 
         /// The style:font-name attribute specifies a font that is declared by a <style:font-face>
@@ -1385,7 +1312,11 @@ macro_rules! text {
         pub fn set_font_name<S: Into<String>>(&mut self, name: S) {
             self.$acc().set_attr("style:font-name", name.into());
         }
+    };
+}
 
+macro_rules! fo_font_size {
+    ($acc:ident) => {
         /// See §7.8.4 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
         /// The value of this attribute is either an absolute length or a percentage as described in §7.8.4 of
@@ -1405,7 +1336,10 @@ macro_rules! text {
         pub fn set_font_size_percent(&mut self, size: f64) {
             self.$acc().set_attr("fo:font-size", percent_string(size));
         }
-
+    };
+}
+macro_rules! fo_font_size_rel {
+    ($acc:ident) => {
         /// The style:font-size-rel attribute specifies a relative font size change.
         /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
@@ -1419,7 +1353,11 @@ macro_rules! text {
             self.$acc()
                 .set_attr("fo:font-size-rel", percent_string(size));
         }
+    };
+}
 
+macro_rules! fo_font_style {
+    ($acc:ident) => {
         /// See §7.8.7 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
         pub fn set_font_style(&mut self, style: FontStyle) {
@@ -1430,7 +1368,11 @@ macro_rules! text {
         pub fn set_font_italic(&mut self) {
             self.$acc().set_attr("fo:font-style", "italic".to_string());
         }
+    };
+}
 
+macro_rules! fo_font_weight {
+    ($acc:ident) => {
         /// See §7.8.9 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
         pub fn set_font_weight(&mut self, weight: FontWeight) {
@@ -1442,12 +1384,20 @@ macro_rules! text {
             self.$acc()
                 .set_attr("fo:font-weight", FontWeight::Bold.to_string());
         }
+    };
+}
 
+macro_rules! fo_font_variant {
+    ($acc:ident) => {
         /// See §7.8.8 of [XSL].
         pub fn set_font_variant(&mut self, var: FontVariant) {
             self.$acc().set_attr("fo:font-variant", var.to_string());
         }
+    };
+}
 
+macro_rules! fo_font_attr {
+    ($acc:ident) => {
         /// Combined font attributes.
         pub fn set_font_attr(&mut self, size: Length, bold: bool, italic: bool) {
             self.set_font_size(size);
@@ -1458,9 +1408,11 @@ macro_rules! text {
                 self.set_font_italic();
             }
         }
+    };
+}
 
-        // ASIAN
-
+macro_rules! style_locale_asian {
+    ($acc:ident) => {
         /// Sets the attributes for fo:language, fo:country and fo:script
         /// to the given locale.
         ///
@@ -1486,7 +1438,11 @@ macro_rules! text {
                 self.attr.clear_attr("style:script-asian");
             }
         }
+    };
+}
 
+macro_rules! style_font_name_asian {
+    ($acc:ident) => {
         /// The style:font-name attribute specifies a font that is declared by a <style:font-face>
         /// 16.23 element with a style:name 19.502 attribute whose name is the same as that of the
         /// style:font-name attribute value.
@@ -1495,7 +1451,11 @@ macro_rules! text {
         pub fn set_font_name_asian<S: Into<String>>(&mut self, name: S) {
             self.$acc().set_attr("style:font-name-asian", name.into());
         }
+    };
+}
 
+macro_rules! style_font_size_asian {
+    ($acc:ident) => {
         /// See §7.8.4 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
         /// The value of this attribute is either an absolute length or a percentage as described in §7.8.4 of
@@ -1517,7 +1477,11 @@ macro_rules! text {
             self.$acc()
                 .set_attr("style:font-size-asian", percent_string(size));
         }
+    };
+}
 
+macro_rules! style_font_size_rel_asian {
+    ($acc:ident) => {
         /// The style:font-size-rel attribute specifies a relative font size change.
         /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
@@ -1532,7 +1496,11 @@ macro_rules! text {
             self.$acc()
                 .set_attr("style:font-size-rel-asian", percent_string(size));
         }
+    };
+}
 
+macro_rules! style_font_style_asian {
+    ($acc:ident) => {
         /// See §7.8.7 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
         pub fn set_font_style_asian(&mut self, style: FontStyle) {
@@ -1545,20 +1513,28 @@ macro_rules! text {
             self.$acc()
                 .set_attr("style:font-style-asian", "italic".to_string());
         }
+    };
+}
 
+macro_rules! style_font_weight_asian {
+    ($acc:ident) => {
         /// See §7.8.9 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
         pub fn set_font_weight_asian(&mut self, weight: FontWeight) {
             self.$acc()
-                .set_attr("style:fontweight-asian", weight.to_string());
+                .set_attr("style:font-weight-asian", weight.to_string());
         }
 
         /// Sets the font-weight to bold. See set_font_weight.
         pub fn set_font_bold_asian(&mut self) {
             self.$acc()
-                .set_attr("style:fontweight-asian", FontWeight::Bold.to_string());
+                .set_attr("style:font-weight-asian", FontWeight::Bold.to_string());
         }
+    };
+}
 
+macro_rules! style_font_attr_asian {
+    ($acc:ident) => {
         /// Combined font attributes.
         pub fn set_font_attr_asian(&mut self, size: Length, bold: bool, italic: bool) {
             self.set_font_size_asian(size);
@@ -1569,9 +1545,11 @@ macro_rules! text {
                 self.set_font_italic_asian();
             }
         }
+    };
+}
 
-        // COMPLEX
-
+macro_rules! style_locale_complex {
+    ($acc:ident) => {
         /// Sets the attributes for fo:language, fo:country and fo:script
         /// to the given locale.
         ///
@@ -1598,7 +1576,11 @@ macro_rules! text {
                 self.attr.clear_attr("style:script-complex");
             }
         }
+    };
+}
 
+macro_rules! style_font_name_complex {
+    ($acc:ident) => {
         /// The style:font-name attribute specifies a font that is declared by a <style:font-face>
         /// 16.23 element with a style:name 19.502 attribute whose name is the same as that of the
         /// style:font-name attribute value.
@@ -1607,7 +1589,11 @@ macro_rules! text {
         pub fn set_font_name_complex<S: Into<String>>(&mut self, name: S) {
             self.$acc().set_attr("style:font-name-complex", name.into());
         }
+    };
+}
 
+macro_rules! style_font_size_complex {
+    ($acc:ident) => {
         /// See §7.8.4 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
         /// The value of this attribute is either an absolute length or a percentage as described in §7.8.4 of
@@ -1629,7 +1615,10 @@ macro_rules! text {
             self.$acc()
                 .set_attr("style:font-size-complex", percent_string(size));
         }
-
+    };
+}
+macro_rules! style_font_size_rel_complex {
+    ($acc:ident) => {
         /// The style:font-size-rel attribute specifies a relative font size change.
         /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
@@ -1644,7 +1633,10 @@ macro_rules! text {
             self.$acc()
                 .set_attr("style:font-size-rel-complex", percent_string(size));
         }
-
+    };
+}
+macro_rules! style_font_style_complex {
+    ($acc:ident) => {
         /// See §7.8.7 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
         pub fn set_font_style_complex(&mut self, style: FontStyle) {
@@ -1658,7 +1650,11 @@ macro_rules! text {
             self.$acc()
                 .set_attr("style:font-style-complex", "italic".to_string());
         }
+    };
+}
 
+macro_rules! style_font_weight_complex {
+    ($acc:ident) => {
         /// See §7.8.9 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
         pub fn set_font_weight_complex(&mut self, weight: FontWeight) {
@@ -1671,7 +1667,11 @@ macro_rules! text {
             self.$acc()
                 .set_attr("style:font-weight-complex", FontWeight::Bold.to_string());
         }
+    };
+}
 
+macro_rules! style_font_attr_complex {
+    ($acc:ident) => {
         /// Combined font attributes.
         pub fn set_font_attr_complex(&mut self, size: Length, bold: bool, italic: bool) {
             self.set_font_size_complex(size);
@@ -1682,26 +1682,40 @@ macro_rules! text {
                 self.set_font_italic_complex();
             }
         }
+    };
+}
 
-        // Other stuff.
-
+macro_rules! fo_hyphenate {
+    ($acc:ident) => {
         /// See §7.9.4 of [XSL].
         pub fn set_hyphenate(&mut self, hyphenate: bool) {
             self.$acc().set_attr("fo:hyphenate", hyphenate.to_string());
         }
+    };
+}
 
+macro_rules! fo_hyphenation_push_char_count {
+    ($acc:ident) => {
         /// See §7.10.6 of [XSL]
-        pub fn hyphenation_push_char_count(&mut self, count: u32) {
+        pub fn set_hyphenation_push_char_count(&mut self, count: u32) {
             self.$acc()
                 .set_attr("fo:hyphenation-push-char-count", count.to_string());
         }
+    };
+}
 
+macro_rules! fo_hyphenation_remain_char_count {
+    ($acc:ident) => {
         /// See §7.10.7 of [XSL]
-        pub fn hyphenation_remain_char_count(&mut self, count: u32) {
+        pub fn set_hyphenation_remain_char_count(&mut self, count: u32) {
             self.$acc()
                 .set_attr("fo:hyphenation-remain-char-count", count.to_string());
         }
+    };
+}
 
+macro_rules! fo_letter_spacing {
+    ($acc:ident) => {
         /// See §7.16.2 of [XSL].
         /// Sets the letter spacing.
         pub fn set_letter_spacing(&mut self, spacing: Length) {
@@ -1714,7 +1728,11 @@ macro_rules! text {
             self.$acc()
                 .set_attr("fo:letter-spacing", "normal".to_string());
         }
+    };
+}
 
+macro_rules! fo_text_shadow {
+    ($acc:ident) => {
         /// The fo:text-shadow attribute specifies the text shadow style to use.
         pub fn set_text_shadow(
             &mut self,
@@ -1728,7 +1746,11 @@ macro_rules! text {
                 shadow_string(x_offset, y_offset, blur, color),
             );
         }
+    };
+}
 
+macro_rules! fo_text_transform {
+    ($acc:ident) => {
         /// See §7.16.6 of [XSL].
         /// If fo:text-transform and fo:font-variant 20.192 attributes are used simultaneously and
         /// have different values than normal and none, the result is undefined.
@@ -1737,7 +1759,11 @@ macro_rules! text {
         pub fn set_text_transform(&mut self, trans: TextTransform) {
             self.$acc().set_attr("fo:text-transform", trans.to_string());
         }
+    };
+}
 
+macro_rules! style_font_relief {
+    ($acc:ident) => {
         /// The style:font-relief attribute specifies whether a font should be embossed, engraved, or
         /// neither.
         /// The defined values for the style:font-relief attribute are:
@@ -1748,7 +1774,11 @@ macro_rules! text {
             self.$acc()
                 .set_attr("style:font-relief", relief.to_string());
         }
+    };
+}
 
+macro_rules! style_text_position {
+    ($acc:ident) => {
         /// The style:text-position attribute specifies whether text is positioned above or below the
         /// baseline and to specify the relative font height that is used for this text.
         /// This attribute can have one or two values.
@@ -1763,14 +1793,22 @@ macro_rules! text {
             self.$acc()
                 .set_attr("style:text-position", text_position(pos, scale));
         }
+    };
+}
 
+macro_rules! style_letter_kerning {
+    ($acc:ident) => {
         /// The style:letter-kerning attribute specifies whether kerning between characters is enabled
         /// or disabled.
         pub fn set_letter_kerning(&mut self, kerning: bool) {
             self.$acc()
                 .set_attr("style:letter-kerning", kerning.to_string());
         }
+    };
+}
 
+macro_rules! style_text_combine {
+    ($acc:ident) => {
         /// The style:text-combine attribute specifies whether to combine characters so that they are
         /// displayed within two lines.
         ///
@@ -1785,21 +1823,33 @@ macro_rules! text {
         pub fn set_text_combine(&mut self, pos: TextCombine) {
             self.$acc().set_attr("style:text-combine", pos.to_string());
         }
+    };
+}
 
+macro_rules! style_text_combine_start_char {
+    ($acc:ident) => {
         /// The style:text-combine-start-char attribute specifies the start character that is displayed
         /// before a portion of text whose style:text-combine 20.367 attribute has a value of lines.
         pub fn set_text_combine_start_char(&mut self, c: char) {
             self.$acc()
                 .set_attr("style:text-combine-start-char", c.to_string());
         }
+    };
+}
 
+macro_rules! style_text_combine_end_char {
+    ($acc:ident) => {
         /// The style:text-combine-end-char attribute specifies the end character that is displayed
         /// after a portion of text whose style:text-combine 20.367 attribute has a value of lines.
         pub fn set_text_combine_end_char(&mut self, c: char) {
             self.$acc()
                 .set_attr("style:text-combine-end-char", c.to_string());
         }
+    };
+}
 
+macro_rules! style_text_emphasize {
+    ($acc:ident) => {
         /// The style:text-emphasize attribute specifies emphasis in a text composed of [UNICODE]
         /// characters whose script type is asian. 20.358
         /// The value of this attribute consists of two white space-separated values.
@@ -1816,12 +1866,16 @@ macro_rules! text {
             self.$acc()
                 .set_attr("style:text-emphasize", emphasize.to_string());
         }
+    };
+}
 
+macro_rules! style_text_line_through {
+    ($acc:ident) => {
         /// The style:text-line-through-color attribute specifies the color that is used for linethrough text.
         /// The defined values for the style:text-line-through-color attribute are:
         /// * font-color: current text color is used for underlining.
         /// * a value of type color 18.3.9
-        pub fn set_font_line_through_color(&mut self, color: Rgb<u8>) {
+        pub fn set_text_line_through_color(&mut self, color: Rgb<u8>) {
             self.$acc()
                 .set_attr("style:text-line-through-color", color_string(color));
         }
@@ -1831,7 +1885,7 @@ macro_rules! text {
         /// The defined values for the style:text-line-through-mode attribute are:
         /// * continuous: lining is applied to words and separating spaces.
         /// * skip-white-space: lining is not applied to spaces between words.
-        pub fn set_font_line_through_mode(&mut self, lmode: LineMode) {
+        pub fn set_text_line_through_mode(&mut self, lmode: LineMode) {
             self.$acc()
                 .set_attr("style:text-line-through-mode", lmode.to_string());
         }
@@ -1851,7 +1905,7 @@ macro_rules! text {
         /// * wave: text has a wavy line through it.
         /// Note: The definitions of the values of the style:text-line-through-style attribute are
         /// based on the text decoration style 'text-line-through-style' from [CSS3Text], §9.2.
-        pub fn set_font_line_through_style(&mut self, lstyle: LineStyle) {
+        pub fn set_text_line_through_style(&mut self, lstyle: LineStyle) {
             self.$acc()
                 .set_attr("style:text-line-through-style", lstyle.to_string());
         }
@@ -1868,7 +1922,7 @@ macro_rules! text {
         /// than one character. Consumers that support line-through with specific characters only (like ”x” or
         /// ”/” (U+002F, SOLIDUS) should use one of these characters if the attribute specifies characters
         /// that are not supported.
-        pub fn set_font_line_through_text<S: Into<String>>(&mut self, text: S) {
+        pub fn set_text_line_through_text<S: Into<String>>(&mut self, text: S) {
             self.$acc()
                 .set_attr("style:text-line-through-text", text.into());
         }
@@ -1878,7 +1932,7 @@ macro_rules! text {
         /// appears in an automatic style, it may reference either an automatic text style or a
         /// common style. If the attribute appears in a common style, it may reference a common
         /// style only.
-        pub fn set_font_line_through_text_style(&mut self, style_ref: TextStyleRef) {
+        pub fn set_text_line_through_text_style(&mut self, style_ref: TextStyleRef) {
             self.$acc()
                 .set_attr("style:text-line-through-text-style", style_ref.to_string());
         }
@@ -1893,7 +1947,7 @@ macro_rules! text {
         /// by an occurrence of the style:text-line-through-style 20.373 attribute on the same
         /// element. There should not be an occurrence of the style:text-line-through-type attribute
         /// if the value of the style:text-line-through-sty
-        pub fn set_font_line_through_type(&mut self, ltype: LineType) {
+        pub fn set_text_line_through_type(&mut self, ltype: LineType) {
             self.$acc()
                 .set_attr("style:text-line-through-type", ltype.to_string());
         }
@@ -1912,44 +1966,52 @@ macro_rules! text {
         /// The line-through text styles referenced by the values dash, medium, thick and thin, are
         /// implementation-defined. Thin shall be smaller width than medium and medium shall be a smaller
         /// width than thick.
-        pub fn set_font_line_through_width(&mut self, lwidth: LineWidth) {
+        pub fn set_text_line_through_width(&mut self, lwidth: LineWidth) {
             self.$acc()
                 .set_attr("style:text-line-through-width", lwidth.to_string());
         }
+    };
+}
 
+macro_rules! style_text_outline {
+    ($acc:ident) => {
         /// The style:text-outline attribute specifies whether to display an
         /// outline of text or the text itself.
         pub fn set_font_text_outline(&mut self, outline: bool) {
             self.$acc()
                 .set_attr("style:text-outline", outline.to_string());
         }
+    };
+}
 
+macro_rules! style_text_overline {
+    ($acc:ident) => {
         /// The style:text-overline-color attribute specifies a color that is
         /// used to overline text.
         ///
         /// The defined values for the style:text-overline-color attribute are:
         /// * font-color: the current text color is used for overlining.
         /// * a value of type color
-        pub fn set_font_overline_color(&mut self, color: Rgb<u8>) {
+        pub fn set_text_overline_color(&mut self, color: Rgb<u8>) {
             self.$acc()
                 .set_attr("style:text-overline-color", color_string(color));
         }
 
         /// The style:text-overline-mode attribute specifies whether overlining is applied to words
         /// only or to portions of text.
-        pub fn set_font_overline_mode(&mut self, lmode: LineMode) {
+        pub fn set_text_overline_mode(&mut self, lmode: LineMode) {
             self.$acc()
                 .set_attr("style:text-overline-mode", lmode.to_string());
         }
 
         /// The style:text-overline-style attribute specifies a style for rendering a line over text.
-        pub fn set_font_overline_style(&mut self, lstyle: LineStyle) {
+        pub fn set_text_overline_style(&mut self, lstyle: LineStyle) {
             self.$acc()
                 .set_attr("style:text-overline-style", lstyle.to_string());
         }
 
         /// The style:text-overline-type attribute specifies the type of overlining applied to a text.
-        pub fn set_font_overline_type(&mut self, ltype: LineType) {
+        pub fn set_text_overline_type(&mut self, ltype: LineType) {
             self.$acc()
                 .set_attr("style:text-overline-type", ltype.to_string());
         }
@@ -1957,16 +2019,20 @@ macro_rules! text {
         /// The style:text-overline-width attribute specifies the width of an overline. The value bold
         /// specifies a line width that is calculated from the font sizes like an auto width, but is wider than an
         /// auto width.
-        pub fn set_font_overline_width(&mut self, lwidth: LineWidth) {
+        pub fn set_text_overline_width(&mut self, lwidth: LineWidth) {
             self.$acc()
                 .set_attr("style:text-overline-width", lwidth.to_string());
         }
+    };
+}
 
+macro_rules! style_text_underline {
+    ($acc:ident) => {
         /// The style:text-underline-color attribute specifies a color that is used to underline text.
         /// The defined values for the style:text-underline-color attribute are:
         /// * font-color: the current text color is used for underlining.
         /// * a value of type color: the color to be used for underlining.
-        pub fn set_font_underline_color(&mut self, color: Rgb<u8>) {
+        pub fn set_text_underline_color(&mut self, color: Rgb<u8>) {
             self.$acc()
                 .set_attr("style:text-underline-color", color_string(color));
         }
@@ -1974,19 +2040,19 @@ macro_rules! text {
         /// The style:text-underline-mode attribute specifies whether underlining is applied to words
         /// only or to portions of text. If underlining is applied to text portions, the spaces between words and
         /// the words are underlined.
-        pub fn set_font_underline_mode(&mut self, lmode: LineMode) {
+        pub fn set_text_underline_mode(&mut self, lmode: LineMode) {
             self.$acc()
                 .set_attr("style:text-underline-mode", lmode.to_string());
         }
 
         /// The style:text-underline-style attribute specifies a style for underlining text
-        pub fn set_font_underline_style(&mut self, lstyle: LineStyle) {
+        pub fn set_text_underline_style(&mut self, lstyle: LineStyle) {
             self.$acc()
                 .set_attr("style:text-underline-style", lstyle.to_string());
         }
 
         /// The style:text-underline-type attribute specifies the type of underlining applied to a text
-        pub fn set_font_underline_type(&mut self, ltype: LineType) {
+        pub fn set_text_underline_type(&mut self, ltype: LineType) {
             self.$acc()
                 .set_attr("style:text-underline-type", ltype.to_string());
         }
@@ -1994,11 +2060,15 @@ macro_rules! text {
         /// The style:text-underline-width attribute specifies the width of an underline. The value
         /// bold specifies a line width that is calculated from the font sizes like an auto width, but is wider
         /// than an auto width.
-        pub fn set_font_underline_width(&mut self, lwidth: LineWidth) {
+        pub fn set_text_underline_width(&mut self, lwidth: LineWidth) {
             self.$acc()
                 .set_attr("style:text-underline-width", lwidth.to_string());
         }
+    };
+}
 
+macro_rules! style_use_window_font_color {
+    ($acc:ident) => {
         /// The style:use-window-font-color attribute specifies whether the window foreground color
         /// should be used as the foreground color for a light background color and white for a dark
         /// background color. The determination of light or dark color is implementation-defined.
@@ -2006,13 +2076,21 @@ macro_rules! text {
             self.$acc()
                 .set_attr("style:use-window-font-color", window_color.to_string());
         }
+    };
+}
 
+macro_rules! text_condition {
+    ($acc:ident) => {
         /// The text:condition attribute specifies the display of text.
         /// The defined value of the text:condition attribute is none, which means text is hidden.
         pub fn set_text_condition(&mut self, cond: TextCondition) {
             self.$acc().set_attr("text:condition", cond.to_string());
         }
+    };
+}
 
+macro_rules! text_display {
+    ($acc:ident) => {
         /// The text:display attribute specifies whether text is hidden.
         /// The defined values for the text:display attribute are:
         /// * condition: text is hidden under the condition specified in the text:condition 20.426

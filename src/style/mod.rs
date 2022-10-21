@@ -139,6 +139,7 @@ mod textstyle;
 /// specific rules, a default style 16.4 that has the same family as the style initially declared sets the
 /// value. If a value has not been found by these steps, but this specification defines a default value,
 /// then this default value is used. In all remaining cases an implementation-dependent value is used.
+// TODO: Is this good for anything?
 pub trait Style {
     /// Type of the Style-Reference.
     type Ref;
@@ -179,27 +180,18 @@ pub trait Style {
 
     /// The style:display-name attribute specifies the name of a style as it should appear in the user
     /// interface. If this attribute is not present, the display name should be the same as the sty
-    fn display_name(&self) -> Option<&String>;
-
-    /// Display name.
     fn set_display_name<S: Into<String>>(&mut self, name: S);
 
     /// The style:parent-style-name attribute specifies the name of a parent style. The parent
     /// style cannot be an automatic style and shall exist.
     /// If a parent style is not specified, the default style which has the same style:family 19.480
     /// attribute value as the current style is used.
-    fn parent_style(&self) -> Option<<Self as Style>::Ref>;
-
-    /// Parent style.
     fn set_parent_style(&mut self, name: &<Self as Style>::Ref);
 
     /// The style:class attribute specifies a style class name.
     /// A style may belong to an arbitrary class of styles. The style class name is an arbitrary string. The
     /// style class name has no meaning within the file format itself, but it can for instance be evaluated
     /// by user interfaces to show a list of styles where the styles are grouped by its name.
-    fn class(&self) -> Option<&String>;
-
-    /// Class.
     fn set_class<S: Into<String>>(&mut self, class: S);
 
     /// The style:auto-update attribute specifies whether styles are automatically updated when the
@@ -212,9 +204,6 @@ pub trait Style {
     /// applied to an object. The formatting change is applied to all objects subject to the common
     /// style where the change was made.
     /// The default value for this attribute is false.
-    fn auto_update(&self) -> Option<bool>;
-
-    /// Sets the auto-update flag.
     fn set_auto_update(&mut self, auto: bool);
 }
 

@@ -1,0 +1,236 @@
+
+// Text attributes.
+
+// ok fo:background-color 20.182,
+// ok fo:color 20.187,
+
+// ** Kind of a switch for the group of attributes used. I don't understand what
+// ** this is for, ignored for now.
+// ignore style:script-type 20.358,
+
+// ok fo:country 20.188,
+// ok fo:language 20.202,
+// ok fo:script 20.222,
+// obsolete style:font-charset 20.268,
+// obsolete fo:font-family 20.189,
+// obsolete style:font-family-generic 20.273,
+// ok style:font-name 20.277,
+// obsolete style:fontpitch 20.280,
+// ok fo:fontsize 20.190,
+// ok style:font-size-rel 20.286,
+// ok fo:font-style 20.191,
+// obsolete style:font-style-name 20.291,
+// ok fo:font-weight 20.193,
+// obsolete style:rfc-language-tag 20.343,
+// ok fo:font-variant 20.192,
+// ok style:country-asian 20.256,
+// ok style:language-asian 20.302,
+// ok style:script-asian 20.356,
+// obsolete style:font-charset-asian 20.269,
+// obsolete style:font-family-asian 20.271,
+// obsolete style:font-family-generic-asian 20.274,
+// ok style:font-name-asian 20.278,
+// obsolete style:font-pitch-asian 20.281,
+// ok style:font-size-asian 20.284,
+// ok style:font-size-rel-asian 20.287,
+// ok style:font-style-asian 20.289,
+// obsolete style:fontstyle-name-asian 20.292,
+// ok style:fontweight-asian 20.294,
+// obsolete style:rfc-language-tag-asian 20.344,
+// ok style:country-complex 20.257,
+// ok style:language-complex 20.303,
+// ok style:script-complex 20.357,
+// obsolete style:font-charset-complex 20.270,
+// obsolete style:font-family-complex 20.272,
+// obsolete style:font-family-generic-complex 20.275,
+// ok style:font-name-complex 20.279,
+// obsolete style:font-pitch-complex 20.282,
+// ok style:font-size-complex 20.285,
+// ok style:font-size-rel-complex 20.288,
+// ok style:font-style-complex 20.290,
+// obsolete style:font-style-name-complex 20.293,
+// ok style:font-weight-complex 20.295,
+// obsolete style:rfclanguage-tag-complex 20.345,
+// ok fo:hyphenate 20.195,
+// ok fo:hyphenation-push-char-count 20.198,
+// ok fo:hyphenation-remain-char-count 20.199,
+// ok fo:letter-spacing 20.203,
+// ok fo:text-shadow 20.226,
+// ok fo:text-transform 20.227,
+// ok style:font-relief 20.283,
+// ok style:letter-kerning 20.316,
+// never style:text-blinking 20.366,
+// ok style:text-combine 20.367,
+// ok style:text-combine-end-char 20.369,
+// ok style:text-combine-start-char 20.368,
+// ok style:text-emphasize 20.370,
+// ok style:text-line-through-color 20.371,
+// ok style:text-line-through-mode 20.372,
+// ok style:text-line-through-style 20.373,
+// ok style:text-line-through-text 20.374,
+// ok style:text-line-through-text-style 20.375,
+// ok style:text-line-through-type 20.376,
+// ok style:text-line-through-width 20.377,
+// ok style:text-outline 20.378,
+// ok style:text-overline-color 20.379,
+// ok style:text-overline-mode 20.380,
+// ok style:text-overline-style 20.381,
+// ok style:text-overline-type 20.382,
+// ok style:text-overline-width 20.383,
+// ok style:text-position 20.384,
+// ok style:text-rotation-angle 20.385,
+// ok style:text-rotation-scale 20.386,
+// ok style:text-scale 20.387,
+// ok style:text-underline-color 20.388,
+// ok style:text-underline-mode 20.389,
+// ok style:text-underline-style 20.390,
+// ok style:text-underline-type 20.391,
+// ok style:text-underline-width 20.392,
+// ok style:use-window-font-color 20.395,
+// ok text:condition 20.426,
+// ok text:display 20.427.
+
+    fo_background_color!(textstyle_mut);
+    fo_color!(textstyle_mut);
+    fo_locale!(textstyle_mut);
+    style_font_name!(textstyle_mut);
+    fo_font_size!(textstyle_mut);
+    fo_font_size_rel!(textstyle_mut);
+    fo_font_style!(textstyle_mut);
+    fo_font_weight!(textstyle_mut);
+    fo_font_variant!(textstyle_mut);
+    fo_font_attr!(textstyle_mut);
+    style_locale_asian!(textstyle_mut);
+    style_font_name_asian!(textstyle_mut);
+    style_font_size_asian!(textstyle_mut);
+    style_font_size_rel_asian!(textstyle_mut);
+    style_font_style_asian!(textstyle_mut);
+    style_font_weight_asian!(textstyle_mut);
+    style_font_attr_asian!(textstyle_mut);
+    style_locale_complex!(textstyle_mut);
+    style_font_name_complex!(textstyle_mut);
+    style_font_size_complex!(textstyle_mut);
+    style_font_size_rel_complex!(textstyle_mut);
+    style_font_style_complex!(textstyle_mut);
+    style_font_weight_complex!(textstyle_mut);
+    style_font_attr_complex!(textstyle_mut);
+    fo_hyphenate!(textstyle_mut);
+    fo_hyphenation_push_char_count!(textstyle_mut);
+    fo_hyphenation_remain_char_count!(textstyle_mut);
+    fo_letter_spacing!(textstyle_mut);
+    fo_text_shadow!(textstyle_mut);
+    fo_text_transform!(textstyle_mut);
+    style_font_relief!(textstyle_mut);
+    style_text_position!(textstyle_mut);
+    style_rotation_angle!(textstyle_mut);
+    style_rotation_scale!(textstyle_mut);
+    style_letter_kerning!(textstyle_mut);
+    style_text_combine!(textstyle_mut);
+    style_text_combine_start_char!(textstyle_mut);
+    style_text_combine_end_char!(textstyle_mut);
+    style_text_emphasize!(textstyle_mut);
+    style_text_line_through!(textstyle_mut);
+    style_text_outline!(textstyle_mut);
+    style_text_overline!(textstyle_mut);
+    style_text_underline!(textstyle_mut);
+    style_use_window_font_color!(textstyle_mut);
+    text_condition!(textstyle_mut);
+    text_display!(textstyle_mut);
+
+
+
+// Paragraph attributes.
+
+// ok fo:background-color 20.182,
+// ok fo:border 20.183.2,
+// ok fo:border-bottom 20.183.3,
+// ok fo:border-left 20.183.4,
+// ok fo:border-right 20.183.5,
+// ok fo:border-top 20.183.6,
+// ok fo:break-after 20.184,
+// ok fo:break-before 20.185,
+// ok fo:hyphenation-keep 20.196,
+// ok fo:hyphenation-ladder-count 20.197,
+// ok fo:keep-together 20.200,
+// ok fo:keep-withnext 20.201,
+// ok fo:line-height 20.204,
+// ok fo:margin 20.205,
+// ok fo:margin-bottom 20.206,
+// ok fo:margin-left 20.207,
+// ok fo:margin-right 20.208,
+// ok fo:margin-top 20.209,
+// ok fo:orphans 20.214,
+// ok fo:padding 20.217,
+// ok fo:padding-bottom 20.218,
+// ok fo:padding-left 20.219,
+// ok fo:padding-right 20.220,
+// ok fo:padding-top 20.221,
+// ok fo:text-align 20.223,
+// ok fo:textalign-last 20.224,
+// ok fo:text-indent 20.225,
+// ok fo:widows 20.228,
+// ok style:auto-textindent 20.246,
+// ok style:background-transparency 20.247,
+// ok style:border-line-width 20.248,
+// ok style:border-line-width-bottom 20.249,
+// ok style:border-line-width-left 20.250,
+// ok style:border-line-width-right 20.251,
+// ok style:border-line-width-top 20.252,
+// ok style:contextual-spacing 20.255,
+// ok style:font-independent-line-spacing 20.276,
+// ok style:join-border 20.300,
+// ok tyle:justify-single-word 20.301,
+// ok style:line-break 20.315,
+// ok style:line-height-at-least 20.317,
+// ok style:linespacing 20.318,
+// ok style:page-number 20.328,
+// ok style:punctuation-wrap 20.335,
+// ok style:register-true 20.336,
+// ok style:shadow 20.359,
+// ok style:snap-to-layout-grid 20.361,
+// ok style:tab-stop-distance 20.362,
+// ok style:text-autospace 20.365,
+// ok style:vertical-align 20.396,
+// ok style:writing-mode 20.404,
+// ok style:writing-modeautomatic 20.405,
+// ok text:line-number 20.430
+// ok text:number-lines 20.434.
+
+    fo_background_color!(paragraphstyle_mut);
+    fo_border!(paragraphstyle_mut);
+    fo_break!(paragraphstyle_mut);
+    fo_hyphenation!(paragraphstyle_mut);
+    fo_keep_together!(paragraphstyle_mut);
+    fo_keep_with_next!(paragraphstyle_mut);
+    fo_line_height!(paragraphstyle_mut);
+    fo_margin!(paragraphstyle_mut);
+    fo_orphans!(paragraphstyle_mut);
+    fo_padding!(paragraphstyle_mut);
+    fo_text_align!(paragraphstyle_mut);
+    fo_text_align_last!(paragraphstyle_mut);
+    fo_text_indent!(paragraphstyle_mut);
+    fo_widows!(paragraphstyle_mut);
+    style_autotext_indent!(paragraphstyle_mut);
+    style_background_transparency!(paragraphstyle_mut);
+    fo_border_line_width!(paragraphstyle_mut);
+    style_contextual_spacing!(paragraphstyle_mut);
+    style_font_independent_line_spacing!(paragraphstyle_mut);
+    style_join_border!(paragraphstyle_mut);
+    style_justify_single_word!(paragraphstyle_mut);
+    style_line_break!(paragraphstyle_mut);
+    style_line_height_at_least!(paragraphstyle_mut);
+    style_line_spacing!(paragraphstyle_mut);
+    style_page_number!(paragraphstyle_mut);
+    style_punctuation_wrap!(paragraphstyle_mut);
+    style_register_true!(paragraphstyle_mut);
+    style_shadow!(paragraphstyle_mut);
+    style_snap_to_layout_grid!(paragraphstyle_mut);
+    style_tab_stop_distance!(paragraphstyle_mut);
+    style_text_autospace!(paragraphstyle_mut);
+    style_vertical_align_para!(paragraphstyle_mut);
+    style_writing_mode!(paragraphstyle_mut);
+    style_writing_mode_automatic!(paragraphstyle_mut);
+    style_line_number!(paragraphstyle_mut);
+    style_number_lines!(paragraphstyle_mut);
+
+
