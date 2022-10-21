@@ -78,7 +78,31 @@ macro_rules! styles_styles {
     };
 }
 
-macro_rules! styles_master_page {
+macro_rules! style_default_outline_level {
+    ($acc:ident) => {
+        /// The style:default-outline-level attribute specifies a default outline level for a style with
+        /// the style:family 19.480 attribute value paragraph.
+        ///
+        /// If the style:default-outline-level attribute is present in a paragraph style, and if this
+        /// paragraph style is assigned to a paragraph or heading by user action, then the consumer should
+        /// replace the paragraph or heading with a heading of the specified level, which has the same
+        /// content and attributes as the original paragraph or heading.
+        ///
+        /// Note: This attribute does not modify the behavior of <text:p> 5.1.3 or
+        /// <text:h> 5.1.2 elements, but only instructs a consumer to create one or the
+        /// other when assigning a paragraph style as a result of user interface action while
+        /// the document is edited.
+        ///
+        /// The style:default-outline-level attribute value can be empty. If empty, this attribute
+        /// does not inherit a list style value from a parent style.
+        pub fn set_default_outline_level(&mut self, level: u32) {
+            self.$acc()
+                .set_attr("style:default-outline-level", level.to_string());
+        }
+    };
+}
+
+macro_rules! style_master_page {
     ($acc:ident) => {
         /// The style:master-page-name attribute defines a master page for a paragraph or table style.
         /// This applies to automatic and common styles.
@@ -91,6 +115,18 @@ macro_rules! styles_master_page {
         pub fn set_master_page(&mut self, masterpage: &MasterPageRef) {
             self.$acc()
                 .set_attr("style:master-page-name", masterpage.to_string());
+        }
+    };
+}
+
+macro_rules! style_next_style {
+    ($acc:ident) => {
+        /// Within styles for paragraphs, style:next-style-name attribute specifies the style to be used
+        /// for the next paragraph if a paragraph break is inserted in the user interface. By default, the current
+        /// style is used as the next style.
+        pub fn set_next_style(&mut self, name: &ParagraphStyleRef) {
+            self.$acc()
+                .set_attr("style:next-style-name", name.to_string());
         }
     };
 }
@@ -878,7 +914,7 @@ macro_rules! fo_widows {
     };
 }
 
-macro_rules! style_autotext_indent {
+macro_rules! style_auto_text_indent {
     ($acc:ident) => {
         /// The style:auto-text-indent attribute specifies that the first line of a paragraph is indented
         /// by a value that is based on the current font size.
@@ -1279,22 +1315,22 @@ macro_rules! fo_locale {
         /// These attributes are evaluated for any [UNICODE] characters whose script type is latin.
         pub fn set_locale(&mut self, locale: Locale) {
             if locale != Locale::UND {
-                self.attr
+                self.$acc()
                     .set_attr("fo:language", locale.id.language.to_string());
                 if let Some(region) = locale.id.region {
-                    self.attr.set_attr("fo:country", region.to_string());
+                    self.$acc().set_attr("fo:country", region.to_string());
                 } else {
-                    self.attr.clear_attr("fo:country");
+                    self.$acc().clear_attr("fo:country");
                 }
                 if let Some(script) = locale.id.script {
-                    self.attr.set_attr("fo:script", script.to_string());
+                    self.$acc().set_attr("fo:script", script.to_string());
                 } else {
-                    self.attr.clear_attr("fo:script");
+                    self.$acc().clear_attr("fo:script");
                 }
             } else {
-                self.attr.clear_attr("fo:language");
-                self.attr.clear_attr("fo:country");
-                self.attr.clear_attr("fo:script");
+                self.$acc().clear_attr("fo:language");
+                self.$acc().clear_attr("fo:country");
+                self.$acc().clear_attr("fo:script");
             }
         }
     };
@@ -1328,13 +1364,8 @@ macro_rules! fo_font_size {
         /// [UNICODE] characters whose type is asian. The style:font-sizecomplex attribute (20.285) is evaluated for [UNICODE] characters whose type is
         /// complex.
         ///
-        pub fn set_font_size(&mut self, size: Length) {
+        pub fn set_font_size(&mut self, size: FontSize) {
             self.$acc().set_attr("fo:font-size", size.to_string());
-        }
-
-        /// Font size as a percentage. See set_font_size.
-        pub fn set_font_size_percent(&mut self, size: f64) {
-            self.$acc().set_attr("fo:font-size", percent_string(size));
         }
     };
 }
@@ -1344,14 +1375,8 @@ macro_rules! fo_font_size_rel {
         /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
         /// styles. This attribute changes the font size based on the font size of the parent style.
-        pub fn set_font_size_rel(&mut self, size: Length) {
+        pub fn set_font_size_rel(&mut self, size: FontSize) {
             self.$acc().set_attr("fo:font-size-rel", size.to_string());
-        }
-
-        /// Font size as a percentage. See set_font_size_rel.
-        pub fn set_font_size_rel_percent(&mut self, size: f64) {
-            self.$acc()
-                .set_attr("fo:font-size-rel", percent_string(size));
         }
     };
 }
@@ -1399,7 +1424,7 @@ macro_rules! fo_font_variant {
 macro_rules! fo_font_attr {
     ($acc:ident) => {
         /// Combined font attributes.
-        pub fn set_font_attr(&mut self, size: Length, bold: bool, italic: bool) {
+        pub fn set_font_attr(&mut self, size: FontSize, bold: bool, italic: bool) {
             self.set_font_size(size);
             if bold {
                 self.set_font_bold();
@@ -1419,23 +1444,24 @@ macro_rules! style_locale_asian {
         /// These attributes are evaluated for any [UNICODE] characters whose script type is asian.
         pub fn set_locale_asian(&mut self, locale: Locale) {
             if locale != Locale::UND {
-                self.attr
+                self.$acc()
                     .set_attr("style:language-asian", locale.id.language.to_string());
                 if let Some(region) = locale.id.region {
-                    self.attr
+                    self.$acc()
                         .set_attr("style:country-asian", region.to_string());
                 } else {
-                    self.attr.clear_attr("style:country-asian");
+                    self.$acc().clear_attr("style:country-asian");
                 }
                 if let Some(script) = locale.id.script {
-                    self.attr.set_attr("style:script-asian", script.to_string());
+                    self.$acc()
+                        .set_attr("style:script-asian", script.to_string());
                 } else {
-                    self.attr.clear_attr("style:script-asian");
+                    self.$acc().clear_attr("style:script-asian");
                 }
             } else {
-                self.attr.clear_attr("style:language-asian");
-                self.attr.clear_attr("style:country-asian");
-                self.attr.clear_attr("style:script-asian");
+                self.$acc().clear_attr("style:language-asian");
+                self.$acc().clear_attr("style:country-asian");
+                self.$acc().clear_attr("style:script-asian");
             }
         }
     };
@@ -1467,15 +1493,9 @@ macro_rules! style_font_size_asian {
         /// [UNICODE] characters whose type is asian. The style:font-sizecomplex attribute (20.285) is evaluated for [UNICODE] characters whose type is
         /// complex.
         ///
-        pub fn set_font_size_asian(&mut self, size: Length) {
+        pub fn set_font_size_asian(&mut self, size: FontSize) {
             self.$acc()
                 .set_attr("style:font-size-asian", size.to_string());
-        }
-
-        /// Font size as a percentage. See set_font_size.
-        pub fn set_font_size_percent_asian(&mut self, size: f64) {
-            self.$acc()
-                .set_attr("style:font-size-asian", percent_string(size));
         }
     };
 }
@@ -1486,15 +1506,9 @@ macro_rules! style_font_size_rel_asian {
         /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
         /// styles. This attribute changes the font size based on the font size of the parent style.
-        pub fn set_font_size_rel_asian(&mut self, size: Length) {
+        pub fn set_font_size_rel_asian(&mut self, size: FontSize) {
             self.$acc()
                 .set_attr("style:font-size-rel-asian", size.to_string());
-        }
-
-        /// Font size as a percentage. See set_font_size_rel.
-        pub fn set_font_size_rel_percent_asian(&mut self, size: f64) {
-            self.$acc()
-                .set_attr("style:font-size-rel-asian", percent_string(size));
         }
     };
 }
@@ -1536,7 +1550,7 @@ macro_rules! style_font_weight_asian {
 macro_rules! style_font_attr_asian {
     ($acc:ident) => {
         /// Combined font attributes.
-        pub fn set_font_attr_asian(&mut self, size: Length, bold: bool, italic: bool) {
+        pub fn set_font_attr_asian(&mut self, size: FontSize, bold: bool, italic: bool) {
             self.set_font_size_asian(size);
             if bold {
                 self.set_font_bold_asian();
@@ -1556,24 +1570,24 @@ macro_rules! style_locale_complex {
         /// These attributes are evaluated for any [UNICODE] characters whose script type is complex.
         pub fn set_locale_complex(&mut self, locale: Locale) {
             if locale != Locale::UND {
-                self.attr
+                self.$acc()
                     .set_attr("style:language-complex", locale.id.language.to_string());
                 if let Some(region) = locale.id.region {
-                    self.attr
+                    self.$acc()
                         .set_attr("style:country-complex", region.to_string());
                 } else {
-                    self.attr.clear_attr("style:country-complex");
+                    self.$acc().clear_attr("style:country-complex");
                 }
                 if let Some(script) = locale.id.script {
-                    self.attr
+                    self.$acc()
                         .set_attr("style:script-complex", script.to_string());
                 } else {
-                    self.attr.clear_attr("style:script-complex");
+                    self.$acc().clear_attr("style:script-complex");
                 }
             } else {
-                self.attr.clear_attr("style:language-complex");
-                self.attr.clear_attr("style:country-complex");
-                self.attr.clear_attr("style:script-complex");
+                self.$acc().clear_attr("style:language-complex");
+                self.$acc().clear_attr("style:country-complex");
+                self.$acc().clear_attr("style:script-complex");
             }
         }
     };
@@ -1605,15 +1619,9 @@ macro_rules! style_font_size_complex {
         /// [UNICODE] characters whose type is asian. The style:font-sizecomplex attribute (20.285) is evaluated for [UNICODE] characters whose type is
         /// complex.
         ///
-        pub fn set_font_size_complex(&mut self, size: Length) {
+        pub fn set_font_size_complex(&mut self, size: FontSize) {
             self.$acc()
                 .set_attr("style:font-size-complex", size.to_string());
-        }
-
-        /// Font size as a percentage. See set_font_size_complex.
-        pub fn set_font_size_percent_complex(&mut self, size: f64) {
-            self.$acc()
-                .set_attr("style:font-size-complex", percent_string(size));
         }
     };
 }
@@ -1623,15 +1631,9 @@ macro_rules! style_font_size_rel_complex {
         /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
         /// styles. This attribute changes the font size based on the font size of the parent style.
-        pub fn set_font_size_rel_complex(&mut self, size: Length) {
+        pub fn set_font_size_rel_complex(&mut self, size: FontSize) {
             self.$acc()
                 .set_attr("style:font-size-rel-complex", size.to_string());
-        }
-
-        /// Font size as a percentage. See set_font_size_rel.
-        pub fn set_font_size_rel_percent_complex(&mut self, size: f64) {
-            self.$acc()
-                .set_attr("style:font-size-rel-complex", percent_string(size));
         }
     };
 }
@@ -1673,7 +1675,7 @@ macro_rules! style_font_weight_complex {
 macro_rules! style_font_attr_complex {
     ($acc:ident) => {
         /// Combined font attributes.
-        pub fn set_font_attr_complex(&mut self, size: Length, bold: bool, italic: bool) {
+        pub fn set_font_attr_complex(&mut self, size: FontSize, bold: bool, italic: bool) {
             self.set_font_size_complex(size);
             if bold {
                 self.set_font_bold_complex();
@@ -1718,15 +1720,9 @@ macro_rules! fo_letter_spacing {
     ($acc:ident) => {
         /// See §7.16.2 of [XSL].
         /// Sets the letter spacing.
-        pub fn set_letter_spacing(&mut self, spacing: Length) {
+        pub fn set_letter_spacing(&mut self, spacing: LetterSpacing) {
             self.$acc()
                 .set_attr("fo:letter-spacing", spacing.to_string());
-        }
-
-        /// Sets the letter spacing to normal.
-        pub fn set_letter_spacing_normal(&mut self) {
-            self.$acc()
-                .set_attr("fo:letter-spacing", "normal".to_string());
         }
     };
 }
@@ -2097,7 +2093,7 @@ macro_rules! text_display {
         /// attribute.
         /// * none: text is hidden unconditionally.
         /// * true: text is displayed. This is the default setting
-        pub fn set_text_display(&mut self, cond: TextDisplay) {
+        pub fn set_display(&mut self, cond: TextDisplay) {
             self.$acc().set_attr("text:display", cond.to_string());
         }
     };
@@ -2106,14 +2102,8 @@ macro_rules! text_display {
 macro_rules! fo_min_height {
     ($acc:ident) => {
         /// Minimum height.
-        pub fn set_min_height(&mut self, height: Length) {
+        pub fn set_min_height(&mut self, height: LengthPercent) {
             self.$acc().set_attr("fo:min-height", height.to_string());
-        }
-
-        /// Minimum height as percentage.
-        pub fn set_min_height_percent(&mut self, height: f64) {
-            self.$acc()
-                .set_attr("fo:min-height", percent_string(height));
         }
     };
 }
@@ -2127,3 +2117,636 @@ macro_rules! style_dynamic_spacing {
         }
     };
 }
+
+macro_rules! style_column_width {
+    ($acc:ident) => {
+        /// The style:column-width attribute specifies a fixed width for a column.
+        pub fn set_col_width(&mut self, width: Length) {
+            if width == Length::Default {
+                self.$acc.clear_attr("style:column-width");
+            } else {
+                self.$acc.set_attr("style:column-width", width.to_string());
+            }
+        }
+
+        /// Parses the column width.
+        pub fn col_width(&self) -> Result<Length, OdsError> {
+            Length::parse_attr_def(self.$acc.attr("style:column-width"), Length::Default)
+        }
+    };
+}
+
+macro_rules! style_rel_column_width {
+    ($acc:ident) => {
+        /// The style:rel-column-width attribute specifies a relative width of a column with a number
+        /// value, followed by a ”*” (U+002A, ASTERISK) character. If rc is the relative with of the column, rs
+        /// the sum of all relative columns widths, and ws the absolute width that is available for these
+        /// columns the absolute width wc of the column is wc=rcws/rs.
+        pub fn set_rel_col_width(&mut self, rel: f64) {
+            self.$acc
+                .set_attr("style:rel-column-width", rel_width_string(rel));
+        }
+    };
+}
+
+macro_rules! style_use_optimal_column_width {
+    ($acc:ident) => {
+        /// The style:use-optimal-column-width attribute specifies that a column width should be
+        /// recalculated automatically if content in the column changes.
+        pub fn set_use_optimal_col_width(&mut self, opt: bool) {
+            self.$acc
+                .set_attr("style:use-optimal-column-width", opt.to_string());
+        }
+
+        /// Parses the flag.
+        pub fn use_optimal_col_width(&self) -> Result<bool, OdsError> {
+            bool::parse_attr_def(self.$acc.attr("style:use-optimal-column-width"), false)
+        }
+    };
+}
+
+macro_rules! style_font_family_generic {
+    ($acc:ident) => {
+        /// The style:font-family-generic attribute specifies a generic font family name.
+        /// The defined values for the style:font-family-generic attribute are:
+        /// * decorative: the family of decorative fonts.
+        /// * modern: the family of modern fonts.
+        /// * roman: the family roman fonts (with serifs).
+        /// * script: the family of script fonts.
+        /// * swiss: the family roman fonts (without serifs).
+        /// * system: the family system fonts.
+        pub fn set_font_family_generic(&mut self, font: FontFamilyGeneric) {
+            self.$acc()
+                .set_attr("style:font-family-generic", font.to_string());
+        }
+    };
+}
+
+macro_rules! style_font_pitch {
+    ($acc:ident) => {
+        /// The style:font-pitch attribute specifies whether a font has a fixed or variable width.
+        /// The defined values for the style:font-pitch attribute are:
+        /// * fixed: font has a fixed width.
+        /// * variable: font has a variable width.
+        pub fn set_font_pitch(&mut self, pitch: FontPitch) {
+            self.$acc().set_attr("style:font-pitch", pitch.to_string());
+        }
+    };
+}
+
+macro_rules! svg_font_family {
+    ($acc:ident) => {
+        /// External font family name.
+        pub fn set_font_family<S: Into<String>>(&mut self, name: S) {
+            self.$acc().set_attr("svg:font-family", name.into());
+        }
+    };
+}
+
+macro_rules! svg_font_stretch {
+    ($acc:ident) => {
+        /// External font stretch value.
+        pub fn set_font_stretch(&mut self, stretch: FontStretch) {
+            self.$acc()
+                .set_attr("svg:font-stretch", stretch.to_string());
+        }
+    };
+}
+
+macro_rules! svg_font_style {
+    ($acc:ident) => {
+        /// External font style value.
+        pub fn set_font_style(&mut self, style: FontStyle) {
+            self.$acc().set_attr("svg:font-style", style.to_string());
+        }
+    };
+}
+
+macro_rules! svg_font_variant {
+    ($acc:ident) => {
+        /// External font variant.
+        pub fn set_font_variant(&mut self, variant: FontVariant) {
+            self.$acc()
+                .set_attr("svg:font-variant", variant.to_string());
+        }
+    };
+}
+
+macro_rules! svg_font_weight {
+    ($acc:ident) => {
+        /// External font weight.
+        pub fn set_font_weight(&mut self, weight: FontWeight) {
+            self.$acc().set_attr("svg:font-weight", weight.to_string());
+        }
+    };
+}
+
+macro_rules! fo_page_height {
+    ($acc:ident) => {
+        /// Page Height
+        pub fn set_page_height(&mut self, height: Length) {
+            self.style_mut()
+                .set_attr("fo:page-height", height.to_string());
+        }
+    };
+}
+
+macro_rules! fo_page_width {
+    ($acc:ident) => {
+        /// Page Width
+        pub fn set_page_width(&mut self, width: Length) {
+            self.style_mut()
+                .set_attr("fo:page-width", width.to_string());
+        }
+    };
+}
+
+macro_rules! style_first_page_number {
+    ($acc:ident) => {
+        /// The style:first-page-number attribute specifies the number of a document.
+        /// The value of this attribute can be an integer or continue. If the value is continue, the page
+        /// number is the preceding page number incremented by 1. The default first page number is 1.
+        pub fn set_first_page_number(&mut self, number: u32) {
+            self.style_mut()
+                .set_attr("style:first-page-number", number.to_string());
+        }
+    };
+}
+
+macro_rules! style_footnote_max_height {
+    ($acc:ident) => {
+        /// The style:footnote-max-height attribute specifies the maximum amount of space on a
+        /// page that a footnote can occupy. The value of the attribute is a length, which determines the
+        /// maximum height of a footnote area.
+        /// If the value of this attribute is set to 0cm, there is no limit to the amount of space that the footnote
+        /// can occupy.
+        pub fn set_footnote_max_height(&mut self, height: Length) {
+            self.style_mut()
+                .set_attr("style:footnote-max-height", height.to_string());
+        }
+    };
+}
+
+macro_rules! style_num_format {
+    ($acc:ident) => {
+        /// The style:num-format attribute specifies a numbering sequence.
+        /// If no value is given, no number sequence is displayed.
+        ///
+        /// The defined values for the style:num-format attribute are:
+        /// * 1: number sequence starts with “1”.
+        /// * a: number sequence starts with “a”.
+        /// * A: number sequence starts with “A”.
+        /// * empty string: no number sequence displayed.
+        /// * i: number sequence starts with “i”.
+        /// * I: number sequence start with “I”.
+        /// * a value of type string 18.2
+        pub fn set_num_format(&mut self, format: StyleNumFormat) {
+            self.style_mut()
+                .set_attr("style:num-format", format.to_string());
+        }
+    };
+}
+
+macro_rules! style_num_letter_sync {
+    ($acc:ident) => {
+        /// The style:num-letter-sync attribute specifies whether letter synchronization shall take
+        /// place. If letters are used in alphabetical order for numbering, there are two ways to process
+        /// overflows within a digit, as follows:
+        /// * false: A new digit is inserted that always has the same value as the following digit. The
+        /// numbering sequence (for lower case numberings) in that case is a, b, c, ..., z, aa, bb, cc, ...,
+        /// zz, aaa, ..., and so on.
+        /// * true: A new digit is inserted. Its start value is ”a” or ”A”, and it is incremented every time an
+        /// overflow occurs in the following digit. The numbering sequence (for lower case numberings) in
+        /// that case is a,b,c, ..., z, aa, ab, ac, ...,az, ba, ..., and so on
+        pub fn set_num_letter_sync(&mut self, sync: bool) {
+            self.style_mut()
+                .set_attr("style:num-letter-sync", sync.to_string());
+        }
+    };
+}
+
+macro_rules! style_num_prefix {
+    ($acc:ident) => {
+        /// The style:num-prefix attribute specifies what to display before a number.
+        /// If the style:num-prefix and style:num-suffix values do not contain any character that
+        /// has a Unicode category of Nd, Nl, No, Lu, Ll, Lt, Lm or Lo, an [XSLT] format attribute can be
+        /// created from the OpenDocument attributes by concatenating the values of the style:num-prefix,
+        /// style:num-format, and style:num-suffix attributes.
+        pub fn set_num_prefix<S: Into<String>>(&mut self, prefix: S) {
+            self.style_mut().set_attr("style:num-prefix", prefix.into());
+        }
+    };
+}
+
+macro_rules! style_num_suffix {
+    ($acc:ident) => {
+        /// The style:num-prefix and style:num-suffix attributes specify what to display before and
+        /// after a number.
+        /// If the style:num-prefix and style:num-suffix values do not contain any character that
+        /// has a Unicode category of Nd, Nl, No, Lu, Ll, Lt, Lm or Lo, an [XSLT] format attribute can be
+        /// created from the OpenDocument attributes by concatenating the values of the style:numprefix, style:num-format, and style:num-suffix attributes.
+        pub fn set_num_suffix<S: Into<String>>(&mut self, suffix: S) {
+            self.style_mut().set_attr("style:num-suffix", suffix.into());
+        }
+    };
+}
+
+macro_rules! style_paper_tray_name {
+    ($acc:ident) => {
+        /// The style:paper-tray-name attribute specifies the paper tray to use when printing a
+        /// document. The names assigned to the paper trays depends upon the printer.
+        /// The defined values for the style:paper-tray-name attribute are:
+        /// * default: the default tray specified by printer configuration settings.
+        /// * a value of type string
+        pub fn set_paper_tray_name<S: Into<String>>(&mut self, tray: S) {
+            self.style_mut()
+                .set_attr("style:paper-tray-name", tray.into());
+        }
+    };
+}
+
+macro_rules! style_print {
+    ($acc:ident) => {
+        /// The style:print attribute specifies the components in a spreadsheet document to print.
+        /// The value of the style:print attribute is a white space separated list of one or more of these
+        /// values: headers, grid, annotations, objects, charts, drawings, formulas, zerovalues, or the empty list.
+        /// The defined values for the style:print attribute are:
+        /// * annotations: annotations should be printed.
+        /// * charts: charts should be printed.
+        /// * drawings: drawings should be printed.
+        /// * formulas: formulas should be printed.
+        /// * headers: headers should be printed.
+        /// * grid: grid lines should be printed.
+        /// * objects: (including graphics): objects should be printed.
+        /// * zero-values: zero-values should be printed.
+        pub fn set_print(&mut self, print: &[PrintContent]) {
+            let mut buf = String::new();
+            for p in print {
+                buf.push_str(&p.to_string());
+                buf.push(' ');
+            }
+            self.$acc().set_attr("style:print", buf);
+        }
+    };
+}
+
+macro_rules! style_print_orientation {
+    ($acc:ident) => {
+        /// The style:print-orientation attribute specifies the orientation of the printed page. The
+        /// value of this attribute can be portrait or landscape.
+        /// The defined values for the style:print-orientation attribute are:
+        /// * landscape: a page is printed in landscape orientation.
+        /// * portrait: a page is printed in portrait orientation.
+        pub fn set_print_orientation(&mut self, orientation: PrintOrientation) {
+            self.$acc()
+                .set_attr("style:print-orientation", orientation.to_string());
+        }
+    };
+}
+
+macro_rules! style_print_page_order {
+    ($acc:ident) => {
+        /// The style:print-page-order attribute specifies the order in which data in a spreadsheet is
+        /// numbered and printed when the data does not fit on one printed page.
+        /// The defined values for the style:print-page-order attribute are:
+        /// * ltr: create pages from the first column to the last column before continuing with the next set
+        /// of rows.
+        /// * ttb: create pages from the top row to the bottom row before continuing with the next set of
+        /// columns.
+        pub fn set_print_page_order(&mut self, order: PrintOrder) {
+            self.$acc()
+                .set_attr("style:print-page-order", order.to_string());
+        }
+    };
+}
+
+macro_rules! style_scale_to {
+    ($acc:ident) => {
+        /// The style:scale-to attribute specifies that a document is to be scaled to a percentage value.
+        /// A value of 100% means no scaling.
+        /// If this attribute and style:scale-to-pages are absent, a document is not scaled.
+        pub fn set_scale_to(&mut self, percent: Percent) {
+            self.$acc().set_attr("style:scale-to", percent.to_string());
+        }
+    };
+}
+
+macro_rules! style_scale_to_pages {
+    ($acc:ident) => {
+        /// The style:scale-to-pages attribute specifies the number of pages on which a document
+        /// should be printed. The document is scaled to fit a specified number of pages.
+        /// If this attribute and style:scale-to are absent, a document is not scaled.
+        pub fn set_scale_to_pages(&mut self, pages: u32) {
+            self.$acc()
+                .set_attr("style:scale-to-pages", pages.to_string());
+        }
+    };
+}
+
+macro_rules! style_table_centering {
+    ($acc:ident) => {
+        /// The style:table-centering attribute specifies whether tables are centered horizontally
+        /// and/or vertically on the page. This attribute only applies to spreadsheet documents.
+        /// The default is to align the table to the top-left or top-right corner of the page, depending of its
+        /// writing direction.
+        /// The defined values for the style:table-centering attribute are:
+        /// * both: tables should be centered both horizontally and vertically on the pages where they
+        /// appear.
+        /// * horizontal: tables should be centered horizontally on the pages where they appear.
+        /// * none: tables should not be centered both horizontally or vertically on the pages where they
+        /// appear.
+        /// * vertical: tables should be centered vertically on the pages where they appear.
+        pub fn set_table_centering(&mut self, center: PrintCentering) {
+            self.$acc()
+                .set_attr("style:table-centering", center.to_string());
+        }
+    };
+}
+
+macro_rules! style_min_row_height {
+    ($acc:ident) => {
+        /// The style:min-row-height attribute specifies a fixed minimum height for a row.
+        pub fn set_min_row_height(&mut self, min_height: Length) {
+            self.$acc
+                .set_attr("style:min-row-height", min_height.to_string());
+        }
+    };
+}
+
+macro_rules! style_row_height {
+    ($acc:ident) => {
+        /// The style:row-height attribute specifies a fixed row height
+        pub fn set_row_height(&mut self, height: Length) {
+            self.$acc.set_attr("style:row-height", height.to_string());
+        }
+
+        /// Parses the row height
+        pub fn row_height(&self) -> Result<Length, OdsError> {
+            Length::parse_attr_def(self.$acc.attr("style:row-height"), Length::Default)
+        }
+    };
+}
+
+macro_rules! style_use_optimal_row_height {
+    ($acc:ident) => {
+        /// The style:use-optimal-row-height attribute specifies that a row height should be
+        /// recalculated automatically if content in the row changes.
+        /// The defined values for the style:use-optimal-row-height attribute are:
+        /// * false: row height should not be recalculated automatically if content in the row changes.
+        /// * true: row height should be recalculated automatically if content in the row changes.
+        pub fn set_use_optimal_row_height(&mut self, opt: bool) {
+            self.$acc
+                .set_attr("style:use-optimal-row-height", opt.to_string());
+        }
+
+        /// Parses the flag.
+        pub fn use_optimal_row_height(&self) -> Result<bool, OdsError> {
+            bool::parse_attr_def(self.$acc.attr("style:use-optimal-row-height"), false)
+        }
+    };
+}
+
+macro_rules! style_may_break_between_rows {
+    ($acc:ident) => {
+        /// The style:may-break-between-rows attribute specifies that a page break may occur inside
+        /// a table.
+        /// The defined values for the style:may-break-between-rows attribute are:
+        /// * false: page break shall not occur inside a table.
+        /// * true: page break may occur inside a table
+        pub fn set_may_break_between_rows(&mut self, br: bool) {
+            self.$acc
+                .set_attr("style:may-break-between-rows", br.to_string());
+        }
+    };
+}
+
+macro_rules! style_rel_width {
+    ($acc:ident) => {
+        /// The style:rel-width attribute specifies the relative width of a drawing object.
+        /// The defined values for the style:rel-width attribute are:
+        /// • scale: the width should be calculated depending on the height, so that the ratio of width and
+        /// height of the original image or object size is preserved.
+        /// • scale-min: the width should be calculated as for value scale, but the calculated width is a
+        /// minimum width rather than an absolute one.
+        /// • a value of type percent 18.3.23.
+        /// The interpretation of the percent value depends on the anchor of the drawing object. If the anchor
+        /// for the drawing object is in a table cell, the percent value of the surrounding table box. If the
+        /// anchor for the drawing object is in a text box, the percentage value of the surrounding text box. In
+        /// all other cases, the percent value of the containing page or window
+        /// To support consumers that do not support relative width, producers should also provide the width
+        /// in a svg:width 19.575 attribute.
+        pub fn set_rel_width(&mut self, rel_width: RelativeWidth) {
+            self.$acc.set_attr("style:rel-width", rel_width.to_string());
+        }
+    };
+}
+
+macro_rules! style_width {
+    ($acc:ident) => {
+        /// The style:width attribute specifies the fixed width of a table. Every table shall have a fixed
+        /// width.
+        pub fn set_width(&mut self, width: Length) {
+            self.$acc.set_attr("style:width", width.to_string());
+        }
+    };
+}
+
+macro_rules! table_align {
+    ($acc:ident) => {
+        /// The table:align attribute specifies the horizontal alignment of a table.
+        /// The defined values for the table:align attribute are:
+        /// * center: table aligns to the center between left and right margins.
+        /// * left: table aligns to the left margin.
+        /// * margins: table fills all the space between the left and right margins.
+        /// * right: table aligns to the right margin.
+        /// Consumers that do not support the margins value, may treat this value as left.
+        pub fn set_align(&mut self, align: TableAlign) {
+            self.$acc.set_attr("table:align", align.to_string());
+        }
+    };
+}
+
+macro_rules! table_border_model {
+    ($acc:ident) => {
+        /// The table:border-model attribute specifies what border model to use when creating a table
+        /// with a border.
+        /// The defined values for the table:border-model attribute are:
+        /// * collapsing: when two adjacent cells have different borders, the wider border appears as
+        /// the border between the cells. Each cell receives half of the width of the border.
+        /// * separating: borders appear within the cell that specifies the border.
+        /// In OpenDocument, a row height or column width includes any space required to display borders
+        /// or padding. This means that, while the width and height of the content area is less than the
+        /// column width and row height, the sum of the widths of all columns is equal to the total width of the
+        /// table.
+        pub fn set_border_model(&mut self, border: TableBorderModel) {
+            self.$acc.set_attr("table:border-model", border.to_string());
+        }
+    };
+}
+
+macro_rules! table_display {
+    ($acc:ident) => {
+        /// The table:display attribute specifies whether a table is displayed.
+        /// The defined values for the table:display attribute are:
+        /// * false: table should not be displayed.
+        /// * true: table should be displayed.
+        pub fn set_display(&mut self, display: bool) {
+            self.$acc.set_attr("table:display", display.to_string())
+        }
+    };
+}
+
+macro_rules! table_tab_color {
+    ($acc:ident) => {
+        /// The table:tab-color attribute specifies the color of the tab associated with a sheet.
+        /// When this attribute is missing, the application should use the default color used for sheet tabs.
+        pub fn set_tab_color(&mut self, color: Rgb<u8>) {
+            self.$acc.set_attr("table:tab-color", color_string(color));
+        }
+    };
+}
+
+macro_rules! style_char {
+    ($acc:ident) => {
+        /// The style:char attribute specifies the delimiter character for tab stops of type char
+        pub fn set_char(&mut self, c: char) {
+            self.$acc.set_attr("style:char", c.to_string());
+        }
+    };
+}
+
+macro_rules! style_leader_color {
+    ($acc:ident) => {
+        /// The style:leader-color attribute specifies the color of a leader line. The value of this
+        /// attribute is either font-color or a color. If the value is font-color, the current text color is
+        /// used for the leader line.
+        pub fn set_leader_color(&mut self, color: Rgb<u8>) {
+            self.attr
+                .set_attr("style:leader-color", color_string(color));
+        }
+    };
+}
+
+macro_rules! style_leader_style {
+    ($acc:ident) => {
+        /// The style:leader-style attribute specifies a style for a leader line.
+        ///
+        /// The defined values for the style:leader-style attribute are:
+        /// * none: tab stop has no leader line.
+        /// * dash: tab stop has a dashed leader line.
+        /// * dot-dash: tab stop has a leader line whose repeating pattern is a dot followed by a dash.
+        /// * dot-dot-dash: tab stop has a leader line whose repeating pattern has two dots followed by
+        /// a dash.
+        /// * dotted: tab stop has a dotted leader line.
+        /// * long-dash: tab stop has a dashed leader line whose dashes are longer than the ones from
+        /// the dashed line for value dash.
+        /// * solid: tab stop has a solid leader line.
+        /// * wave: tab stop has a wavy leader line.
+        ///
+        /// Note: The definitions of the values of the style:leader-style attribute are based on the text
+        /// decoration style 'text-underline-style' from [CSS3Text], §9.2.
+        pub fn set_leader_style(&mut self, style: LineStyle) {
+            self.$acc.set_attr("style:leader-style", style.to_string());
+        }
+    };
+}
+
+macro_rules! style_leader_text {
+    ($acc:ident) => {
+        /// The style:leader-text attribute specifies a single Unicode character for use as leader text
+        /// for tab stops.
+        /// An consumer may support only specific characters as textual leaders. If a character that is not
+        /// supported by a consumer is specified by this attribute, the consumer should display a leader
+        /// character that it supports instead of the one specified by this attribute.
+        /// If both style:leader-text and style:leader-style 19.480 attributes are specified, the
+        /// value of the style:leader-text sets the leader text for tab stops.
+        ///
+        /// The default value for this attribute is “ ” (U+0020, SPACE).
+        pub fn set_leader_text(&mut self, text: char) {
+            self.$acc.set_attr("style:leader-text", text.to_string());
+        }
+    };
+}
+
+macro_rules! style_leader_text_style {
+    ($acc:ident) => {
+        /// The style:leader-text-style specifies a text style that is applied to a textual leader. It is
+        /// not applied to leader lines. If the attribute appears in an automatic style, it may reference either an
+        /// automatic text style or a common style. If the attribute appears in a common style, it may
+        /// reference a common style only.
+        pub fn set_leader_text_style(&mut self, styleref: &TextStyleRef) {
+            self.$acc
+                .set_attr("style:leader-text-style", styleref.to_string());
+        }
+    };
+}
+
+macro_rules! style_leader_type {
+    ($acc:ident) => {
+        /// The style:leader-type attribute specifies whether a leader line should be drawn, and if so,
+        /// whether a single or double line will be used.
+        ///
+        /// The defined values for the style:leader-type attribute are:
+        /// * double: a double line is drawn.
+        /// * none: no line is drawn.
+        /// * single: a single line is drawn.
+        pub fn set_leader_type(&mut self, t: LineType) {
+            self.$acc.set_attr("style:leader-type", t.to_string());
+        }
+    };
+}
+
+macro_rules! style_leader_width {
+    ($acc:ident) => {
+        /// The style:leader-width attribute specifies the width (i.e., thickness) of a leader line.
+        /// The defined values for the style:leader-width attribute are:
+        /// * auto: the width of a leader line should be calculated from the font size of the text where the
+        /// leader line will appear.
+        /// * bold: the width of a leader line should be calculated from the font size of the text where the
+        /// leader line will appear but is wider than for the value of auto.
+        /// * a value of type percent 18.3.23
+        /// * a value of type positiveInteger 18.2
+        /// * a value of type positiveLength 18.3.26
+        /// The line widths referenced by the values medium, normal, thick and thin are implementation defined.
+        pub fn set_leader_width(&mut self, w: LineWidth) {
+            self.$acc.set_attr("style:leader-width", w.to_string());
+        }
+    };
+}
+
+macro_rules! style_position {
+    ($acc:ident) => {
+        /// The style:position attribute specifies the position of a tab stop. Depending on the value of
+        /// the text:relative-tab-stop-position 19.861 attribute in the
+        /// <text:table-ofcontent-source> 8.3.2,
+        /// <text:illustration-index-source> 8.4.2,
+        /// <text:object-index-source> 8.6.2,
+        /// <text:user-index-source> 8.7.2 or
+        /// <text:alphabetical-index-source> 8.8.2
+        ///
+        /// parent element, the position of the tab is interpreted as being relative to the left
+        /// margin or the left indent.
+        pub fn set_position(&mut self, pos: Length) {
+            self.$acc.set_attr("style:position", pos.to_string());
+        }
+    };
+}
+
+macro_rules! style_type {
+    ($acc:ident) => {
+        /// The style:type attribute specifies the type of a tab stop within paragraph formatting properties.
+        /// The defined values for the style:type attribute are:
+        /// * center: text is centered on a tab stop.
+        /// * char: character appears at a tab stop position.
+        /// * left: text is left aligned with a tab stop.
+        /// * right: text is right aligned with a tab stop.
+        /// For a <style:tab-stop> 17.8 element the default value for this attribute is left.
+        pub fn set_type(&mut self, t: TabStopType) {
+            self.$acc.set_attr("style:type", t.to_string());
+        }
+    };
+}
+
+// macro_rules! style_xxx {
+//     ($acc:ident) => {};
+// }

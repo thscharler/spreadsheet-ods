@@ -2,7 +2,7 @@
 #[macro_export]
 macro_rules! deg {
     ($l:expr) => {
-        Angle::Deg($l as f64)
+        Angle::Deg($l as f64).into()
     };
 }
 
@@ -10,7 +10,7 @@ macro_rules! deg {
 #[macro_export]
 macro_rules! grad {
     ($l:expr) => {
-        Angle::Grad($l as f64)
+        Angle::Grad($l as f64).into()
     };
 }
 
@@ -18,7 +18,7 @@ macro_rules! grad {
 #[macro_export]
 macro_rules! rad {
     ($l:expr) => {
-        Angle::Rad($l as f64)
+        Angle::Rad($l as f64).into()
     };
 }
 
@@ -26,7 +26,7 @@ macro_rules! rad {
 #[macro_export]
 macro_rules! cm {
     ($l:expr) => {
-        Length::Cm($l as f64)
+        Length::Cm($l as f64).into()
     };
 }
 
@@ -34,7 +34,7 @@ macro_rules! cm {
 #[macro_export]
 macro_rules! mm {
     ($l:expr) => {
-        Length::Mm($l as f64)
+        Length::Mm($l as f64).into()
     };
 }
 
@@ -42,7 +42,7 @@ macro_rules! mm {
 #[macro_export]
 macro_rules! inch {
     ($l:expr) => {
-        Length::In($l as f64)
+        Length::In($l as f64).into()
     };
 }
 
@@ -50,7 +50,7 @@ macro_rules! inch {
 #[macro_export]
 macro_rules! pt {
     ($l:expr) => {
-        Length::Pt($l as f64)
+        Length::Pt($l as f64).into()
     };
 }
 
@@ -58,7 +58,7 @@ macro_rules! pt {
 #[macro_export]
 macro_rules! pc {
     ($l:expr) => {
-        Length::Pc($l as f64)
+        Length::Pc($l as f64).into()
     };
 }
 
@@ -66,6 +66,6 @@ macro_rules! pc {
 #[macro_export]
 macro_rules! em {
     ($l:expr) => {
-        Length::Em($l as f64)
+        Length::Em($l as f64).into()
     };
 }

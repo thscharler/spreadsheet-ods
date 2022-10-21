@@ -2,16 +2,16 @@ use crate::attrmap2::AttrMap2;
 use crate::format::ValueFormatRef;
 use crate::style::stylemap::StyleMap;
 use crate::style::units::{
-    Angle, Border, CellAlignVertical, CellProtect, FontStyle, FontVariant, FontWeight,
-    GlyphOrientation, Hyphenation, HyphenationLadderCount, Indent, Length, LineBreak, LineHeight,
-    LineMode, LineStyle, LineType, LineWidth, Margin, PageBreak, PageNumber, ParaAlignVertical,
-    Percent, PunctuationWrap, RotationAlign, TextAlign, TextAlignLast, TextAlignSource,
-    TextAutoSpace, TextCombine, TextCondition, TextDisplay, TextEmphasize, TextKeep, TextPosition,
-    TextRelief, TextTransform, WrapOption, WritingDirection, WritingMode,
+    Angle, Border, CellAlignVertical, CellProtect, FontSize, FontStyle, FontVariant, FontWeight,
+    GlyphOrientation, Hyphenation, HyphenationLadderCount, Indent, Length, LetterSpacing,
+    LineBreak, LineHeight, LineMode, LineStyle, LineType, LineWidth, Margin, PageBreak, PageNumber,
+    ParaAlignVertical, Percent, PunctuationWrap, RotationAlign, TextAlign, TextAlignLast,
+    TextAlignSource, TextAutoSpace, TextCombine, TextCondition, TextDisplay, TextEmphasize,
+    TextKeep, TextPosition, TextRelief, TextTransform, WrapOption, WritingDirection, WritingMode,
 };
 use crate::style::{
-    border_line_width_string, border_string, color_string, percent_string, shadow_string,
-    text_position, Style, StyleOrigin, StyleUse, TextStyleRef,
+    border_line_width_string, border_string, color_string, shadow_string, text_position, Style,
+    StyleOrigin, StyleUse, TextStyleRef,
 };
 use color::Rgb;
 use icu_locid::Locale;
@@ -218,7 +218,7 @@ impl CellStyle {
     fo_text_align_last!(paragraphstyle_mut);
     fo_text_indent!(paragraphstyle_mut);
     fo_widows!(paragraphstyle_mut);
-    style_autotext_indent!(paragraphstyle_mut);
+    style_auto_text_indent!(paragraphstyle_mut);
     style_background_transparency!(paragraphstyle_mut);
     // fo_border_line_width!(paragraphstyle_mut);
     style_contextual_spacing!(paragraphstyle_mut);

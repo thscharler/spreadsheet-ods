@@ -32,12 +32,12 @@ pub use create::*;
 use crate::attrmap2::AttrMap2;
 use crate::style::stylemap::StyleMap;
 use crate::style::units::{
-    Angle, FontStyle, FontVariant, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth,
-    Percent, RotationScale, TextCombine, TextCondition, TextDisplay, TextEmphasize, TextPosition,
-    TextRelief, TextTransform,
+    Angle, FontSize, FontStyle, FontVariant, FontWeight, Length, LetterSpacing, LineMode,
+    LineStyle, LineType, LineWidth, Percent, RotationScale, TextCombine, TextCondition,
+    TextDisplay, TextEmphasize, TextPosition, TextRelief, TextTransform,
 };
 use crate::style::{
-    color_string, percent_string, shadow_string, text_position, StyleOrigin, StyleUse, TextStyleRef,
+    color_string, shadow_string, text_position, StyleOrigin, StyleUse, TextStyleRef,
 };
 use crate::{OdsError, ValueType};
 use color::Rgb;

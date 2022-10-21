@@ -50,7 +50,7 @@ fn test_crpagelayout() -> Result<(), OdsError> {
     let mp = wb.add_masterpage(mp);
 
     let mut ts = TableStyle::new("ts1");
-    ts.set_master_page_name(&mp);
+    ts.set_master_page(&mp);
     let _ts = wb.add_tablestyle(ts);
 
     wb.push_sheet(Sheet::new("1"));

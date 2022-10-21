@@ -1,5 +1,8 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::units::{Length, Margin, PageBreak, TextKeep, WritingMode};
+use crate::style::units::{
+    Length, Margin, PageBreak, PageNumber, RelativeWidth, TableAlign, TableBorderModel, TextKeep,
+    WritingMode,
+};
 use crate::style::Style;
 use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
 use color::Rgb;
@@ -33,14 +36,6 @@ pub struct TableStyle {
     // ignore style:percentage-data-style-name 19.511. => PARAGRAPH?
     attr: AttrMap2,
     /// Table style properties
-    // style:may-break-between-rows 20.319,
-    // style:page-number 20.328,
-    // style:rel-width 20.340,
-    // style:width 20.399,
-    // table:align 20.414,
-    // table:border-model 20.415,
-    // table:display 20.416
-    // table:tab-color 19.731.
     tablestyle: AttrMap2,
 }
 
@@ -69,7 +64,7 @@ impl TableStyle {
         }
     }
 
-    styles_master_page!(attrmap_mut);
+    style_master_page!(attrmap_mut);
 
     /// Access to all stored attributes.
     pub(crate) fn attrmap(&self) -> &AttrMap2 {
@@ -95,6 +90,15 @@ impl TableStyle {
     fo_break!(tablestyle_mut);
     fo_keep_with_next!(tablestyle_mut);
     fo_margin!(tablestyle_mut);
+    style_may_break_between_rows!(tablestyle);
+    style_page_number!(tablestyle_mut);
+    style_rel_width!(tablestyle);
+    style_width!(tablestyle);
     style_shadow!(tablestyle_mut);
     style_writing_mode!(tablestyle_mut);
+
+    table_align!(tablestyle);
+    table_border_model!(tablestyle);
+    table_display!(tablestyle);
+    table_tab_color!(tablestyle);
 }

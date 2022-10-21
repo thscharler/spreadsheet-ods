@@ -90,28 +90,6 @@ impl ParseStyleAttr<Length> for Length {
     }
 }
 
-// impl FromStr for Length {
-//     type Err = OdsError;
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         if s.ends_with("cm") {
-//             Ok(Length::Cm(s.split_at(s.len() - 2).0.parse()?))
-//         } else if s.ends_with("mm") {
-//             Ok(Length::Mm(s.split_at(s.len() - 2).0.parse()?))
-//         } else if s.ends_with("in") {
-//             Ok(Length::In(s.split_at(s.len() - 2).0.parse()?))
-//         } else if s.ends_with("pt") {
-//             Ok(Length::Pt(s.split_at(s.len() - 2).0.parse()?))
-//         } else if s.ends_with("pc") {
-//             Ok(Length::Pc(s.split_at(s.len() - 2).0.parse()?))
-//         } else if s.ends_with("em") {
-//             Ok(Length::Em(s.split_at(s.len() - 2).0.parse()?))
-//         } else {
-//             Err(OdsError::Parse(s.to_string()))
-//         }
-//     }
-// }
-
 /// Value type that combines lengths and percentages.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Percent {
@@ -123,6 +101,35 @@ impl Display for Percent {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
             Percent::Percent(v) => write!(f, "{}%", v),
+        }
+    }
+}
+
+/// Length or percentage.
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(missing_docs)]
+pub enum LengthPercent {
+    Length(Length),
+    Percent(Percent),
+}
+
+impl From<Length> for LengthPercent {
+    fn from(value: Length) -> Self {
+        LengthPercent::Length(value)
+    }
+}
+
+impl From<Percent> for LengthPercent {
+    fn from(value: Percent) -> Self {
+        LengthPercent::Percent(value)
+    }
+}
+
+impl Display for LengthPercent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            LengthPercent::Length(v) => write!(f, "{}", v),
+            LengthPercent::Percent(v) => write!(f, "{}", v),
         }
     }
 }
@@ -528,6 +535,35 @@ impl Display for FontVariant {
     }
 }
 
+/// Font-size values.
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(missing_docs)]
+pub enum FontSize {
+    Length(Length),
+    Percent(Percent),
+}
+
+impl From<Length> for FontSize {
+    fn from(value: Length) -> Self {
+        FontSize::Length(value)
+    }
+}
+
+impl From<Percent> for FontSize {
+    fn from(value: Percent) -> Self {
+        FontSize::Percent(value)
+    }
+}
+
+impl Display for FontSize {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            FontSize::Percent(v) => write!(f, "{}", v),
+            FontSize::Length(v) => write!(f, "{}", v),
+        }
+    }
+}
+
 /// Text case transformations.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
@@ -575,6 +611,12 @@ pub enum TextPosition {
     Sub,
     Super,
     Percent(Percent),
+}
+
+impl From<Percent> for TextPosition {
+    fn from(value: Percent) -> Self {
+        TextPosition::Percent(value)
+    }
 }
 
 impl Display for TextPosition {
@@ -708,6 +750,18 @@ pub enum LineWidth {
     Thin,
     Medium,
     Thick,
+}
+
+impl From<Length> for LineWidth {
+    fn from(value: Length) -> Self {
+        LineWidth::Length(value)
+    }
+}
+
+impl From<Percent> for LineWidth {
+    fn from(value: Percent) -> Self {
+        LineWidth::Percent(value)
+    }
 }
 
 impl Display for LineWidth {
@@ -919,6 +973,18 @@ pub enum LineHeight {
     Percent(Percent),
 }
 
+impl From<Length> for LineHeight {
+    fn from(value: Length) -> Self {
+        LineHeight::Length(value)
+    }
+}
+
+impl From<Percent> for LineHeight {
+    fn from(value: Percent) -> Self {
+        LineHeight::Percent(value)
+    }
+}
+
 impl Display for LineHeight {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -939,6 +1005,18 @@ pub enum Margin {
     Percent(Percent),
 }
 
+impl From<Length> for Margin {
+    fn from(value: Length) -> Self {
+        Margin::Length(value)
+    }
+}
+
+impl From<Percent> for Margin {
+    fn from(value: Percent) -> Self {
+        Margin::Percent(value)
+    }
+}
+
 impl Display for Margin {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -957,6 +1035,18 @@ impl Display for Margin {
 pub enum Indent {
     Length(Length),
     Percent(Percent),
+}
+
+impl From<Length> for Indent {
+    fn from(value: Length) -> Self {
+        Indent::Length(value)
+    }
+}
+
+impl From<Percent> for Indent {
+    fn from(value: Percent) -> Self {
+        Indent::Percent(value)
+    }
 }
 
 impl Display for Indent {
@@ -1227,6 +1317,100 @@ impl Display for StyleNumFormat {
             StyleNumFormat::LowerRoman => write!(f, "i"),
             StyleNumFormat::Roman => write!(f, "I"),
             StyleNumFormat::Text(v) => write!(f, "{}", v),
+        }
+    }
+}
+
+/// The defined values for the style:rel-width attribute are:
+/// * scale: the width should be calculated depending on the height, so that the ratio of width and
+/// height of the original image or object size is preserved.
+/// * scale-min: the width should be calculated as for value scale, but the calculated width is a
+/// minimum width rather than an absolute one.
+/// * a value of type percent 18.3.23.
+#[derive(Debug, Clone, PartialEq)]
+#[allow(missing_docs)]
+pub enum RelativeWidth {
+    Scale,
+    ScaleMin,
+    Percent(Percent),
+}
+
+impl Display for RelativeWidth {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RelativeWidth::Scale => write!(f, "scale"),
+            RelativeWidth::ScaleMin => write!(f, "scale-min"),
+            RelativeWidth::Percent(v) => write!(f, "{}", v),
+        }
+    }
+}
+
+/// The defined values for the table:align attribute are:
+/// * center: table aligns to the center between left and right margins.
+/// * left: table aligns to the left margin.
+/// * margins: table fills all the space between the left and right margins.
+/// * right: table aligns to the right margin.
+/// Consumers that do not support the margins value, may treat this value as left.
+#[derive(Debug, Clone, PartialEq)]
+#[allow(missing_docs)]
+pub enum TableAlign {
+    Center,
+    Left,
+    Right,
+    Margins,
+}
+
+impl Display for TableAlign {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TableAlign::Center => write!(f, "center"),
+            TableAlign::Left => write!(f, "left"),
+            TableAlign::Right => write!(f, "right"),
+            TableAlign::Margins => write!(f, "margins"),
+        }
+    }
+}
+
+/// The defined values for the table:border-model attribute are:
+/// * collapsing: when two adjacent cells have different borders, the wider border appears as
+/// the border between the cells. Each cell receives half of the width of the border.
+/// * separating: borders appear within the cell that specifies the border.
+#[derive(Debug, Clone, PartialEq)]
+#[allow(missing_docs)]
+pub enum TableBorderModel {
+    Collapsing,
+    Separating,
+}
+
+impl Display for TableBorderModel {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TableBorderModel::Collapsing => write!(f, "collapsing"),
+            TableBorderModel::Separating => write!(f, "separating"),
+        }
+    }
+}
+
+/// The values of the fo:letter-spacing attribute are a value of type length 18.3.18 or
+/// normal.
+#[derive(Debug, Clone, PartialEq)]
+#[allow(missing_docs)]
+pub enum LetterSpacing {
+    Normal,
+    Length(Length),
+}
+
+impl From<Length> for LetterSpacing {
+    fn from(value: Length) -> Self {
+        LetterSpacing::Length(value)
+    }
+}
+
+impl Display for LetterSpacing {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LetterSpacing::Normal => write!(f, "normal"),
+            LetterSpacing::Length(v) => write!(f, "{}", v),
         }
     }
 }

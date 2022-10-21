@@ -304,10 +304,6 @@ pub(crate) fn border_string(width: Length, border: Border, color: Rgb<u8>) -> St
     )
 }
 
-pub(crate) fn percent_string(value: f64) -> String {
-    format!("{}%", value)
-}
-
 pub(crate) fn border_line_width_string(inner: Length, space: Length, outer: Length) -> String {
     format!("{} {} {}", inner, space, outer)
 }

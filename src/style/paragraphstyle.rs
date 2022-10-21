@@ -1,15 +1,15 @@
 use crate::attrmap2::AttrMap2;
 use crate::style::tabstop::TabStop;
 use crate::style::units::{
-    Border, FontStyle, FontVariant, FontWeight, Hyphenation, HyphenationLadderCount, Indent,
-    Length, LineBreak, LineHeight, LineMode, LineStyle, LineType, LineWidth, Margin, PageBreak,
-    PageNumber, ParaAlignVertical, Percent, PunctuationWrap, RotationScale, TextAlign,
-    TextAlignLast, TextAutoSpace, TextCombine, TextCondition, TextDisplay, TextEmphasize, TextKeep,
-    TextPosition, TextRelief, TextTransform, WritingMode,
+    Border, FontSize, FontStyle, FontVariant, FontWeight, Hyphenation, HyphenationLadderCount,
+    Indent, Length, LetterSpacing, LineBreak, LineHeight, LineMode, LineStyle, LineType, LineWidth,
+    Margin, PageBreak, PageNumber, ParaAlignVertical, Percent, PunctuationWrap, RotationScale,
+    TextAlign, TextAlignLast, TextAutoSpace, TextCombine, TextCondition, TextDisplay,
+    TextEmphasize, TextKeep, TextPosition, TextRelief, TextTransform, WritingMode,
 };
 use crate::style::{
-    border_line_width_string, border_string, color_string, percent_string, shadow_string,
-    text_position, Style, StyleOrigin, StyleUse, TextStyleRef,
+    border_line_width_string, border_string, color_string, shadow_string, text_position, Style,
+    StyleOrigin, StyleUse, TextStyleRef,
 };
 use crate::MasterPageRef;
 use color::Rgb;
@@ -113,35 +113,9 @@ impl ParagraphStyle {
         &mut self.textstyle
     }
 
-    /// The style:default-outline-level attribute specifies a default outline level for a style with
-    /// the style:family 19.480 attribute value paragraph.
-    ///
-    /// If the style:default-outline-level attribute is present in a paragraph style, and if this
-    /// paragraph style is assigned to a paragraph or heading by user action, then the consumer should
-    /// replace the paragraph or heading with a heading of the specified level, which has the same
-    /// content and attributes as the original paragraph or heading.
-    ///
-    /// Note: This attribute does not modify the behavior of <text:p> 5.1.3 or
-    /// <text:h> 5.1.2 elements, but only instructs a consumer to create one or the
-    /// other when assigning a paragraph style as a result of user interface action while
-    /// the document is edited.
-    ///
-    /// The style:default-outline-level attribute value can be empty. If empty, this attribute
-    /// does not inherit a list style value from a parent style.
-    pub fn set_default_outline_level(&mut self, level: u32) {
-        self.attr
-            .set_attr("style:default-outline-level", level.to_string());
-    }
-
-    styles_master_page!(attrmap_mut);
-
-    /// Within styles for paragraphs, style:next-style-name attribute specifies the style to be used
-    /// for the next paragraph if a paragraph break is inserted in the user interface. By default, the current
-    /// style is used as the next style.
-    pub fn set_next_style(&mut self, name: &ParagraphStyleRef) {
-        self.attr
-            .set_attr("style:next-style-name", name.to_string());
-    }
+    style_default_outline_level!(attrmap_mut);
+    style_master_page!(attrmap_mut);
+    style_next_style!(attrmap_mut);
 
     /// Tabstops.
     pub fn add_tabstop(&mut self, ts: TabStop) {
@@ -168,7 +142,7 @@ impl ParagraphStyle {
     fo_text_align_last!(paragraphstyle_mut);
     fo_text_indent!(paragraphstyle_mut);
     fo_widows!(paragraphstyle_mut);
-    style_autotext_indent!(paragraphstyle_mut);
+    style_auto_text_indent!(paragraphstyle_mut);
     style_background_transparency!(paragraphstyle_mut);
     fo_border_line_width!(paragraphstyle_mut);
     style_contextual_spacing!(paragraphstyle_mut);

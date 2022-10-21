@@ -1,13 +1,11 @@
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{
-    Angle, FontStyle, FontVariant, FontWeight, Length, LineMode, LineStyle, LineType, LineWidth,
-    Percent, RotationScale, TextCombine, TextCondition, TextDisplay, TextEmphasize, TextPosition,
-    TextRelief, TextTransform,
+    Angle, FontSize, FontStyle, FontVariant, FontWeight, Length, LetterSpacing, LineMode,
+    LineStyle, LineType, LineWidth, Percent, RotationScale, TextCombine, TextCondition,
+    TextDisplay, TextEmphasize, TextPosition, TextRelief, TextTransform,
 };
 use crate::style::Style;
-use crate::style::{
-    color_string, percent_string, shadow_string, text_position, StyleOrigin, StyleUse,
-};
+use crate::style::{color_string, shadow_string, text_position, StyleOrigin, StyleUse};
 use color::Rgb;
 use icu_locid::Locale;
 use std::fmt::{Display, Formatter};

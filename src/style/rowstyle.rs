@@ -89,32 +89,7 @@ impl RowStyle {
     fo_background_color!(rowstyle_mut);
     fo_break!(rowstyle_mut);
     fo_keep_together!(rowstyle_mut);
-
-    /// Minimum row-height.
-    pub fn set_min_row_height(&mut self, min_height: Length) {
-        self.rowstyle
-            .set_attr("style:min-row-height", min_height.to_string());
-    }
-
-    /// Fixed row-height.
-    pub fn set_row_height(&mut self, height: Length) {
-        self.rowstyle
-            .set_attr("style:row-height", height.to_string());
-    }
-
-    /// Parses the row height
-    pub fn row_height(&self) -> Result<Length, OdsError> {
-        Length::parse_attr_def(self.rowstyle.attr("style:row-height"), Length::Default)
-    }
-
-    /// Optimal row-height.
-    pub fn set_use_optimal_row_height(&mut self, opt: bool) {
-        self.rowstyle
-            .set_attr("style:use-optimal-row-height", opt.to_string());
-    }
-
-    /// Parses the flag.
-    pub fn use_optimal_row_height(&self) -> Result<bool, OdsError> {
-        bool::parse_attr_def(self.rowstyle.attr("style:use-optimal-row-height"), false)
-    }
+    style_min_row_height!(rowstyle);
+    style_row_height!(rowstyle);
+    style_use_optimal_row_height!(rowstyle);
 }
