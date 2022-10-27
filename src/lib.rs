@@ -222,7 +222,9 @@ mod attr_macro;
 #[macro_use]
 mod unit_macro;
 #[macro_use]
-mod ref_macro;
+mod style_macro;
+#[macro_use]
+mod text_macro;
 
 mod attrmap2;
 mod config;
