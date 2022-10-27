@@ -44,7 +44,7 @@ styles_styles!(RowStyle, RowStyleRef);
 
 impl RowStyle {
     /// empty
-    pub(crate) fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -66,22 +66,22 @@ impl RowStyle {
     }
 
     /// General attributes.
-    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// General attributes.
-    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Style attributes.
-    pub(crate) fn rowstyle(&self) -> &AttrMap2 {
+    pub fn rowstyle(&self) -> &AttrMap2 {
         &self.rowstyle
     }
 
     /// Style attributes.
-    pub(crate) fn rowstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub fn rowstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.rowstyle
     }
 

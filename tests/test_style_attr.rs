@@ -2,11 +2,7 @@ use color::Rgb;
 
 use spreadsheet_ods::condition::ValueCondition;
 use spreadsheet_ods::style::stylemap::StyleMap;
-use spreadsheet_ods::style::units::{
-    Angle, Border, CellAlignVertical, FontPitch, FontWeight, Length, PageBreak, ParaAlignVertical,
-    RotationAlign, TextAlignSource, TextKeep, TextPosition, TextRelief, TextTransform, WrapOption,
-    WritingMode,
-};
+use spreadsheet_ods::style::units::{Angle, Border, CellAlignVertical, FontFamilyGeneric, FontPitch, FontWeight, Length, PageBreak, ParaAlignVertical, RotationAlign, TextAlignSource, TextKeep, TextPosition, TextRelief, TextTransform, WrapOption, WritingMode};
 use spreadsheet_ods::style::{
     CellStyle, ColStyle, FontFaceDecl, PageStyle, RowStyle, StyleOrigin, StyleUse, TableStyle,
 };
@@ -34,7 +30,7 @@ fn test_attr1() {
         Some(&"1pt 2pt 3pt".to_string())
     );
 
-    p0.set_margin(Length::Pt(3.2));
+    p0.set_margin(Length::Pt(3.2).into());
     assert_eq!(p0.style().attr("fo:margin"), Some(&"3.2pt".to_string()));
 
     p0.set_margin(pt!(3.2));
@@ -55,8 +51,8 @@ fn test_attr1() {
         Some(&"#101010 3mm 4mm".to_string())
     );
 
-    p0.set_height(cm!(7));
-    assert_eq!(p0.style().attr("svg:height"), Some(&"7cm".to_string()));
+    p0.headerstyle_mut().set_height(cm!(7));
+    assert_eq!(p0.headerstyle().style().attr("svg:height"), Some(&"7cm".to_string()));
 
     p0.headerstyle_mut().set_min_height(cm!(6));
     assert_eq!(
@@ -73,7 +69,7 @@ fn test_attr1() {
 
 #[test]
 fn test_attr2() {
-    let mut ff = FontFaceDecl::new();
+    let mut ff = FontFaceDecl::new("Helvetica");
 
     ff.set_font_family("Helvetica");
     assert_eq!(
@@ -81,10 +77,10 @@ fn test_attr2() {
         Some(&"Helvetica".to_string())
     );
 
-    ff.set_font_family_generic("fool");
+    ff.set_font_family_generic(FontFamilyGeneric::System);
     assert_eq!(
         ff.attrmap().attr("style:font-family-generic"),
-        Some(&"fool".to_string())
+        Some(&"system".to_string())
     );
 
     ff.set_font_pitch(FontPitch::Fixed);
@@ -246,7 +242,7 @@ fn test_attr5() {
 
     st.set_text_align_source(TextAlignSource::ValueType);
     assert_eq!(
-        st.paragraphstyle().attr("style:text-align-source"),
+        st.cellstyle().attr("style:text-align-source"),
         Some(&"value-type".to_string())
     );
 
@@ -309,7 +305,7 @@ fn test_attr6() {
         Some(&"0.2pt".to_string())
     );
 
-    st.set_text_position(TextPosition::Sub);
+    st.set_text_position(TextPosition::Sub, None);
     assert_eq!(
         st.textstyle().attr("style:text-position"),
         Some(&"sub".to_string())

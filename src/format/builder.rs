@@ -22,13 +22,13 @@ impl<'vf> PartNumberBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -146,6 +146,52 @@ impl<'vf> PartNumberBuilder<'vf> {
     }
 }
 
+/// Builder for FormatPart with type Number.
+#[derive(Debug)]
+pub struct PartFillCharacterBuilder<'vf> {
+    part: FormatPart,
+    valueformat: &'vf mut ValueFormat,
+}
+
+impl<'vf> PartFillCharacterBuilder<'vf> {
+    /// New builder for the valueformat.
+    pub fn new<'a>(valueformat: &'a mut ValueFormat) -> Self
+    where
+        'a: 'vf,
+    {
+        Self {
+            part: FormatPart::new(FormatPartType::FillCharacter),
+            valueformat,
+        }
+    }
+
+    /// Appends the constructed FormatPart to the original value format.
+    pub fn build(self) {
+        self.valueformat.push_part(self.part);
+    }
+
+    /// Only applies the builder if the test is true.
+    #[must_use]
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
+    where
+        F: Fn(Self) -> Self,
+    {
+        if test {
+            build(self)
+        } else {
+            self
+        }
+    }
+
+    /// If the number:decimal-places attribute is not specified, the number of decimal places
+    /// specified by the default table cell style is used.
+    #[must_use]
+    pub fn fill_char(mut self, c: char) -> Self {
+        self.part.set_content(c.to_string());
+        self
+    }
+}
+
 /// Builder for FormatPart with type ScientificNumber.
 ///
 /// The number:scientific-number element specifies the display formatting properties for a
@@ -180,13 +226,13 @@ impl<'vf> PartScientificBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -312,13 +358,13 @@ impl<'vf> PartFractionBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -432,13 +478,13 @@ impl<'vf> PartCurrencySymbolBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -514,13 +560,13 @@ impl<'vf> PartDayBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -605,13 +651,13 @@ impl<'vf> PartMonthBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -719,13 +765,13 @@ impl<'vf> PartYearBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -806,13 +852,13 @@ impl<'vf> PartEraBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -893,13 +939,13 @@ impl<'vf> PartDayOfWeekBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -979,13 +1025,13 @@ impl<'vf> PartWeekOfYearBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -1036,13 +1082,13 @@ impl<'vf> PartQuarterBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -1123,13 +1169,13 @@ impl<'vf> PartHoursBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -1200,13 +1246,13 @@ impl<'vf> PartMinutesBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -1279,13 +1325,13 @@ impl<'vf> PartSecondsBuilder<'vf> {
     }
 
     /// Appends the constructed FormatPart to the original value format.
-    pub fn push(self) {
+    pub fn build(self) {
         self.valueformat.push_part(self.part);
     }
 
     /// Only applies the builder if the test is true.
     #[must_use]
-    pub fn test<F>(self, test: bool, build: F) -> Self
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
     where
         F: Fn(Self) -> Self,
     {
@@ -1333,5 +1379,156 @@ impl<'vf> PartSecondsBuilder<'vf> {
     pub fn style(mut self, style: FormatNumberStyle) -> Self {
         self.part.set_attr("number:style", style.to_string());
         self
+    }
+}
+
+/// Adds a format part to this format.
+///
+/// The number:am-pm element specifies whether AM/PM is included as part of a date or time.
+/// If a number:am-pm element is contained in a date or time style, hours are displayed using
+/// values from 1 to 12 only.
+///
+/// Can be used with ValueTypes:
+/// * DateTime
+/// * TimeDuration
+#[derive(Debug)]
+pub struct PartAmPmBuilder<'vf> {
+    part: FormatPart,
+    valueformat: &'vf mut ValueFormat,
+}
+
+impl<'vf> PartAmPmBuilder<'vf> {
+    /// New builder for the valueformat.
+    pub fn new<'a>(valueformat: &'a mut ValueFormat) -> Self
+    where
+        'a: 'vf,
+    {
+        Self {
+            part: FormatPart::new(FormatPartType::AmPm),
+            valueformat,
+        }
+    }
+
+    /// Appends the constructed FormatPart to the original value format.
+    pub fn build(self) {
+        self.valueformat.push_part(self.part);
+    }
+}
+
+/// Adds a format part to this format.
+///
+/// The number:boolean element marks the position of the Boolean value of a Boolean style.
+///
+/// Can be used with ValueTypes:
+/// * Boolean
+#[derive(Debug)]
+pub struct PartBooleanBuilder<'vf> {
+    part: FormatPart,
+    valueformat: &'vf mut ValueFormat,
+}
+
+impl<'vf> PartBooleanBuilder<'vf> {
+    /// New builder for the valueformat.
+    pub fn new<'a>(valueformat: &'a mut ValueFormat) -> Self
+    where
+        'a: 'vf,
+    {
+        Self {
+            part: FormatPart::new(FormatPartType::Boolean),
+            valueformat,
+        }
+    }
+
+    /// Appends the constructed FormatPart to the original value format.
+    pub fn build(self) {
+        self.valueformat.push_part(self.part);
+    }
+}
+
+/// Adds a format part to this format.
+///
+/// The number:text element contains any fixed text for a data style.
+///
+/// Can be used with ValueTypes:
+/// * Boolean
+/// * Currency
+/// * DateTime
+/// * Number
+/// * Percentage
+/// * Text
+/// * TimeDuration
+#[derive(Debug)]
+pub struct PartTextBuilder<'vf> {
+    part: FormatPart,
+    valueformat: &'vf mut ValueFormat,
+}
+
+impl<'vf> PartTextBuilder<'vf> {
+    /// New builder for the valueformat.
+    pub fn new<'a>(valueformat: &'a mut ValueFormat) -> Self
+    where
+        'a: 'vf,
+    {
+        Self {
+            part: FormatPart::new(FormatPartType::Text),
+            valueformat,
+        }
+    }
+
+    /// Appends the constructed FormatPart to the original value format.
+    pub fn build(self) {
+        self.valueformat.push_part(self.part);
+    }
+
+    /// Only applies the builder if the test is true.
+    #[must_use]
+    pub fn if_then<F>(self, test: bool, build: F) -> Self
+    where
+        F: Fn(Self) -> Self,
+    {
+        if test {
+            build(self)
+        } else {
+            self
+        }
+    }
+
+    /// Sets the text value.
+    #[must_use]
+    pub fn text<S: Into<String>>(mut self, txt: S) -> Self {
+        self.part.set_content(txt.into());
+        self
+    }
+}
+
+/// Adds a format part to this format.
+///    
+/// The number:text-content element marks the position of variable text content of a text
+/// style.
+///
+/// Can be used with ValueTypes:
+/// * Text
+
+#[derive(Debug)]
+pub struct PartTextContentBuilder<'vf> {
+    part: FormatPart,
+    valueformat: &'vf mut ValueFormat,
+}
+
+impl<'vf> PartTextContentBuilder<'vf> {
+    /// New builder for the valueformat.
+    pub fn new<'a>(valueformat: &'a mut ValueFormat) -> Self
+    where
+        'a: 'vf,
+    {
+        Self {
+            part: FormatPart::new(FormatPartType::TextContent),
+            valueformat,
+        }
+    }
+
+    /// Appends the constructed FormatPart to the original value format.
+    pub fn build(self) {
+        self.valueformat.push_part(self.part);
     }
 }

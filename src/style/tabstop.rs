@@ -27,12 +27,12 @@ impl TabStop {
     }
 
     /// General attributes.
-    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// General attributes.
-    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 

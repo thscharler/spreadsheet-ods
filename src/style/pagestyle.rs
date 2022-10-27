@@ -29,7 +29,7 @@ pub struct PageStyle {
 
 impl PageStyle {
     /// New pagestyle.
-    pub(crate) fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             name: Default::default(),
             master_page_usage: None,
@@ -107,12 +107,12 @@ impl PageStyle {
     }
 
     /// Access to all style attributes.
-    pub(crate) fn style(&self) -> &AttrMap2 {
+    pub fn style(&self) -> &AttrMap2 {
         &self.style
     }
 
     /// Access to all style attributes.
-    pub(crate) fn style_mut(&mut self) -> &mut AttrMap2 {
+    pub fn style_mut(&mut self) -> &mut AttrMap2 {
         &mut self.style
     }
 
@@ -149,12 +149,12 @@ pub struct HeaderFooterStyle {
 
 impl HeaderFooterStyle {
     /// General attributes.
-    pub(crate) fn style(&self) -> &AttrMap2 {
+    pub fn style(&self) -> &AttrMap2 {
         &self.style
     }
 
     /// General attributes.
-    pub(crate) fn style_mut(&mut self) -> &mut AttrMap2 {
+    pub fn style_mut(&mut self) -> &mut AttrMap2 {
         &mut self.style
     }
 

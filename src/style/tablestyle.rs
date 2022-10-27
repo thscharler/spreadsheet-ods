@@ -42,7 +42,7 @@ styles_styles!(TableStyle, TableStyleRef);
 
 impl TableStyle {
     /// empty
-    pub(crate) fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -66,22 +66,22 @@ impl TableStyle {
     style_master_page!(attr);
 
     /// Access to all stored attributes.
-    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// Access to all stored attributes.
-    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Access to all style attributes.
-    pub(crate) fn tablestyle(&self) -> &AttrMap2 {
+    pub fn tablestyle(&self) -> &AttrMap2 {
         &self.tablestyle
     }
 
     /// Access to all style attributes.
-    pub(crate) fn tablestyle_mut(&mut self) -> &mut AttrMap2 {
+    pub fn tablestyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.tablestyle
     }
 

@@ -10,15 +10,15 @@ fn write_format() -> Result<(), OdsError> {
     let mut wb = WorkBook::new_empty();
 
     let mut v1 = ValueFormat::new_named("f1", ValueType::Number);
-    v1.part_scientific().decimal_places(4).push();
+    v1.part_scientific().decimal_places(4).build();
     let v1 = wb.add_format(v1);
 
     let mut v2 = ValueFormat::new_named("f2", ValueType::Number);
-    v2.part_number().fixed_decimal_places(2).push();
+    v2.part_number().fixed_decimal_places(2).build();
     let v2 = wb.add_format(v2);
 
     let mut v3 = ValueFormat::new_named("f3", ValueType::Number);
-    v3.part_number().decimal_places(2).push();
+    v3.part_number().decimal_places(2).build();
     let v3 = wb.add_format(v3);
 
     let mut v31 = ValueFormat::new_named("f31", ValueType::Number);
@@ -27,52 +27,52 @@ fn write_format() -> Result<(), OdsError> {
         .min_denominator_digits(1)
         .min_integer_digits(1)
         .min_numerator_digits(1)
-        .push();
+        .build();
     let v31 = wb.add_format(v31);
 
     let mut v4 = ValueFormat::new_named("f4", ValueType::Currency);
     v4.part_currency()
         .locale(locale!("de_AT"))
         .symbol("€")
-        .push();
-    v4.part_text(" ");
-    v4.part_number().decimal_places(2).push();
+        .build();
+    v4.part_text(" ").build();
+    v4.part_number().decimal_places(2).build();
     let v4 = wb.add_format(v4);
 
     let mut v5 = ValueFormat::new_named("f5", ValueType::Percentage);
-    v5.part_number().decimal_places(2).push();
-    v5.part_text("/ct");
+    v5.part_number().decimal_places(2).build();
+    v5.part_text("/ct").build();
     let v5 = wb.add_format(v5);
 
     let mut v6 = ValueFormat::new_named("f6", ValueType::Boolean);
-    v6.part_boolean();
+    v6.part_boolean().build();
     let v6 = wb.add_format(v6);
 
     let mut v7 = ValueFormat::new_named("f7", ValueType::DateTime);
     v7.part_era()
         .style(FormatNumberStyle::Long)
         .calendar(FormatCalendarStyle::Gregorian)
-        .push();
-    v7.part_text(" ");
-    v7.part_year().style(FormatNumberStyle::Long).push();
-    v7.part_text(" ");
-    v7.part_month().style(FormatNumberStyle::Long).push();
-    v7.part_text(" ");
-    v7.part_day().style(FormatNumberStyle::Long).push();
-    v7.part_text(" ");
+        .build();
+    v7.part_text(" ").build();
+    v7.part_year().style(FormatNumberStyle::Long).build();
+    v7.part_text(" ").build();
+    v7.part_month().style(FormatNumberStyle::Long).build();
+    v7.part_text(" ").build();
+    v7.part_day().style(FormatNumberStyle::Long).build();
+    v7.part_text(" ").build();
     v7.part_day_of_week()
         .style(FormatNumberStyle::Long)
         .calendar(FormatCalendarStyle::Gregorian)
-        .push();
-    v7.part_text(" ");
+        .build();
+    v7.part_text(" ").build();
     v7.part_week_of_year()
         .calendar(FormatCalendarStyle::Gregorian)
-        .push();
-    v7.part_text(" ");
+        .build();
+    v7.part_text(" ").build();
     v7.part_quarter()
         .style(FormatNumberStyle::Long)
         .calendar(FormatCalendarStyle::Gregorian)
-        .push();
+        .build();
     let v7 = wb.add_format(v7);
 
     let mut v8 = ValueFormat::new_named("v8", ValueType::Number);
@@ -80,7 +80,7 @@ fn write_format() -> Result<(), OdsError> {
         .min_integer_digits(4)
         .decimal_places(2)
         .embedded_text("RR", 2)
-        .push();
+        .build();
     let v8 = wb.add_format(v8);
 
     let f1 = wb.add_cellstyle(CellStyle::new("f1", &v1));

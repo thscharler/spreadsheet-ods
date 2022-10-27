@@ -6,17 +6,17 @@
 //! use spreadsheet_ods::format::{FormatCalendarStyle, FormatNumberStyle};
 //!
 //! let mut v = ValueFormat::new_named("dt0", ValueType::DateTime);
-//! v.part_day().long_style().push();
+//! v.part_day().long_style().build();
 //! v.part_text(".");
-//! v.part_month().long_style().push();
+//! v.part_month().long_style().build();
 //! v.part_text(".");
-//! v.part_year().long_style().push();
+//! v.part_year().long_style().build();
 //! v.part_text(" ");
-//! v.part_hours().long_style().push();
+//! v.part_hours().long_style().build();
 //! v.part_text(":");
-//! v.part_minutes().long_style().push();
+//! v.part_minutes().long_style().build();
 //! v.part_text(":");
-//! v.part_seconds().long_style().push();
+//! v.part_seconds().long_style().build();
 //!
 //! let mut v = ValueFormat::new_named("n3", ValueType::Number);
 //! v.part_number().decimal_places(3);
@@ -638,6 +638,7 @@ impl ValueFormat {
     /// * Currency
     /// * Number
     /// * Percentage
+    #[must_use]
     pub fn part_number(&mut self) -> PartNumberBuilder<'_> {
         PartNumberBuilder::new(self)
     }
@@ -658,10 +659,9 @@ impl ValueFormat {
     /// * Percentage
     /// * Text
     /// * TimeDuration
-    pub fn part_fill_character(&mut self, c: char) {
-        let mut part = FormatPart::new(FormatPartType::FillCharacter);
-        part.set_content(c.to_string());
-        self.push_part(part);
+    #[must_use]
+    pub fn part_fill_character(&mut self) -> PartFillCharacterBuilder<'_> {
+        PartFillCharacterBuilder::new(self)
     }
 
     /// Adds a format part to this format.
@@ -671,6 +671,7 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * Number
+    #[must_use]
     pub fn part_scientific(&mut self) -> PartScientificBuilder<'_> {
         PartScientificBuilder::new(self)
     }
@@ -682,6 +683,7 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * Number
+    #[must_use]
     pub fn part_fraction(&mut self) -> PartFractionBuilder<'_> {
         PartFractionBuilder::new(self)
     }
@@ -693,6 +695,7 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * Currency
+    #[must_use]
     pub fn part_currency(&mut self) -> PartCurrencySymbolBuilder<'_> {
         PartCurrencySymbolBuilder::new(self)
     }
@@ -703,6 +706,7 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * DateTime
+    #[must_use]
     pub fn part_day(&mut self) -> PartDayBuilder<'_> {
         PartDayBuilder::new(self)
     }
@@ -713,6 +717,7 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * DateTime
+    #[must_use]
     pub fn part_month(&mut self) -> PartMonthBuilder<'_> {
         PartMonthBuilder::new(self)
     }
@@ -723,6 +728,7 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * DateTime
+    #[must_use]
     pub fn part_year(&mut self) -> PartYearBuilder<'_> {
         PartYearBuilder::new(self)
     }
@@ -733,6 +739,7 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * DateTime
+    #[must_use]
     pub fn part_era(&mut self) -> PartEraBuilder<'_> {
         PartEraBuilder::new(self)
     }
@@ -743,6 +750,7 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * DateTime
+    #[must_use]
     pub fn part_day_of_week(&mut self) -> PartDayOfWeekBuilder<'_> {
         PartDayOfWeekBuilder::new(self)
     }
@@ -753,6 +761,7 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * DateTime
+    #[must_use]
     pub fn part_week_of_year(&mut self) -> PartWeekOfYearBuilder<'_> {
         PartWeekOfYearBuilder::new(self)
     }
@@ -763,6 +772,7 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * DateTime
+    #[must_use]
     pub fn part_quarter(&mut self) -> PartQuarterBuilder<'_> {
         PartQuarterBuilder::new(self)
     }
@@ -774,6 +784,7 @@ impl ValueFormat {
     /// Can be used with ValueTypes:
     /// * DateTime
     /// * TimeDuration
+    #[must_use]
     pub fn part_hours(&mut self) -> PartHoursBuilder<'_> {
         PartHoursBuilder::new(self)
     }
@@ -786,6 +797,7 @@ impl ValueFormat {
     /// Can be used with ValueTypes:
     /// * DateTime
     /// * TimeDuration
+    #[must_use]
     pub fn part_minutes(&mut self) -> PartMinutesBuilder<'_> {
         PartMinutesBuilder::new(self)
     }
@@ -798,6 +810,7 @@ impl ValueFormat {
     /// Can be used with ValueTypes:
     /// * DateTime
     /// * TimeDuration
+    #[must_use]
     pub fn part_seconds(&mut self) -> PartSecondsBuilder<'_> {
         PartSecondsBuilder::new(self)
     }
@@ -811,9 +824,9 @@ impl ValueFormat {
     /// Can be used with ValueTypes:
     /// * DateTime
     /// * TimeDuration
-    pub fn part_am_pm(&mut self) {
-        let part = FormatPart::new(FormatPartType::AmPm);
-        self.push_part(part);
+    #[must_use]
+    pub fn part_am_pm(&mut self) -> PartAmPmBuilder<'_> {
+        PartAmPmBuilder::new(self)
     }
 
     /// Adds a format part to this format.
@@ -822,9 +835,9 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * Boolean
-    pub fn part_boolean(&mut self) {
-        let part = FormatPart::new(FormatPartType::Boolean);
-        self.push_part(part);
+    #[must_use]
+    pub fn part_boolean(&mut self) -> PartBooleanBuilder<'_> {
+        PartBooleanBuilder::new(self)
     }
 
     /// Adds a format part to this format.
@@ -839,10 +852,9 @@ impl ValueFormat {
     /// * Percentage
     /// * Text
     /// * TimeDuration
-    pub fn part_text<S: Into<String>>(&mut self, txt: S) {
-        let mut part = FormatPart::new(FormatPartType::Text);
-        part.set_content(txt.into());
-        self.push_part(part);
+    #[must_use]
+    pub fn part_text<S: Into<String>>(&mut self, text: S) -> PartTextBuilder<'_> {
+        PartTextBuilder::new(self).text(text.into())
     }
 
     /// Adds a format part to this format.
@@ -852,9 +864,9 @@ impl ValueFormat {
     ///
     /// Can be used with ValueTypes:
     /// * Text
-    pub fn part_text_content(&mut self) {
-        let part = FormatPart::new(FormatPartType::TextContent);
-        self.push_part(part);
+    #[must_use]
+    pub fn part_text_content(&mut self) -> PartTextContentBuilder<'_> {
+        PartTextContentBuilder::new(self)
     }
 
     /// Use part_number instead.
@@ -862,10 +874,10 @@ impl ValueFormat {
     pub fn push_number(&mut self, decimal_places: u8, grouping: bool) {
         self.part_number()
             .decimal_places(decimal_places)
-            .test(grouping, |p| p.grouping())
+            .if_then(grouping, |p| p.grouping())
             .min_decimal_places(0)
             .min_integer_digits(1)
-            .push();
+            .build();
     }
 
     /// Use part_number instead.
@@ -873,9 +885,9 @@ impl ValueFormat {
     pub fn push_number_fix(&mut self, decimal_places: u8, grouping: bool) {
         self.part_number()
             .fixed_decimal_places(decimal_places)
-            .test(grouping, |p| p.grouping())
+            .if_then(grouping, |p| p.grouping())
             .min_integer_digits(1)
-            .push();
+            .build();
     }
 
     /// Use part_fraction instead.
@@ -893,14 +905,16 @@ impl ValueFormat {
             .min_denominator_digits(min_denominator_digits)
             .min_integer_digits(min_integer_digits)
             .min_numerator_digits(min_numerator_digits)
-            .test(grouping, |p| p.grouping())
-            .push();
+            .if_then(grouping, |p| p.grouping())
+            .build();
     }
 
     /// Use part_scientific instead.
     #[deprecated]
     pub fn push_scientific(&mut self, decimal_places: u8) {
-        self.part_scientific().decimal_places(decimal_places).push();
+        self.part_scientific()
+            .decimal_places(decimal_places)
+            .build();
     }
 
     /// Use part_currency instead.
@@ -909,13 +923,13 @@ impl ValueFormat {
     where
         S: Into<String>,
     {
-        self.part_currency().locale(locale).symbol(symbol).push();
+        self.part_currency().locale(locale).symbol(symbol).build();
     }
 
     /// Use part_day instead.
     #[deprecated]
     pub fn push_day(&mut self, style: FormatNumberStyle) {
-        self.part_day().style(style).push();
+        self.part_day().style(style).build();
     }
 
     /// Use part_month instead.
@@ -923,20 +937,20 @@ impl ValueFormat {
     pub fn push_month(&mut self, style: FormatNumberStyle, textual: bool) {
         self.part_month()
             .style(style)
-            .test(textual, |p| p.textual())
-            .push();
+            .if_then(textual, |p| p.textual())
+            .build();
     }
 
     /// Use part_year instead.
     #[deprecated]
     pub fn push_year(&mut self, style: FormatNumberStyle) {
-        self.part_year().style(style).push();
+        self.part_year().style(style).build();
     }
 
     /// Use part_era instead.
     #[deprecated]
     pub fn push_era(&mut self, style: FormatNumberStyle, calendar: FormatCalendarStyle) {
-        self.part_era().style(style).calendar(calendar).push();
+        self.part_era().style(style).calendar(calendar).build();
     }
 
     /// Use part_day_of_week instead.
@@ -945,31 +959,31 @@ impl ValueFormat {
         self.part_day_of_week()
             .style(style)
             .calendar(calendar)
-            .push();
+            .build();
     }
 
     /// Use part_week_of_year instead.
     #[deprecated]
     pub fn push_week_of_year(&mut self, calendar: FormatCalendarStyle) {
-        self.part_week_of_year().calendar(calendar).push();
+        self.part_week_of_year().calendar(calendar).build();
     }
 
     /// Use part_quarter instead.
     #[deprecated]
     pub fn push_quarter(&mut self, style: FormatNumberStyle, calendar: FormatCalendarStyle) {
-        self.part_quarter().style(style).calendar(calendar).push();
+        self.part_quarter().style(style).calendar(calendar).build();
     }
 
     /// Use part_hours instead.
     #[deprecated]
     pub fn push_hours(&mut self, style: FormatNumberStyle) {
-        self.part_hours().style(style).push();
+        self.part_hours().style(style).build();
     }
 
     /// Use part_minutes instead.
     #[deprecated]
     pub fn push_minutes(&mut self, style: FormatNumberStyle) {
-        self.part_minutes().style(style).push();
+        self.part_minutes().style(style).build();
     }
 
     /// Use part_seconds.
@@ -978,38 +992,32 @@ impl ValueFormat {
         self.part_seconds()
             .style(style)
             .decimal_places(decimal_places)
-            .push();
+            .build();
     }
 
     /// Use part_am_pm instead.
     #[deprecated]
     pub fn push_am_pm(&mut self) {
-        self.part_am_pm();
+        self.part_am_pm().build();
     }
 
     /// Use part_boolean instead.
     #[deprecated]
     pub fn push_boolean(&mut self) {
-        self.part_boolean();
+        self.part_boolean().build();
     }
 
     /// Use part_text instead.
     #[deprecated]
     pub fn push_text<S: Into<String>>(&mut self, text: S) {
-        self.part_text(text);
+        self.part_text(text).build();
     }
 
     /// Use part_text_content instead.
     #[deprecated]
     pub fn push_text_content(&mut self) {
-        self.part_text_content();
+        self.part_text_content().build();
     }
-
-    // /// The number:///-text element specifies text that is displayed at one specific position
-    // /// within a number.
-    // pub fn push_embedded_text<S: Into<String>>(&mut self, position: u8, text: S) {
-    //     self.push_part(FormatPart::new_embedded_text(position, text));
-    // }
 
     /// Adds a format part.
     pub fn push_part(&mut self, part: FormatPart) {

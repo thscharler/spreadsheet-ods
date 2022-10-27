@@ -82,7 +82,7 @@ styles_styles!(CellStyle, CellStyleRef);
 
 impl CellStyle {
     /// Creates an empty style.
-    pub(crate) fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -124,42 +124,42 @@ impl CellStyle {
     }
 
     /// Allows access to all attributes of the style itself.
-    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// Allows access to all attributes of the style itself.
-    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Allows access to all cell-style like attributes.
-    pub(crate) fn cellstyle(&self) -> &AttrMap2 {
+    pub fn cellstyle(&self) -> &AttrMap2 {
         &self.cellstyle
     }
 
     /// Allows access to all cell-style like attributes.
-    pub(crate) fn cellstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub fn cellstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.cellstyle
     }
 
     /// Allows access to all paragraph-style like attributes.
-    pub(crate) fn paragraphstyle(&self) -> &AttrMap2 {
+    pub fn paragraphstyle(&self) -> &AttrMap2 {
         &self.paragraphstyle
     }
 
     /// Allows access to all paragraph-style like attributes.
-    pub(crate) fn paragraphstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub fn paragraphstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.paragraphstyle
     }
 
     /// Allows access to all text-style like attributes.
-    pub(crate) fn textstyle(&self) -> &AttrMap2 {
+    pub fn textstyle(&self) -> &AttrMap2 {
         &self.textstyle
     }
 
     /// Allows access to all text-style like attributes.
-    pub(crate) fn textstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub fn textstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.textstyle
     }
 

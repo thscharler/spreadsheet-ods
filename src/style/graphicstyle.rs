@@ -38,8 +38,8 @@ pub struct GraphicStyle {
 styles_styles!(GraphicStyle, GraphicStyleRef);
 
 impl GraphicStyle {
-    // Empty.
-    pub(crate) fn new_empty() -> Self {
+    /// Empty.
+    pub fn new_empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -61,22 +61,22 @@ impl GraphicStyle {
     }
 
     /// General attributes.
-    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// General attributes.
-    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Graphic style attributes.
-    pub(crate) fn graphicstyle(&self) -> &AttrMap2 {
+    pub fn graphicstyle(&self) -> &AttrMap2 {
         &self.graphicstyle
     }
 
     /// Graphic style attributes.
-    pub(crate) fn graphicstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub fn graphicstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.graphicstyle
     }
 }

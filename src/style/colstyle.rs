@@ -44,7 +44,7 @@ styles_styles!(ColStyle, ColStyleRef);
 
 impl ColStyle {
     /// empty
-    pub(crate) fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -66,22 +66,22 @@ impl ColStyle {
     }
 
     /// Attributes
-    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// Attributes
-    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Style attributes
-    pub(crate) fn colstyle(&self) -> &AttrMap2 {
+    pub fn colstyle(&self) -> &AttrMap2 {
         &self.colstyle
     }
 
     /// Style attributes
-    pub(crate) fn colstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub fn colstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.colstyle
     }
 

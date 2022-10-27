@@ -44,7 +44,7 @@ styles_styles!(TextStyle, TextStyleRef);
 
 impl TextStyle {
     /// Empty.
-    pub(crate) fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -66,22 +66,22 @@ impl TextStyle {
     }
 
     /// General attributes for the style.
-    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// General attributes for the style.
-    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// All text-attributes for the style.
-    pub(crate) fn textstyle(&self) -> &AttrMap2 {
+    pub fn textstyle(&self) -> &AttrMap2 {
         &self.textstyle
     }
 
     /// All text-attributes for the style.
-    pub(crate) fn textstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub fn textstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.textstyle
     }
 

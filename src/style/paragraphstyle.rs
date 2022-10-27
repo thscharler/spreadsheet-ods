@@ -59,7 +59,7 @@ styles_styles!(ParagraphStyle, ParagraphStyleRef);
 
 impl ParagraphStyle {
     /// Empty
-    pub(crate) fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
@@ -85,32 +85,32 @@ impl ParagraphStyle {
     }
 
     /// General attributes.
-    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// General attributes.
-    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Paragraph style attributes.
-    pub(crate) fn paragraphstyle(&self) -> &AttrMap2 {
+    pub fn paragraphstyle(&self) -> &AttrMap2 {
         &self.paragraphstyle
     }
 
     /// Paragraph style attributes.
-    pub(crate) fn paragraphstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub fn paragraphstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.paragraphstyle
     }
 
     /// Text style attributes.
-    pub(crate) fn textstyle(&self) -> &AttrMap2 {
+    pub fn textstyle(&self) -> &AttrMap2 {
         &self.textstyle
     }
 
     /// Text style attributes.
-    pub(crate) fn textstyle_mut(&mut self) -> &mut AttrMap2 {
+    pub fn textstyle_mut(&mut self) -> &mut AttrMap2 {
         &mut self.textstyle
     }
 

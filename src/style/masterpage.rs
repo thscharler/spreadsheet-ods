@@ -29,7 +29,7 @@ style_ref!(MasterPageRef);
 /// let mp1_ref = wb.add_masterpage(mp1);
 ///
 /// let mut ts = TableStyle::new("ts1");
-/// ts.set_master_page_name(&mp1_ref);
+/// ts.set_master_page(&mp1_ref);
 /// let ts_ref = wb.add_tablestyle(ts);
 ///
 /// let mut sheet = Sheet::new("sheet 1");
@@ -52,7 +52,7 @@ pub struct MasterPage {
 
 impl MasterPage {
     /// Empty.
-    pub(crate) fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             name: "".to_string(),
             pagestyle: "".to_string(),

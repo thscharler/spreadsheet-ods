@@ -20,14 +20,14 @@ impl LocalizedValueFormat for LocaleDeAt {
     fn boolean_format(&self) -> ValueFormat {
         let mut v =
             ValueFormat::new_localized(DefaultFormat::bool(), Self::LOCALE, ValueType::Boolean);
-        v.part_boolean();
+        v.part_boolean().build();
         v
     }
 
     fn number_format(&self) -> ValueFormat {
         let mut v =
             ValueFormat::new_localized(DefaultFormat::number(), Self::LOCALE, ValueType::Number);
-        v.part_number().decimal_places(2).push();
+        v.part_number().decimal_places(2).build();
         v
     }
 
@@ -37,8 +37,8 @@ impl LocalizedValueFormat for LocaleDeAt {
             Self::LOCALE,
             ValueType::Percentage,
         );
-        v.part_number().decimal_places(2).push();
-        v.part_text("%");
+        v.part_number().decimal_places(2).build();
+        v.part_text("%").build();
         v
     }
 
@@ -48,29 +48,29 @@ impl LocalizedValueFormat for LocaleDeAt {
             Self::LOCALE,
             ValueType::Currency,
         );
-        v.part_currency().locale(Self::LOCALE).symbol("€").push();
-        v.part_text(" ");
+        v.part_currency().locale(Self::LOCALE).symbol("€").build();
+        v.part_text(" ").build();
         v.part_number()
             .decimal_places(2)
             .min_decimal_places(2)
             .grouping()
-            .push();
+            .build();
         v.part_number()
             .decimal_places(2)
             .min_decimal_places(2)
             .grouping()
-            .push();
+            .build();
         v
     }
 
     fn date_format(&self) -> ValueFormat {
         let mut v =
             ValueFormat::new_localized(DefaultFormat::date(), Self::LOCALE, ValueType::DateTime);
-        v.part_day().style(FormatNumberStyle::Long).push();
-        v.part_text(".");
-        v.part_month().style(FormatNumberStyle::Long).push();
-        v.part_text(".");
-        v.part_year().style(FormatNumberStyle::Long).push();
+        v.part_day().style(FormatNumberStyle::Long).build();
+        v.part_text(".").build();
+        v.part_month().style(FormatNumberStyle::Long).build();
+        v.part_text(".").build();
+        v.part_year().style(FormatNumberStyle::Long).build();
         v
     }
 
@@ -80,17 +80,17 @@ impl LocalizedValueFormat for LocaleDeAt {
             Self::LOCALE,
             ValueType::DateTime,
         );
-        v.part_day().style(FormatNumberStyle::Long).push();
-        v.part_text(".");
-        v.part_month().style(FormatNumberStyle::Long).push();
-        v.part_text(".");
-        v.part_year().style(FormatNumberStyle::Long).push();
-        v.part_text(" ");
-        v.part_hours().style(FormatNumberStyle::Long).push();
-        v.part_text(":");
-        v.part_minutes().style(FormatNumberStyle::Long).push();
-        v.part_text(":");
-        v.part_seconds().style(FormatNumberStyle::Long).push();
+        v.part_day().style(FormatNumberStyle::Long).build();
+        v.part_text(".").build();
+        v.part_month().style(FormatNumberStyle::Long).build();
+        v.part_text(".").build();
+        v.part_year().style(FormatNumberStyle::Long).build();
+        v.part_text(" ").build();
+        v.part_hours().style(FormatNumberStyle::Long).build();
+        v.part_text(":").build();
+        v.part_minutes().style(FormatNumberStyle::Long).build();
+        v.part_text(":").build();
+        v.part_seconds().style(FormatNumberStyle::Long).build();
         v
     }
 
@@ -100,11 +100,11 @@ impl LocalizedValueFormat for LocaleDeAt {
             Self::LOCALE,
             ValueType::TimeDuration,
         );
-        v.part_hours().style(FormatNumberStyle::Long).push();
-        v.part_text(":");
-        v.part_minutes().style(FormatNumberStyle::Long).push();
-        v.part_text(":");
-        v.part_seconds().style(FormatNumberStyle::Long).push();
+        v.part_hours().style(FormatNumberStyle::Long).build();
+        v.part_text(":").build();
+        v.part_minutes().style(FormatNumberStyle::Long).build();
+        v.part_text(":").build();
+        v.part_seconds().style(FormatNumberStyle::Long).build();
         v
     }
 
@@ -116,11 +116,11 @@ impl LocalizedValueFormat for LocaleDeAt {
         );
         v.set_truncate_on_overflow(false);
 
-        v.part_hours().style(FormatNumberStyle::Long).push();
-        v.part_text(":");
-        v.part_minutes().style(FormatNumberStyle::Long).push();
-        v.part_text(":");
-        v.part_seconds().style(FormatNumberStyle::Long).push();
+        v.part_hours().style(FormatNumberStyle::Long).build();
+        v.part_text(":").build();
+        v.part_minutes().style(FormatNumberStyle::Long).build();
+        v.part_text(":").build();
+        v.part_seconds().style(FormatNumberStyle::Long).build();
         v
     }
 }

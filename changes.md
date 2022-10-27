@@ -19,7 +19,7 @@ CHANGES:
   - All the ValueFormat::push_xxx were broken and missing attributes. 
     As most of these attributes are optional these functions were replaced
     with new ValueFormat::part_xxx which return a builder for each pattern.
-  - 
+
 - Add icu_locid to the dependencies. Used where language/country/script 
   attributes exist.
 - Add locale module that contains localized default formats.

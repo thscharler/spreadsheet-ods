@@ -35,7 +35,7 @@ pub struct FontFaceDecl {
 
 impl FontFaceDecl {
     /// New, empty.
-    pub(crate) fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             name: "".to_string(),
             origin: Default::default(),
@@ -79,12 +79,12 @@ impl FontFaceDecl {
     }
 
     /// General attributes.
-    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
     /// General attributes.
-    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
