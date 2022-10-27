@@ -8,7 +8,7 @@ use crate::style::units::{
     TextEmphasize, TextKeep, TextPosition, TextRelief, TextTransform, WritingMode,
 };
 use crate::style::{
-    border_line_width_string, border_string, color_string, shadow_string, text_position, Style,
+    border_line_width_string, border_string, color_string, shadow_string, text_position,
     StyleOrigin, StyleUse, TextStyleRef,
 };
 use crate::MasterPageRef;

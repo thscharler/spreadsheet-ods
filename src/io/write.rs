@@ -16,7 +16,7 @@ use crate::io::zip_out::{ZipOut, ZipWrite};
 use crate::refs::{cellranges_string, CellRange};
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
-    ParagraphStyle, RowStyle, Style, StyleOrigin, StyleUse, TableStyle, TextStyle,
+    ParagraphStyle, RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};

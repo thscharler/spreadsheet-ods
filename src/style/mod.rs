@@ -41,6 +41,52 @@
 //! sheet.set_styled_value(0, 1, 5678, &cs2);
 //!
 //! ```
+//!
+//! From the specification:
+//!
+//! The style:style element represents styles.
+//!
+//! Styles defined by the style:style element use a hierarchical style model. The
+//! style:style element supports inheritance of formatting properties by a style from its parent
+//! style. A parent style is specified by the style:parent-style-name attribute on a
+//! style:style element.
+//!
+//! The determination of the value of a formatting property begins with any style that is specified by
+//! an element. If the formatting property is present in that style, its value is used.
+//! If that style does not specify a value for that formatting property and it has a parent style, the value
+//! of the formatting element is taken from the parent style, if present.
+//! If the parent style does not have a value for the formatting property, the search for the formatting
+//! property value continues up parent styles until either the formatting property has been found or a
+//! style is found with no parent style.
+//! If a search of the parent styles of a style does not result in a value for a formatting property, the
+//! determination of its value depends on the style family and the element to which a style is applied.
+//! For styles with family text which are applied to elements which are contained in another element
+//! that specifies a style with family text, the search continues within the text style that is applied
+//! to the nearest ancestor element that specifies a style with family text, and continues in its parent
+//! styles.
+//!
+//! For styles with family text which are applied to elements which are contained in a paragraph
+//! element 6.1.1, the search continues within the paragraph style that is applied to the paragraph
+//! element, and continues in its parent styles.
+//! For styles with family paragraph which are applied to paragraph elements which are contained
+//! in a drawing shape or a chart element, the search continues within the graphic, presentation
+//! or chart style that is applied to the drawing object or chart element, and continues in its parent
+//! styles.
+//! For styles with family paragraph which are applied to paragraph elements which are contained
+//! in a table cell, the search continues within the table-cell style that is applied to the table-cell,
+//! and continues in its parent styles. If a value for the formatting property has not been found, the
+//! search continues as defined for styles with family table-cell.
+//!
+//! For styles with family table-cell which are applied to a table cell, the search continues with the
+//! style specified by the table:default-cell-style-name attribute 19.619 of the table cell's
+//! table:table-row parent element, if present, and then with the style specified by the
+//! table:default-cell-style-name attribute of the table:table-column element
+//! associated with the table cell.
+//!
+//! In all other cases, or if a value for the formatting property has not been found by any of the family
+//! specific rules, a default style 16.4 that has the same family as the style initially declared sets the
+//! value. If a value has not been found by these steps, but this specification defines a default value,
+//! then this default value is used. In all remaining cases an implementation-dependent value is used.
 
 use crate::style::units::{Border, Length, Percent, TextPosition};
 use crate::OdsError;
@@ -87,125 +133,6 @@ mod textstyle;
 // only for paragraph: style:next-style-name 19.503,
 // ok: style:parent-style-name 19.510 and
 // only for chart: style:percentage-data-style-name 19.511
-
-/// Defines common attributes for all styles.
-///
-/// This subset is to small to be of any use, so generally the concrete structs
-/// are used everywhere, and this is only an anchor for documentation.
-///
-///
-/// From the specification:
-///
-/// The style:style element represents styles.
-///
-/// Styles defined by the style:style element use a hierarchical style model. The
-/// style:style element supports inheritance of formatting properties by a style from its parent
-/// style. A parent style is specified by the style:parent-style-name attribute on a
-/// style:style element.
-///
-/// The determination of the value of a formatting property begins with any style that is specified by
-/// an element. If the formatting property is present in that style, its value is used.
-/// If that style does not specify a value for that formatting property and it has a parent style, the value
-/// of the formatting element is taken from the parent style, if present.
-/// If the parent style does not have a value for the formatting property, the search for the formatting
-/// property value continues up parent styles until either the formatting property has been found or a
-/// style is found with no parent style.
-/// If a search of the parent styles of a style does not result in a value for a formatting property, the
-/// determination of its value depends on the style family and the element to which a style is applied.
-/// For styles with family text which are applied to elements which are contained in another element
-/// that specifies a style with family text, the search continues within the text style that is applied
-/// to the nearest ancestor element that specifies a style with family text, and continues in its parent
-/// styles.
-///
-/// For styles with family text which are applied to elements which are contained in a paragraph
-/// element 6.1.1, the search continues within the paragraph style that is applied to the paragraph
-/// element, and continues in its parent styles.
-/// For styles with family paragraph which are applied to paragraph elements which are contained
-/// in a drawing shape or a chart element, the search continues within the graphic, presentation
-/// or chart style that is applied to the drawing object or chart element, and continues in its parent
-/// styles.
-/// For styles with family paragraph which are applied to paragraph elements which are contained
-/// in a table cell, the search continues within the table-cell style that is applied to the table-cell,
-/// and continues in its parent styles. If a value for the formatting property has not been found, the
-/// search continues as defined for styles with family table-cell.
-///
-/// For styles with family table-cell which are applied to a table cell, the search continues with the
-/// style specified by the table:default-cell-style-name attribute 19.619 of the table cell's
-/// table:table-row parent element, if present, and then with the style specified by the
-/// table:default-cell-style-name attribute of the table:table-column element
-/// associated with the table cell.
-///
-/// In all other cases, or if a value for the formatting property has not been found by any of the family
-/// specific rules, a default style 16.4 that has the same family as the style initially declared sets the
-/// value. If a value has not been found by these steps, but this specification defines a default value,
-/// then this default value is used. In all remaining cases an implementation-dependent value is used.
-// TODO: Is this good for anything?
-pub trait Style {
-    /// Type of the Style-Reference.
-    type Ref;
-
-    /// Styles can originate as part of the office:document (content.xml) or from a separate
-    /// office:document-styles (styles.xml).
-    fn origin(&self) -> StyleOrigin;
-
-    /// Styles can originate as part of the office:document (content.xml) or from a separate
-    /// office:document-styles (styles.xml).
-    fn set_origin(&mut self, origin: StyleOrigin);
-
-    /// Differentiates between default-styles, user selectable styles and automatic styles.
-    fn styleuse(&self) -> StyleUse;
-
-    /// Differentiates between default-styles, user selectable styles and automatic styles.
-    fn set_styleuse(&mut self, usage: StyleUse);
-
-    /// With the style:family 19.480 attribute, the style:name attribute uniquely
-    /// identifies a style. The <office:styles> 3.15.2, <office:automatic-styles> 3.15.3
-    /// and <office:master-styles> 3.15.4 elements each shall not contain two styles with the
-    /// same family and the same name.
-    ///
-    /// For automatic styles, the name may be generated by OpenDocument producers. For each style
-    /// family or style element, producers should generate distinct sets of names for automatic styles
-    /// stored in the content.xml 3.1.3.2 and styles.xml 3.1.3.3 files. The names should also be distinct
-    /// from the names used in the <office:styles> element inside the styles.xml files.
-    ///
-    /// Note: If the document is produced multiple times, it cannot be assumed that the
-    /// same name is generated each time.
-    fn name(&self) -> &str;
-
-    /// Style name.
-    fn set_name<S: Into<String>>(&mut self, name: S);
-
-    /// Returns the name as a StyleRef.
-    fn style_ref(&self) -> <Self as Style>::Ref;
-
-    /// The style:display-name attribute specifies the name of a style as it should appear in the user
-    /// interface. If this attribute is not present, the display name should be the same as the sty
-    fn set_display_name<S: Into<String>>(&mut self, name: S);
-
-    /// The style:parent-style-name attribute specifies the name of a parent style. The parent
-    /// style cannot be an automatic style and shall exist.
-    /// If a parent style is not specified, the default style which has the same style:family 19.480
-    /// attribute value as the current style is used.
-    fn set_parent_style(&mut self, name: &<Self as Style>::Ref);
-
-    /// The style:class attribute specifies a style class name.
-    /// A style may belong to an arbitrary class of styles. The style class name is an arbitrary string. The
-    /// style class name has no meaning within the file format itself, but it can for instance be evaluated
-    /// by user interfaces to show a list of styles where the styles are grouped by its name.
-    fn set_class<S: Into<String>>(&mut self, class: S);
-
-    /// The style:auto-update attribute specifies whether styles are automatically updated when the
-    /// formatting properties of an object that has the style assigned to it are changed.
-    /// The defined values for the style:auto-update attribute are:
-    /// * false: a change to a formatting property is applied for the object where the change was
-    /// made. If necessary, a new automatic style will be created which is applied to the object where
-    /// the change was made.
-    /// * true: a change to a formatting property results in the updating of the common style that is
-    /// applied to an object. The formatting change is applied to all objects subject to the common
-    /// style where the change was made.
-    /// The default value for this attribute is false.
-    fn set_auto_update(&mut self, auto: bool);
-}
 
 /// Origin of a style. Content.xml or Styles.xml.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -254,7 +181,7 @@ impl Default for StyleUse {
     }
 }
 
-/// Parses an attribute string.
+/// Parses an attribute string to a value type.
 pub(crate) trait ParseStyleAttr<T> {
     fn parse_attr(attr: Option<&String>) -> Result<Option<T>, OdsError>;
 

@@ -3,7 +3,6 @@ use std::fmt::{Display, Formatter};
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak};
 use crate::style::ParseStyleAttr;
-use crate::style::Style;
 use crate::style::{rel_width_string, StyleOrigin, StyleUse};
 use crate::OdsError;
 

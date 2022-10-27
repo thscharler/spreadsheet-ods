@@ -3,7 +3,6 @@ use crate::style::units::{
     Length, Margin, PageBreak, PageNumber, RelativeWidth, TableAlign, TableBorderModel, TextKeep,
     WritingMode,
 };
-use crate::style::Style;
 use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
 use color::Rgb;
 use std::fmt::{Display, Formatter};

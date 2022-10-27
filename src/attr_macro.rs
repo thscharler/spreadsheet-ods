@@ -1,41 +1,39 @@
 macro_rules! styles_styles {
     ($style:ident, $styleref:ident) => {
-        impl Style for $style {
-            type Ref = $styleref;
-
+        impl $style {
             /// Origin of the style, either styles.xml oder content.xml
-            fn origin(&self) -> StyleOrigin {
+            pub fn origin(&self) -> StyleOrigin {
                 self.origin
             }
 
             /// Changes the origin.
-            fn set_origin(&mut self, origin: StyleOrigin) {
+            pub fn set_origin(&mut self, origin: StyleOrigin) {
                 self.origin = origin;
             }
 
             /// Usage for the style.
-            fn styleuse(&self) -> StyleUse {
+            pub fn styleuse(&self) -> StyleUse {
                 self.styleuse
             }
 
             /// Usage for the style.
-            fn set_styleuse(&mut self, styleuse: StyleUse) {
+            pub fn set_styleuse(&mut self, styleuse: StyleUse) {
                 self.styleuse = styleuse;
             }
 
             /// Stylename
-            fn name(&self) -> &str {
+            pub fn name(&self) -> &str {
                 &self.name
             }
 
             /// Stylename
-            fn set_name<S: Into<String>>(&mut self, name: S) {
+            pub fn set_name<S: Into<String>>(&mut self, name: S) {
                 self.name = name.into();
             }
 
             /// Returns the name as a style reference.
-            fn style_ref(&self) -> <Self as Style>::Ref {
-                <Self as Style>::Ref::from(self.name())
+            pub fn style_ref(&self) -> $styleref {
+                $styleref::from(self.name())
             }
 
             /// The style:auto-update attribute specifies whether styles are automatically updated when the
@@ -48,7 +46,7 @@ macro_rules! styles_styles {
             /// applied to an object. The formatting change is applied to all objects subject to the common
             /// style where the change was made.
             /// The default value for this attribute is false.
-            fn set_auto_update(&mut self, auto: bool) {
+            pub fn set_auto_update(&mut self, auto: bool) {
                 self.attr.set_attr("style:auto-update", auto.to_string());
             }
 
@@ -56,13 +54,13 @@ macro_rules! styles_styles {
             /// A style may belong to an arbitrary class of styles. The style class name is an arbitrary string. The
             /// style class name has no meaning within the file format itself, but it can for instance be evaluated
             /// by user interfaces to show a list of styles where the styles are grouped by its name.
-            fn set_class<S: Into<String>>(&mut self, class: S) {
+            pub fn set_class<S: Into<String>>(&mut self, class: S) {
                 self.attr.set_attr("style:class", class.into());
             }
 
             /// The style:display-name attribute specifies the name of a style as it should appear in the user
             /// interface. If this attribute is not present, the display name should be the same as the style name.
-            fn set_display_name<S: Into<String>>(&mut self, name: S) {
+            pub fn set_display_name<S: Into<String>>(&mut self, name: S) {
                 self.attr.set_attr("style:display-name", name.into());
             }
 
@@ -70,7 +68,7 @@ macro_rules! styles_styles {
             /// style cannot be an automatic style and shall exist.
             /// If a parent style is not specified, the default style which has the same style:family 19.480
             /// attribute value as the current style is used.
-            fn set_parent_style(&mut self, name: &<Self as Style>::Ref) {
+            pub fn set_parent_style(&mut self, name: &$styleref) {
                 self.attr
                     .set_attr("style:parent-style-name", name.to_string());
             }

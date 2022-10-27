@@ -1,5 +1,4 @@
 use crate::attrmap2::AttrMap2;
-use crate::style::Style;
 use crate::style::{StyleOrigin, StyleUse};
 use std::fmt::{Display, Formatter};
 

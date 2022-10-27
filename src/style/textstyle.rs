@@ -4,7 +4,6 @@ use crate::style::units::{
     LineStyle, LineType, LineWidth, Percent, RotationScale, TextCombine, TextCondition,
     TextDisplay, TextEmphasize, TextPosition, TextRelief, TextTransform,
 };
-use crate::style::Style;
 use crate::style::{color_string, shadow_string, text_position, StyleOrigin, StyleUse};
 use color::Rgb;
 use icu_locid::Locale;
