@@ -64,7 +64,7 @@ impl TableStyle {
         }
     }
 
-    style_master_page!(attrmap_mut);
+    style_master_page!(attr);
 
     /// Access to all stored attributes.
     pub(crate) fn attrmap(&self) -> &AttrMap2 {
@@ -86,16 +86,16 @@ impl TableStyle {
         &mut self.tablestyle
     }
 
-    fo_background_color!(tablestyle_mut);
-    fo_break!(tablestyle_mut);
-    fo_keep_with_next!(tablestyle_mut);
-    fo_margin!(tablestyle_mut);
+    fo_background_color!(tablestyle);
+    fo_break!(tablestyle);
+    fo_keep_with_next!(tablestyle);
+    fo_margin!(tablestyle);
     style_may_break_between_rows!(tablestyle);
-    style_page_number!(tablestyle_mut);
+    style_page_number!(tablestyle);
     style_rel_width!(tablestyle);
     style_width!(tablestyle);
-    style_shadow!(tablestyle_mut);
-    style_writing_mode!(tablestyle_mut);
+    style_shadow!(tablestyle);
+    style_writing_mode!(tablestyle);
 
     table_align!(tablestyle);
     table_border_model!(tablestyle);

@@ -96,7 +96,7 @@ macro_rules! style_default_outline_level {
         /// The style:default-outline-level attribute value can be empty. If empty, this attribute
         /// does not inherit a list style value from a parent style.
         pub fn set_default_outline_level(&mut self, level: u32) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:default-outline-level", level.to_string());
         }
     };
@@ -113,7 +113,7 @@ macro_rules! style_master_page {
         /// This attribute is ignored if it is associated with a paragraph style that is applied to a paragraph
         /// within a table.
         pub fn set_master_page(&mut self, masterpage: &MasterPageRef) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:master-page-name", masterpage.to_string());
         }
     };
@@ -125,7 +125,7 @@ macro_rules! style_next_style {
         /// for the next paragraph if a paragraph break is inserted in the user interface. By default, the current
         /// style is used as the next style.
         pub fn set_next_style(&mut self, name: &ParagraphStyleRef) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:next-style-name", name.to_string());
         }
     };
@@ -142,7 +142,7 @@ macro_rules! fo_background_color {
         /// by a <style:background-image> element and any background color that is specified with the
         /// fo:background-color attribute are switched off.
         pub fn set_background_color(&mut self, color: Rgb<u8>) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:background-color", color_string(color));
         }
     };
@@ -152,31 +152,31 @@ macro_rules! fo_border {
     ($acc:ident) => {
         /// Border style all four sides. See §7.29.3 of [XSL].
         pub fn set_border(&mut self, width: Length, border: Border, color: Rgb<u8>) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:border", border_string(width, border, color));
         }
 
         /// Border style. See §7.29.4 of [XSL]
         pub fn set_border_bottom(&mut self, width: Length, border: Border, color: Rgb<u8>) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:border-bottom", border_string(width, border, color));
         }
 
         /// Border style. See §7.29.6 of [XSL].
         pub fn set_border_left(&mut self, width: Length, border: Border, color: Rgb<u8>) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:border-left", border_string(width, border, color));
         }
 
         /// Border style. See §7.29.7 of [XSL].
         pub fn set_border_right(&mut self, width: Length, border: Border, color: Rgb<u8>) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:border-right", border_string(width, border, color));
         }
 
         /// Border style. See §7.29.10 of [XSL].
         pub fn set_border_top(&mut self, width: Length, border: Border, color: Rgb<u8>) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:border-top", border_string(width, border, color));
         }
     };
@@ -193,7 +193,7 @@ macro_rules! fo_padding {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tablecell-properties> 17.18.
         pub fn set_padding(&mut self, padding: Length) {
-            self.$acc().set_attr("fo:padding", padding.to_string());
+            self.$acc.set_attr("fo:padding", padding.to_string());
         }
 
         /// Padding. See §7.7.36 of [XSL].
@@ -205,8 +205,7 @@ macro_rules! fo_padding {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tablecell-properties> 17.18.
         pub fn set_padding_bottom(&mut self, padding: Length) {
-            self.$acc()
-                .set_attr("fo:padding-bottom", padding.to_string());
+            self.$acc.set_attr("fo:padding-bottom", padding.to_string());
         }
 
         /// Padding. See §7.7.37 of [XSL].
@@ -218,7 +217,7 @@ macro_rules! fo_padding {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tablecell-properties> 17.18.
         pub fn set_padding_left(&mut self, padding: Length) {
-            self.$acc().set_attr("fo:padding-left", padding.to_string());
+            self.$acc.set_attr("fo:padding-left", padding.to_string());
         }
 
         /// Padding. See §7.7.38 of [XSL].
@@ -230,8 +229,7 @@ macro_rules! fo_padding {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tablecell-properties> 17.18.
         pub fn set_padding_right(&mut self, padding: Length) {
-            self.$acc()
-                .set_attr("fo:padding-right", padding.to_string());
+            self.$acc.set_attr("fo:padding-right", padding.to_string());
         }
 
         /// Padding. See §7.7.35 of [XSL].
@@ -243,7 +241,7 @@ macro_rules! fo_padding {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tablecell-properties> 17.18.
         pub fn set_padding_top(&mut self, padding: Length) {
-            self.$acc().set_attr("fo:padding-top", padding.to_string());
+            self.$acc.set_attr("fo:padding-top", padding.to_string());
         }
     };
 }
@@ -255,7 +253,7 @@ macro_rules! fo_wrap_option {
         /// If wrapping is disabled, it is implementation-defined whether the overflow text is visible or hidden.
         /// If the text is hidden consumers may support a scrolling to access the text.
         pub fn set_wrap_option(&mut self, wrap: WrapOption) {
-            self.$acc().set_attr("fo:wrap-option", wrap.to_string());
+            self.$acc.set_attr("fo:wrap-option", wrap.to_string());
         }
     };
 }
@@ -277,7 +275,7 @@ macro_rules! fo_border_line_width {
         /// <style:paragraph-properties> 17.6 and
         /// <style:table-cell-properties> 17.18.
         pub fn set_border_line_width(&mut self, inner: Length, spacing: Length, outer: Length) {
-            self.$acc().set_attr(
+            self.$acc.set_attr(
                 "style:border-line-width",
                 border_line_width_string(inner, spacing, outer),
             );
@@ -303,7 +301,7 @@ macro_rules! fo_border_line_width {
             spacing: Length,
             outer: Length,
         ) {
-            self.$acc().set_attr(
+            self.$acc.set_attr(
                 "style:border-line-width-bottom",
                 border_line_width_string(inner, spacing, outer),
             );
@@ -329,7 +327,7 @@ macro_rules! fo_border_line_width {
             spacing: Length,
             outer: Length,
         ) {
-            self.$acc().set_attr(
+            self.$acc.set_attr(
                 "style:border-line-width-left",
                 border_line_width_string(inner, spacing, outer),
             );
@@ -355,7 +353,7 @@ macro_rules! fo_border_line_width {
             spacing: Length,
             outer: Length,
         ) {
-            self.$acc().set_attr(
+            self.$acc.set_attr(
                 "style:border-line-width-right",
                 border_line_width_string(inner, spacing, outer),
             );
@@ -376,7 +374,7 @@ macro_rules! fo_border_line_width {
         /// <style:paragraph-properties> 17.6 and
         /// <style:table-cell-properties> 17.18.
         pub fn set_border_line_width_top(&mut self, inner: Length, spacing: Length, outer: Length) {
-            self.$acc().set_attr(
+            self.$acc.set_attr(
                 "style:border-line-width-top",
                 border_line_width_string(inner, spacing, outer),
             );
@@ -402,7 +400,7 @@ macro_rules! style_cell_protect {
         /// * protected formula-hidden: cell content cannot be edited. If content is a formula, it is not
         /// displayed. A formula result is displayed.
         pub fn set_cell_protect(&mut self, protect: CellProtect) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:cell-protect", protect.to_string());
         }
     };
@@ -416,8 +414,7 @@ macro_rules! style_decimal_places {
         /// places itself.
         /// This attribute is only evaluated if it is contained in a default style.
         pub fn set_decimal_places(&mut self, dec: u8) {
-            self.$acc()
-                .set_attr("style:decimal-places", dec.to_string());
+            self.$acc.set_attr("style:decimal-places", dec.to_string());
         }
     };
 }
@@ -428,7 +425,7 @@ macro_rules! style_diagonal {
         /// The style:diagonal-bl-tr attribute specifies the style of border to use for a bottom-left to
         /// top-right diagonal in a spreadsheet cell.
         pub fn set_diagonal_bl_tr(&mut self, width: Length, border: Border, color: Rgb<u8>) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:diagonal-bl-tr", border_string(width, border, color));
         }
 
@@ -436,7 +433,7 @@ macro_rules! style_diagonal {
         /// The style:diagonal-bl-tr-widths attribute specifies the width between a double line
         /// border to use for a bottom-left to top-right diagonal in a spreadsheet cell.
         pub fn set_diagonal_bl_tr_widths(&mut self, inner: Length, spacing: Length, outer: Length) {
-            self.$acc().set_attr(
+            self.$acc.set_attr(
                 "style:diagonal-bl-tr-widths",
                 border_line_width_string(inner, spacing, outer),
             );
@@ -446,7 +443,7 @@ macro_rules! style_diagonal {
         /// The style:diagonal-tl-br attribute specifies the style of border to use for a left-top to
         /// bottom-right diagonal in a spreadsheet cell.
         pub fn set_diagonal_tl_br(&mut self, width: Length, border: Border, color: Rgb<u8>) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:diagonal-tl-br", border_string(width, border, color));
         }
 
@@ -454,7 +451,7 @@ macro_rules! style_diagonal {
         /// The style:diagonal-tl-br-widths attribute specifies the width between a double line
         /// border to use for a top-left to bottom-right diagonal in a spreadsheet cell.
         pub fn set_diagonal_tl_br_widths(&mut self, inner: Length, spacing: Length, outer: Length) {
-            self.$acc().set_attr(
+            self.$acc.set_attr(
                 "style:diagonal-tl-br-widths",
                 border_line_width_string(inner, spacing, outer),
             );
@@ -473,8 +470,7 @@ macro_rules! style_direction {
         /// attribute
         /// * ttb – top to bottom, characters are vertically stacked but not rotated
         pub fn set_direction(&mut self, direction: WritingDirection) {
-            self.$acc()
-                .set_attr("style:direction", direction.to_string());
+            self.$acc.set_attr("style:direction", direction.to_string());
         }
     };
 }
@@ -489,7 +485,7 @@ macro_rules! style_glyph_orientation_vertical {
         /// angle unit identifier. Angle unit identifiers should be omitted for compatibility with
         /// OpenDocument v1.1.
         pub fn set_glyph_orientation_vertical(&mut self, glyph_orientation: GlyphOrientation) {
-            self.$acc().set_attr(
+            self.$acc.set_attr(
                 "style:glyph-orientation-vertical",
                 glyph_orientation.to_string(),
             );
@@ -505,8 +501,7 @@ macro_rules! style_print_content {
         /// The style:print-content attribute is usable with the following element:
         /// * <style:tablecell-properties> 17.18.
         pub fn set_print_content(&mut self, print: bool) {
-            self.$acc()
-                .set_attr("style:print-content", print.to_string());
+            self.$acc.set_attr("style:print-content", print.to_string());
         }
     };
 }
@@ -523,7 +518,7 @@ macro_rules! style_repeat_content {
         /// * true: text content of a cell should be displayed as many times as there is space left in the
         /// cell's writing direction.
         pub fn set_repeat_content(&mut self, print: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:repeat-content", print.to_string());
         }
     };
@@ -536,7 +531,7 @@ macro_rules! style_rotation_align {
         /// after a rotation.
         /// The values of the style:rotation-align attribute are none, bottom, top or center.
         pub fn set_rotation_align(&mut self, align: RotationAlign) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:rotation-align", align.to_string());
         }
     };
@@ -552,7 +547,7 @@ macro_rules! style_rotation_scale {
         /// * fixed: width of text should remain fixed.
         /// * line-height: width of text should be scaled to fit the current line height.
         pub fn set_rotation_scale(&mut self, scale: RotationScale) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-rotation-scale", scale.to_string());
         }
     };
@@ -563,7 +558,7 @@ macro_rules! style_rotation_angle {
         // style:rotation-angle 20.347,
         /// The style:rotation-angle attribute specifies the rotation angle of content.
         pub fn set_rotation_angle(&mut self, angle: Angle) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:rotation-angle", angle.to_string());
         }
     };
@@ -593,7 +588,7 @@ macro_rules! style_shadow {
             blur: Option<Length>,
             color: Rgb<u8>,
         ) {
-            self.$acc().set_attr(
+            self.$acc.set_attr(
                 "style:shadow",
                 shadow_string(x_offset, y_offset, blur, color),
             );
@@ -613,7 +608,7 @@ macro_rules! style_shrink_to_fit {
         /// * false: content should not be reduced in size to fit within a cell or drawing object.
         /// * true: content should be reduced in size to fit within a cell or drawing object
         pub fn set_shrink_to_fit(&mut self, shrink: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:shrink-to-fit", shrink.to_string());
         }
     };
@@ -663,8 +658,7 @@ macro_rules! fo_break {
         /// In the OpenDocument XSL-compatible namespace, the fo:break-before attribute does not
         /// support even-page, inherit and odd-page values.
         pub fn set_break_before(&mut self, pagebreak: PageBreak) {
-            self.$acc()
-                .set_attr("fo:break-before", pagebreak.to_string());
+            self.$acc.set_attr("fo:break-before", pagebreak.to_string());
         }
 
         /// See §7.19.1 of [XSL]. The values odd-page and even-page are not supported.
@@ -672,8 +666,7 @@ macro_rules! fo_break {
         /// In the OpenDocument XSL-compatible namespace, the fo:break-after attribute does not
         /// support even-page, inherit and odd-page values.
         pub fn set_break_after(&mut self, pagebreak: PageBreak) {
-            self.$acc()
-                .set_attr("fo:break-after", pagebreak.to_string());
+            self.$acc.set_attr("fo:break-after", pagebreak.to_string());
         }
     };
 }
@@ -682,7 +675,7 @@ macro_rules! fo_hyphenation {
     ($acc:ident) => {
         /// See §7.15.1 of [XSL].
         pub fn set_hyphenation_keep(&mut self, hyphenation: Hyphenation) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:hyphenation-keep", hyphenation.to_string());
         }
 
@@ -691,7 +684,7 @@ macro_rules! fo_hyphenation {
         /// • no-limit:
         /// • a value of type positiveInteger
         pub fn set_hyphenation_ladder_count(&mut self, hyphenation: HyphenationLadderCount) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:hyphenation-ladder-count", hyphenation.to_string());
         }
     };
@@ -707,7 +700,7 @@ macro_rules! fo_keep_together {
         /// <style:paragraphproperties> 17.6 and
         /// <style:table-row-properties> 17.17.
         pub fn set_keep_together(&mut self, keep_together: TextKeep) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:keep-together", keep_together.to_string());
         }
     };
@@ -719,7 +712,7 @@ macro_rules! fo_keep_with_next {
         /// In the OpenDocument XSL-compatible namespace, the fo:keep-with-next attribute does not
         /// support the integer value.
         pub fn set_keep_with_next(&mut self, keep_with_next: TextKeep) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:keep-with-next", keep_with_next.to_string());
         }
     };
@@ -742,7 +735,7 @@ macro_rules! fo_line_height {
         /// The fo:line-height attribute is usable with the following element:
         /// <style:paragraphproperties> 17.6.
         pub fn set_line_height(&mut self, line_height: LineHeight) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:line-height", line_height.to_string());
         }
     };
@@ -761,7 +754,7 @@ macro_rules! fo_margin {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tableproperties> 17.15.
         pub fn set_margin(&mut self, margin: Margin) {
-            self.$acc().set_attr("fo:margin", margin.to_string());
+            self.$acc.set_attr("fo:margin", margin.to_string());
         }
 
         /// See §7.10.2 of [XSL].
@@ -777,7 +770,7 @@ macro_rules! fo_margin {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tableproperties> 17.15.
         pub fn set_margin_bottom(&mut self, margin: Margin) {
-            self.$acc().set_attr("fo:margin-bottom", margin.to_string());
+            self.$acc.set_attr("fo:margin-bottom", margin.to_string());
         }
 
         /// See §7.10.3 of [XSL].
@@ -794,7 +787,7 @@ macro_rules! fo_margin {
         /// <style:sectionproperties> 17.11 and
         /// <style:table-properties> 17.15.
         pub fn set_margin_left(&mut self, margin: Margin) {
-            self.$acc().set_attr("fo:margin-left", margin.to_string());
+            self.$acc.set_attr("fo:margin-left", margin.to_string());
         }
 
         /// See §7.10.4 of [XSL].
@@ -811,7 +804,7 @@ macro_rules! fo_margin {
         /// <style:sectionproperties> 17.11 and
         /// <style:table-properties> 17.15.
         pub fn set_margin_right(&mut self, margin: Margin) {
-            self.$acc().set_attr("fo:margin-right", margin.to_string());
+            self.$acc.set_attr("fo:margin-right", margin.to_string());
         }
 
         /// See §7.10.1 of [XSL].
@@ -827,7 +820,7 @@ macro_rules! fo_margin {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tableproperties> 17.15.
         pub fn set_margin_top(&mut self, margin: Margin) {
-            self.$acc().set_attr("fo:margin-top", margin.to_string());
+            self.$acc.set_attr("fo:margin-top", margin.to_string());
         }
     };
 }
@@ -839,7 +832,7 @@ macro_rules! fo_orphans {
         /// The fo:orphans attribute is usable with the following element:
         /// <style:paragraphproperties> 17.6.
         pub fn set_orphans(&mut self, orphans: u32) {
-            self.$acc().set_attr("fo:orphans", orphans.to_string());
+            self.$acc.set_attr("fo:orphans", orphans.to_string());
         }
     };
 }
@@ -858,7 +851,7 @@ macro_rules! fo_text_align {
         /// <style:list-levelproperties> 17.19 and
         /// <style:paragraph-properties> 17.6.
         pub fn set_text_align(&mut self, align: TextAlign) {
-            self.$acc().set_attr("fo:text-align", align.to_string());
+            self.$acc.set_attr("fo:text-align", align.to_string());
         }
     };
 }
@@ -872,8 +865,7 @@ macro_rules! fo_text_align_last {
         /// The fo:text-align-last attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_text_align_last(&mut self, align: TextAlignLast) {
-            self.$acc()
-                .set_attr("fo:text-align-last", align.to_string());
+            self.$acc.set_attr("fo:text-align-last", align.to_string());
         }
     };
 }
@@ -891,7 +883,7 @@ macro_rules! fo_text_indent {
         /// The values of the fo:text-indent attribute are a value of type length 18.3.18 or a value of
         /// type percent 18.3.23.
         pub fn set_text_indent(&mut self, indent: Indent) {
-            self.$acc().set_attr("fo:text-indent", indent.to_string());
+            self.$acc.set_attr("fo:text-indent", indent.to_string());
         }
     };
 }
@@ -909,7 +901,7 @@ macro_rules! fo_widows {
         ///
         /// The fo:widows attribute has the data type nonNegativeInteger 18.2
         pub fn set_widows(&mut self, num: u32) {
-            self.$acc().set_attr("fo:widows", num.to_string());
+            self.$acc.set_attr("fo:widows", num.to_string());
         }
     };
 }
@@ -926,7 +918,7 @@ macro_rules! style_auto_text_indent {
         ///
         /// The style:auto-text-indent attribute has the data type boolean 18.3.3.
         pub fn set_auto_text_indent(&mut self, indent: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:auto-text-indent", indent.to_string());
         }
     };
@@ -939,7 +931,7 @@ macro_rules! style_background_transparency {
         /// The style:background-transparency attribute is usable with the following elements:
         /// <style:graphic-properties> 17.21 and <style:paragraph-properties> 17.6.
         pub fn set_background_transpareny(&mut self, percent: Percent) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:background-transparency", percent.to_string());
         }
     };
@@ -961,7 +953,7 @@ macro_rules! style_contextual_spacing {
         /// The style:contextual-spacing attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_contextual_spacing(&mut self, spacing: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:contextual-spacing", spacing.to_string());
         }
     };
@@ -980,7 +972,7 @@ macro_rules! style_font_independent_line_spacing {
         /// The style:font-independent-line-spacing attribute is usable with the following
         /// element: <style:paragraph-properties> 17.6.
         pub fn set_font_independent_line_spacing(&mut self, spacing: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-independent-line-spacing", spacing.to_string());
         }
     };
@@ -1020,7 +1012,7 @@ macro_rules! style_join_border {
         /// The style:join-border attribute is usable with the following element:
         /// <style:paragraphproperties> 17.6.
         pub fn set_join_border(&mut self, join: bool) {
-            self.$acc().set_attr("style:join-border", join.to_string());
+            self.$acc.set_attr("style:join-border", join.to_string());
         }
     };
 }
@@ -1040,7 +1032,7 @@ macro_rules! style_justify_single_word {
         /// The style:justify-single-word attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_justify_single_word(&mut self, justify: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:justify-single-word", justify.to_string());
         }
     };
@@ -1057,7 +1049,7 @@ macro_rules! style_line_break {
         ///
         /// The values of the style:line-break attribute are normal or strict.
         pub fn set_line_break(&mut self, linebreak: LineBreak) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:line-break", linebreak.to_string());
         }
     };
@@ -1072,7 +1064,7 @@ macro_rules! style_line_height_at_least {
         /// The style:line-height-at-least attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_line_height_at_least(&mut self, height: Length) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:line-height-at-least", height.to_string());
         }
     };
@@ -1086,7 +1078,7 @@ macro_rules! style_line_spacing {
         /// The style:line-spacing attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_line_spacing(&mut self, spacing: Length) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:line-spacing", spacing.to_string());
         }
     };
@@ -1109,7 +1101,7 @@ macro_rules! style_page_number {
         /// The values of the style:page-number attribute are a value of type nonNegativeInteger
         /// 18.2 or auto.
         pub fn set_page_number(&mut self, page_number: PageNumber) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:page-number", page_number.to_string());
         }
     };
@@ -1129,7 +1121,7 @@ macro_rules! style_punctuation_wrap {
         /// The style:punctuation-wrap attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_punctuation_wrap(&mut self, wrap: PunctuationWrap) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:punctuation-wrap", wrap.to_string());
         }
     };
@@ -1148,7 +1140,7 @@ macro_rules! style_register_true {
         ///
         /// The style:register-true attribute has the data type boolean 18.3.3
         pub fn set_register_true(&mut self, register: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:register-true", register.to_string());
         }
     };
@@ -1168,7 +1160,7 @@ macro_rules! style_snap_to_layout_grid {
         /// The style:snap-to-layout-grid attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_snap_to_layout_grid(&mut self, snap: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:snap-to-layout-grid", snap.to_string());
         }
     };
@@ -1183,7 +1175,7 @@ macro_rules! style_tab_stop_distance {
         /// The style:tab-stop-distance attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_tab_stop_distance(&mut self, tab: Length) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:tab-stop-distance", tab.to_string());
         }
     };
@@ -1202,7 +1194,7 @@ macro_rules! style_text_autospace {
         /// The style:text-autospace attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_text_autospace(&mut self, space: TextAutoSpace) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-autospace", space.to_string());
         }
     };
@@ -1225,7 +1217,7 @@ macro_rules! style_vertical_align_para {
         /// The style:vertical-align attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_vertical_align_para(&mut self, align: ParaAlignVertical) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:vertical-align", align.to_string());
         }
     };
@@ -1238,7 +1230,7 @@ macro_rules! style_writing_mode {
         /// The defined value for the style:writing-mode attribute is page: writing mode is inherited from
         /// the page that contains the element where this attribute appears.
         pub fn set_writing_mode(&mut self, writing_mode: WritingMode) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:writing-mode", writing_mode.to_string());
         }
     };
@@ -1261,7 +1253,7 @@ macro_rules! style_writing_mode_automatic {
         /// The style:writing-mode-automatic attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_writing_mode_automatic(&mut self, auto: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:writing-mode-automatic", auto.to_string());
         }
     };
@@ -1276,7 +1268,7 @@ macro_rules! style_line_number {
         /// The text:line-number attribute is usable with the following element: <style:paragraphproperties> 17.6.
         /// The text:line-number attribute has the data type nonNegativeInteger 18.2.
         pub fn set_line_number(&mut self, line: u32) {
-            self.$acc().set_attr("text:line-number", line.to_string());
+            self.$acc.set_attr("text:line-number", line.to_string());
         }
     };
 }
@@ -1291,7 +1283,7 @@ macro_rules! style_number_lines {
         /// The text:number-lines attribute is usable with the following element:
         /// <style:paragraphproperties> 17.6.
         pub fn set_number_lines(&mut self, lines: bool) {
-            self.$acc().set_attr("text:number-lines", lines.to_string());
+            self.$acc.set_attr("text:number-lines", lines.to_string());
         }
     };
 }
@@ -1302,7 +1294,7 @@ macro_rules! fo_color {
         /// In the OpenDocument XSL-compatible namespace, the fo:color attribute does not support the
         /// inherit value.
         pub fn set_color(&mut self, color: Rgb<u8>) {
-            self.$acc().set_attr("fo:color", color_string(color));
+            self.$acc.set_attr("fo:color", color_string(color));
         }
     };
 }
@@ -1315,22 +1307,22 @@ macro_rules! fo_locale {
         /// These attributes are evaluated for any [UNICODE] characters whose script type is latin.
         pub fn set_locale(&mut self, locale: Locale) {
             if locale != Locale::UND {
-                self.$acc()
+                self.$acc
                     .set_attr("fo:language", locale.id.language.to_string());
                 if let Some(region) = locale.id.region {
-                    self.$acc().set_attr("fo:country", region.to_string());
+                    self.$acc.set_attr("fo:country", region.to_string());
                 } else {
-                    self.$acc().clear_attr("fo:country");
+                    self.$acc.clear_attr("fo:country");
                 }
                 if let Some(script) = locale.id.script {
-                    self.$acc().set_attr("fo:script", script.to_string());
+                    self.$acc.set_attr("fo:script", script.to_string());
                 } else {
-                    self.$acc().clear_attr("fo:script");
+                    self.$acc.clear_attr("fo:script");
                 }
             } else {
-                self.$acc().clear_attr("fo:language");
-                self.$acc().clear_attr("fo:country");
-                self.$acc().clear_attr("fo:script");
+                self.$acc.clear_attr("fo:language");
+                self.$acc.clear_attr("fo:country");
+                self.$acc.clear_attr("fo:script");
             }
         }
     };
@@ -1346,7 +1338,7 @@ macro_rules! style_font_name {
         ///
         /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
         pub fn set_font_name<S: Into<String>>(&mut self, name: S) {
-            self.$acc().set_attr("style:font-name", name.into());
+            self.$acc.set_attr("style:font-name", name.into());
         }
     };
 }
@@ -1365,7 +1357,7 @@ macro_rules! fo_font_size {
         /// complex.
         ///
         pub fn set_font_size(&mut self, size: FontSize) {
-            self.$acc().set_attr("fo:font-size", size.to_string());
+            self.$acc.set_attr("fo:font-size", size.to_string());
         }
     };
 }
@@ -1376,7 +1368,7 @@ macro_rules! fo_font_size_rel {
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
         /// styles. This attribute changes the font size based on the font size of the parent style.
         pub fn set_font_size_rel(&mut self, size: FontSize) {
-            self.$acc().set_attr("fo:font-size-rel", size.to_string());
+            self.$acc.set_attr("fo:font-size-rel", size.to_string());
         }
     };
 }
@@ -1386,12 +1378,12 @@ macro_rules! fo_font_style {
         /// See §7.8.7 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
         pub fn set_font_style(&mut self, style: FontStyle) {
-            self.$acc().set_attr("fo:font-style", style.to_string());
+            self.$acc.set_attr("fo:font-style", style.to_string());
         }
 
         /// Set the font-style to italic.
         pub fn set_font_italic(&mut self) {
-            self.$acc().set_attr("fo:font-style", "italic".to_string());
+            self.$acc.set_attr("fo:font-style", "italic".to_string());
         }
     };
 }
@@ -1401,12 +1393,12 @@ macro_rules! fo_font_weight {
         /// See §7.8.9 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
         pub fn set_font_weight(&mut self, weight: FontWeight) {
-            self.$acc().set_attr("fo:font-weight", weight.to_string());
+            self.$acc.set_attr("fo:font-weight", weight.to_string());
         }
 
         /// Sets the font-weight to bold. See set_font_weight.
         pub fn set_font_bold(&mut self) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:font-weight", FontWeight::Bold.to_string());
         }
     };
@@ -1416,7 +1408,7 @@ macro_rules! fo_font_variant {
     ($acc:ident) => {
         /// See §7.8.8 of [XSL].
         pub fn set_font_variant(&mut self, var: FontVariant) {
-            self.$acc().set_attr("fo:font-variant", var.to_string());
+            self.$acc.set_attr("fo:font-variant", var.to_string());
         }
     };
 }
@@ -1444,24 +1436,23 @@ macro_rules! style_locale_asian {
         /// These attributes are evaluated for any [UNICODE] characters whose script type is asian.
         pub fn set_locale_asian(&mut self, locale: Locale) {
             if locale != Locale::UND {
-                self.$acc()
+                self.$acc
                     .set_attr("style:language-asian", locale.id.language.to_string());
                 if let Some(region) = locale.id.region {
-                    self.$acc()
+                    self.$acc
                         .set_attr("style:country-asian", region.to_string());
                 } else {
-                    self.$acc().clear_attr("style:country-asian");
+                    self.$acc.clear_attr("style:country-asian");
                 }
                 if let Some(script) = locale.id.script {
-                    self.$acc()
-                        .set_attr("style:script-asian", script.to_string());
+                    self.$acc.set_attr("style:script-asian", script.to_string());
                 } else {
-                    self.$acc().clear_attr("style:script-asian");
+                    self.$acc.clear_attr("style:script-asian");
                 }
             } else {
-                self.$acc().clear_attr("style:language-asian");
-                self.$acc().clear_attr("style:country-asian");
-                self.$acc().clear_attr("style:script-asian");
+                self.$acc.clear_attr("style:language-asian");
+                self.$acc.clear_attr("style:country-asian");
+                self.$acc.clear_attr("style:script-asian");
             }
         }
     };
@@ -1475,7 +1466,7 @@ macro_rules! style_font_name_asian {
         ///
         /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
         pub fn set_font_name_asian<S: Into<String>>(&mut self, name: S) {
-            self.$acc().set_attr("style:font-name-asian", name.into());
+            self.$acc.set_attr("style:font-name-asian", name.into());
         }
     };
 }
@@ -1494,7 +1485,7 @@ macro_rules! style_font_size_asian {
         /// complex.
         ///
         pub fn set_font_size_asian(&mut self, size: FontSize) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-size-asian", size.to_string());
         }
     };
@@ -1507,7 +1498,7 @@ macro_rules! style_font_size_rel_asian {
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
         /// styles. This attribute changes the font size based on the font size of the parent style.
         pub fn set_font_size_rel_asian(&mut self, size: FontSize) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-size-rel-asian", size.to_string());
         }
     };
@@ -1518,13 +1509,13 @@ macro_rules! style_font_style_asian {
         /// See §7.8.7 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
         pub fn set_font_style_asian(&mut self, style: FontStyle) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-style-asian", style.to_string());
         }
 
         /// Set the font-style to italic.
         pub fn set_font_italic_asian(&mut self) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-style-asian", "italic".to_string());
         }
     };
@@ -1535,13 +1526,13 @@ macro_rules! style_font_weight_asian {
         /// See §7.8.9 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
         pub fn set_font_weight_asian(&mut self, weight: FontWeight) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-weight-asian", weight.to_string());
         }
 
         /// Sets the font-weight to bold. See set_font_weight.
         pub fn set_font_bold_asian(&mut self) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-weight-asian", FontWeight::Bold.to_string());
         }
     };
@@ -1570,24 +1561,24 @@ macro_rules! style_locale_complex {
         /// These attributes are evaluated for any [UNICODE] characters whose script type is complex.
         pub fn set_locale_complex(&mut self, locale: Locale) {
             if locale != Locale::UND {
-                self.$acc()
+                self.$acc
                     .set_attr("style:language-complex", locale.id.language.to_string());
                 if let Some(region) = locale.id.region {
-                    self.$acc()
+                    self.$acc
                         .set_attr("style:country-complex", region.to_string());
                 } else {
-                    self.$acc().clear_attr("style:country-complex");
+                    self.$acc.clear_attr("style:country-complex");
                 }
                 if let Some(script) = locale.id.script {
-                    self.$acc()
+                    self.$acc
                         .set_attr("style:script-complex", script.to_string());
                 } else {
-                    self.$acc().clear_attr("style:script-complex");
+                    self.$acc.clear_attr("style:script-complex");
                 }
             } else {
-                self.$acc().clear_attr("style:language-complex");
-                self.$acc().clear_attr("style:country-complex");
-                self.$acc().clear_attr("style:script-complex");
+                self.$acc.clear_attr("style:language-complex");
+                self.$acc.clear_attr("style:country-complex");
+                self.$acc.clear_attr("style:script-complex");
             }
         }
     };
@@ -1601,7 +1592,7 @@ macro_rules! style_font_name_complex {
         ///
         /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
         pub fn set_font_name_complex<S: Into<String>>(&mut self, name: S) {
-            self.$acc().set_attr("style:font-name-complex", name.into());
+            self.$acc.set_attr("style:font-name-complex", name.into());
         }
     };
 }
@@ -1620,7 +1611,7 @@ macro_rules! style_font_size_complex {
         /// complex.
         ///
         pub fn set_font_size_complex(&mut self, size: FontSize) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-size-complex", size.to_string());
         }
     };
@@ -1632,7 +1623,7 @@ macro_rules! style_font_size_rel_complex {
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
         /// styles. This attribute changes the font size based on the font size of the parent style.
         pub fn set_font_size_rel_complex(&mut self, size: FontSize) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-size-rel-complex", size.to_string());
         }
     };
@@ -1642,14 +1633,14 @@ macro_rules! style_font_style_complex {
         /// See §7.8.7 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
         pub fn set_font_style_complex(&mut self, style: FontStyle) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-style-complex", style.to_string());
         }
 
         /// Set the font-style to italic.
         /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
         pub fn set_font_italic_complex(&mut self) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-style-complex", "italic".to_string());
         }
     };
@@ -1660,13 +1651,13 @@ macro_rules! style_font_weight_complex {
         /// See §7.8.9 of [XSL].
         /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
         pub fn set_font_weight_complex(&mut self, weight: FontWeight) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-weight-complex", weight.to_string());
         }
 
         /// Sets the font-weight to bold. See set_font_weight.
         pub fn set_font_bold_complex(&mut self) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-weight-complex", FontWeight::Bold.to_string());
         }
     };
@@ -1691,7 +1682,7 @@ macro_rules! fo_hyphenate {
     ($acc:ident) => {
         /// See §7.9.4 of [XSL].
         pub fn set_hyphenate(&mut self, hyphenate: bool) {
-            self.$acc().set_attr("fo:hyphenate", hyphenate.to_string());
+            self.$acc.set_attr("fo:hyphenate", hyphenate.to_string());
         }
     };
 }
@@ -1700,7 +1691,7 @@ macro_rules! fo_hyphenation_push_char_count {
     ($acc:ident) => {
         /// See §7.10.6 of [XSL]
         pub fn set_hyphenation_push_char_count(&mut self, count: u32) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:hyphenation-push-char-count", count.to_string());
         }
     };
@@ -1710,7 +1701,7 @@ macro_rules! fo_hyphenation_remain_char_count {
     ($acc:ident) => {
         /// See §7.10.7 of [XSL]
         pub fn set_hyphenation_remain_char_count(&mut self, count: u32) {
-            self.$acc()
+            self.$acc
                 .set_attr("fo:hyphenation-remain-char-count", count.to_string());
         }
     };
@@ -1721,8 +1712,7 @@ macro_rules! fo_letter_spacing {
         /// See §7.16.2 of [XSL].
         /// Sets the letter spacing.
         pub fn set_letter_spacing(&mut self, spacing: LetterSpacing) {
-            self.$acc()
-                .set_attr("fo:letter-spacing", spacing.to_string());
+            self.$acc.set_attr("fo:letter-spacing", spacing.to_string());
         }
     };
 }
@@ -1737,7 +1727,7 @@ macro_rules! fo_text_shadow {
             blur: Option<Length>,
             color: Rgb<u8>,
         ) {
-            self.$acc().set_attr(
+            self.$acc.set_attr(
                 "fo:text-shadow",
                 shadow_string(x_offset, y_offset, blur, color),
             );
@@ -1753,7 +1743,7 @@ macro_rules! fo_text_transform {
         /// Note: In consumers, the fo:text-transform and fo:font-variant
         /// attributes are mutually exclusive
         pub fn set_text_transform(&mut self, trans: TextTransform) {
-            self.$acc().set_attr("fo:text-transform", trans.to_string());
+            self.$acc.set_attr("fo:text-transform", trans.to_string());
         }
     };
 }
@@ -1767,8 +1757,7 @@ macro_rules! style_font_relief {
         /// * engraved: characters are engraved.
         /// * none: characters are neither embossed or engraved.
         pub fn set_font_relief(&mut self, relief: TextRelief) {
-            self.$acc()
-                .set_attr("style:font-relief", relief.to_string());
+            self.$acc.set_attr("style:font-relief", relief.to_string());
         }
     };
 }
@@ -1786,7 +1775,7 @@ macro_rules! style_text_position {
         /// The second value may be present and specifies the font height as a percentage of the current
         /// font-height. If this value is not specified, an appropriate font height is used.
         pub fn set_text_position(&mut self, pos: TextPosition, scale: Option<Percent>) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-position", text_position(pos, scale));
         }
     };
@@ -1797,7 +1786,7 @@ macro_rules! style_letter_kerning {
         /// The style:letter-kerning attribute specifies whether kerning between characters is enabled
         /// or disabled.
         pub fn set_letter_kerning(&mut self, kerning: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:letter-kerning", kerning.to_string());
         }
     };
@@ -1817,7 +1806,7 @@ macro_rules! style_text_combine {
         /// A line break may occur between any two characters to meet this constraint.
         /// * none: characters should not be combined.
         pub fn set_text_combine(&mut self, pos: TextCombine) {
-            self.$acc().set_attr("style:text-combine", pos.to_string());
+            self.$acc.set_attr("style:text-combine", pos.to_string());
         }
     };
 }
@@ -1827,7 +1816,7 @@ macro_rules! style_text_combine_start_char {
         /// The style:text-combine-start-char attribute specifies the start character that is displayed
         /// before a portion of text whose style:text-combine 20.367 attribute has a value of lines.
         pub fn set_text_combine_start_char(&mut self, c: char) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-combine-start-char", c.to_string());
         }
     };
@@ -1838,7 +1827,7 @@ macro_rules! style_text_combine_end_char {
         /// The style:text-combine-end-char attribute specifies the end character that is displayed
         /// after a portion of text whose style:text-combine 20.367 attribute has a value of lines.
         pub fn set_text_combine_end_char(&mut self, c: char) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-combine-end-char", c.to_string());
         }
     };
@@ -1859,7 +1848,7 @@ macro_rules! style_text_emphasize {
         /// * dot: calligraphic dot.
         /// * none: no emphasis marks.
         pub fn set_text_emphasize(&mut self, emphasize: TextEmphasize) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-emphasize", emphasize.to_string());
         }
     };
@@ -1872,7 +1861,7 @@ macro_rules! style_text_line_through {
         /// * font-color: current text color is used for underlining.
         /// * a value of type color 18.3.9
         pub fn set_text_line_through_color(&mut self, color: Rgb<u8>) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-line-through-color", color_string(color));
         }
 
@@ -1882,7 +1871,7 @@ macro_rules! style_text_line_through {
         /// * continuous: lining is applied to words and separating spaces.
         /// * skip-white-space: lining is not applied to spaces between words.
         pub fn set_text_line_through_mode(&mut self, lmode: LineMode) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-line-through-mode", lmode.to_string());
         }
 
@@ -1902,7 +1891,7 @@ macro_rules! style_text_line_through {
         /// Note: The definitions of the values of the style:text-line-through-style attribute are
         /// based on the text decoration style 'text-line-through-style' from [CSS3Text], §9.2.
         pub fn set_text_line_through_style(&mut self, lstyle: LineStyle) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-line-through-style", lstyle.to_string());
         }
 
@@ -1919,7 +1908,7 @@ macro_rules! style_text_line_through {
         /// ”/” (U+002F, SOLIDUS) should use one of these characters if the attribute specifies characters
         /// that are not supported.
         pub fn set_text_line_through_text<S: Into<String>>(&mut self, text: S) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-line-through-text", text.into());
         }
 
@@ -1929,7 +1918,7 @@ macro_rules! style_text_line_through {
         /// common style. If the attribute appears in a common style, it may reference a common
         /// style only.
         pub fn set_text_line_through_text_style(&mut self, style_ref: TextStyleRef) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-line-through-text-style", style_ref.to_string());
         }
 
@@ -1944,7 +1933,7 @@ macro_rules! style_text_line_through {
         /// element. There should not be an occurrence of the style:text-line-through-type attribute
         /// if the value of the style:text-line-through-sty
         pub fn set_text_line_through_type(&mut self, ltype: LineType) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-line-through-type", ltype.to_string());
         }
 
@@ -1963,7 +1952,7 @@ macro_rules! style_text_line_through {
         /// implementation-defined. Thin shall be smaller width than medium and medium shall be a smaller
         /// width than thick.
         pub fn set_text_line_through_width(&mut self, lwidth: LineWidth) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-line-through-width", lwidth.to_string());
         }
     };
@@ -1974,7 +1963,7 @@ macro_rules! style_text_outline {
         /// The style:text-outline attribute specifies whether to display an
         /// outline of text or the text itself.
         pub fn set_font_text_outline(&mut self, outline: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-outline", outline.to_string());
         }
     };
@@ -1989,26 +1978,26 @@ macro_rules! style_text_overline {
         /// * font-color: the current text color is used for overlining.
         /// * a value of type color
         pub fn set_text_overline_color(&mut self, color: Rgb<u8>) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-overline-color", color_string(color));
         }
 
         /// The style:text-overline-mode attribute specifies whether overlining is applied to words
         /// only or to portions of text.
         pub fn set_text_overline_mode(&mut self, lmode: LineMode) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-overline-mode", lmode.to_string());
         }
 
         /// The style:text-overline-style attribute specifies a style for rendering a line over text.
         pub fn set_text_overline_style(&mut self, lstyle: LineStyle) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-overline-style", lstyle.to_string());
         }
 
         /// The style:text-overline-type attribute specifies the type of overlining applied to a text.
         pub fn set_text_overline_type(&mut self, ltype: LineType) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-overline-type", ltype.to_string());
         }
 
@@ -2016,7 +2005,7 @@ macro_rules! style_text_overline {
         /// specifies a line width that is calculated from the font sizes like an auto width, but is wider than an
         /// auto width.
         pub fn set_text_overline_width(&mut self, lwidth: LineWidth) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-overline-width", lwidth.to_string());
         }
     };
@@ -2029,7 +2018,7 @@ macro_rules! style_text_underline {
         /// * font-color: the current text color is used for underlining.
         /// * a value of type color: the color to be used for underlining.
         pub fn set_text_underline_color(&mut self, color: Rgb<u8>) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-underline-color", color_string(color));
         }
 
@@ -2037,19 +2026,19 @@ macro_rules! style_text_underline {
         /// only or to portions of text. If underlining is applied to text portions, the spaces between words and
         /// the words are underlined.
         pub fn set_text_underline_mode(&mut self, lmode: LineMode) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-underline-mode", lmode.to_string());
         }
 
         /// The style:text-underline-style attribute specifies a style for underlining text
         pub fn set_text_underline_style(&mut self, lstyle: LineStyle) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-underline-style", lstyle.to_string());
         }
 
         /// The style:text-underline-type attribute specifies the type of underlining applied to a text
         pub fn set_text_underline_type(&mut self, ltype: LineType) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-underline-type", ltype.to_string());
         }
 
@@ -2057,7 +2046,7 @@ macro_rules! style_text_underline {
         /// bold specifies a line width that is calculated from the font sizes like an auto width, but is wider
         /// than an auto width.
         pub fn set_text_underline_width(&mut self, lwidth: LineWidth) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:text-underline-width", lwidth.to_string());
         }
     };
@@ -2069,7 +2058,7 @@ macro_rules! style_use_window_font_color {
         /// should be used as the foreground color for a light background color and white for a dark
         /// background color. The determination of light or dark color is implementation-defined.
         pub fn set_use_window_font_color(&mut self, window_color: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:use-window-font-color", window_color.to_string());
         }
     };
@@ -2080,7 +2069,7 @@ macro_rules! text_condition {
         /// The text:condition attribute specifies the display of text.
         /// The defined value of the text:condition attribute is none, which means text is hidden.
         pub fn set_text_condition(&mut self, cond: TextCondition) {
-            self.$acc().set_attr("text:condition", cond.to_string());
+            self.$acc.set_attr("text:condition", cond.to_string());
         }
     };
 }
@@ -2094,7 +2083,7 @@ macro_rules! text_display {
         /// * none: text is hidden unconditionally.
         /// * true: text is displayed. This is the default setting
         pub fn set_display(&mut self, cond: TextDisplay) {
-            self.$acc().set_attr("text:display", cond.to_string());
+            self.$acc.set_attr("text:display", cond.to_string());
         }
     };
 }
@@ -2103,7 +2092,7 @@ macro_rules! fo_min_height {
     ($acc:ident) => {
         /// Minimum height.
         pub fn set_min_height(&mut self, height: LengthPercent) {
-            self.$acc().set_attr("fo:min-height", height.to_string());
+            self.$acc.set_attr("fo:min-height", height.to_string());
         }
     };
 }
@@ -2112,7 +2101,7 @@ macro_rules! style_dynamic_spacing {
     ($acc:ident) => {
         /// Dynamic spacing
         pub fn set_dynamic_spacing(&mut self, dynamic: bool) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:dynamic-spacing", dynamic.to_string());
         }
     };
@@ -2176,7 +2165,7 @@ macro_rules! style_font_family_generic {
         /// * swiss: the family roman fonts (without serifs).
         /// * system: the family system fonts.
         pub fn set_font_family_generic(&mut self, font: FontFamilyGeneric) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:font-family-generic", font.to_string());
         }
     };
@@ -2189,7 +2178,7 @@ macro_rules! style_font_pitch {
         /// * fixed: font has a fixed width.
         /// * variable: font has a variable width.
         pub fn set_font_pitch(&mut self, pitch: FontPitch) {
-            self.$acc().set_attr("style:font-pitch", pitch.to_string());
+            self.$acc.set_attr("style:font-pitch", pitch.to_string());
         }
     };
 }
@@ -2198,7 +2187,7 @@ macro_rules! svg_font_family {
     ($acc:ident) => {
         /// External font family name.
         pub fn set_font_family<S: Into<String>>(&mut self, name: S) {
-            self.$acc().set_attr("svg:font-family", name.into());
+            self.$acc.set_attr("svg:font-family", name.into());
         }
     };
 }
@@ -2207,8 +2196,7 @@ macro_rules! svg_font_stretch {
     ($acc:ident) => {
         /// External font stretch value.
         pub fn set_font_stretch(&mut self, stretch: FontStretch) {
-            self.$acc()
-                .set_attr("svg:font-stretch", stretch.to_string());
+            self.$acc.set_attr("svg:font-stretch", stretch.to_string());
         }
     };
 }
@@ -2217,7 +2205,7 @@ macro_rules! svg_font_style {
     ($acc:ident) => {
         /// External font style value.
         pub fn set_font_style(&mut self, style: FontStyle) {
-            self.$acc().set_attr("svg:font-style", style.to_string());
+            self.$acc.set_attr("svg:font-style", style.to_string());
         }
     };
 }
@@ -2226,8 +2214,7 @@ macro_rules! svg_font_variant {
     ($acc:ident) => {
         /// External font variant.
         pub fn set_font_variant(&mut self, variant: FontVariant) {
-            self.$acc()
-                .set_attr("svg:font-variant", variant.to_string());
+            self.$acc.set_attr("svg:font-variant", variant.to_string());
         }
     };
 }
@@ -2236,7 +2223,7 @@ macro_rules! svg_font_weight {
     ($acc:ident) => {
         /// External font weight.
         pub fn set_font_weight(&mut self, weight: FontWeight) {
-            self.$acc().set_attr("svg:font-weight", weight.to_string());
+            self.$acc.set_attr("svg:font-weight", weight.to_string());
         }
     };
 }
@@ -2257,6 +2244,15 @@ macro_rules! fo_page_width {
         pub fn set_page_width(&mut self, width: Length) {
             self.style_mut()
                 .set_attr("fo:page-width", width.to_string());
+        }
+    };
+}
+
+macro_rules! svg_height {
+    ($acc:ident) => {
+        /// Height.
+        pub fn set_height(&mut self, height: Length) {
+            self.style_mut().set_attr("svg:height", height.to_string());
         }
     };
 }
@@ -2385,7 +2381,7 @@ macro_rules! style_print {
                 buf.push_str(&p.to_string());
                 buf.push(' ');
             }
-            self.$acc().set_attr("style:print", buf);
+            self.$acc.set_attr("style:print", buf);
         }
     };
 }
@@ -2398,7 +2394,7 @@ macro_rules! style_print_orientation {
         /// * landscape: a page is printed in landscape orientation.
         /// * portrait: a page is printed in portrait orientation.
         pub fn set_print_orientation(&mut self, orientation: PrintOrientation) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:print-orientation", orientation.to_string());
         }
     };
@@ -2414,7 +2410,7 @@ macro_rules! style_print_page_order {
         /// * ttb: create pages from the top row to the bottom row before continuing with the next set of
         /// columns.
         pub fn set_print_page_order(&mut self, order: PrintOrder) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:print-page-order", order.to_string());
         }
     };
@@ -2426,7 +2422,7 @@ macro_rules! style_scale_to {
         /// A value of 100% means no scaling.
         /// If this attribute and style:scale-to-pages are absent, a document is not scaled.
         pub fn set_scale_to(&mut self, percent: Percent) {
-            self.$acc().set_attr("style:scale-to", percent.to_string());
+            self.$acc.set_attr("style:scale-to", percent.to_string());
         }
     };
 }
@@ -2437,7 +2433,7 @@ macro_rules! style_scale_to_pages {
         /// should be printed. The document is scaled to fit a specified number of pages.
         /// If this attribute and style:scale-to are absent, a document is not scaled.
         pub fn set_scale_to_pages(&mut self, pages: u32) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:scale-to-pages", pages.to_string());
         }
     };
@@ -2457,7 +2453,7 @@ macro_rules! style_table_centering {
         /// appear.
         /// * vertical: tables should be centered vertically on the pages where they appear.
         pub fn set_table_centering(&mut self, center: PrintCentering) {
-            self.$acc()
+            self.$acc
                 .set_attr("style:table-centering", center.to_string());
         }
     };

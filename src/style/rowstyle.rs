@@ -86,9 +86,9 @@ impl RowStyle {
         &mut self.rowstyle
     }
 
-    fo_background_color!(rowstyle_mut);
-    fo_break!(rowstyle_mut);
-    fo_keep_together!(rowstyle_mut);
+    fo_background_color!(rowstyle);
+    fo_break!(rowstyle);
+    fo_keep_together!(rowstyle);
     style_min_row_height!(rowstyle);
     style_row_height!(rowstyle);
     style_use_optimal_row_height!(rowstyle);

@@ -82,11 +82,11 @@ impl FontFaceDecl {
         &mut self.attr
     }
 
-    style_font_family_generic!(attrmap_mut);
-    style_font_pitch!(attrmap_mut);
-    svg_font_family!(attrmap_mut);
-    svg_font_stretch!(attrmap_mut);
-    svg_font_style!(attrmap_mut);
-    svg_font_variant!(attrmap_mut);
-    svg_font_weight!(attrmap_mut);
+    style_font_family_generic!(attr);
+    style_font_pitch!(attr);
+    svg_font_family!(attr);
+    svg_font_stretch!(attr);
+    svg_font_style!(attr);
+    svg_font_variant!(attr);
+    svg_font_weight!(attr);
 }

@@ -86,7 +86,7 @@ impl ColStyle {
         &mut self.colstyle
     }
 
-    fo_break!(colstyle_mut);
+    fo_break!(colstyle);
     style_column_width!(colstyle);
     style_rel_column_width!(colstyle);
     style_use_optimal_column_width!(colstyle);

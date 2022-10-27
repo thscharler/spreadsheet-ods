@@ -116,29 +116,29 @@ impl PageStyle {
         &mut self.style
     }
 
-    fo_page_height!(style_mut);
-    fo_page_width!(style_mut);
-    style_first_page_number!(style_mut);
-    style_footnote_max_height!(style_mut);
-    style_num_format!(style_mut);
-    style_num_letter_sync!(style_mut);
-    style_num_prefix!(style_mut);
-    style_num_suffix!(style_mut);
-    style_paper_tray_name!(style_mut);
-    style_print!(style_mut);
-    style_print_orientation!(style_mut);
-    style_print_page_order!(style_mut);
-    style_scale_to!(style_mut);
-    style_scale_to_pages!(style_mut);
-    style_table_centering!(style_mut);
-    style_writing_mode!(style_mut);
-    fo_background_color!(style_mut);
-    fo_border!(style_mut);
-    fo_border_line_width!(style_mut);
-    fo_margin!(style_mut);
-    fo_padding!(style_mut);
-    style_dynamic_spacing!(style_mut);
-    style_shadow!(style_mut);
+    fo_page_height!(style);
+    fo_page_width!(style);
+    style_first_page_number!(style);
+    style_footnote_max_height!(style);
+    style_num_format!(style);
+    style_num_letter_sync!(style);
+    style_num_prefix!(style);
+    style_num_suffix!(style);
+    style_paper_tray_name!(style);
+    style_print!(style);
+    style_print_orientation!(style);
+    style_print_page_order!(style);
+    style_scale_to!(style);
+    style_scale_to_pages!(style);
+    style_table_centering!(style);
+    style_writing_mode!(style);
+    fo_background_color!(style);
+    fo_border!(style);
+    fo_border_line_width!(style);
+    fo_margin!(style);
+    fo_padding!(style);
+    style_dynamic_spacing!(style);
+    style_shadow!(style);
 }
 
 /// Style attributes for header/footer.
@@ -158,17 +158,13 @@ impl HeaderFooterStyle {
         &mut self.style
     }
 
-    /// Height.
-    pub fn set_height(&mut self, height: Length) {
-        self.style_mut().set_attr("svg:height", height.to_string());
-    }
-
-    fo_background_color!(style_mut);
-    fo_border!(style_mut);
-    fo_margin!(style_mut);
-    fo_min_height!(style_mut);
-    fo_padding!(style_mut);
-    fo_border_line_width!(style_mut);
-    style_dynamic_spacing!(style_mut);
-    style_shadow!(style_mut);
+    fo_background_color!(style);
+    fo_border!(style);
+    fo_margin!(style);
+    fo_min_height!(style);
+    fo_padding!(style);
+    fo_border_line_width!(style);
+    style_dynamic_spacing!(style);
+    style_shadow!(style);
+    svg_height!(style);
 }
