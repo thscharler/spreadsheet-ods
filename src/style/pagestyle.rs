@@ -15,7 +15,7 @@ style_ref!(PageStyleRef);
 /// The <style:page-layout> element represents the styles that specify the formatting properties
 /// of a page.
 ///
-/// For an example see [MasterPage].
+/// For an example see MasterPage.
 ///
 #[derive(Debug, Clone)]
 pub struct PageStyle {

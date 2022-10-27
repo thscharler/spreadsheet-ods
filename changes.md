@@ -34,6 +34,8 @@ CHANGES:
   of missing ones where added. I only excluded obviously obsolete ones and
   things that are out of scope. 
 
+- TableStyle::set_master_page_name() -> set_master_page()
+- FontFaceDecl::new_with_name()
 
 # 0.10.0
 

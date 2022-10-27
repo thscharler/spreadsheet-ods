@@ -6,7 +6,7 @@ use crate::style::ParseStyleAttr;
 use crate::OdsError;
 use std::fmt::{Display, Formatter};
 
-/// An angle, as defined in §4.1 of [SVG], is a double value that may be followed immediately by one
+/// An angle, as defined in §4.1 of SVG, is a double value that may be followed immediately by one
 /// of the following angle unit identifiers: deg (degrees), grad (gradiants) or rad (radians). If no unit
 /// identifier is specified, the value is assumed to be in degrees.
 /// Note: OpenDocument v1.1 did not support angle specifications that contain an angle unit
@@ -32,7 +32,7 @@ impl Display for Angle {
 }
 
 /// A (positive or negative) length, consisting of magnitude and unit, in conformance with the Units of
-/// Measure defined in §5.9.13 of [XSL].
+/// Measure defined in §5.9.13 of XSL.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Length {
     /// Unspecified length, the actual value is some default or whatever.
@@ -110,7 +110,7 @@ impl ParseStyleAttr<Length> for Length {
     }
 }
 
-/// (Positive or negative) percentage values in conformance with §5.9.11 of [XSL].
+/// (Positive or negative) percentage values in conformance with §5.9.11 of XSL.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Percent {
     /// Percentage
@@ -300,7 +300,7 @@ impl Default for TabStopType {
 
 /// 19.534 svg:font-stretch
 ///
-/// See §20.8.3 of [SVG].
+/// See §20.8.3 of SVG.
 ///
 /// The svg:font-stretch attribute is usable with the following element: <style:font-face>
 /// 16.23.
@@ -338,7 +338,7 @@ impl Display for FontStretch {
 }
 
 /// 20.183 fo-border Properties.
-/// See §7.29.3ff of [XSL]
+/// See §7.29.3ff of XSL
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Border {
@@ -372,7 +372,7 @@ impl Display for Border {
 }
 
 /// 20.184 fo:break-after, fo:break-before
-/// See §7.19.1 of [XSL]. The values odd-page and even-page are not supported.
+/// See §7.19.1 of XSL. The values odd-page and even-page are not supported.
 ///
 /// This attribute shall not be used at the same time as fo:break-before.
 ///
@@ -401,10 +401,10 @@ impl Display for PageBreak {
 
 /// 20.190 fo:font-size
 ///
-/// See §7.8.4 of [XSL].
+/// See §7.8.4 of XSL.
 ///
 /// The value of this attribute is either an absolute length or a percentage as described in §7.8.4 of
-/// [XSL]. In contrast to XSL, percentage values can be used within common styles only and are
+/// XSL. In contrast to XSL, percentage values can be used within common styles only and are
 /// based on the font height of the parent style rather than to the font height of the attributes
 /// neighborhood. Absolute font heights and relative font heights are not supported.
 ///
@@ -452,9 +452,9 @@ impl Display for FontSize {
 }
 
 /// 20.191 fo:font-style
-/// See §7.8.7 of [XSL].
+/// See §7.8.7 of XSL.
 ///
-/// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
+/// This attribute is evaluated for any UNICODE character whose script type is latin. 20.358
 ///
 /// In the OpenDocument XSL-compatible namespace, the fo:font-style attribute does not
 /// support backslant and inherit values.
@@ -480,7 +480,7 @@ impl Display for FontStyle {
 
 /// 20.192 fo:font-variant
 ///
-/// See §7.8.8 of [XSL].
+/// See §7.8.8 of XSL.
 ///
 /// In the OpenDocument XSL-compatible namespace, the fo:font-variant attribute does not
 /// support the inherit value.
@@ -504,9 +504,9 @@ impl Display for FontVariant {
 
 /// 20.193 fo:font-weight
 ///
-/// See §7.8.9 of [XSL].
+/// See §7.8.9 of XSL.
 ///
-/// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
+/// This attribute is evaluated for any UNICODE character whose script type is latin. 20.358
 /// In the OpenDocument XSL-compatible namespace, the fo:font-weight attribute does not
 /// support bolder, inherit and lighter values.
 ///
@@ -548,7 +548,7 @@ impl Display for FontWeight {
 
 /// 20.196 fo:hyphenation-keep
 ///
-/// See §7.15.1 of [XSL].
+/// See §7.15.1 of XSL.
 ///  
 /// The values of the fo:hyphenation-keep attribute are auto or page
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -569,7 +569,7 @@ impl Display for Hyphenation {
 
 /// 20.197 fo:hyphenation-ladder-count
 ///
-/// See §7.15.2 of [XSL].
+/// See §7.15.2 of XSL.
 ///
 /// The defined values for the fo:hyphenation-ladder-count attribute are:
 /// • no-limit:
@@ -591,7 +591,7 @@ impl Display for HyphenationLadderCount {
 }
 
 /// 20.200 fo:keep-together and fo:keep-with-next
-/// See §7.19.3 of [XSL].
+/// See §7.19.3 of XSL.
 /// In the OpenDocument XSL-compatible namespace, the fo:keep-together attribute does not
 /// support the integer value.
 /// The values of the fo:keep-together attribute are auto or always.
@@ -614,7 +614,7 @@ impl Display for TextKeep {
 
 /// 20.203 fo:letter-spacing
 ///
-/// See §7.16.2 of [XSL].
+/// See §7.16.2 of XSL.
 ///
 /// In the OpenDocument XSL-compatible namespace, the fo:letter-spacing attribute does not
 /// support the inherit and space values.
@@ -647,7 +647,7 @@ impl Display for LetterSpacing {
 
 /// 20.204 fo:line-height
 ///
-/// See §7.15.4 of [XSL].
+/// See §7.15.4 of XSL.
 ///
 /// The value normal activates the default line height calculation. The value of this attribute
 /// can be a length, a percentage, normal.
@@ -703,7 +703,7 @@ impl Display for LineHeight {
 
 /// 20.205 fo:margin
 ///
-/// See §7.29.14 of [XSL].
+/// See §7.29.14 of XSL.
 ///
 /// In the OpenDocument XSL-compatible namespace, the fo:margin attribute does not support
 /// auto and inherit values.
@@ -750,7 +750,7 @@ impl Display for Margin {
 
 /// 20.223 fo:text-align
 ///
-/// See §7.15.9 of [XSL].
+/// See §7.15.9 of XSL.
 ///
 /// If there are no values specified for the fo:text-align and style:justify-single-word
 /// 20.301 attributes within the same formatting properties element, the values of those attributes is
@@ -790,7 +790,7 @@ impl Display for TextAlign {
 
 /// 20.224 fo:text-align-last
 ///
-/// See §7.15.10 of [XSL].
+/// See §7.15.10 of XSL.
 ///
 /// This attribute is ignored if it not accompanied by an fo:text-align 20.223 attribute.
 /// If no value is specified for this attribute, the value is set to start.
@@ -819,7 +819,7 @@ impl Display for TextAlignLast {
 /// The fo:text-indent attribute specifies a positive or negative indent for the first line of a
 /// paragraph.
 ///
-/// See §7.15.11 of [XSL].
+/// See §7.15.11 of XSL.
 ///
 /// The attribute value is a length. If the attribute is contained in a
 /// common style, the attribute value may be also a percentage that refers to the corresponding text
@@ -854,7 +854,7 @@ impl Display for Indent {
 
 /// 20.227 fo:text-transform
 ///
-/// See §7.16.6 of [XSL].
+/// See §7.16.6 of XSL.
 ///  
 /// If fo:text-transform and fo:font-variant 20.192 attributes are used simultaneously and
 /// have different values than normal and none, the result is undefined.
@@ -885,7 +885,7 @@ impl Display for TextTransform {
 }
 
 /// 20.230 fo:wrap-option
-/// See §7.15.13 of [XSL].
+/// See §7.15.13 of XSL.
 ///
 /// If wrapping is disabled, it is implementation-defined whether the overflow text is visible or hidden.
 /// If the text is hidden consumers may support a scrolling to access the text.
@@ -1012,7 +1012,7 @@ impl Display for TextRelief {
 /// 20.297 style:glyph-orientation-vertical
 ///
 /// The style:glyph-orientation-vertical attribute specifies a vertical glyph orientation.
-/// See §10.7.3 of [SVG]. The attribute specifies an angle or automatic mode. The only defined angle
+/// See §10.7.3 of SVG. The attribute specifies an angle or automatic mode. The only defined angle
 /// is 0 degrees, which disables this feature.
 ///
 /// Note: OpenDocument v1.1 did not support angle specifications that contain an
@@ -1412,7 +1412,7 @@ impl Display for TextCombine {
 
 /// 20.370 style:text-emphasize
 ///
-/// The style:text-emphasize attribute specifies emphasis in a text composed of [UNICODE]
+/// The style:text-emphasize attribute specifies emphasis in a text composed of UNICODE
 /// characters whose script type is asian. 20.358
 ///
 /// The value of this attribute consists of two white space-separated values.
@@ -1450,7 +1450,7 @@ impl Display for TextEmphasize {
 
 /// 20.370 style:text-emphasize
 ///
-/// The style:text-emphasize attribute specifies emphasis in a text composed of [UNICODE]
+/// The style:text-emphasize attribute specifies emphasis in a text composed of UNICODE
 /// characters whose script type is asian. 20.358
 ///
 /// The value of this attribute consists of two white space-separated values.
@@ -1531,7 +1531,7 @@ impl Display for LineMode {
 ///
 /// Note: The definitions of the values of the style:text-underline-style
 /// attribute are based on the text decoration style 'text-underline-style' from
-/// [CSS3Text], §9.2.
+/// CSS3Text, §9.2.
 ///
 /// The values of the style:text-underline-style attribute are none, solid, dotted, dash,
 /// long-dash, dot-dash, dot-dot-dash or wave.
@@ -1805,7 +1805,7 @@ impl Display for CellAlignVertical {
 
 /// 20.404 style:writing-mode
 ///
-/// See §7.27.7 of [XSL] with the additional value of page.
+/// See §7.27.7 of XSL with the additional value of page.
 /// The defined value for the style:writing-mode attribute is page: writing mode is inherited from
 /// the page that contains the element where this attribute appears.
 ///

@@ -148,31 +148,31 @@ macro_rules! fo_background_color {
 
 macro_rules! fo_border {
     ($acc:ident) => {
-        /// Border style all four sides. See §7.29.3 of [XSL].
+        /// Border style all four sides. See §7.29.3 of XSL.
         pub fn set_border(&mut self, width: Length, border: Border, color: Rgb<u8>) {
             self.$acc
                 .set_attr("fo:border", border_string(width, border, color));
         }
 
-        /// Border style. See §7.29.4 of [XSL]
+        /// Border style. See §7.29.4 of XSL
         pub fn set_border_bottom(&mut self, width: Length, border: Border, color: Rgb<u8>) {
             self.$acc
                 .set_attr("fo:border-bottom", border_string(width, border, color));
         }
 
-        /// Border style. See §7.29.6 of [XSL].
+        /// Border style. See §7.29.6 of XSL.
         pub fn set_border_left(&mut self, width: Length, border: Border, color: Rgb<u8>) {
             self.$acc
                 .set_attr("fo:border-left", border_string(width, border, color));
         }
 
-        /// Border style. See §7.29.7 of [XSL].
+        /// Border style. See §7.29.7 of XSL.
         pub fn set_border_right(&mut self, width: Length, border: Border, color: Rgb<u8>) {
             self.$acc
                 .set_attr("fo:border-right", border_string(width, border, color));
         }
 
-        /// Border style. See §7.29.10 of [XSL].
+        /// Border style. See §7.29.10 of XSL.
         pub fn set_border_top(&mut self, width: Length, border: Border, color: Rgb<u8>) {
             self.$acc
                 .set_attr("fo:border-top", border_string(width, border, color));
@@ -182,7 +182,7 @@ macro_rules! fo_border {
 
 macro_rules! fo_padding {
     ($acc:ident) => {
-        /// Padding for all sides. See §7.29.15 of [XSL].
+        /// Padding for all sides. See §7.29.15 of XSL.
         ///
         /// The fo:padding attribute is usable with the following elements:
         /// <style:graphicproperties> 17.21,
@@ -195,7 +195,7 @@ macro_rules! fo_padding {
             self.$acc.set_attr("fo:padding", padding.to_string());
         }
 
-        /// Padding. See §7.7.36 of [XSL].
+        /// Padding. See §7.7.36 of XSL.
         ///
         /// The fo:padding-bottom attribute is usable with the following elements:
         /// <style:graphicproperties> 17.21,
@@ -208,7 +208,7 @@ macro_rules! fo_padding {
             self.$acc.set_attr("fo:padding-bottom", padding.to_string());
         }
 
-        /// Padding. See §7.7.37 of [XSL].
+        /// Padding. See §7.7.37 of XSL.
         ///
         /// The fo:padding-left attribute is usable with the following elements:
         /// <style:graphicproperties> 17.21,
@@ -221,7 +221,7 @@ macro_rules! fo_padding {
             self.$acc.set_attr("fo:padding-left", padding.to_string());
         }
 
-        /// Padding. See §7.7.38 of [XSL].
+        /// Padding. See §7.7.38 of XSL.
         ///
         /// The fo:padding-right attribute is usable with the following elements:
         /// <style:graphicproperties> 17.21,
@@ -234,7 +234,7 @@ macro_rules! fo_padding {
             self.$acc.set_attr("fo:padding-right", padding.to_string());
         }
 
-        /// Padding. See §7.7.35 of [XSL].
+        /// Padding. See §7.7.35 of XSL.
         ///
         /// The fo:padding-top attribute is usable with the following elements:
         /// <style:graphicproperties> 17.21,
@@ -252,7 +252,7 @@ macro_rules! fo_padding {
 macro_rules! fo_wrap_option {
     ($acc:ident) => {
         // fo:wrap-option 20.230,
-        /// See §7.15.13 of [XSL].
+        /// See §7.15.13 of XSL.
         /// If wrapping is disabled, it is implementation-defined whether the overflow text is visible or hidden.
         /// If the text is hidden consumers may support a scrolling to access the text.
         pub fn set_wrap_option(&mut self, wrap: WrapOption) {
@@ -481,7 +481,7 @@ macro_rules! style_direction {
 macro_rules! style_glyph_orientation_vertical {
     ($acc:ident) => {
         /// The style:glyph-orientation-vertical attribute specifies a vertical glyph orientation.
-        /// See §10.7.3 of [SVG]. The attribute specifies an angle or automatic mode. The only defined angle
+        /// See §10.7.3 of SVG. The attribute specifies an angle or automatic mode. The only defined angle
         /// is 0 degrees, which disables this feature.
         ///
         /// Note: OpenDocument v1.1 did not support angle specifications that contain an
@@ -570,7 +570,7 @@ macro_rules! style_rotation_angle {
 macro_rules! style_shadow {
     ($acc:ident) => {
         /// The style:shadow attribute specifies a shadow effect.
-        /// The defined values for this attribute are those defined in §7.16.5 of [XSL], except the value
+        /// The defined values for this attribute are those defined in §7.16.5 of XSL, except the value
         /// inherit.
         ///
         /// The shadow effect is not applied to the text content of an element, but depending on the element
@@ -656,7 +656,7 @@ macro_rules! style_vertical_align {
 
 macro_rules! fo_break {
     ($acc:ident) => {
-        /// See §7.19.2 of [XSL]. The values odd-page and even-page are not supported.
+        /// See §7.19.2 of XSL. The values odd-page and even-page are not supported.
         /// This attribute shall not be used at the same time as fo:break-after.
         /// In the OpenDocument XSL-compatible namespace, the fo:break-before attribute does not
         /// support even-page, inherit and odd-page values.
@@ -664,7 +664,7 @@ macro_rules! fo_break {
             self.$acc.set_attr("fo:break-before", pagebreak.to_string());
         }
 
-        /// See §7.19.1 of [XSL]. The values odd-page and even-page are not supported.
+        /// See §7.19.1 of XSL. The values odd-page and even-page are not supported.
         /// This attribute shall not be used at the same time as fo:break-before.
         /// In the OpenDocument XSL-compatible namespace, the fo:break-after attribute does not
         /// support even-page, inherit and odd-page values.
@@ -676,13 +676,13 @@ macro_rules! fo_break {
 
 macro_rules! fo_hyphenation {
     ($acc:ident) => {
-        /// See §7.15.1 of [XSL].
+        /// See §7.15.1 of XSL.
         pub fn set_hyphenation_keep(&mut self, hyphenation: Hyphenation) {
             self.$acc
                 .set_attr("fo:hyphenation-keep", hyphenation.to_string());
         }
 
-        /// See §7.15.2 of [XSL].
+        /// See §7.15.2 of XSL.
         /// The defined values for the fo:hyphenation-ladder-count attribute are:
         /// * no-limit:
         /// * a value of type positiveInteger
@@ -695,7 +695,7 @@ macro_rules! fo_hyphenation {
 
 macro_rules! fo_keep_together {
     ($acc:ident) => {
-        /// See §7.19.3 of [XSL].
+        /// See §7.19.3 of XSL.
         /// In the OpenDocument XSL-compatible namespace, the fo:keep-together attribute does not
         /// support the integer value.
         ///
@@ -711,7 +711,7 @@ macro_rules! fo_keep_together {
 
 macro_rules! fo_keep_with_next {
     ($acc:ident) => {
-        /// See §7.19.4 of [XSL].
+        /// See §7.19.4 of XSL.
         /// In the OpenDocument XSL-compatible namespace, the fo:keep-with-next attribute does not
         /// support the integer value.
         pub fn set_keep_with_next(&mut self, keep_with_next: TextKeep) {
@@ -723,7 +723,7 @@ macro_rules! fo_keep_with_next {
 
 macro_rules! fo_line_height {
     ($acc:ident) => {
-        /// See §7.15.4 of [XSL].
+        /// See §7.15.4 of XSL.
         /// The value normal activates the default line height calculation. The value of this attribute can be a
         /// length, a percentage, normal.
         ///
@@ -747,7 +747,7 @@ macro_rules! fo_line_height {
 
 macro_rules! fo_margin {
     ($acc:ident) => {
-        /// See §7.29.14 of [XSL].
+        /// See §7.29.14 of XSL.
         /// In the OpenDocument XSL-compatible namespace, the fo:margin attribute does not support
         /// auto and inherit values.
         ///
@@ -762,7 +762,7 @@ macro_rules! fo_margin {
             self.$acc.set_attr("fo:margin", margin.to_string());
         }
 
-        /// See §7.10.2 of [XSL].
+        /// See §7.10.2 of XSL.
         /// If this attribute is contained in a <style:paragraph-properties> 17.6 element, its value may
         /// be a percentage that refers to the corresponding margin of a parent style.
         /// In the OpenDocument XSL-compatible namespace, the fo:margin-bottom attribute does not
@@ -779,7 +779,7 @@ macro_rules! fo_margin {
             self.$acc.set_attr("fo:margin-bottom", margin.to_string());
         }
 
-        /// See §7.10.3 of [XSL].
+        /// See §7.10.3 of XSL.
         /// If this attribute is contained in a <style:paragraph-properties> 17.6 element, its value may
         /// be a percentage that refers to the corresponding margin of a parent style.
         /// Tables that align to the left or to the center ignore right margins, and tables that align to the right
@@ -797,7 +797,7 @@ macro_rules! fo_margin {
             self.$acc.set_attr("fo:margin-left", margin.to_string());
         }
 
-        /// See §7.10.4 of [XSL].
+        /// See §7.10.4 of XSL.
         /// If this attribute is contained in a <style:paragraph-properties> 17.6 element, its value may
         /// be a percentage that refers to the corresponding margin of a parent style.
         /// Tables that align to the left or to the center ignore right margins, and tables that align to the right
@@ -815,7 +815,7 @@ macro_rules! fo_margin {
             self.$acc.set_attr("fo:margin-right", margin.to_string());
         }
 
-        /// See §7.10.1 of [XSL].
+        /// See §7.10.1 of XSL.
         /// If this attribute is contained in a <style:paragraph-properties> 17.6 element, its value may
         /// be a percentage that refers to the corresponding margin of a parent style.
         /// In the OpenDocument XSL-compatible namespace, the fo:margin-top attribute does not
@@ -836,7 +836,7 @@ macro_rules! fo_margin {
 
 macro_rules! fo_orphans {
     ($acc:ident) => {
-        /// See §7.19.6 of [XSL].
+        /// See §7.19.6 of XSL.
         ///
         /// The fo:orphans attribute is usable with the following element:
         /// <style:paragraphproperties> 17.6.
@@ -848,7 +848,7 @@ macro_rules! fo_orphans {
 
 macro_rules! fo_text_align {
     ($acc:ident) => {
-        /// See §7.15.9 of [XSL].
+        /// See §7.15.9 of XSL.
         /// If there are no values specified for the fo:text-align and style:justify-single-word
         /// 20.301 attributes within the same formatting properties element, the values of those attributes is
         /// set to start and false respectively.
@@ -867,7 +867,7 @@ macro_rules! fo_text_align {
 
 macro_rules! fo_text_align_last {
     ($acc:ident) => {
-        /// See §7.15.10 of [XSL].
+        /// See §7.15.10 of XSL.
         /// This attribute is ignored if it not accompanied by an fo:text-align 20.223 attribute.
         /// If no value is specified for this attribute, the value is set to start.
         ///
@@ -882,7 +882,7 @@ macro_rules! fo_text_align_last {
 macro_rules! fo_text_indent {
     ($acc:ident) => {
         /// The fo:text-indent attribute specifies a positive or negative indent for the first line of a
-        /// paragraph. See §7.15.11 of [XSL]. The attribute value is a length. If the attribute is contained in a
+        /// paragraph. See §7.15.11 of XSL. The attribute value is a length. If the attribute is contained in a
         /// common style, the attribute value may be also a percentage that refers to the corresponding text
         /// indent of a parent style.
         ///
@@ -899,7 +899,7 @@ macro_rules! fo_text_indent {
 
 macro_rules! fo_widows {
     ($acc:ident) => {
-        /// See §7.19.7 of [XSL].
+        /// See §7.19.7 of XSL.
         /// The fo:widows attribute specifies the minimum number of lines that shall be displayed at the top
         /// of a page to avoid paragraph widows.
         /// In the OpenDocument XSL-compatible namespace, the fo:widows attribute does not support
@@ -1236,7 +1236,7 @@ macro_rules! style_vertical_align_para {
 
 macro_rules! style_writing_mode {
     ($acc:ident) => {
-        /// See §7.27.7 of [XSL].
+        /// See §7.27.7 of XSL.
         ///
         /// The defined value for the style:writing-mode attribute is page: writing mode is inherited from
         /// the page that contains the element where this attribute appears.
@@ -1301,7 +1301,7 @@ macro_rules! style_number_lines {
 
 macro_rules! fo_color {
     ($acc:ident) => {
-        /// See §7.17.1 of [XSL].
+        /// See §7.17.1 of XSL.
         /// In the OpenDocument XSL-compatible namespace, the fo:color attribute does not support the
         /// inherit value.
         pub fn set_color(&mut self, color: Rgb<u8>) {
@@ -1315,7 +1315,7 @@ macro_rules! fo_locale {
         /// Sets the attributes for fo:language, fo:country and fo:script
         /// to the given locale.
         ///
-        /// These attributes are evaluated for any [UNICODE] characters whose script type is latin.
+        /// These attributes are evaluated for any UNICODE characters whose script type is latin.
         pub fn set_locale(&mut self, locale: Locale) {
             if locale != Locale::UND {
                 self.$acc
@@ -1347,7 +1347,7 @@ macro_rules! style_font_name {
         /// 16.23 element with a style:name 19.502 attribute whose name is the same as that of the
         /// style:font-name attribute value.
         ///
-        /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
+        /// This attribute is evaluated for any UNICODE character whose script type is latin. 20.358
         pub fn set_font_name<S: Into<String>>(&mut self, name: S) {
             self.$acc.set_attr("style:font-name", name.into());
         }
@@ -1356,17 +1356,16 @@ macro_rules! style_font_name {
 
 macro_rules! fo_font_size {
     ($acc:ident) => {
-        /// See §7.8.4 of [XSL].
-        /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
+        /// See §7.8.4 of XSL.
+        /// This attribute is evaluated for any UNICODE character whose script type is latin. 20.358
         /// The value of this attribute is either an absolute length or a percentage as described in §7.8.4 of
-        /// [XSL]. In contrast to XSL, percentage values can be used within common styles only and are
+        /// XSL. In contrast to XSL, percentage values can be used within common styles only and are
         /// based on the font height of the parent style rather than to the font height of the attributes
         /// neighborhood. Absolute font heights and relative font heights are not supported.
         ///
         /// Note: The style:font-size-asian attribute (20.284) is evaluated for
-        /// [UNICODE] characters whose type is asian. The style:font-sizecomplex attribute (20.285) is evaluated for [UNICODE] characters whose type is
-        /// complex.
-        ///
+        /// UNICODE characters whose type is asian. The style:font-size-complex attribute (20.285)
+        /// is evaluated for UNICODE characters whose type is complex.
         pub fn set_font_size(&mut self, size: FontSize) {
             assert!(size.is_positive());
             self.$acc.set_attr("fo:font-size", size.to_string());
@@ -1376,7 +1375,7 @@ macro_rules! fo_font_size {
 macro_rules! fo_font_size_rel {
     ($acc:ident) => {
         /// The style:font-size-rel attribute specifies a relative font size change.
-        /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
+        /// This attribute is evaluated for any UNICODE character whose script type is latin. 20.358
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
         /// styles. This attribute changes the font size based on the font size of the parent style.
         pub fn set_font_size_rel(&mut self, size: FontSize) {
@@ -1387,8 +1386,8 @@ macro_rules! fo_font_size_rel {
 
 macro_rules! fo_font_style {
     ($acc:ident) => {
-        /// See §7.8.7 of [XSL].
-        /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
+        /// See §7.8.7 of XSL.
+        /// This attribute is evaluated for any UNICODE character whose script type is latin. 20.358
         pub fn set_font_style(&mut self, style: FontStyle) {
             self.$acc.set_attr("fo:font-style", style.to_string());
         }
@@ -1402,8 +1401,8 @@ macro_rules! fo_font_style {
 
 macro_rules! fo_font_weight {
     ($acc:ident) => {
-        /// See §7.8.9 of [XSL].
-        /// This attribute is evaluated for any [UNICODE] character whose script type is latin. 20.358
+        /// See §7.8.9 of XSL.
+        /// This attribute is evaluated for any UNICODE character whose script type is latin. 20.358
         pub fn set_font_weight(&mut self, weight: FontWeight) {
             self.$acc.set_attr("fo:font-weight", weight.to_string());
         }
@@ -1418,7 +1417,7 @@ macro_rules! fo_font_weight {
 
 macro_rules! fo_font_variant {
     ($acc:ident) => {
-        /// See §7.8.8 of [XSL].
+        /// See §7.8.8 of XSL.
         pub fn set_font_variant(&mut self, var: FontVariant) {
             self.$acc.set_attr("fo:font-variant", var.to_string());
         }
@@ -1445,7 +1444,7 @@ macro_rules! style_locale_asian {
         /// Sets the attributes for fo:language, fo:country and fo:script
         /// to the given locale.
         ///
-        /// These attributes are evaluated for any [UNICODE] characters whose script type is asian.
+        /// These attributes are evaluated for any UNICODE characters whose script type is asian.
         pub fn set_locale_asian(&mut self, locale: Locale) {
             if locale != Locale::UND {
                 self.$acc
@@ -1476,7 +1475,7 @@ macro_rules! style_font_name_asian {
         /// 16.23 element with a style:name 19.502 attribute whose name is the same as that of the
         /// style:font-name attribute value.
         ///
-        /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
+        /// This attribute is evaluated for any UNICODE character whose script type is asian. 20.358
         pub fn set_font_name_asian<S: Into<String>>(&mut self, name: S) {
             self.$acc.set_attr("style:font-name-asian", name.into());
         }
@@ -1485,15 +1484,15 @@ macro_rules! style_font_name_asian {
 
 macro_rules! style_font_size_asian {
     ($acc:ident) => {
-        /// See §7.8.4 of [XSL].
-        /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
+        /// See §7.8.4 of XSL.
+        /// This attribute is evaluated for any UNICODE character whose script type is asian. 20.358
         /// The value of this attribute is either an absolute length or a percentage as described in §7.8.4 of
-        /// [XSL]. In contrast to XSL, percentage values can be used within common styles only and are
+        /// XSL. In contrast to XSL, percentage values can be used within common styles only and are
         /// based on the font height of the parent style rather than to the font height of the attributes
         /// neighborhood. Absolute font heights and relative font heights are not supported.
         ///
         /// Note: The style:font-size-asian attribute (20.284) is evaluated for
-        /// [UNICODE] characters whose type is asian. The style:font-sizecomplex attribute (20.285) is evaluated for [UNICODE] characters whose type is
+        /// UNICODE characters whose type is asian. The style:font-sizecomplex attribute (20.285) is evaluated for UNICODE characters whose type is
         /// complex.
         ///
         pub fn set_font_size_asian(&mut self, size: FontSize) {
@@ -1507,7 +1506,7 @@ macro_rules! style_font_size_asian {
 macro_rules! style_font_size_rel_asian {
     ($acc:ident) => {
         /// The style:font-size-rel attribute specifies a relative font size change.
-        /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
+        /// This attribute is evaluated for any UNICODE character whose script type is asian. 20.358
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
         /// styles. This attribute changes the font size based on the font size of the parent style.
         pub fn set_font_size_rel_asian(&mut self, size: FontSize) {
@@ -1519,8 +1518,8 @@ macro_rules! style_font_size_rel_asian {
 
 macro_rules! style_font_style_asian {
     ($acc:ident) => {
-        /// See §7.8.7 of [XSL].
-        /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
+        /// See §7.8.7 of XSL.
+        /// This attribute is evaluated for any UNICODE character whose script type is asian. 20.358
         pub fn set_font_style_asian(&mut self, style: FontStyle) {
             self.$acc
                 .set_attr("style:font-style-asian", style.to_string());
@@ -1536,8 +1535,8 @@ macro_rules! style_font_style_asian {
 
 macro_rules! style_font_weight_asian {
     ($acc:ident) => {
-        /// See §7.8.9 of [XSL].
-        /// This attribute is evaluated for any [UNICODE] character whose script type is asian. 20.358
+        /// See §7.8.9 of XSL.
+        /// This attribute is evaluated for any UNICODE character whose script type is asian. 20.358
         pub fn set_font_weight_asian(&mut self, weight: FontWeight) {
             self.$acc
                 .set_attr("style:font-weight-asian", weight.to_string());
@@ -1571,7 +1570,7 @@ macro_rules! style_locale_complex {
         /// Sets the attributes for fo:language, fo:country and fo:script
         /// to the given locale.
         ///
-        /// These attributes are evaluated for any [UNICODE] characters whose script type is complex.
+        /// These attributes are evaluated for any UNICODE characters whose script type is complex.
         pub fn set_locale_complex(&mut self, locale: Locale) {
             if locale != Locale::UND {
                 self.$acc
@@ -1603,7 +1602,7 @@ macro_rules! style_font_name_complex {
         /// 16.23 element with a style:name 19.502 attribute whose name is the same as that of the
         /// style:font-name attribute value.
         ///
-        /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
+        /// This attribute is evaluated for any UNICODE character whose script type is complex. 20.358
         pub fn set_font_name_complex<S: Into<String>>(&mut self, name: S) {
             self.$acc.set_attr("style:font-name-complex", name.into());
         }
@@ -1612,15 +1611,15 @@ macro_rules! style_font_name_complex {
 
 macro_rules! style_font_size_complex {
     ($acc:ident) => {
-        /// See §7.8.4 of [XSL].
-        /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
+        /// See §7.8.4 of XSL.
+        /// This attribute is evaluated for any UNICODE character whose script type is complex. 20.358
         /// The value of this attribute is either an absolute length or a percentage as described in §7.8.4 of
-        /// [XSL]. In contrast to XSL, percentage values can be used within common styles only and are
+        /// XSL. In contrast to XSL, percentage values can be used within common styles only and are
         /// based on the font height of the parent style rather than to the font height of the attributes
         /// neighborhood. Absolute font heights and relative font heights are not supported.
         ///
         /// Note: The style:font-size-asian attribute (20.284) is evaluated for
-        /// [UNICODE] characters whose type is asian. The style:font-sizecomplex attribute (20.285) is evaluated for [UNICODE] characters whose type is
+        /// UNICODE characters whose type is asian. The style:font-sizecomplex attribute (20.285) is evaluated for UNICODE characters whose type is
         /// complex.
         ///
         pub fn set_font_size_complex(&mut self, size: FontSize) {
@@ -1633,7 +1632,7 @@ macro_rules! style_font_size_complex {
 macro_rules! style_font_size_rel_complex {
     ($acc:ident) => {
         /// The style:font-size-rel attribute specifies a relative font size change.
-        /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
+        /// This attribute is evaluated for any UNICODE character whose script type is complex. 20.358
         /// This attribute specifies a relative font size change as a length. It cannot be used within automatic
         /// styles. This attribute changes the font size based on the font size of the parent style.
         pub fn set_font_size_rel_complex(&mut self, size: FontSize) {
@@ -1644,15 +1643,15 @@ macro_rules! style_font_size_rel_complex {
 }
 macro_rules! style_font_style_complex {
     ($acc:ident) => {
-        /// See §7.8.7 of [XSL].
-        /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
+        /// See §7.8.7 of XSL.
+        /// This attribute is evaluated for any UNICODE character whose script type is complex. 20.358
         pub fn set_font_style_complex(&mut self, style: FontStyle) {
             self.$acc
                 .set_attr("style:font-style-complex", style.to_string());
         }
 
         /// Set the font-style to italic.
-        /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
+        /// This attribute is evaluated for any UNICODE character whose script type is complex. 20.358
         pub fn set_font_italic_complex(&mut self) {
             self.$acc
                 .set_attr("style:font-style-complex", "italic".to_string());
@@ -1662,8 +1661,8 @@ macro_rules! style_font_style_complex {
 
 macro_rules! style_font_weight_complex {
     ($acc:ident) => {
-        /// See §7.8.9 of [XSL].
-        /// This attribute is evaluated for any [UNICODE] character whose script type is complex. 20.358
+        /// See §7.8.9 of XSL.
+        /// This attribute is evaluated for any UNICODE character whose script type is complex. 20.358
         pub fn set_font_weight_complex(&mut self, weight: FontWeight) {
             self.$acc
                 .set_attr("style:font-weight-complex", weight.to_string());
@@ -1694,7 +1693,7 @@ macro_rules! style_font_attr_complex {
 
 macro_rules! fo_hyphenate {
     ($acc:ident) => {
-        /// See §7.9.4 of [XSL].
+        /// See §7.9.4 of XSL.
         pub fn set_hyphenate(&mut self, hyphenate: bool) {
             self.$acc.set_attr("fo:hyphenate", hyphenate.to_string());
         }
@@ -1703,7 +1702,7 @@ macro_rules! fo_hyphenate {
 
 macro_rules! fo_hyphenation_push_char_count {
     ($acc:ident) => {
-        /// See §7.10.6 of [XSL]
+        /// See §7.10.6 of XSL
         pub fn set_hyphenation_push_char_count(&mut self, count: u32) {
             self.$acc
                 .set_attr("fo:hyphenation-push-char-count", count.to_string());
@@ -1713,7 +1712,7 @@ macro_rules! fo_hyphenation_push_char_count {
 
 macro_rules! fo_hyphenation_remain_char_count {
     ($acc:ident) => {
-        /// See §7.10.7 of [XSL]
+        /// See §7.10.7 of XSL
         pub fn set_hyphenation_remain_char_count(&mut self, count: u32) {
             self.$acc
                 .set_attr("fo:hyphenation-remain-char-count", count.to_string());
@@ -1723,7 +1722,7 @@ macro_rules! fo_hyphenation_remain_char_count {
 
 macro_rules! fo_letter_spacing {
     ($acc:ident) => {
-        /// See §7.16.2 of [XSL].
+        /// See §7.16.2 of XSL.
         /// Sets the letter spacing.
         pub fn set_letter_spacing(&mut self, spacing: LetterSpacing) {
             self.$acc.set_attr("fo:letter-spacing", spacing.to_string());
@@ -1751,7 +1750,7 @@ macro_rules! fo_text_shadow {
 
 macro_rules! fo_text_transform {
     ($acc:ident) => {
-        /// See §7.16.6 of [XSL].
+        /// See §7.16.6 of XSL.
         /// If fo:text-transform and fo:font-variant 20.192 attributes are used simultaneously and
         /// have different values than normal and none, the result is undefined.
         /// Note: In consumers, the fo:text-transform and fo:font-variant
@@ -1849,7 +1848,7 @@ macro_rules! style_text_combine_end_char {
 
 macro_rules! style_text_emphasize {
     ($acc:ident) => {
-        /// The style:text-emphasize attribute specifies emphasis in a text composed of [UNICODE]
+        /// The style:text-emphasize attribute specifies emphasis in a text composed of UNICODE
         /// characters whose script type is asian. 20.358
         /// The value of this attribute consists of two white space-separated values.
         /// The first value represents the style to use for emphasis.
@@ -1909,7 +1908,7 @@ macro_rules! style_text_line_through {
         /// * solid: text has a solid line through it.
         /// * wave: text has a wavy line through it.
         /// Note: The definitions of the values of the style:text-line-through-style attribute are
-        /// based on the text decoration style 'text-line-through-style' from [CSS3Text], §9.2.
+        /// based on the text decoration style 'text-line-through-style' from CSS3Text, §9.2.
         pub fn set_text_line_through_style(&mut self, lstyle: LineStyle) {
             self.$acc
                 .set_attr("style:text-line-through-style", lstyle.to_string());
@@ -2345,7 +2344,7 @@ macro_rules! style_num_prefix {
     ($acc:ident) => {
         /// The style:num-prefix attribute specifies what to display before a number.
         /// If the style:num-prefix and style:num-suffix values do not contain any character that
-        /// has a Unicode category of Nd, Nl, No, Lu, Ll, Lt, Lm or Lo, an [XSLT] format attribute can be
+        /// has a Unicode category of Nd, Nl, No, Lu, Ll, Lt, Lm or Lo, an XSLT format attribute can be
         /// created from the OpenDocument attributes by concatenating the values of the style:num-prefix,
         /// style:num-format, and style:num-suffix attributes.
         pub fn set_num_prefix<S: Into<String>>(&mut self, prefix: S) {
@@ -2359,7 +2358,7 @@ macro_rules! style_num_suffix {
         /// The style:num-prefix and style:num-suffix attributes specify what to display before and
         /// after a number.
         /// If the style:num-prefix and style:num-suffix values do not contain any character that
-        /// has a Unicode category of Nd, Nl, No, Lu, Ll, Lt, Lm or Lo, an [XSLT] format attribute can be
+        /// has a Unicode category of Nd, Nl, No, Lu, Ll, Lt, Lm or Lo, an XSLT format attribute can be
         /// created from the OpenDocument attributes by concatenating the values of the style:numprefix, style:num-format, and style:num-suffix attributes.
         pub fn set_num_suffix<S: Into<String>>(&mut self, suffix: S) {
             self.style_mut().set_attr("style:num-suffix", suffix.into());
@@ -2661,7 +2660,7 @@ macro_rules! style_leader_style {
         /// * wave: tab stop has a wavy leader line.
         ///
         /// Note: The definitions of the values of the style:leader-style attribute are based on the text
-        /// decoration style 'text-underline-style' from [CSS3Text], §9.2.
+        /// decoration style 'text-underline-style' from CSS3Text, §9.2.
         pub fn set_leader_style(&mut self, style: LineStyle) {
             self.$acc.set_attr("style:leader-style", style.to_string());
         }

@@ -8,22 +8,22 @@ use crate::style::StyleOrigin;
 /// properties of a font used in a document.
 ///
 /// OpenDocument font face declarations directly correspond to the @font-face font description of
-/// [CSS2] (see §15.3.1) and the <font-face> element of [SVG] (see §20.8.3).
+/// CSS2 (see §15.3.1) and the font-face element of SVG (see §20.8.3).
 ///
 /// OpenDocument font face declarations may have an unique name. This name can be used inside
 /// styles (as an attribute of <style:text-properties> element) as value of the style:fontname attribute to select a font face declaration. If a font face declaration is referenced by name,
 /// the font-matching algorithms for selecting a font declaration based on the font-family, font-style,
 /// font-variant, font-weight and font-size descriptors are not used but the referenced font face
-/// declaration is used directly. (See §15.5 [CSS2])
+/// declaration is used directly. (See §15.5 CSS2)
 ///
 /// Consumers should implement the CSS2 font-matching algorithm with the OpenDocument font
 /// face extensions. They may implement variations of the CSS2 font-matching algorithm. They may
 /// implement a font-matching based only on the font face declarations, that is, a font-matching that is
 /// not applied to every character independently but only once for each font face declaration. (See
-/// §15.5 [CSS2])
+/// §15.5 CSS2)
 ///
 /// Font face declarations support the font descriptor attributes and elements described in §20.8.3 of
-/// [SVG].
+/// SVG.
 #[derive(Clone, Debug, Default)]
 pub struct FontFaceDecl {
     name: String,
@@ -50,6 +50,12 @@ impl FontFaceDecl {
             origin: StyleOrigin::Content,
             attr: Default::default(),
         }
+    }
+
+    /// New with a name.
+    #[deprecated]
+    pub fn new_with_name<S: Into<String>>(name: S) -> Self {
+        Self::new(name)
     }
 
     /// Set the name.

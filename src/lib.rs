@@ -1244,6 +1244,12 @@ impl fmt::Debug for Sheet {
 
 impl Sheet {
     /// Create an empty sheet.
+    #[deprecated]
+    pub fn new_with_name<S: Into<String>>(name: S) -> Self {
+        Self::new(name)
+    }
+
+    /// Create an empty sheet.
     ///
     /// The name is shown as the tab-title, but also as a reference for
     /// this sheet in formulas and sheet-metadata. Giving an empty string
