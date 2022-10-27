@@ -7,7 +7,8 @@ use crate::style::units::{
     LineBreak, LineHeight, LineMode, LineStyle, LineType, LineWidth, Margin, PageBreak, PageNumber,
     ParaAlignVertical, Percent, PunctuationWrap, RotationAlign, TextAlign, TextAlignLast,
     TextAlignSource, TextAutoSpace, TextCombine, TextCondition, TextDisplay, TextEmphasize,
-    TextKeep, TextPosition, TextRelief, TextTransform, WrapOption, WritingDirection, WritingMode,
+    TextEmphasizePosition, TextKeep, TextPosition, TextRelief, TextTransform, WrapOption,
+    WritingDirection, WritingMode,
 };
 use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, text_position,

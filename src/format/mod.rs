@@ -34,7 +34,7 @@ use crate::style::stylemap::StyleMap;
 use crate::style::units::{
     Angle, FontSize, FontStyle, FontVariant, FontWeight, Length, LetterSpacing, LineMode,
     LineStyle, LineType, LineWidth, Percent, RotationScale, TextCombine, TextCondition,
-    TextDisplay, TextEmphasize, TextPosition, TextRelief, TextTransform,
+    TextDisplay, TextEmphasize, TextEmphasizePosition, TextPosition, TextRelief, TextTransform,
 };
 use crate::style::{
     color_string, shadow_string, text_position, StyleOrigin, StyleUse, TextStyleRef,

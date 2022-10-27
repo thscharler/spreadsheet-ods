@@ -191,6 +191,7 @@ macro_rules! fo_padding {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tablecell-properties> 17.18.
         pub fn set_padding(&mut self, padding: Length) {
+            assert!(padding.is_positive());
             self.$acc.set_attr("fo:padding", padding.to_string());
         }
 
@@ -203,6 +204,7 @@ macro_rules! fo_padding {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tablecell-properties> 17.18.
         pub fn set_padding_bottom(&mut self, padding: Length) {
+            assert!(padding.is_positive());
             self.$acc.set_attr("fo:padding-bottom", padding.to_string());
         }
 
@@ -215,6 +217,7 @@ macro_rules! fo_padding {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tablecell-properties> 17.18.
         pub fn set_padding_left(&mut self, padding: Length) {
+            assert!(padding.is_positive());
             self.$acc.set_attr("fo:padding-left", padding.to_string());
         }
 
@@ -227,6 +230,7 @@ macro_rules! fo_padding {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tablecell-properties> 17.18.
         pub fn set_padding_right(&mut self, padding: Length) {
+            assert!(padding.is_positive());
             self.$acc.set_attr("fo:padding-right", padding.to_string());
         }
 
@@ -239,6 +243,7 @@ macro_rules! fo_padding {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tablecell-properties> 17.18.
         pub fn set_padding_top(&mut self, padding: Length) {
+            assert!(padding.is_positive());
             self.$acc.set_attr("fo:padding-top", padding.to_string());
         }
     };
@@ -679,8 +684,8 @@ macro_rules! fo_hyphenation {
 
         /// See §7.15.2 of [XSL].
         /// The defined values for the fo:hyphenation-ladder-count attribute are:
-        /// • no-limit:
-        /// • a value of type positiveInteger
+        /// * no-limit:
+        /// * a value of type positiveInteger
         pub fn set_hyphenation_ladder_count(&mut self, hyphenation: HyphenationLadderCount) {
             self.$acc
                 .set_attr("fo:hyphenation-ladder-count", hyphenation.to_string());
@@ -733,6 +738,7 @@ macro_rules! fo_line_height {
         /// The fo:line-height attribute is usable with the following element:
         /// <style:paragraphproperties> 17.6.
         pub fn set_line_height(&mut self, line_height: LineHeight) {
+            assert!(line_height.is_positive());
             self.$acc
                 .set_attr("fo:line-height", line_height.to_string());
         }
@@ -752,6 +758,7 @@ macro_rules! fo_margin {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tableproperties> 17.15.
         pub fn set_margin(&mut self, margin: Margin) {
+            assert!(margin.is_positive());
             self.$acc.set_attr("fo:margin", margin.to_string());
         }
 
@@ -768,6 +775,7 @@ macro_rules! fo_margin {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tableproperties> 17.15.
         pub fn set_margin_bottom(&mut self, margin: Margin) {
+            assert!(margin.is_positive());
             self.$acc.set_attr("fo:margin-bottom", margin.to_string());
         }
 
@@ -785,6 +793,7 @@ macro_rules! fo_margin {
         /// <style:sectionproperties> 17.11 and
         /// <style:table-properties> 17.15.
         pub fn set_margin_left(&mut self, margin: Margin) {
+            assert!(margin.is_positive());
             self.$acc.set_attr("fo:margin-left", margin.to_string());
         }
 
@@ -802,6 +811,7 @@ macro_rules! fo_margin {
         /// <style:sectionproperties> 17.11 and
         /// <style:table-properties> 17.15.
         pub fn set_margin_right(&mut self, margin: Margin) {
+            assert!(margin.is_positive());
             self.$acc.set_attr("fo:margin-right", margin.to_string());
         }
 
@@ -818,6 +828,7 @@ macro_rules! fo_margin {
         /// <style:paragraph-properties> 17.6 and
         /// <style:tableproperties> 17.15.
         pub fn set_margin_top(&mut self, margin: Margin) {
+            assert!(margin.is_positive());
             self.$acc.set_attr("fo:margin-top", margin.to_string());
         }
     };
@@ -1062,6 +1073,7 @@ macro_rules! style_line_height_at_least {
         /// The style:line-height-at-least attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_line_height_at_least(&mut self, height: Length) {
+            assert!(height.is_positive());
             self.$acc
                 .set_attr("style:line-height-at-least", height.to_string());
         }
@@ -1173,6 +1185,7 @@ macro_rules! style_tab_stop_distance {
         /// The style:tab-stop-distance attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
         pub fn set_tab_stop_distance(&mut self, tab: Length) {
+            assert!(tab.is_positive());
             self.$acc
                 .set_attr("style:tab-stop-distance", tab.to_string());
         }
@@ -1204,13 +1217,13 @@ macro_rules! style_vertical_align_para {
         /// characters are aligned according to their baseline.
         ///
         /// The defined values for the style:vertical-align attribute are:
-        /// • auto: automatically, which sets the vertical alignment to suit the text rotation. Text that is
+        /// * auto: automatically, which sets the vertical alignment to suit the text rotation. Text that is
         /// rotated 0 or 90 degrees is aligned to the baseline, while text that is rotated 270 degrees is
         /// aligned to the center of the line.
-        /// • baseline: to the baseline of the character.
-        /// • bottom: to the bottom of the line.
-        /// • middle: to the center of the line.
-        /// • top: to the top of the line.
+        /// * baseline: to the baseline of the character.
+        /// * bottom: to the bottom of the line.
+        /// * middle: to the center of the line.
+        /// * top: to the top of the line.
         ///
         /// The style:vertical-align attribute is usable with the following element:
         /// <style:paragraph-properties> 17.6.
@@ -1243,9 +1256,9 @@ macro_rules! style_writing_mode_automatic {
         ///
         /// If the fo:text-align with value start, text alignment can be adapted to the writing mode.
         /// The defined values for the style:writing-mode-automatic attribute are:
-        /// • false: consumers should not recalculate writing mode of a paragraph whenever its content
+        /// * false: consumers should not recalculate writing mode of a paragraph whenever its content
         /// is edited.
-        /// • true: consumers should recalculate writing mode of a paragraph whenever its content is
+        /// * true: consumers should recalculate writing mode of a paragraph whenever its content is
         /// edited.
         ///
         /// The style:writing-mode-automatic attribute is usable with the following element:
@@ -1355,6 +1368,7 @@ macro_rules! fo_font_size {
         /// complex.
         ///
         pub fn set_font_size(&mut self, size: FontSize) {
+            assert!(size.is_positive());
             self.$acc.set_attr("fo:font-size", size.to_string());
         }
     };
@@ -1483,6 +1497,7 @@ macro_rules! style_font_size_asian {
         /// complex.
         ///
         pub fn set_font_size_asian(&mut self, size: FontSize) {
+            assert!(size.is_positive());
             self.$acc
                 .set_attr("style:font-size-asian", size.to_string());
         }
@@ -1609,6 +1624,7 @@ macro_rules! style_font_size_complex {
         /// complex.
         ///
         pub fn set_font_size_complex(&mut self, size: FontSize) {
+            assert!(size.is_positive());
             self.$acc
                 .set_attr("style:font-size-complex", size.to_string());
         }
@@ -1845,9 +1861,15 @@ macro_rules! style_text_emphasize {
         /// * disc: filled circles.
         /// * dot: calligraphic dot.
         /// * none: no emphasis marks.
-        pub fn set_text_emphasize(&mut self, emphasize: TextEmphasize) {
-            self.$acc
-                .set_attr("style:text-emphasize", emphasize.to_string());
+        pub fn set_text_emphasize(
+            &mut self,
+            emphasize: TextEmphasize,
+            position: TextEmphasizePosition,
+        ) {
+            self.$acc.set_attr(
+                "style:text-emphasize",
+                format!("{} {}", emphasize, position),
+            );
         }
     };
 }
@@ -2461,6 +2483,7 @@ macro_rules! style_min_row_height {
     ($acc:ident) => {
         /// The style:min-row-height attribute specifies a fixed minimum height for a row.
         pub fn set_min_row_height(&mut self, min_height: Length) {
+            assert!(min_height.is_positive());
             self.$acc
                 .set_attr("style:min-row-height", min_height.to_string());
         }
@@ -2518,11 +2541,11 @@ macro_rules! style_rel_width {
     ($acc:ident) => {
         /// The style:rel-width attribute specifies the relative width of a drawing object.
         /// The defined values for the style:rel-width attribute are:
-        /// • scale: the width should be calculated depending on the height, so that the ratio of width and
+        /// * scale: the width should be calculated depending on the height, so that the ratio of width and
         /// height of the original image or object size is preserved.
-        /// • scale-min: the width should be calculated as for value scale, but the calculated width is a
+        /// * scale-min: the width should be calculated as for value scale, but the calculated width is a
         /// minimum width rather than an absolute one.
-        /// • a value of type percent 18.3.23.
+        /// * a value of type percent 18.3.23.
         /// The interpretation of the percent value depends on the anchor of the drawing object. If the anchor
         /// for the drawing object is in a table cell, the percent value of the surrounding table box. If the
         /// anchor for the drawing object is in a text box, the percentage value of the surrounding text box. In
