@@ -154,6 +154,92 @@ impl Display for LengthPercent {
     }
 }
 
+/// 19.348 number:format-source
+///
+/// The number:format-source attribute specifies the source of definitions of the short and
+/// long display formats.
+///
+/// The defined values for the number:format-source attribute are:
+/// • fixed: the values short and long of the number:style attribute are defined by this
+/// standard.
+/// • language: the meaning of the values long and short of the number:style attribute
+/// depend upon the number:language and number:country attributes of the date style. If
+/// neither of those attributes are specified, consumers should use their default locale for short
+/// and long date and time formats.
+///
+/// The default value for this attribute is fixed.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub enum FormatSource {
+    Fixed,
+    Language,
+}
+
+impl Display for FormatSource {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FormatSource::Fixed => write!(f, "fixed"),
+            FormatSource::Language => write!(f, "language"),
+        }
+    }
+}
+
+impl ParseStyleAttr<FormatSource> for FormatSource {
+    fn parse_attr(attr: Option<&String>) -> Result<Option<FormatSource>, OdsError> {
+        if let Some(attr) = attr {
+            match attr.as_str() {
+                "fixed" => Ok(Some(FormatSource::Fixed)),
+                "language" => Ok(Some(FormatSource::Language)),
+                s => Err(OdsError::Parse(s.to_string())),
+            }
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+/// 19.368 number:transliteration-style
+///
+/// The number:transliteration-style attribute specifies the transliteration format of a
+/// number system.
+///
+/// The semantics of the values of the number:transliteration-style attribute are locale- and
+/// implementation-dependent.
+///
+/// The default value for this attribute is short.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub enum TransliterationStyle {
+    Short,
+    Medium,
+    Long,
+}
+
+impl Display for TransliterationStyle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransliterationStyle::Short => write!(f, "short"),
+            TransliterationStyle::Medium => write!(f, "medium"),
+            TransliterationStyle::Long => write!(f, "long"),
+        }
+    }
+}
+
+impl ParseStyleAttr<TransliterationStyle> for TransliterationStyle {
+    fn parse_attr(attr: Option<&String>) -> Result<Option<TransliterationStyle>, OdsError> {
+        if let Some(attr) = attr {
+            match attr.as_str() {
+                "short" => Ok(Some(TransliterationStyle::Short)),
+                "medium" => Ok(Some(TransliterationStyle::Medium)),
+                "long" => Ok(Some(TransliterationStyle::Long)),
+                s => Err(OdsError::Parse(s.to_string())),
+            }
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 /// 19.484 style:font-family-generic
 ///
 /// The style:font-family-generic attribute specifies a generic font family name.

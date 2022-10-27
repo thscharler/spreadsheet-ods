@@ -10,6 +10,8 @@ positiveLength
 
 // Attributes with specific value types.
 
+19.348 number:format-source
+19.368 number:transliteration-style
 19.484 style:font-family-generic
 19.485 style:font-pitch
 19.509 style:page-usage
