@@ -1,3 +1,7 @@
+# 0.11.1
+
+- Minor fixes.
+
 # 0.11.0
 
 BREAKING: 
