@@ -24,6 +24,21 @@ pub fn create_loc_number_format<S: Into<String>>(
     v
 }
 
+/// Creates a new number format with a fixed number of decimal places.
+pub fn create_loc_number_format_fixed<S: Into<String>>(
+    name: S,
+    locale: Locale,
+    decimal: u8,
+    grouping: bool,
+) -> ValueFormat {
+    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Number);
+    v.part_number()
+        .fixed_decimal_places(decimal)
+        .if_then(grouping, |p| p.grouping())
+        .build();
+    v
+}
+
 /// Creates a new percentage format.
 pub fn create_loc_percentage_format<S: Into<String>>(
     name: S,
@@ -133,6 +148,19 @@ pub fn create_loc_datetime_format<S: Into<String>>(name: S, locale: Locale) -> V
 /// Creates a new time-Duration format H:M:S
 pub fn create_loc_time_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
     let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::TimeDuration);
+    v.part_hours().style(FormatNumberStyle::Long).build();
+    v.part_text(":").build();
+    v.part_minutes().style(FormatNumberStyle::Long).build();
+    v.part_text(":").build();
+    v.part_seconds().style(FormatNumberStyle::Long).build();
+    v
+}
+
+/// Creates a new time-Duration format H:M:S
+pub fn create_loc_time_interval_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
+    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::TimeDuration);
+    v.set_truncate_on_overflow(false);
+
     v.part_hours().style(FormatNumberStyle::Long).build();
     v.part_text(":").build();
     v.part_minutes().style(FormatNumberStyle::Long).build();
