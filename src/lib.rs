@@ -222,6 +222,8 @@ mod attr_macro;
 #[macro_use]
 mod unit_macro;
 #[macro_use]
+mod format_macro;
+#[macro_use]
 mod style_macro;
 #[macro_use]
 mod text_macro;

@@ -58,11 +58,7 @@ macro_rules! styles_styles {
                 self.attr.set_attr("style:class", class.into());
             }
 
-            /// The style:display-name attribute specifies the name of a style as it should appear in the user
-            /// interface. If this attribute is not present, the display name should be the same as the style name.
-            pub fn set_display_name<S: Into<String>>(&mut self, name: S) {
-                self.attr.set_attr("style:display-name", name.into());
-            }
+            style_display_name!(attr);
 
             /// The style:parent-style-name attribute specifies the name of a parent style. The parent
             /// style cannot be an automatic style and shall exist.
@@ -3059,6 +3055,17 @@ macro_rules! number_truncate_on_overflow {
             } else {
                 None
             }
+        }
+    };
+}
+
+// 19.476 style:display-name
+macro_rules! style_display_name {
+    ($acc:ident) => {
+        /// The style:display-name attribute specifies the name of a style as it should appear in the user
+        /// interface. If this attribute is not present, the display name should be the same as the style name.
+        pub fn set_display_name<S: Into<String>>(&mut self, name: S) {
+            self.$acc.set_attr("style:display-name", name.into());
         }
     };
 }
