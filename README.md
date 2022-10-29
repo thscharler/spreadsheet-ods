@@ -34,6 +34,11 @@ $ cargo add spreadsheet-ods
 * `use_decimal`: Add conversions for rust_decimal. Internally the values are
   stored as f64 nonetheless.
 
+* Locales 
+  * all_locales = [ "locale_de_AT", "locale_en_US" ]
+  * locale_de_AT
+  * locale_en_US
+
 ## License
 
 This project is licensed under either of
