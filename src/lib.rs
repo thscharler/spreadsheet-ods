@@ -831,11 +831,9 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_boolean_format(&mut self, mut vstyle: ValueFormatBoolean) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(auto_style_name(
-                &mut self.autonum,
-                "val_boolean",
-                &self.formats_boolean,
-            ));
+            vstyle.set_name(
+                auto_style_name(&mut self.autonum, "val_boolean", &self.formats_boolean).as_str(),
+            );
         }
         let sref = vstyle.format_ref();
         self.formats_boolean
@@ -862,11 +860,9 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_number_format(&mut self, mut vstyle: ValueFormatNumber) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(auto_style_name(
-                &mut self.autonum,
-                "val_number",
-                &self.formats_number,
-            ));
+            vstyle.set_name(
+                auto_style_name(&mut self.autonum, "val_number", &self.formats_number).as_str(),
+            );
         }
         let sref = vstyle.format_ref();
         self.formats_number
@@ -893,11 +889,14 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_percentage_format(&mut self, mut vstyle: ValueFormatPercentage) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(auto_style_name(
-                &mut self.autonum,
-                "val_percentage",
-                &self.formats_percentage,
-            ));
+            vstyle.set_name(
+                auto_style_name(
+                    &mut self.autonum,
+                    "val_percentage",
+                    &self.formats_percentage,
+                )
+                .as_str(),
+            );
         }
         let sref = vstyle.format_ref();
         self.formats_percentage
@@ -924,11 +923,9 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_currency_format(&mut self, mut vstyle: ValueFormatCurrency) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(auto_style_name(
-                &mut self.autonum,
-                "val_currency",
-                &self.formats_currency,
-            ));
+            vstyle.set_name(
+                auto_style_name(&mut self.autonum, "val_currency", &self.formats_currency).as_str(),
+            );
         }
         let sref = vstyle.format_ref();
         self.formats_currency
@@ -955,11 +952,9 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_text_format(&mut self, mut vstyle: ValueFormatText) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(auto_style_name(
-                &mut self.autonum,
-                "val_text",
-                &self.formats_text,
-            ));
+            vstyle.set_name(
+                auto_style_name(&mut self.autonum, "val_text", &self.formats_text).as_str(),
+            );
         }
         let sref = vstyle.format_ref();
         self.formats_text.insert(vstyle.name().to_string(), vstyle);
@@ -985,11 +980,9 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_datetime_format(&mut self, mut vstyle: ValueFormatDateTime) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(auto_style_name(
-                &mut self.autonum,
-                "val_datetime",
-                &self.formats_datetime,
-            ));
+            vstyle.set_name(
+                auto_style_name(&mut self.autonum, "val_datetime", &self.formats_datetime).as_str(),
+            );
         }
         let sref = vstyle.format_ref();
         self.formats_datetime
@@ -1019,11 +1012,14 @@ impl WorkBook {
         mut vstyle: ValueFormatTimeDuration,
     ) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(auto_style_name(
-                &mut self.autonum,
-                "val_timeduration",
-                &self.formats_timeduration,
-            ));
+            vstyle.set_name(
+                auto_style_name(
+                    &mut self.autonum,
+                    "val_timeduration",
+                    &self.formats_timeduration,
+                )
+                .as_str(),
+            );
         }
         let sref = vstyle.format_ref();
         self.formats_timeduration

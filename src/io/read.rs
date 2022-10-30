@@ -1658,18 +1658,18 @@ fn read_value_format(
 }
 
 // Reads any of the number:xxx tags
-fn read_value_format_parts<T: ValueFormatTrait>(
+fn read_value_format_parts(
     bs: &mut BufStack,
     origin: StyleOrigin,
     styleuse: StyleUse,
-    valuestyle: &mut T,
+    valuestyle: &mut dyn ValueFormatTrait,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
     valuestyle.set_origin(origin);
     valuestyle.set_styleuse(styleuse);
     let name = proc_style_attr(valuestyle.attrmap_mut(), xml_tag)?;
-    valuestyle.set_name(name);
+    valuestyle.set_name(name.as_str());
 
     // Styles with content information are stored before completion.
     let mut valuestyle_part = None;

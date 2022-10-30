@@ -67,7 +67,7 @@ pub trait ValueFormatTrait {
     fn format_ref(&self) -> ValueFormatRef;
 
     /// The style:name attribute specifies names that reference style mechanisms.
-    fn set_name<S: Into<String>>(&mut self, name: S);
+    fn set_name(&mut self, name: &str);
 
     /// The style:name attribute specifies names that reference style mechanisms.
     fn name(&self) -> &String;
@@ -228,7 +228,6 @@ pub enum FormatPartType {
     Seconds,
     AmPm,
     Boolean,
-    //EmbeddedText,
     Text,
     TextContent,
 }

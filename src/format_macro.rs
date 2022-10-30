@@ -125,7 +125,7 @@ macro_rules! valueformat {
             }
 
             /// The style:name attribute specifies names that reference style mechanisms.
-            fn set_name<S: Into<String>>(&mut self, name: S) {
+            fn set_name(&mut self, name: &str) {
                 self.name = name.into();
             }
 
