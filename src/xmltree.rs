@@ -45,6 +45,8 @@
 //! ```
 
 use crate::attrmap2::AttrMap2;
+use crate::text::TextP;
+use crate::OdsError;
 use std::fmt::{Display, Formatter};
 
 /// Defines a XML tag and it's children.
@@ -64,6 +66,25 @@ impl From<&str> for XmlTag {
 impl From<String> for XmlTag {
     fn from(name: String) -> Self {
         XmlTag::new(name)
+    }
+}
+
+/// Functionality for vectors of XmlTag's.
+pub trait XmlVec {
+    /// Adds the text as new XmlTag of text:p.
+    fn add_text<S: Into<String>>(&mut self, txt: S);
+
+    /// Adds the tag as new XmlTag.
+    fn add_tag<T: Into<XmlTag>>(&mut self, tag: T);
+}
+
+impl XmlVec for &mut Vec<XmlTag> {
+    fn add_text<S: Into<String>>(&mut self, txt: S) {
+        self.push(TextP::new().text(txt).into());
+    }
+
+    fn add_tag<T: Into<XmlTag>>(&mut self, tag: T) {
+        self.push(tag.into());
     }
 }
 
@@ -181,6 +202,23 @@ impl XmlTag {
                 }
             }
         }
+    }
+
+    /// Converts the content into a Vec<XmlTag>. Any occurring text content
+    /// is an error.
+    pub fn into_vec(self) -> Result<Vec<XmlTag>, OdsError> {
+        let mut content = Vec::new();
+
+        for c in self.content {
+            match c {
+                XmlContent::Text(v) => {
+                    return Err(OdsError::Parse(format!("Unexpected literal text '{}'", v)))
+                }
+                XmlContent::Tag(v) => content.push(v),
+            }
+        }
+
+        Ok(content)
     }
 }
 
