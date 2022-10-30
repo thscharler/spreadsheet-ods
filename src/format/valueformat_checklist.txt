@@ -18,8 +18,6 @@ Elements
 
 ok <number:boolean> 16.29.25,
 ok <number:text> 16.29.27,
-ok <style:map> 16.3 and
-ok <style:text-properties> 16.29.29.
 
 
 16.29.2 <number:number-style>
@@ -44,8 +42,6 @@ Elements
 <number:number> 16.29.3,
 <number:scientific-number> 16.29.6,
 <number:text> 16.29.27,
-<style:map> 16.3 and
-<style:text-properties> 16.29.29.
 
 
 16.29.10 <number:percentage-style>
@@ -114,8 +110,6 @@ Elements
 <number:fillcharacter> 16.29.5,
 <number:text> 16.29.27,
 <number:text-content> 16.29.28,
-<style:map> 16.3 and
-<style:text-properties> 16.29.29.
 
 
 16.29.11 <number:date-style>
@@ -177,5 +171,3 @@ Elements
 <number:minutes> 16.29.21,
 <number:seconds> 16.29.22,
 <number:text> 16.29.27,
-<style:map> 16.3 and
-<style:text-properties> 16.29.29.
