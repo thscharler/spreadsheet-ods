@@ -1,77 +1,3 @@
-macro_rules! styles_styles {
-    ($style:ident, $styleref:ident) => {
-        impl $style {
-            /// Origin of the style, either styles.xml oder content.xml
-            pub fn origin(&self) -> StyleOrigin {
-                self.origin
-            }
-
-            /// Changes the origin.
-            pub fn set_origin(&mut self, origin: StyleOrigin) {
-                self.origin = origin;
-            }
-
-            /// Usage for the style.
-            pub fn styleuse(&self) -> StyleUse {
-                self.styleuse
-            }
-
-            /// Usage for the style.
-            pub fn set_styleuse(&mut self, styleuse: StyleUse) {
-                self.styleuse = styleuse;
-            }
-
-            /// Stylename
-            pub fn name(&self) -> &str {
-                &self.name
-            }
-
-            /// Stylename
-            pub fn set_name<S: Into<String>>(&mut self, name: S) {
-                self.name = name.into();
-            }
-
-            /// Returns the name as a style reference.
-            pub fn style_ref(&self) -> $styleref {
-                $styleref::from(self.name())
-            }
-
-            /// The style:auto-update attribute specifies whether styles are automatically updated when the
-            /// formatting properties of an object that has the style assigned to it are changed.
-            /// The defined values for the style:auto-update attribute are:
-            /// * false: a change to a formatting property is applied for the object where the change was
-            /// made. If necessary, a new automatic style will be created which is applied to the object where
-            /// the change was made.
-            /// * true: a change to a formatting property results in the updating of the common style that is
-            /// applied to an object. The formatting change is applied to all objects subject to the common
-            /// style where the change was made.
-            /// The default value for this attribute is false.
-            pub fn set_auto_update(&mut self, auto: bool) {
-                self.attr.set_attr("style:auto-update", auto.to_string());
-            }
-
-            /// The style:class attribute specifies a style class name.
-            /// A style may belong to an arbitrary class of styles. The style class name is an arbitrary string. The
-            /// style class name has no meaning within the file format itself, but it can for instance be evaluated
-            /// by user interfaces to show a list of styles where the styles are grouped by its name.
-            pub fn set_class<S: Into<String>>(&mut self, class: S) {
-                self.attr.set_attr("style:class", class.into());
-            }
-
-            style_display_name!(attr);
-
-            /// The style:parent-style-name attribute specifies the name of a parent style. The parent
-            /// style cannot be an automatic style and shall exist.
-            /// If a parent style is not specified, the default style which has the same style:family 19.480
-            /// attribute value as the current style is used.
-            pub fn set_parent_style(&mut self, name: &$styleref) {
-                self.attr
-                    .set_attr("style:parent-style-name", name.to_string());
-            }
-        }
-    };
-}
-
 macro_rules! style_default_outline_level {
     ($acc:ident) => {
         /// The style:default-outline-level attribute specifies a default outline level for a style with
@@ -3066,6 +2992,52 @@ macro_rules! style_display_name {
         /// interface. If this attribute is not present, the display name should be the same as the style name.
         pub fn set_display_name<S: Into<String>>(&mut self, name: S) {
             self.$acc.set_attr("style:display-name", name.into());
+        }
+    };
+}
+
+// 19.467 style:auto-update
+macro_rules! style_auto_update {
+    ($acc:ident) => {
+        /// The style:auto-update attribute specifies whether styles are automatically updated when the
+        /// formatting properties of an object that has the style assigned to it are changed.
+        /// The defined values for the style:auto-update attribute are:
+        /// * false: a change to a formatting property is applied for the object where the change was
+        /// made. If necessary, a new automatic style will be created which is applied to the object where
+        /// the change was made.
+        /// * true: a change to a formatting property results in the updating of the common style that is
+        /// applied to an object. The formatting change is applied to all objects subject to the common
+        /// style where the change was made.
+        /// The default value for this attribute is false.
+        fn set_auto_update(&mut self, auto: bool) {
+            self.$acc.set_attr("style:auto-update", auto.to_string());
+        }
+    };
+}
+
+// 19.470 style:class
+macro_rules! style_class {
+    ( $acc:ident) => {
+        /// The style:class attribute specifies a style class name.
+        /// A style may belong to an arbitrary class of styles. The style class name is an arbitrary string. The
+        /// style class name has no meaning within the file format itself, but it can for instance be evaluated
+        /// by user interfaces to show a list of styles where the styles are grouped by its name.
+        fn set_class(&mut self, class: &str) {
+            self.$acc.set_attr("style:class", class.into());
+        }
+    };
+}
+
+// 19.510 style:parent-style-name
+macro_rules! style_parent_style_name {
+    ($acc:ident, $styleref:ident) => {
+        /// The style:parent-style-name attribute specifies the name of a parent style. The parent
+        /// style cannot be an automatic style and shall exist.
+        /// If a parent style is not specified, the default style which has the same style:family 19.480
+        /// attribute value as the current style is used.
+        pub fn set_parent_style(&mut self, name: &$styleref) {
+            self.$acc
+                .set_attr("style:parent-style-name", name.to_string());
         }
     };
 }

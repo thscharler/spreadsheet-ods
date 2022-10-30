@@ -1,3 +1,49 @@
+macro_rules! styles_styles {
+    ($style:ident, $styleref:ident) => {
+        impl $style {
+            /// Origin of the style, either styles.xml oder content.xml
+            pub fn origin(&self) -> StyleOrigin {
+                self.origin
+            }
+
+            /// Changes the origin.
+            pub fn set_origin(&mut self, origin: StyleOrigin) {
+                self.origin = origin;
+            }
+
+            /// Usage for the style.
+            pub fn styleuse(&self) -> StyleUse {
+                self.styleuse
+            }
+
+            /// Usage for the style.
+            pub fn set_styleuse(&mut self, styleuse: StyleUse) {
+                self.styleuse = styleuse;
+            }
+
+            /// Stylename
+            pub fn name(&self) -> &str {
+                &self.name
+            }
+
+            /// Stylename
+            pub fn set_name<S: Into<String>>(&mut self, name: S) {
+                self.name = name.into();
+            }
+
+            /// Returns the name as a style reference.
+            pub fn style_ref(&self) -> $styleref {
+                $styleref::from(self.name())
+            }
+
+            style_auto_update!(attr);
+            style_class!(attr);
+            style_display_name!(attr);
+            style_parent_style_name!(attr, $styleref);
+        }
+    };
+}
+
 /// Generates a name reference for a style.
 macro_rules! style_ref {
     ($l:ident) => {

@@ -2,7 +2,11 @@ use color::Rgb;
 
 use spreadsheet_ods::condition::ValueCondition;
 use spreadsheet_ods::style::stylemap::StyleMap;
-use spreadsheet_ods::style::units::{Angle, Border, CellAlignVertical, FontFamilyGeneric, FontPitch, FontWeight, Length, PageBreak, ParaAlignVertical, RotationAlign, TextAlignSource, TextKeep, TextPosition, TextRelief, TextTransform, WrapOption, WritingMode};
+use spreadsheet_ods::style::units::{
+    Angle, Border, CellAlignVertical, FontFamilyGeneric, FontPitch, FontWeight, Length, PageBreak,
+    ParaAlignVertical, RotationAlign, TextAlignSource, TextKeep, TextPosition, TextRelief,
+    TextTransform, WrapOption, WritingMode,
+};
 use spreadsheet_ods::style::{
     CellStyle, ColStyle, FontFaceDecl, PageStyle, RowStyle, StyleOrigin, StyleUse, TableStyle,
 };
@@ -52,7 +56,10 @@ fn test_attr1() {
     );
 
     p0.headerstyle_mut().set_height(cm!(7));
-    assert_eq!(p0.headerstyle().style().attr("svg:height"), Some(&"7cm".to_string()));
+    assert_eq!(
+        p0.headerstyle().style().attr("svg:height"),
+        Some(&"7cm".to_string())
+    );
 
     p0.headerstyle_mut().set_min_height(cm!(6));
     assert_eq!(
