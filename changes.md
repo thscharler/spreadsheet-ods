@@ -1,3 +1,38 @@
+# 0.12.0
+
+BREAKING:
+- ValueFormat is gone. Many, many functions had an annotation
+  "can only be used when ...", which is not a good sign. 
+  So I split it up in one struct per ValueType (ValueFormatBoolean, 
+  ValueFormatNumber, ...). This allows for a clearer communication 
+  what is possible with each of them.
+
+  Changing should be straightforward:
+
+  Before:
+  ```rust
+    let mut v1 = ValueFormat::new_named("f1", ValueType::Number);
+    v1.part_scientific().decimal_places(4).build();
+    let v1 = wb.add_format(v1);
+  ```
+  
+  After:
+  ```rust
+    let mut v1 = ValueFormatNumber::new_named("f1");
+    v1.part_scientific().decimal_places(4).build();
+    let v1 = wb.add_number_format(v1);
+  ```
+
+  The good news: I think I am happy now how ValueFormatXXX and XXXStyle work.
+  I will keep them stable from now on.
+
+
+CHANGES:
+
+- create_loc_number_format_fixed, create_loc_time_interval_format where missing.
+- HeaderFooter can contain multiple paragraphs of text. Works now. 
+- TextTag/XmlTag: Add functionality to work with Vec<XmlTag>.
+
 # 0.11.1
 
 - Minor fixes.
@@ -5,6 +40,7 @@
 # 0.11.0
 
 BREAKING: 
+
 Localization has been added via icu_locid. This leads to a few but central breaks in the api.
 
 - WorkBook::new() now needs a Locale. This obsoletes the call to create_default_styles()

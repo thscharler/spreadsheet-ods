@@ -35,6 +35,12 @@ macro_rules! valueformat {
             }
 
             /// New, with name.
+            #[deprecated]
+            pub fn new_with_name<S: Into<String>>(name: S) -> Self {
+                Self::new_named(name)
+            }
+
+            /// New, with name.
             pub fn new_named<S: Into<String>>(name: S) -> Self {
                 Self {
                     name: name.into(),
@@ -125,7 +131,7 @@ macro_rules! valueformat {
             }
 
             /// The style:name attribute specifies names that reference style mechanisms.
-            fn set_name(&mut self, name: &str) {
+            fn set_name<S: Into<String>>(&mut self, name: S) {
                 self.name = name.into();
             }
 
@@ -530,6 +536,236 @@ macro_rules! part_text_content {
         #[must_use]
         pub fn part_text_content(&mut self) -> PartTextContentBuilder<'_, Self> {
             PartTextContentBuilder::new(self)
+        }
+    };
+}
+
+macro_rules! push_number {
+    () => {
+        /// Use part_number instead.
+        #[deprecated]
+        pub fn push_number(&mut self, decimal_places: u8, grouping: bool) {
+            self.part_number()
+                .decimal_places(decimal_places)
+                .if_then(grouping, |p| p.grouping())
+                .min_decimal_places(0)
+                .min_integer_digits(1)
+                .build();
+        }
+    };
+}
+
+macro_rules! push_number_fix {
+    () => {
+        /// Use part_number instead.
+        #[deprecated]
+        pub fn push_number_fix(&mut self, decimal_places: u8, grouping: bool) {
+            self.part_number()
+                .fixed_decimal_places(decimal_places)
+                .if_then(grouping, |p| p.grouping())
+                .min_integer_digits(1)
+                .build();
+        }
+    };
+}
+
+macro_rules! push_fraction {
+    () => {
+        /// Use part_fraction instead.
+        #[deprecated]
+        pub fn push_fraction(
+            &mut self,
+            denominator: i64,
+            min_denominator_digits: u8,
+            min_integer_digits: u8,
+            min_numerator_digits: u8,
+            grouping: bool,
+        ) {
+            self.part_fraction()
+                .denominator(denominator)
+                .min_denominator_digits(min_denominator_digits)
+                .min_integer_digits(min_integer_digits)
+                .min_numerator_digits(min_numerator_digits)
+                .if_then(grouping, |p| p.grouping())
+                .build();
+        }
+    };
+}
+
+macro_rules! push_scientific {
+    () => {
+        /// Use part_scientific instead.
+        #[deprecated]
+        pub fn push_scientific(&mut self, decimal_places: u8) {
+            self.part_scientific()
+                .decimal_places(decimal_places)
+                .build();
+        }
+    };
+}
+
+macro_rules! push_currency_symbol {
+    () => {
+        /// Use part_currency instead.
+        #[deprecated]
+        pub fn push_currency_symbol<S>(&mut self, locale: Locale, symbol: S)
+        where
+            S: Into<String>,
+        {
+            self.part_currency().locale(locale).symbol(symbol).build();
+        }
+    };
+}
+
+macro_rules! push_day {
+    () => {
+        /// Use part_day instead.
+        #[deprecated]
+        pub fn push_day(&mut self, style: FormatNumberStyle) {
+            self.part_day().style(style).build();
+        }
+    };
+}
+
+macro_rules! push_month {
+    () => {
+        /// Use part_month instead.
+        #[deprecated]
+        pub fn push_month(&mut self, style: FormatNumberStyle, textual: bool) {
+            self.part_month()
+                .style(style)
+                .if_then(textual, |p| p.textual())
+                .build();
+        }
+    };
+}
+
+macro_rules! push_year {
+    () => {
+        /// Use part_year instead.
+        #[deprecated]
+        pub fn push_year(&mut self, style: FormatNumberStyle) {
+            self.part_year().style(style).build();
+        }
+    };
+}
+
+macro_rules! push_era {
+    () => {
+        /// Use part_era instead.
+        #[deprecated]
+        pub fn push_era(&mut self, style: FormatNumberStyle, calendar: FormatCalendarStyle) {
+            self.part_era().style(style).calendar(calendar).build();
+        }
+    };
+}
+
+macro_rules! push_day_of_week {
+    () => {
+        /// Use part_day_of_week instead.
+        #[deprecated]
+        pub fn push_day_of_week(
+            &mut self,
+            style: FormatNumberStyle,
+            calendar: FormatCalendarStyle,
+        ) {
+            self.part_day_of_week()
+                .style(style)
+                .calendar(calendar)
+                .build();
+        }
+    };
+}
+
+macro_rules! push_week_of_year {
+    () => {
+        /// Use part_week_of_year instead.
+        #[deprecated]
+        pub fn push_week_of_year(&mut self, calendar: FormatCalendarStyle) {
+            self.part_week_of_year().calendar(calendar).build();
+        }
+    };
+}
+
+macro_rules! push_quarter {
+    () => {
+        /// Use part_quarter instead.
+        #[deprecated]
+        pub fn push_quarter(&mut self, style: FormatNumberStyle, calendar: FormatCalendarStyle) {
+            self.part_quarter().style(style).calendar(calendar).build();
+        }
+    };
+}
+
+macro_rules! push_hours {
+    () => {
+        /// Use part_hours instead.
+        #[deprecated]
+        pub fn push_hours(&mut self, style: FormatNumberStyle) {
+            self.part_hours().style(style).build();
+        }
+    };
+}
+
+macro_rules! push_minutes {
+    () => {
+        /// Use part_minutes instead.
+        #[deprecated]
+        pub fn push_minutes(&mut self, style: FormatNumberStyle) {
+            self.part_minutes().style(style).build();
+        }
+    };
+}
+
+macro_rules! push_seconds {
+    () => {
+        /// Use part_seconds.
+        #[deprecated]
+        pub fn push_seconds(&mut self, style: FormatNumberStyle, decimal_places: u8) {
+            self.part_seconds()
+                .style(style)
+                .decimal_places(decimal_places)
+                .build();
+        }
+    };
+}
+
+macro_rules! push_am_pm {
+    () => {
+        /// Use part_am_pm instead.
+        #[deprecated]
+        pub fn push_am_pm(&mut self) {
+            self.part_am_pm().build();
+        }
+    };
+}
+
+macro_rules! push_boolean {
+    () => {
+        /// Use part_boolean instead.
+        #[deprecated]
+        pub fn push_boolean(&mut self) {
+            self.part_boolean().build();
+        }
+    };
+}
+
+macro_rules! push_text {
+    () => {
+        /// Use part_text instead.
+        #[deprecated]
+        pub fn push_text<S: Into<String>>(&mut self, text: S) {
+            self.part_text(text).build();
+        }
+    };
+}
+
+macro_rules! push_text_content {
+    () => {
+        /// Use part_text_content instead.
+        #[deprecated]
+        pub fn push_text_content(&mut self) {
+            self.part_text_content().build();
         }
     };
 }

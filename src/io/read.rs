@@ -1421,11 +1421,11 @@ fn read_headerfooter(
                         hf.set_right(reg.into_vec()?);
                     }
                     b"text:p" => {
-                        let new_txt = read_text_or_tag(bs, b"text:p", xml, &xml_tag, empty_tag)?;
+                        let new_txt = read_text_or_tag(bs, b"text:p", xml, xml_tag, empty_tag)?;
                         content = append_text(new_txt, content);
                     }
                     b"text:h" => {
-                        let new_txt = read_text_or_tag(bs, b"text:p", xml, &xml_tag, empty_tag)?;
+                        let new_txt = read_text_or_tag(bs, b"text:p", xml, xml_tag, empty_tag)?;
                         content = append_text(new_txt, content);
                     }
                     // no other tags supported for now. they have never been seen in the wild.
@@ -1659,11 +1659,11 @@ fn read_value_format(
 }
 
 // Reads any of the number:xxx tags
-fn read_value_format_parts(
+fn read_value_format_parts<T: ValueFormatTrait>(
     bs: &mut BufStack,
     origin: StyleOrigin,
     styleuse: StyleUse,
-    valuestyle: &mut dyn ValueFormatTrait,
+    valuestyle: &mut T,
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {

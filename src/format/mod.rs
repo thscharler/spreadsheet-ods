@@ -67,7 +67,7 @@ pub trait ValueFormatTrait {
     fn format_ref(&self) -> ValueFormatRef;
 
     /// The style:name attribute specifies names that reference style mechanisms.
-    fn set_name(&mut self, name: &str);
+    fn set_name<S: Into<String>>(&mut self, name: S);
 
     /// The style:name attribute specifies names that reference style mechanisms.
     fn name(&self) -> &String;
@@ -127,6 +127,8 @@ valueformat!(ValueFormatBoolean, ValueType::Boolean);
 // 16.29.24 <number:boolean-style>
 impl ValueFormatBoolean {
     part_boolean!();
+
+    push_boolean!();
 }
 
 // 16.29.2 <number:number-style>
@@ -138,6 +140,12 @@ impl ValueFormatNumber {
     part_number!();
     part_scientific!();
     part_text!();
+
+    push_fraction!();
+    push_number!();
+    push_number_fix!();
+    push_scientific!();
+    push_text!();
 }
 
 // 16.29.10 <number:percentage-style>
@@ -147,6 +155,10 @@ impl ValueFormatPercentage {
     part_fill_character!();
     part_number!();
     part_text!();
+
+    push_number!();
+    push_number_fix!();
+    push_text!();
 }
 
 // 16.29.8 <number:currency-style>
@@ -159,6 +171,11 @@ impl ValueFormatCurrency {
     part_fill_character!();
     part_number!();
     part_text!();
+
+    push_currency_symbol!();
+    push_number!();
+    push_number_fix!();
+    push_text!();
 }
 
 // 16.29.26 <number:text-style>
@@ -168,6 +185,9 @@ impl ValueFormatText {
     part_fill_character!();
     part_text!();
     part_text_content!();
+
+    push_text!();
+    push_text_content!();
 }
 
 // 16.29.11 <number:date-style>
@@ -190,6 +210,19 @@ impl ValueFormatDateTime {
     part_text!();
     part_week_of_year!();
     part_year!();
+
+    push_am_pm!();
+    push_day!();
+    push_day_of_week!();
+    push_era!();
+    push_hours!();
+    push_minutes!();
+    push_month!();
+    push_quarter!();
+    push_seconds!();
+    push_text!();
+    push_week_of_year!();
+    push_year!();
 }
 
 // 16.29.19 <number:time-style>
@@ -205,6 +238,12 @@ impl ValueFormatTimeDuration {
     part_minutes!();
     part_seconds!();
     part_text!();
+
+    push_am_pm!();
+    push_hours!();
+    push_minutes!();
+    push_seconds!();
+    push_text!();
 }
 
 /// Identifies the structural parts of a value format.
