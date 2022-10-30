@@ -2352,22 +2352,22 @@ fn write_regions<W: Write + Seek>(
     hf: &HeaderFooter,
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
-    if let Some(left) = hf.left() {
+    for left in hf.left() {
         xml_out.elem("style:region-left")?;
         write_xmltag(left, xml_out)?;
         xml_out.end_elem("style:region-left")?;
     }
-    if let Some(center) = hf.center() {
+    for center in hf.center() {
         xml_out.elem("style:region-center")?;
         write_xmltag(center, xml_out)?;
         xml_out.end_elem("style:region-center")?;
     }
-    if let Some(right) = hf.right() {
+    for right in hf.right() {
         xml_out.elem("style:region-right")?;
         write_xmltag(right, xml_out)?;
         xml_out.end_elem("style:region-right")?;
     }
-    if let Some(content) = hf.content() {
+    for content in hf.content() {
         write_xmltag(content, xml_out)?;
     }
 

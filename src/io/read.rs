@@ -1,6 +1,6 @@
 use std::convert::{TryFrom, TryInto};
 use std::fs::File;
-use std::io::{BufReader, Cursor, Read, Seek};
+use std::io::{BufReader, Cursor, Read, Seek, Write};
 use std::path::Path;
 
 use chrono::{Duration, NaiveDateTime};
@@ -29,7 +29,7 @@ use crate::style::{
 };
 use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
-use crate::xmltree::{XmlContent, XmlTag};
+use crate::xmltree::XmlTag;
 use crate::{
     CellData, CellStyle, ColRange, Length, RowRange, Sheet, SplitMode, Value, ValueFormatBoolean,
     ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage,
@@ -587,7 +587,7 @@ fn read_table_col_attr(
 
 #[derive(Debug)]
 #[allow(variant_size_differences)]
-enum TextContent {
+enum TextContent2 {
     Empty,
     Text(String),
     Xml(TextTag),
@@ -604,7 +604,7 @@ struct ReadTableCell2 {
     val_string: Option<String>,
     val_currency: Option<[u8; 3]>,
 
-    content: TextContent,
+    content: TextContent2,
 }
 
 fn read_table_cell2(
@@ -636,7 +636,7 @@ fn read_table_cell2(
         val_bool: None,
         val_string: None,
         val_currency: None,
-        content: TextContent::Empty,
+        content: TextContent2::Empty,
     };
 
     for attr in xml_tag.attributes().with_checks(false) {
@@ -707,7 +707,7 @@ fn read_table_cell2(
         match evt {
             Event::Start(xml_tag) if xml_tag.name() == b"text:p" => {
                 let new_txt = read_text_or_tag(bs, b"text:p", xml, &xml_tag, false)?;
-                tc = append_text(new_txt, tc);
+                tc.content = append_text(new_txt, tc.content);
             }
             Event::Empty(xml_tag) if xml_tag.name() == b"text:p" => {
                 // noop
@@ -743,67 +743,67 @@ fn read_table_cell2(
     Ok(col)
 }
 
-fn append_text(new_txt: TextContent, mut tc: ReadTableCell2) -> ReadTableCell2 {
+fn append_text(new_txt: TextContent2, mut content: TextContent2) -> TextContent2 {
     // There can be multiple text:p elements within the cell.
-    tc.content = match tc.content {
-        TextContent::Empty => new_txt,
-        TextContent::Text(txt) => {
+    content = match content {
+        TextContent2::Empty => new_txt,
+        TextContent2::Text(txt) => {
             // Have a destructured text:p from before.
             // Wrap up and create list.
             let p = TextP::new().text(txt).into_xmltag();
             let mut vec = vec![p];
 
             match new_txt {
-                TextContent::Empty => {}
-                TextContent::Text(txt) => {
+                TextContent2::Empty => {}
+                TextContent2::Text(txt) => {
                     let p2 = TextP::new().text(txt).into_xmltag();
                     vec.push(p2);
                 }
-                TextContent::Xml(xml) => {
+                TextContent2::Xml(xml) => {
                     vec.push(xml);
                 }
-                TextContent::XmlVec(_) => {
+                TextContent2::XmlVec(_) => {
                     unreachable!();
                 }
             }
-            TextContent::XmlVec(vec)
+            TextContent2::XmlVec(vec)
         }
-        TextContent::Xml(xml) => {
+        TextContent2::Xml(xml) => {
             let mut vec = vec![xml];
             match new_txt {
-                TextContent::Empty => {}
-                TextContent::Text(txt) => {
+                TextContent2::Empty => {}
+                TextContent2::Text(txt) => {
                     let p2 = TextP::new().text(txt).into_xmltag();
                     vec.push(p2);
                 }
-                TextContent::Xml(xml) => {
+                TextContent2::Xml(xml) => {
                     vec.push(xml);
                 }
-                TextContent::XmlVec(_) => {
+                TextContent2::XmlVec(_) => {
                     unreachable!();
                 }
             }
-            TextContent::XmlVec(vec)
+            TextContent2::XmlVec(vec)
         }
-        TextContent::XmlVec(mut vec) => {
+        TextContent2::XmlVec(mut vec) => {
             match new_txt {
-                TextContent::Empty => {}
-                TextContent::Text(txt) => {
+                TextContent2::Empty => {}
+                TextContent2::Text(txt) => {
                     let p2 = TextP::new().text(txt).into_xmltag();
                     vec.push(p2);
                 }
-                TextContent::Xml(xml) => {
+                TextContent2::Xml(xml) => {
                     vec.push(xml);
                 }
-                TextContent::XmlVec(_) => {
+                TextContent2::XmlVec(_) => {
                     unreachable!();
                 }
             }
-            TextContent::XmlVec(vec)
+            TextContent2::XmlVec(vec)
         }
     };
 
-    tc
+    content
 }
 
 fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError> {
@@ -848,16 +848,16 @@ fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError>
                 cell.value = Value::Text(v);
             } else {
                 match tc.content {
-                    TextContent::Empty => {
+                    TextContent2::Empty => {
                         // noop
                     }
-                    TextContent::Text(txt) => {
+                    TextContent2::Text(txt) => {
                         cell.value = Value::Text(txt);
                     }
-                    TextContent::Xml(xml) => {
+                    TextContent2::Xml(xml) => {
                         cell.value = Value::TextXml(vec![xml]);
                     }
-                    TextContent::XmlVec(vec) => {
+                    TextContent2::XmlVec(vec) => {
                         cell.value = Value::TextXml(vec);
                     }
                 }
@@ -1157,8 +1157,8 @@ fn read_validations(
                     let txt =
                         read_text_or_tag(bs, b"table:error-message", xml, xml_tag, empty_tag)?;
                     match txt {
-                        TextContent::Empty => {}
-                        TextContent::Xml(txt) => {
+                        TextContent2::Empty => {}
+                        TextContent2::Xml(txt) => {
                             ve.set_text(Some(txt));
                         }
                         _ => {
@@ -1189,8 +1189,8 @@ fn read_validations(
                     }
                     let txt = read_text_or_tag(bs, b"table:help-message", xml, xml_tag, empty_tag)?;
                     match txt {
-                        TextContent::Empty => {}
-                        TextContent::Xml(txt) => {
+                        TextContent2::Empty => {}
+                        TextContent2::Xml(txt) => {
                             vh.set_text(Some(txt));
                         }
                         _ => {
@@ -1385,6 +1385,7 @@ fn read_headerfooter(
     xml_tag: &BytesStart<'_>,
 ) -> Result<HeaderFooter, OdsError> {
     let mut hf = HeaderFooter::new();
+    let mut content = TextContent2::Empty;
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -1408,32 +1409,26 @@ fn read_headerfooter(
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
                 match xml_tag.name() {
                     b"style:region-left" => {
-                        let cm =
-                            read_xml_content(bs, b"style:region-left", xml, xml_tag, empty_tag)?;
-                        if let Some(cm) = cm {
-                            hf.set_left(cm);
-                        }
+                        let reg = read_xml(bs, b"style:region-left", xml, xml_tag, empty_tag)?;
+                        hf.set_left(reg.into_vec()?);
                     }
                     b"style:region-center" => {
-                        let cm =
-                            read_xml_content(bs, b"style:region-center", xml, xml_tag, empty_tag)?;
-                        if let Some(cm) = cm {
-                            hf.set_center(cm);
-                        }
+                        let reg = read_xml(bs, b"style:region-center", xml, xml_tag, empty_tag)?;
+                        hf.set_center(reg.into_vec()?);
                     }
                     b"style:region-right" => {
-                        let cm =
-                            read_xml_content(bs, b"style:region-right", xml, xml_tag, empty_tag)?;
-                        if let Some(cm) = cm {
-                            hf.set_right(cm);
-                        }
+                        let reg = read_xml(bs, b"style:region-right", xml, xml_tag, empty_tag)?;
+                        hf.set_right(reg.into_vec()?);
                     }
                     b"text:p" => {
-                        // todo: in table:cell there can be multiple text:p. applies here too?
-                        let cm = read_xml(bs, b"text:p", xml, xml_tag, empty_tag)?;
-                        hf.set_content(cm);
+                        let new_txt = read_text_or_tag(bs, b"text:p", xml, &xml_tag, empty_tag)?;
+                        content = append_text(new_txt, content);
                     }
-                    // no other tags supported for now.
+                    b"text:h" => {
+                        let new_txt = read_text_or_tag(bs, b"text:p", xml, &xml_tag, empty_tag)?;
+                        content = append_text(new_txt, content);
+                    }
+                    // no other tags supported for now. they have never been seen in the wild.
                     _ => {
                         dump_unused2("read_headerfooter", &evt)?;
                     }
@@ -1442,6 +1437,12 @@ fn read_headerfooter(
             Event::Text(_) => (),
             Event::End(ref e) => {
                 if e.name() == end_tag {
+                    hf.set_content(match content {
+                        TextContent2::Empty => Vec::new(),
+                        TextContent2::Text(v) => vec![TextP::new().text(v).into()],
+                        TextContent2::Xml(v) => vec![v],
+                        TextContent2::XmlVec(v) => v,
+                    });
                     break;
                 }
             }
@@ -2976,18 +2977,16 @@ fn read_config_item(
         ));
     };
 
-    // todo: is this a good way?
-    let mut value: Vec<u8> = Vec::new();
-
+    let mut value = bs.get_buf();
     let mut buf = bs.get_buf();
     loop {
         let evt = xml.read_event(&mut buf)?;
         match evt {
             Event::Text(ref txt) => {
-                value.append(&mut Vec::from(txt.unescaped()?));
+                value.write_all(txt.unescaped()?.as_ref())?;
             }
             Event::End(ref e) if e.name() == b"config:config-item" => {
-                let value = Cow::from(value);
+                let value = <Cow<'_, [u8]> as From<&Vec<u8>>>::from(value.as_ref());
                 match val_type {
                     ConfigValueType::None => {}
                     ConfigValueType::Base64Binary => {
@@ -3032,6 +3031,7 @@ fn read_config_item(
         buf.clear();
     }
     bs.push(buf);
+    bs.push(value);
 
     let config_val = if let Some(config_val) = config_val {
         config_val
@@ -3040,28 +3040,6 @@ fn read_config_item(
     };
 
     Ok((name, config_val))
-}
-
-// Reads a part of the XML as XmlTag's, and returns the first content XmlTag.
-fn read_xml_content(
-    bs: &mut BufStack,
-    end_tag: &[u8],
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
-    xml_tag: &BytesStart<'_>,
-    empty_tag: bool,
-) -> Result<Option<XmlTag>, OdsError> {
-    let mut xml = read_xml(bs, end_tag, xml, xml_tag, empty_tag)?;
-    match xml.content().get(0) {
-        None => Ok(None),
-        Some(XmlContent::Tag(_)) => {
-            if let XmlContent::Tag(tag) = xml.content_mut().pop().unwrap() {
-                Ok(Some(tag))
-            } else {
-                unreachable!()
-            }
-        }
-        Some(XmlContent::Text(_)) => Ok(None),
-    }
 }
 
 // Reads a part of the XML as XmlTag's.
@@ -3148,9 +3126,9 @@ fn read_text_or_tag(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
     empty_tag: bool,
-) -> Result<TextContent, OdsError> {
+) -> Result<TextContent2, OdsError> {
     let mut stack = Vec::new();
-    let mut cellcontent = TextContent::Empty;
+    let mut cellcontent = TextContent2::Empty;
 
     // The toplevel element is passed in with the xml_tag.
     // It is only created if there are further xml tags in the
@@ -3178,37 +3156,37 @@ fn read_text_or_tag(
                     let v = from_utf8(v.as_ref())?;
 
                     cellcontent = match cellcontent {
-                        TextContent::Empty => {
+                        TextContent2::Empty => {
                             // Fresh plain text string.
-                            TextContent::Text(v.to_string())
+                            TextContent2::Text(v.to_string())
                         }
-                        TextContent::Text(mut old_txt) => {
+                        TextContent2::Text(mut old_txt) => {
                             // We have a previous plain text string. Append to it.
                             old_txt.push_str(v);
-                            TextContent::Text(old_txt)
+                            TextContent2::Text(old_txt)
                         }
-                        TextContent::Xml(mut xml) => {
+                        TextContent2::Xml(mut xml) => {
                             // There is already a tag. Append the text to its children.
                             xml.add_text(v);
-                            TextContent::Xml(xml)
+                            TextContent2::Xml(xml)
                         }
-                        TextContent::XmlVec(_) => {
+                        TextContent2::XmlVec(_) => {
                             unreachable!()
                         }
                     };
                 }
                 Event::Start(xmlbytes) => {
                     match cellcontent {
-                        TextContent::Empty => {
+                        TextContent2::Empty => {
                             stack.push(create_toplevel(None)?);
                         }
-                        TextContent::Text(old_txt) => {
+                        TextContent2::Text(old_txt) => {
                             stack.push(create_toplevel(Some(old_txt))?);
                         }
-                        TextContent::Xml(parent) => {
+                        TextContent2::Xml(parent) => {
                             stack.push(parent);
                         }
-                        TextContent::XmlVec(_) => {
+                        TextContent2::XmlVec(_) => {
                             unreachable!()
                         }
                     }
@@ -3216,7 +3194,7 @@ fn read_text_or_tag(
                     // Set the new tag.
                     let mut new_tag = XmlTag::new(xml.decode(xmlbytes.name())?);
                     copy_attr2(new_tag.attrmap_mut(), &xmlbytes)?;
-                    cellcontent = TextContent::Xml(new_tag)
+                    cellcontent = TextContent2::Xml(new_tag)
                 }
                 Event::End(xmlbytes) => {
                     if xmlbytes.name() == end_tag {
@@ -3227,16 +3205,16 @@ fn read_text_or_tag(
                     }
 
                     cellcontent = match cellcontent {
-                        TextContent::Empty | TextContent::Text(_) => {
+                        TextContent2::Empty | TextContent2::Text(_) => {
                             return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
                                 "XML corrupted. Endtag {} occured without start tag",
                                 from_utf8(xmlbytes.name())?
                             ))));
                         }
-                        TextContent::Xml(tag) => {
+                        TextContent2::Xml(tag) => {
                             if let Some(mut parent) = stack.pop() {
                                 parent.add_tag(tag);
-                                TextContent::Xml(parent)
+                                TextContent2::Xml(parent)
                             } else {
                                 return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
                                     format!(
@@ -3246,23 +3224,23 @@ fn read_text_or_tag(
                                 )));
                             }
                         }
-                        TextContent::XmlVec(_) => {
+                        TextContent2::XmlVec(_) => {
                             unreachable!()
                         }
                     }
                 }
                 Event::Empty(xmlbytes) => {
                     match cellcontent {
-                        TextContent::Empty => {
+                        TextContent2::Empty => {
                             stack.push(create_toplevel(None)?);
                         }
-                        TextContent::Text(txt) => {
+                        TextContent2::Text(txt) => {
                             stack.push(create_toplevel(Some(txt))?);
                         }
-                        TextContent::Xml(parent) => {
+                        TextContent2::Xml(parent) => {
                             stack.push(parent);
                         }
-                        TextContent::XmlVec(_) => {
+                        TextContent2::XmlVec(_) => {
                             unreachable!()
                         }
                     }
@@ -3272,7 +3250,7 @@ fn read_text_or_tag(
                         copy_attr2(emptytag.attrmap_mut(), &xmlbytes)?;
                         parent.add_tag(emptytag);
 
-                        cellcontent = TextContent::Xml(parent);
+                        cellcontent = TextContent2::Xml(parent);
                     } else {
                         unreachable!()
                     }

@@ -2,6 +2,7 @@ use color::Rgb;
 
 use spreadsheet_ods::style::units::Length;
 use spreadsheet_ods::style::{MasterPage, PageStyle, TableStyle};
+use spreadsheet_ods::xmltree::XmlVec;
 use spreadsheet_ods::{cm, read_ods, write_ods, OdsError, Sheet, WorkBook};
 
 #[test]

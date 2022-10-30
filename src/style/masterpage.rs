@@ -12,6 +12,7 @@ style_ref!(MasterPageRef);
 /// use spreadsheet_ods::{pt, Length, WorkBook, Sheet};
 /// use spreadsheet_ods::style::{PageStyle, MasterPage, TableStyle};
 /// use spreadsheet_ods::style::units::Border;
+/// use spreadsheet_ods::xmltree::XmlVec;
 /// use color::Rgb;
 /// use icu_locid::locale;
 ///
@@ -203,11 +204,11 @@ impl MasterPage {
 pub struct HeaderFooter {
     display: bool,
 
-    region_left: Option<Box<TextTag>>,
-    region_center: Option<Box<TextTag>>,
-    region_right: Option<Box<TextTag>>,
+    region_left: Vec<TextTag>,
+    region_center: Vec<TextTag>,
+    region_right: Vec<TextTag>,
 
-    content: Option<Box<TextTag>>,
+    content: Vec<TextTag>,
 }
 
 impl HeaderFooter {
@@ -215,10 +216,10 @@ impl HeaderFooter {
     pub fn new() -> Self {
         Self {
             display: true,
-            region_left: None,
-            region_center: None,
-            region_right: None,
-            content: None,
+            region_left: Default::default(),
+            region_center: Default::default(),
+            region_right: Default::default(),
+            content: Default::default(),
         }
     }
 
@@ -234,97 +235,69 @@ impl HeaderFooter {
 
     /// true if all regions of the header/footer are empty.
     pub fn is_empty(&self) -> bool {
-        self.region_left.is_none()
-            && self.region_center.is_none()
-            && self.region_right.is_none()
-            && self.content.is_none()
+        self.region_left.is_empty()
+            && self.region_center.is_empty()
+            && self.region_right.is_empty()
+            && self.content.is_empty()
     }
 
     /// Left region.
-    pub fn set_left(&mut self, txt: TextTag) {
-        self.region_left = Some(Box::new(txt));
+    pub fn set_left(&mut self, txt: Vec<TextTag>) {
+        self.region_left = txt;
     }
 
     /// Left region.
-    pub fn left(&self) -> Option<&TextTag> {
-        self.region_left.as_ref().map(|v| v.as_ref())
+    pub fn left(&self) -> &Vec<TextTag> {
+        &self.region_left
     }
 
     /// Left region.
-    pub fn left_mut(&mut self) -> &mut TextTag {
-        if self.region_left.is_none() {
-            self.region_left = Some(Box::new(TextTag::new("text:p")));
-        }
-        if let Some(center) = &mut self.region_left {
-            center
-        } else {
-            unreachable!()
-        }
+    pub fn left_mut(&mut self) -> &mut Vec<TextTag> {
+        &mut self.region_left
     }
 
     /// Center region.
-    pub fn set_center(&mut self, txt: TextTag) {
-        self.region_center = Some(Box::new(txt));
+    pub fn set_center(&mut self, txt: Vec<TextTag>) {
+        self.region_center = txt;
     }
 
     /// Center region.
-    pub fn center(&self) -> Option<&TextTag> {
-        self.region_center.as_ref().map(|v| v.as_ref())
+    pub fn center(&self) -> &Vec<TextTag> {
+        &self.region_center
     }
 
     /// Center region.
-    pub fn center_mut(&mut self) -> &mut TextTag {
-        if self.region_center.is_none() {
-            self.region_center = Some(Box::new(TextTag::new("text:p")));
-        }
-        if let Some(center) = &mut self.region_center {
-            center
-        } else {
-            unreachable!()
-        }
+    pub fn center_mut(&mut self) -> &mut Vec<TextTag> {
+        &mut self.region_center
     }
 
     /// Right region.
-    pub fn set_right(&mut self, txt: TextTag) {
-        self.region_right = Some(Box::new(txt));
+    pub fn set_right(&mut self, txt: Vec<TextTag>) {
+        self.region_right = txt;
     }
 
     /// Right region.
-    pub fn right(&self) -> Option<&TextTag> {
-        self.region_right.as_ref().map(|v| v.as_ref())
+    pub fn right(&self) -> &Vec<TextTag> {
+        &self.region_right
     }
 
     /// Right region.
-    pub fn right_mut(&mut self) -> &mut TextTag {
-        if self.region_right.is_none() {
-            self.region_right = Some(Box::new(TextTag::new("text:p")));
-        }
-        if let Some(center) = &mut self.region_right {
-            center
-        } else {
-            unreachable!()
-        }
+    pub fn right_mut(&mut self) -> &mut Vec<TextTag> {
+        &mut self.region_right
     }
 
     /// Header content, if there are no regions.
-    pub fn set_content(&mut self, txt: TextTag) {
-        self.content = Some(Box::new(txt));
+    pub fn set_content(&mut self, txt: Vec<TextTag>) {
+        self.content = txt;
     }
 
     /// Header content, if there are no regions.
-    pub fn content(&self) -> Option<&TextTag> {
-        self.content.as_ref().map(|v| v.as_ref())
+    pub fn content(&self) -> &Vec<TextTag> {
+        &self.content
     }
 
     /// Header content, if there are no regions.
-    pub fn content_mut(&mut self) -> &mut TextTag {
-        if self.content.is_none() {
-            self.content = Some(Box::new(TextTag::new("text:p")));
-        }
-        if let Some(center) = &mut self.content {
-            center
-        } else {
-            unreachable!()
-        }
+    pub fn content_mut(&mut self) -> &mut Vec<TextTag> {
+        &mut self.content
     }
 }
