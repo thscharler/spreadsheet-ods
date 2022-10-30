@@ -39,7 +39,7 @@
 //! }
 //!
 //! let date_format = format::create_date_dmy_format("date_format");
-//! let date_format = wb.add_format(date_format);
+//! let date_format = wb.add_datetime_format(date_format);
 //!
 //! let mut date_style = CellStyle::new("nice_date_style", &date_format);
 //! date_style.set_font_bold();
@@ -273,10 +273,8 @@ pub struct WorkBook {
     textstyles: HashMap<String, TextStyle>,
     graphicstyles: HashMap<String, GraphicStyle>,
 
-    /// Value-styles are actual formatting instructions
-    /// for various datatypes.
+    /// Value-styles are actual formatting instructions for various datatypes.
     /// Represents the various number:xxx-style elements.
-    // formats: HashMap<String, ValueFormat>,
     formats_boolean: HashMap<String, ValueFormatBoolean>,
     formats_number: HashMap<String, ValueFormatNumber>,
     formats_percentage: HashMap<String, ValueFormatPercentage>,
@@ -336,9 +334,6 @@ impl fmt::Debug for WorkBook {
         for s in self.graphicstyles.values() {
             writeln!(f, "{:?}", s)?;
         }
-        // for s in self.formats.values() {
-        //     writeln!(f, "{:?}", s)?;
-        // }
         for s in self.formats_boolean.values() {
             writeln!(f, "{:?}", s)?;
         }
@@ -423,7 +418,6 @@ impl WorkBook {
             paragraphstyles: Default::default(),
             textstyles: Default::default(),
             graphicstyles: Default::default(),
-            // formats: Default::default(),
             formats_boolean: Default::default(),
             formats_number: Default::default(),
             formats_percentage: Default::default(),
@@ -622,19 +616,6 @@ impl WorkBook {
     pub fn def_style(&self, value_type: ValueType) -> Option<&String> {
         self.def_styles.get(&value_type)
     }
-
-    // /// Finds a ValueFormat starting with the stylename attached to a cell.
-    // pub fn find_value_format(&self, style_name: &str) -> Option<&ValueFormat> {
-    //     if let Some(style) = self.cellstyles.get(style_name) {
-    //         if let Some(value_format_name) = style.value_format() {
-    //             if let Some(value_format) = self.formats.get(value_format_name) {
-    //                 return Some(value_format);
-    //             }
-    //         }
-    //     }
-    //
-    //     None
-    // }
 
     /// Adds a font.
     pub fn add_font(&mut self, font: FontFaceDecl) {
@@ -845,32 +826,6 @@ impl WorkBook {
     pub fn graphicstyle_mut(&mut self, name: &str) -> Option<&mut GraphicStyle> {
         self.graphicstyles.get_mut(name)
     }
-
-    // /// Adds a value format.
-    // /// Unnamed formats will be assigned an automatic name.
-    // pub fn add_format(&mut self, mut vstyle: ValueFormat) -> ValueFormatRef {
-    //     if vstyle.name().is_empty() {
-    //         vstyle.set_name(auto_style_name(&mut self.autonum, "val", &self.formats));
-    //     }
-    //     let sref = vstyle.format_ref();
-    //     self.formats.insert(vstyle.name().to_string(), vstyle);
-    //     sref
-    // }
-    //
-    // /// Removes the format.
-    // pub fn remove_format(&mut self, name: &str) -> Option<ValueFormat> {
-    //     self.formats.remove(name)
-    // }
-    //
-    // /// Returns the format.
-    // pub fn format(&self, name: &str) -> Option<&ValueFormat> {
-    //     self.formats.get(name)
-    // }
-    //
-    // /// Returns the mutable format.
-    // pub fn format_mut(&mut self, name: &str) -> Option<&mut ValueFormat> {
-    //     self.formats.get_mut(name)
-    // }
 
     /// Adds a value format.
     /// Unnamed formats will be assigned an automatic name.

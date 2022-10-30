@@ -3,52 +3,55 @@ use icu_locid::locale;
 
 use spreadsheet_ods::format::{FormatCalendarStyle, FormatNumberStyle};
 use spreadsheet_ods::style::CellStyle;
-use spreadsheet_ods::{write_ods, OdsError, Sheet, ValueFormat, ValueType, WorkBook};
+use spreadsheet_ods::{
+    write_ods, OdsError, Sheet, ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime,
+    ValueFormatNumber, ValueFormatPercentage, WorkBook,
+};
 
 #[test]
 fn write_format() -> Result<(), OdsError> {
     let mut wb = WorkBook::new_empty();
 
-    let mut v1 = ValueFormat::new_named("f1", ValueType::Number);
+    let mut v1 = ValueFormatNumber::new_named("f1");
     v1.part_scientific().decimal_places(4).build();
-    let v1 = wb.add_format(v1);
+    let v1 = wb.add_number_format(v1);
 
-    let mut v2 = ValueFormat::new_named("f2", ValueType::Number);
+    let mut v2 = ValueFormatNumber::new_named("f2");
     v2.part_number().fixed_decimal_places(2).build();
-    let v2 = wb.add_format(v2);
+    let v2 = wb.add_number_format(v2);
 
-    let mut v3 = ValueFormat::new_named("f3", ValueType::Number);
+    let mut v3 = ValueFormatNumber::new_named("f3");
     v3.part_number().decimal_places(2).build();
-    let v3 = wb.add_format(v3);
+    let v3 = wb.add_number_format(v3);
 
-    let mut v31 = ValueFormat::new_named("f31", ValueType::Number);
+    let mut v31 = ValueFormatNumber::new_named("f31");
     v31.part_fraction()
         .denominator(13)
         .min_denominator_digits(1)
         .min_integer_digits(1)
         .min_numerator_digits(1)
         .build();
-    let v31 = wb.add_format(v31);
+    let v31 = wb.add_number_format(v31);
 
-    let mut v4 = ValueFormat::new_named("f4", ValueType::Currency);
+    let mut v4 = ValueFormatCurrency::new_named("f4");
     v4.part_currency()
         .locale(locale!("de_AT"))
         .symbol("€")
         .build();
     v4.part_text(" ").build();
     v4.part_number().decimal_places(2).build();
-    let v4 = wb.add_format(v4);
+    let v4 = wb.add_currency_format(v4);
 
-    let mut v5 = ValueFormat::new_named("f5", ValueType::Percentage);
+    let mut v5 = ValueFormatPercentage::new_named("f5");
     v5.part_number().decimal_places(2).build();
     v5.part_text("/ct").build();
-    let v5 = wb.add_format(v5);
+    let v5 = wb.add_percentage_format(v5);
 
-    let mut v6 = ValueFormat::new_named("f6", ValueType::Boolean);
+    let mut v6 = ValueFormatBoolean::new_named("f6");
     v6.part_boolean().build();
-    let v6 = wb.add_format(v6);
+    let v6 = wb.add_boolean_format(v6);
 
-    let mut v7 = ValueFormat::new_named("f7", ValueType::DateTime);
+    let mut v7 = ValueFormatDateTime::new_named("f7");
     v7.part_era()
         .style(FormatNumberStyle::Long)
         .calendar(FormatCalendarStyle::Gregorian)
@@ -73,15 +76,15 @@ fn write_format() -> Result<(), OdsError> {
         .style(FormatNumberStyle::Long)
         .calendar(FormatCalendarStyle::Gregorian)
         .build();
-    let v7 = wb.add_format(v7);
+    let v7 = wb.add_datetime_format(v7);
 
-    let mut v8 = ValueFormat::new_named("v8", ValueType::Number);
+    let mut v8 = ValueFormatNumber::new_named("v8");
     v8.part_number()
         .min_integer_digits(4)
         .decimal_places(2)
         .embedded_text("RR", 2)
         .build();
-    let v8 = wb.add_format(v8);
+    let v8 = wb.add_number_format(v8);
 
     let f1 = wb.add_cellstyle(CellStyle::new("f1", &v1));
     let f2 = wb.add_cellstyle(CellStyle::new("f2", &v2));

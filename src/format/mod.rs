@@ -2,7 +2,7 @@
 //! Defines one ValueFormatXX per ValueType for textual formatting of those values.
 //!
 //! ```
-//! use spreadsheet_ods::{ValueFormat, ValueType};
+//! use spreadsheet_ods::{ValueType};
 //! use spreadsheet_ods::format::{FormatCalendarStyle, FormatNumberStyle, ValueFormatDateTime, ValueFormatNumber};
 //!
 //! let mut v = ValueFormatDateTime::new_named("dt0");
