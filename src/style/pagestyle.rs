@@ -20,7 +20,8 @@ style_ref!(PageStyleRef);
 #[derive(Debug, Clone)]
 pub struct PageStyle {
     name: String,
-    // TODO: reading and writing work on strings, get/set on an enum. is this nice?
+    // Everywhere else this is a AttrMap2, but here is just this lonely.
+    // We still need access to the string to read and write.
     pub(crate) master_page_usage: Option<String>,
     style: AttrMap2,
     header: HeaderFooterStyle,
