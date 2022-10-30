@@ -16,8 +16,9 @@ impl BufStack {
         self.buf.pop().unwrap_or_default()
     }
 
-    pub(crate) fn push(&mut self, v: Vec<u8>) {
+    pub(crate) fn push(&mut self, mut v: Vec<u8>) {
         self.n -= 1;
+        v.clear();
         self.buf.push(v);
     }
 }
