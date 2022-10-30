@@ -3009,7 +3009,7 @@ macro_rules! style_auto_update {
         /// applied to an object. The formatting change is applied to all objects subject to the common
         /// style where the change was made.
         /// The default value for this attribute is false.
-        fn set_auto_update(&mut self, auto: bool) {
+        pub fn set_auto_update(&mut self, auto: bool) {
             self.$acc.set_attr("style:auto-update", auto.to_string());
         }
     };
@@ -3022,7 +3022,7 @@ macro_rules! style_class {
         /// A style may belong to an arbitrary class of styles. The style class name is an arbitrary string. The
         /// style class name has no meaning within the file format itself, but it can for instance be evaluated
         /// by user interfaces to show a list of styles where the styles are grouped by its name.
-        fn set_class(&mut self, class: &str) {
+        pub fn set_class(&mut self, class: &str) {
             self.$acc.set_attr("style:class", class.into());
         }
     };
