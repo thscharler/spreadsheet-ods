@@ -114,33 +114,33 @@ impl DefaultStyle {
 /// Replaced with WorkBook::locale_settings() or WorkBook::new(l: Locale).
 #[deprecated]
 pub fn create_default_styles(book: &mut WorkBook) {
-    book.add_format(format::create_boolean_format(
+    book.add_boolean_format(format::create_boolean_format(
         DefaultFormat::bool().to_string(),
     ));
-    book.add_format(format::create_number_format(
+    book.add_number_format(format::create_number_format(
         DefaultFormat::number().to_string(),
         2,
         false,
     ));
-    book.add_format(format::create_percentage_format(
+    book.add_percentage_format(format::create_percentage_format(
         DefaultFormat::percent().to_string(),
         2,
     ));
-    book.add_format(format::create_currency_prefix(
+    book.add_currency_format(format::create_currency_prefix(
         DefaultFormat::currency().to_string(),
         locale!("de_AT"),
         "€",
     ));
-    book.add_format(format::create_date_dmy_format(
+    book.add_datetime_format(format::create_date_dmy_format(
         DefaultFormat::date().to_string(),
     ));
-    book.add_format(format::create_datetime_format(
+    book.add_datetime_format(format::create_datetime_format(
         DefaultFormat::datetime().to_string(),
     ));
-    book.add_format(format::create_time_of_day_format(
+    book.add_timeduration_format(format::create_time_of_day_format(
         DefaultFormat::time_of_day().to_string(),
     ));
-    book.add_format(format::create_time_interval_format(
+    book.add_timeduration_format(format::create_time_interval_format(
         DefaultFormat::time_interval().to_string(),
     ));
 

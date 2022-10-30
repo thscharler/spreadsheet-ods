@@ -62,7 +62,44 @@ use std::str::FromStr;
 style_ref!(ValueFormatRef);
 
 /// Trait used by the builder types.
-pub trait PartList {
+pub trait ValueFormatTrait {
+    /// Returns a reference name for this value format.
+    fn format_ref(&self) -> ValueFormatRef;
+
+    /// The style:name attribute specifies names that reference style mechanisms.
+    fn set_name<S: Into<String>>(&mut self, name: S);
+
+    /// The style:name attribute specifies names that reference style mechanisms.
+    fn name(&self) -> &String;
+
+    /// Returns the value type.
+    fn value_type(&self) -> ValueType;
+
+    /// Sets the storage location for this ValueFormat. Either content.xml
+    /// or styles.xml.
+    fn set_origin(&mut self, origin: StyleOrigin);
+
+    /// Returns the storage location.
+    fn origin(&self) -> StyleOrigin;
+
+    /// How is the style used in the document.
+    fn set_styleuse(&mut self, styleuse: StyleUse);
+
+    /// How is the style used in the document.
+    fn styleuse(&self) -> StyleUse;
+
+    /// All direct attributes of the number:xxx-style tag.
+    fn attrmap(&self) -> &AttrMap2;
+
+    /// All direct attributes of the number:xxx-style tag.
+    fn attrmap_mut(&mut self) -> &mut AttrMap2;
+
+    /// Text style attributes.
+    fn textstyle(&self) -> &AttrMap2;
+
+    /// Text style attributes.
+    fn textstyle_mut(&mut self) -> &mut AttrMap2;
+
     /// Adds a format part.
     fn push_part(&mut self, part: FormatPart);
 
@@ -74,6 +111,15 @@ pub trait PartList {
 
     /// Returns the mutable parts.
     fn parts_mut(&mut self) -> &mut Vec<FormatPart>;
+
+    /// Adds a stylemap.
+    fn push_stylemap(&mut self, stylemap: StyleMap);
+
+    /// Returns the stylemaps
+    fn stylemaps(&self) -> Option<&Vec<StyleMap>>;
+
+    /// Returns the mutable stylemap.
+    fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap>;
 }
 
 valueformat!(ValueFormatBoolean, ValueType::Boolean);

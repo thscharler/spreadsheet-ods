@@ -1,10 +1,13 @@
 use crate::format::FormatNumberStyle;
-use crate::{ValueFormat, ValueType};
+use crate::{
+    ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
+    ValueFormatPercentage, ValueFormatTimeDuration,
+};
 use icu_locid::Locale;
 
 /// Creates a new number format.
-pub fn create_loc_boolean_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
-    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Boolean);
+pub fn create_loc_boolean_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormatBoolean {
+    let mut v = ValueFormatBoolean::new_localized(name.into(), locale);
     v.part_boolean().build();
     v
 }
@@ -15,8 +18,8 @@ pub fn create_loc_number_format<S: Into<String>>(
     locale: Locale,
     decimal: u8,
     grouping: bool,
-) -> ValueFormat {
-    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Number);
+) -> ValueFormatNumber {
+    let mut v = ValueFormatNumber::new_localized(name.into(), locale);
     v.part_number()
         .decimal_places(decimal)
         .if_then(grouping, |p| p.grouping())
@@ -30,8 +33,8 @@ pub fn create_loc_number_format_fixed<S: Into<String>>(
     locale: Locale,
     decimal: u8,
     grouping: bool,
-) -> ValueFormat {
-    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Number);
+) -> ValueFormatNumber {
+    let mut v = ValueFormatNumber::new_localized(name.into(), locale);
     v.part_number()
         .fixed_decimal_places(decimal)
         .if_then(grouping, |p| p.grouping())
@@ -44,8 +47,8 @@ pub fn create_loc_percentage_format<S: Into<String>>(
     name: S,
     locale: Locale,
     decimal: u8,
-) -> ValueFormat {
-    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Percentage);
+) -> ValueFormatPercentage {
+    let mut v = ValueFormatPercentage::new_localized(name.into(), locale);
     v.part_number().decimal_places(decimal).build();
     v.part_text("%").build();
     v
@@ -57,12 +60,12 @@ pub fn create_loc_currency_prefix<S1, S2>(
     locale: Locale,
     symbol_locale: Locale,
     symbol: S2,
-) -> ValueFormat
+) -> ValueFormatCurrency
 where
     S1: Into<String>,
     S2: Into<String>,
 {
-    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Currency);
+    let mut v = ValueFormatCurrency::new_localized(name.into(), locale);
     v.part_currency()
         .locale(symbol_locale)
         .symbol(symbol.into())
@@ -87,12 +90,12 @@ pub fn create_loc_currency_suffix<S1, S2>(
     locale: Locale,
     symbol_locale: Locale,
     symbol: S2,
-) -> ValueFormat
+) -> ValueFormatCurrency
 where
     S1: Into<String>,
     S2: Into<String>,
 {
-    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::Currency);
+    let mut v = ValueFormatCurrency::new_localized(name.into(), locale);
     v.part_number()
         .decimal_places(2)
         .min_decimal_places(2)
@@ -107,8 +110,8 @@ where
 }
 
 /// Creates a new date format D.M.Y
-pub fn create_loc_date_dmy_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
-    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::DateTime);
+pub fn create_loc_date_dmy_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormatDateTime {
+    let mut v = ValueFormatDateTime::new_localized(name.into(), locale);
     v.part_day().style(FormatNumberStyle::Long).build();
     v.part_text(".").build();
     v.part_month().style(FormatNumberStyle::Long).build();
@@ -118,8 +121,8 @@ pub fn create_loc_date_dmy_format<S: Into<String>>(name: S, locale: Locale) -> V
 }
 
 /// Creates a new date format M/D/Y
-pub fn create_loc_date_mdy_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
-    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::DateTime);
+pub fn create_loc_date_mdy_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormatDateTime {
+    let mut v = ValueFormatDateTime::new_localized(name.into(), locale);
     v.part_month().style(FormatNumberStyle::Long).build();
     v.part_text("/").build();
     v.part_day().style(FormatNumberStyle::Long).build();
@@ -129,8 +132,8 @@ pub fn create_loc_date_mdy_format<S: Into<String>>(name: S, locale: Locale) -> V
 }
 
 /// Creates a datetime format Y-M-D H:M:S
-pub fn create_loc_datetime_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
-    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::DateTime);
+pub fn create_loc_datetime_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormatDateTime {
+    let mut v = ValueFormatDateTime::new_localized(name.into(), locale);
     v.part_day().style(FormatNumberStyle::Long).build();
     v.part_text(".").build();
     v.part_month().style(FormatNumberStyle::Long).build();
@@ -146,8 +149,8 @@ pub fn create_loc_datetime_format<S: Into<String>>(name: S, locale: Locale) -> V
 }
 
 /// Creates a new time-Duration format H:M:S
-pub fn create_loc_time_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
-    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::TimeDuration);
+pub fn create_loc_time_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormatTimeDuration {
+    let mut v = ValueFormatTimeDuration::new_localized(name.into(), locale);
     v.part_hours().style(FormatNumberStyle::Long).build();
     v.part_text(":").build();
     v.part_minutes().style(FormatNumberStyle::Long).build();
@@ -157,8 +160,11 @@ pub fn create_loc_time_format<S: Into<String>>(name: S, locale: Locale) -> Value
 }
 
 /// Creates a new time-Duration format H:M:S
-pub fn create_loc_time_interval_format<S: Into<String>>(name: S, locale: Locale) -> ValueFormat {
-    let mut v = ValueFormat::new_localized(name.into(), locale, ValueType::TimeDuration);
+pub fn create_loc_time_interval_format<S: Into<String>>(
+    name: S,
+    locale: Locale,
+) -> ValueFormatTimeDuration {
+    let mut v = ValueFormatTimeDuration::new_localized(name.into(), locale);
     v.set_truncate_on_overflow(false);
 
     v.part_hours().style(FormatNumberStyle::Long).build();
@@ -170,15 +176,19 @@ pub fn create_loc_time_interval_format<S: Into<String>>(name: S, locale: Locale)
 }
 
 /// Creates a new number format.
-pub fn create_boolean_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::Boolean);
+pub fn create_boolean_format<S: Into<String>>(name: S) -> ValueFormatBoolean {
+    let mut v = ValueFormatBoolean::new_named(name.into());
     v.part_boolean().build();
     v
 }
 
 /// Creates a new number format.
-pub fn create_number_format<S: Into<String>>(name: S, decimal: u8, grouping: bool) -> ValueFormat {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::Number);
+pub fn create_number_format<S: Into<String>>(
+    name: S,
+    decimal: u8,
+    grouping: bool,
+) -> ValueFormatNumber {
+    let mut v = ValueFormatNumber::new_named(name.into());
     v.part_number()
         .decimal_places(decimal)
         .if_then(grouping, |p| p.grouping())
@@ -191,8 +201,8 @@ pub fn create_number_format_fixed<S: Into<String>>(
     name: S,
     decimal: u8,
     grouping: bool,
-) -> ValueFormat {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::Number);
+) -> ValueFormatNumber {
+    let mut v = ValueFormatNumber::new_named(name.into());
     v.part_number()
         .fixed_decimal_places(decimal)
         .if_then(grouping, |p| p.grouping())
@@ -201,20 +211,24 @@ pub fn create_number_format_fixed<S: Into<String>>(
 }
 
 /// Creates a new percentage format.
-pub fn create_percentage_format<S: Into<String>>(name: S, decimal: u8) -> ValueFormat {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::Percentage);
+pub fn create_percentage_format<S: Into<String>>(name: S, decimal: u8) -> ValueFormatPercentage {
+    let mut v = ValueFormatPercentage::new_named(name.into());
     v.part_number().fixed_decimal_places(decimal).build();
     v.part_text("%").build();
     v
 }
 
 /// Creates a new currency format.
-pub fn create_currency_prefix<S1, S2>(name: S1, symbol_locale: Locale, symbol: S2) -> ValueFormat
+pub fn create_currency_prefix<S1, S2>(
+    name: S1,
+    symbol_locale: Locale,
+    symbol: S2,
+) -> ValueFormatCurrency
 where
     S1: Into<String>,
     S2: Into<String>,
 {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::Currency);
+    let mut v = ValueFormatCurrency::new_named(name.into());
     v.part_currency()
         .locale(symbol_locale)
         .symbol(symbol.into())
@@ -225,12 +239,16 @@ where
 }
 
 /// Creates a new currency format.
-pub fn create_currency_suffix<S1, S2>(name: S1, symbol_locale: Locale, symbol: S2) -> ValueFormat
+pub fn create_currency_suffix<S1, S2>(
+    name: S1,
+    symbol_locale: Locale,
+    symbol: S2,
+) -> ValueFormatCurrency
 where
     S1: Into<String>,
     S2: Into<String>,
 {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::Currency);
+    let mut v = ValueFormatCurrency::new_named(name.into());
     v.part_number().fixed_decimal_places(2).grouping().build();
     v.part_text(" ").build();
     v.part_currency()
@@ -241,8 +259,8 @@ where
 }
 
 /// Creates a new date format YYYY-MM-DD
-pub fn create_date_iso_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::DateTime);
+pub fn create_date_iso_format<S: Into<String>>(name: S) -> ValueFormatDateTime {
+    let mut v = ValueFormatDateTime::new_named(name.into());
     v.part_year().style(FormatNumberStyle::Long).build();
     v.part_text("-").build();
     v.part_month().style(FormatNumberStyle::Long).build();
@@ -252,8 +270,8 @@ pub fn create_date_iso_format<S: Into<String>>(name: S) -> ValueFormat {
 }
 
 /// Creates a new date format D.M.Y
-pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::DateTime);
+pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormatDateTime {
+    let mut v = ValueFormatDateTime::new_named(name.into());
     v.part_day().style(FormatNumberStyle::Long).build();
     v.part_text(".").build();
     v.part_month().style(FormatNumberStyle::Long).build();
@@ -263,8 +281,8 @@ pub fn create_date_dmy_format<S: Into<String>>(name: S) -> ValueFormat {
 }
 
 /// Creates a new date format M/D/Y
-pub fn create_date_mdy_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::DateTime);
+pub fn create_date_mdy_format<S: Into<String>>(name: S) -> ValueFormatDateTime {
+    let mut v = ValueFormatDateTime::new_named(name.into());
     v.part_month().style(FormatNumberStyle::Long).build();
     v.part_text("/").build();
     v.part_day().style(FormatNumberStyle::Long).build();
@@ -274,8 +292,8 @@ pub fn create_date_mdy_format<S: Into<String>>(name: S) -> ValueFormat {
 }
 
 /// Creates a datetime format Y-M-D H:M:S
-pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::DateTime);
+pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormatDateTime {
+    let mut v = ValueFormatDateTime::new_named(name.into());
     v.part_year().style(FormatNumberStyle::Long).build();
     v.part_text("-").build();
     v.part_month().style(FormatNumberStyle::Long).build();
@@ -291,8 +309,8 @@ pub fn create_datetime_format<S: Into<String>>(name: S) -> ValueFormat {
 }
 
 /// Creates a new time format H:M:S
-pub fn create_time_of_day_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::TimeDuration);
+pub fn create_time_of_day_format<S: Into<String>>(name: S) -> ValueFormatTimeDuration {
+    let mut v = ValueFormatTimeDuration::new_named(name.into());
 
     v.part_hours().style(FormatNumberStyle::Long).build();
     v.part_text(":").build();
@@ -303,8 +321,8 @@ pub fn create_time_of_day_format<S: Into<String>>(name: S) -> ValueFormat {
 }
 
 /// Creates a new time-Duration format H:M:S
-pub fn create_time_interval_format<S: Into<String>>(name: S) -> ValueFormat {
-    let mut v = ValueFormat::new_named(name.into(), ValueType::TimeDuration);
+pub fn create_time_interval_format<S: Into<String>>(name: S) -> ValueFormatTimeDuration {
+    let mut v = ValueFormatTimeDuration::new_named(name.into());
     v.set_truncate_on_overflow(false);
 
     v.part_hours().style(FormatNumberStyle::Long).build();

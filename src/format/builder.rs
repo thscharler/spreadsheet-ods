@@ -1,14 +1,16 @@
-use crate::format::{FormatCalendarStyle, FormatNumberStyle, FormatPart, FormatPartType, PartList};
+use crate::format::{
+    FormatCalendarStyle, FormatNumberStyle, FormatPart, FormatPartType, ValueFormatTrait,
+};
 use icu_locid::Locale;
 
 /// Builder for FormatPart with type Number.
 #[derive(Debug)]
-pub struct PartNumberBuilder<'vf, T: PartList> {
+pub struct PartNumberBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartNumberBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartNumberBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -147,12 +149,12 @@ impl<'vf, T: PartList> PartNumberBuilder<'vf, T> {
 
 /// Builder for FormatPart with type Number.
 #[derive(Debug)]
-pub struct PartFillCharacterBuilder<'vf, T: PartList> {
+pub struct PartFillCharacterBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartFillCharacterBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartFillCharacterBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -207,12 +209,12 @@ impl<'vf, T: PartList> PartFillCharacterBuilder<'vf, T> {
 ///
 /// The number:scientific-number element has no child elements.
 #[derive(Debug)]
-pub struct PartScientificBuilder<'vf, T: PartList> {
+pub struct PartScientificBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartScientificBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartScientificBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -339,12 +341,12 @@ impl<'vf, T: PartList> PartScientificBuilder<'vf, T> {
 ///
 /// The number:fraction element has no child elements.
 #[derive(Debug)]
-pub struct PartFractionBuilder<'vf, T: PartList> {
+pub struct PartFractionBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartFractionBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartFractionBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -459,12 +461,12 @@ impl<'vf, T: PartList> PartFractionBuilder<'vf, T> {
 /// The number:currency-symbol element has no child elements.
 /// The number:currency-symbol element has character data content.
 #[derive(Debug)]
-pub struct PartCurrencySymbolBuilder<'vf, T: PartList> {
+pub struct PartCurrencySymbolBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartCurrencySymbolBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartCurrencySymbolBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -541,12 +543,12 @@ impl<'vf, T: PartList> PartCurrencySymbolBuilder<'vf, T> {
 ///
 /// The number:day element has no child elements.
 #[derive(Debug)]
-pub struct PartDayBuilder<'vf, T: PartList> {
+pub struct PartDayBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartDayBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartDayBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -632,12 +634,12 @@ impl<'vf, T: PartList> PartDayBuilder<'vf, T> {
 ///
 /// The number:month element has no child elements
 #[derive(Debug)]
-pub struct PartMonthBuilder<'vf, T: PartList> {
+pub struct PartMonthBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartMonthBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartMonthBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -746,12 +748,12 @@ impl<'vf, T: PartList> PartMonthBuilder<'vf, T> {
 ///
 /// The number:year element has no child elements.
 #[derive(Debug)]
-pub struct PartYearBuilder<'vf, T: PartList> {
+pub struct PartYearBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartYearBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartYearBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -833,12 +835,12 @@ impl<'vf, T: PartList> PartYearBuilder<'vf, T> {
 ///
 /// The number:era element has no child elements
 #[derive(Debug)]
-pub struct PartEraBuilder<'vf, T: PartList> {
+pub struct PartEraBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartEraBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartEraBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -920,12 +922,12 @@ impl<'vf, T: PartList> PartEraBuilder<'vf, T> {
 ///
 /// The number:day-of-week element has no child elements.
 #[derive(Debug)]
-pub struct PartDayOfWeekBuilder<'vf, T: PartList> {
+pub struct PartDayOfWeekBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartDayOfWeekBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartDayOfWeekBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -1006,12 +1008,12 @@ impl<'vf, T: PartList> PartDayOfWeekBuilder<'vf, T> {
 ///
 /// The number:week-of-year element has no child elements.
 #[derive(Debug)]
-pub struct PartWeekOfYearBuilder<'vf, T: PartList> {
+pub struct PartWeekOfYearBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartWeekOfYearBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartWeekOfYearBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -1063,12 +1065,12 @@ impl<'vf, T: PartList> PartWeekOfYearBuilder<'vf, T> {
 ///
 /// The number:quarter element has no child elements
 #[derive(Debug)]
-pub struct PartQuarterBuilder<'vf, T: PartList> {
+pub struct PartQuarterBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartQuarterBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartQuarterBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -1150,12 +1152,12 @@ impl<'vf, T: PartList> PartQuarterBuilder<'vf, T> {
 ///
 /// The number:hours element has no child elements.
 #[derive(Debug)]
-pub struct PartHoursBuilder<'vf, T: PartList> {
+pub struct PartHoursBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartHoursBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartHoursBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -1227,12 +1229,12 @@ impl<'vf, T: PartList> PartHoursBuilder<'vf, T> {
 ///
 /// The number:minutes element has no child elements.
 #[derive(Debug)]
-pub struct PartMinutesBuilder<'vf, T: PartList> {
+pub struct PartMinutesBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartMinutesBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartMinutesBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -1306,12 +1308,12 @@ impl<'vf, T: PartList> PartMinutesBuilder<'vf, T> {
 ///
 /// The number:seconds element has no child elements.
 #[derive(Debug)]
-pub struct PartSecondsBuilder<'vf, T: PartList> {
+pub struct PartSecondsBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartSecondsBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartSecondsBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -1391,12 +1393,12 @@ impl<'vf, T: PartList> PartSecondsBuilder<'vf, T> {
 /// * DateTime
 /// * TimeDuration
 #[derive(Debug)]
-pub struct PartAmPmBuilder<'vf, T: PartList> {
+pub struct PartAmPmBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartAmPmBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartAmPmBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -1421,12 +1423,12 @@ impl<'vf, T: PartList> PartAmPmBuilder<'vf, T> {
 /// Can be used with ValueTypes:
 /// * Boolean
 #[derive(Debug)]
-pub struct PartBooleanBuilder<'vf, T: PartList> {
+pub struct PartBooleanBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartBooleanBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartBooleanBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -1457,12 +1459,12 @@ impl<'vf, T: PartList> PartBooleanBuilder<'vf, T> {
 /// * Text
 /// * TimeDuration
 #[derive(Debug)]
-pub struct PartTextBuilder<'vf, T: PartList> {
+pub struct PartTextBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartTextBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartTextBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where
@@ -1509,12 +1511,12 @@ impl<'vf, T: PartList> PartTextBuilder<'vf, T> {
 /// * Text
 
 #[derive(Debug)]
-pub struct PartTextContentBuilder<'vf, T: PartList> {
+pub struct PartTextContentBuilder<'vf, T: ValueFormatTrait> {
     part: FormatPart,
     valueformat: &'vf mut T,
 }
 
-impl<'vf, T: PartList> PartTextContentBuilder<'vf, T> {
+impl<'vf, T: ValueFormatTrait> PartTextContentBuilder<'vf, T> {
     /// New builder for the valueformat.
     pub fn new<'a>(valueformat: &'a mut T) -> Self
     where

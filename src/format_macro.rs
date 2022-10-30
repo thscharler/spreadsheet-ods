@@ -62,67 +62,6 @@ macro_rules! valueformat {
                 v
             }
 
-            /// Returns a reference name for this value format.
-            pub fn format_ref(&self) -> ValueFormatRef {
-                ValueFormatRef::from(self.name().as_str())
-            }
-
-            /// The style:name attribute specifies names that reference style mechanisms.
-            pub fn set_name<S: Into<String>>(&mut self, name: S) {
-                self.name = name.into();
-            }
-
-            /// The style:name attribute specifies names that reference style mechanisms.
-            pub fn name(&self) -> &String {
-                &self.name
-            }
-
-            /// Returns the value type.
-            pub fn value_type(&self) -> ValueType {
-                $valuetype
-            }
-
-            /// Sets the storage location for this ValueFormat. Either content.xml
-            /// or styles.xml.
-            pub fn set_origin(&mut self, origin: StyleOrigin) {
-                self.origin = origin;
-            }
-
-            /// Returns the storage location.
-            pub fn origin(&self) -> StyleOrigin {
-                self.origin
-            }
-
-            /// How is the style used in the document.
-            pub fn set_styleuse(&mut self, styleuse: StyleUse) {
-                self.styleuse = styleuse;
-            }
-
-            /// How is the style used in the document.
-            pub fn styleuse(&self) -> StyleUse {
-                self.styleuse
-            }
-
-            /// All direct attributes of the number:xxx-style tag.
-            pub(crate) fn attrmap(&self) -> &AttrMap2 {
-                &self.attr
-            }
-
-            /// All direct attributes of the number:xxx-style tag.
-            pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
-                &mut self.attr
-            }
-
-            /// Text style attributes.
-            pub(crate) fn textstyle(&self) -> &AttrMap2 {
-                &self.textstyle
-            }
-
-            /// Text style attributes.
-            pub(crate) fn textstyle_mut(&mut self) -> &mut AttrMap2 {
-                &mut self.textstyle
-            }
-
             number_locale!(attr);
             number_title!(attr);
             number_transliteration_locale!(attr);
@@ -177,24 +116,70 @@ macro_rules! valueformat {
             style_use_window_font_color!(textstyle);
             text_condition!(textstyle);
             text_display!(textstyle);
-
-            /// Adds a stylemap.
-            pub fn push_stylemap(&mut self, stylemap: StyleMap) {
-                self.stylemaps.get_or_insert_with(Vec::new).push(stylemap);
-            }
-
-            /// Returns the stylemaps
-            pub fn stylemaps(&self) -> Option<&Vec<StyleMap>> {
-                self.stylemaps.as_ref()
-            }
-
-            /// Returns the mutable stylemap.
-            pub fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap> {
-                self.stylemaps.get_or_insert_with(Vec::new)
-            }
         }
 
-        impl PartList for $format {
+        impl ValueFormatTrait for $format {
+            /// Returns a reference name for this value format.
+            fn format_ref(&self) -> ValueFormatRef {
+                ValueFormatRef::from(self.name().as_str())
+            }
+
+            /// The style:name attribute specifies names that reference style mechanisms.
+            fn set_name<S: Into<String>>(&mut self, name: S) {
+                self.name = name.into();
+            }
+
+            /// The style:name attribute specifies names that reference style mechanisms.
+            fn name(&self) -> &String {
+                &self.name
+            }
+
+            /// Returns the value type.
+            fn value_type(&self) -> ValueType {
+                $valuetype
+            }
+
+            /// Sets the storage location for this ValueFormat. Either content.xml
+            /// or styles.xml.
+            fn set_origin(&mut self, origin: StyleOrigin) {
+                self.origin = origin;
+            }
+
+            /// Returns the storage location.
+            fn origin(&self) -> StyleOrigin {
+                self.origin
+            }
+
+            /// How is the style used in the document.
+            fn set_styleuse(&mut self, styleuse: StyleUse) {
+                self.styleuse = styleuse;
+            }
+
+            /// How is the style used in the document.
+            fn styleuse(&self) -> StyleUse {
+                self.styleuse
+            }
+
+            /// All direct attributes of the number:xxx-style tag.
+            fn attrmap(&self) -> &AttrMap2 {
+                &self.attr
+            }
+
+            /// All direct attributes of the number:xxx-style tag.
+            fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+                &mut self.attr
+            }
+
+            /// Text style attributes.
+            fn textstyle(&self) -> &AttrMap2 {
+                &self.textstyle
+            }
+
+            /// Text style attributes.
+            fn textstyle_mut(&mut self) -> &mut AttrMap2 {
+                &mut self.textstyle
+            }
+
             /// Adds a format part.
             fn push_part(&mut self, part: FormatPart) {
                 self.parts.push(part);
@@ -213,6 +198,21 @@ macro_rules! valueformat {
             /// Returns the mutable parts.
             fn parts_mut(&mut self) -> &mut Vec<FormatPart> {
                 &mut self.parts
+            }
+
+            /// Adds a stylemap.
+            fn push_stylemap(&mut self, stylemap: StyleMap) {
+                self.stylemaps.get_or_insert_with(Vec::new).push(stylemap);
+            }
+
+            /// Returns the stylemaps
+            fn stylemaps(&self) -> Option<&Vec<StyleMap>> {
+                self.stylemaps.as_ref()
+            }
+
+            /// Returns the mutable stylemap.
+            fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap> {
+                self.stylemaps.get_or_insert_with(Vec::new)
             }
         }
     };

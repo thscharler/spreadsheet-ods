@@ -14,7 +14,7 @@ use crate::config::{Config, ConfigItem, ConfigItemType, ConfigValue};
 use crate::ds::bufstack::BufStack;
 use crate::ds::detach::Detach;
 use crate::error::OdsError;
-use crate::format::{FormatPart, FormatPartType};
+use crate::format::{FormatPart, FormatPartType, ValueFormatTrait};
 use crate::io::parse::{
     parse_bool, parse_currency, parse_datetime, parse_duration, parse_f64, parse_i16, parse_i32,
     parse_i64, parse_string, parse_u32, parse_visibility,
@@ -31,8 +31,9 @@ use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
-    CellData, CellStyle, ColRange, Length, RowRange, Sheet, SplitMode, Value, ValueFormat,
-    ValueType, Visibility, WorkBook,
+    CellData, CellStyle, ColRange, Length, RowRange, Sheet, SplitMode, Value, ValueFormatBoolean,
+    ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage,
+    ValueFormatText, ValueFormatTimeDuration, ValueType, Visibility, WorkBook,
 };
 use quick_xml::events::attributes::Attribute;
 use std::borrow::Cow;
@@ -1609,32 +1610,42 @@ fn read_value_format(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
-    let mut valuestyle = ValueFormat::new_empty();
-    valuestyle.set_origin(origin);
-    valuestyle.set_styleuse(styleuse);
-    // Styles with content information are stored before completion.
-    let mut valuestyle_part = None;
-
     match xml_tag.name() {
         b"number:boolean-style" => {
-            read_value_format_attr(ValueType::Boolean, &mut valuestyle, xml_tag)?
+            let mut valuestyle = ValueFormatBoolean::new_empty();
+            read_value_format_parts(bs, origin, styleuse, &mut valuestyle, xml, xml_tag)?;
+            book.add_boolean_format(valuestyle);
         }
         b"number:date-style" => {
-            read_value_format_attr(ValueType::DateTime, &mut valuestyle, xml_tag)?
+            let mut valuestyle = ValueFormatDateTime::new_empty();
+            read_value_format_parts(bs, origin, styleuse, &mut valuestyle, xml, xml_tag)?;
+            book.add_datetime_format(valuestyle);
         }
         b"number:time-style" => {
-            read_value_format_attr(ValueType::TimeDuration, &mut valuestyle, xml_tag)?
+            let mut valuestyle = ValueFormatTimeDuration::new_empty();
+            read_value_format_parts(bs, origin, styleuse, &mut valuestyle, xml, xml_tag)?;
+            book.add_timeduration_format(valuestyle);
         }
         b"number:number-style" => {
-            read_value_format_attr(ValueType::Number, &mut valuestyle, xml_tag)?
+            let mut valuestyle = ValueFormatNumber::new_empty();
+            read_value_format_parts(bs, origin, styleuse, &mut valuestyle, xml, xml_tag)?;
+            book.add_number_format(valuestyle);
         }
         b"number:currency-style" => {
-            read_value_format_attr(ValueType::Currency, &mut valuestyle, xml_tag)?
+            let mut valuestyle = ValueFormatCurrency::new_empty();
+            read_value_format_parts(bs, origin, styleuse, &mut valuestyle, xml, xml_tag)?;
+            book.add_currency_format(valuestyle);
         }
         b"number:percentage-style" => {
-            read_value_format_attr(ValueType::Percentage, &mut valuestyle, xml_tag)?
+            let mut valuestyle = ValueFormatPercentage::new_empty();
+            read_value_format_parts(bs, origin, styleuse, &mut valuestyle, xml, xml_tag)?;
+            book.add_percentage_format(valuestyle);
         }
-        b"number:text-style" => read_value_format_attr(ValueType::Text, &mut valuestyle, xml_tag)?,
+        b"number:text-style" => {
+            let mut valuestyle = ValueFormatText::new_empty();
+            read_value_format_parts(bs, origin, styleuse, &mut valuestyle, xml, xml_tag)?;
+            book.add_text_format(valuestyle);
+        }
         _ => {
             if DUMP_UNUSED {
                 let n = xml.decode(xml_tag.name())?;
@@ -1642,6 +1653,26 @@ fn read_value_format(
             }
         }
     }
+
+    Ok(())
+}
+
+// Reads any of the number:xxx tags
+fn read_value_format_parts<T: ValueFormatTrait>(
+    bs: &mut BufStack,
+    origin: StyleOrigin,
+    styleuse: StyleUse,
+    valuestyle: &mut T,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
+) -> Result<(), OdsError> {
+    valuestyle.set_origin(origin);
+    valuestyle.set_styleuse(styleuse);
+    let name = proc_style_attr(valuestyle.attrmap_mut(), xml_tag)?;
+    valuestyle.set_name(name);
+
+    // Styles with content information are stored before completion.
+    let mut valuestyle_part = None;
 
     let mut buf = bs.get_buf();
     loop {
@@ -1770,7 +1801,6 @@ fn read_value_format(
                 | b"number:currency-style"
                 | b"number:percentage-style"
                 | b"number:text-style" => {
-                    book.add_format(valuestyle);
                     break;
                 }
                 b"number:currency-symbol" | b"number:text" | b"number:fill-character" => {
@@ -1792,19 +1822,6 @@ fn read_value_format(
         buf.clear();
     }
     bs.push(buf);
-
-    Ok(())
-}
-
-/// Copies all the attr from the tag.
-fn read_value_format_attr(
-    value_type: ValueType,
-    valuestyle: &mut ValueFormat,
-    xml_tag: &BytesStart<'_>,
-) -> Result<(), OdsError> {
-    valuestyle.set_value_type(value_type);
-    let name = proc_style_attr(valuestyle.attrmap_mut(), xml_tag)?;
-    valuestyle.set_name(name);
 
     Ok(())
 }

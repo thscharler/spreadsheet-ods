@@ -20,7 +20,9 @@ use crate::style::{
 };
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
-use crate::{CellContentRef, Length, Sheet, Value, ValueFormat, ValueType, Visibility, WorkBook};
+use crate::{
+    CellContentRef, Length, Sheet, Value, ValueFormatTrait, ValueType, Visibility, WorkBook,
+};
 
 type OdsWriter<W> = ZipOut<W>;
 type XmlOdsWriter<'a, W> = XmlWriter<ZipWrite<'a, W>>;
@@ -745,13 +747,86 @@ fn write_ods_styles<W: Write + Seek>(
     write_styles(book, StyleOrigin::Styles, StyleUse::Default, &mut xml_out)?;
     write_styles(book, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
     write_valuestyles(
-        &book.formats,
+        &book.formats_boolean,
         StyleOrigin::Styles,
         StyleUse::Named,
         &mut xml_out,
     )?;
     write_valuestyles(
-        &book.formats,
+        &book.formats_currency,
+        StyleOrigin::Styles,
+        StyleUse::Named,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_datetime,
+        StyleOrigin::Styles,
+        StyleUse::Named,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_number,
+        StyleOrigin::Styles,
+        StyleUse::Named,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_percentage,
+        StyleOrigin::Styles,
+        StyleUse::Named,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_text,
+        StyleOrigin::Styles,
+        StyleUse::Named,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_timeduration,
+        StyleOrigin::Styles,
+        StyleUse::Named,
+        &mut xml_out,
+    )?;
+
+    write_valuestyles(
+        &book.formats_boolean,
+        StyleOrigin::Styles,
+        StyleUse::Default,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_currency,
+        StyleOrigin::Styles,
+        StyleUse::Default,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_datetime,
+        StyleOrigin::Styles,
+        StyleUse::Default,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_number,
+        StyleOrigin::Styles,
+        StyleUse::Default,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_percentage,
+        StyleOrigin::Styles,
+        StyleUse::Default,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_text,
+        StyleOrigin::Styles,
+        StyleUse::Default,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_timeduration,
         StyleOrigin::Styles,
         StyleUse::Default,
         &mut xml_out,
@@ -762,7 +837,43 @@ fn write_ods_styles<W: Write + Seek>(
     write_pagestyles(&book.pagestyles, &mut xml_out)?;
     write_styles(book, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
     write_valuestyles(
-        &book.formats,
+        &book.formats_boolean,
+        StyleOrigin::Styles,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_currency,
+        StyleOrigin::Styles,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_datetime,
+        StyleOrigin::Styles,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_number,
+        StyleOrigin::Styles,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_percentage,
+        StyleOrigin::Styles,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_text,
+        StyleOrigin::Styles,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_timeduration,
         StyleOrigin::Styles,
         StyleUse::Automatic,
         &mut xml_out,
@@ -896,7 +1007,43 @@ fn write_ods_content<W: Write + Seek>(
         &mut xml_out,
     )?;
     write_valuestyles(
-        &book.formats,
+        &book.formats_boolean,
+        StyleOrigin::Content,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_currency,
+        StyleOrigin::Content,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_datetime,
+        StyleOrigin::Content,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_number,
+        StyleOrigin::Content,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_percentage,
+        StyleOrigin::Content,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_text,
+        StyleOrigin::Content,
+        StyleUse::Automatic,
+        &mut xml_out,
+    )?;
+    write_valuestyles(
+        &book.formats_timeduration,
         StyleOrigin::Content,
         StyleUse::Automatic,
         &mut xml_out,
@@ -1985,8 +2132,8 @@ fn write_graphicstyle<W: Write + Seek>(
     Ok(())
 }
 
-fn write_valuestyles<W: Write + Seek>(
-    value_formats: &HashMap<String, ValueFormat>,
+fn write_valuestyles<W: Write + Seek, T: ValueFormatTrait>(
+    value_formats: &HashMap<String, T>,
     origin: StyleOrigin,
     styleuse: StyleUse,
     xml_out: &mut XmlOdsWriter<'_, W>,

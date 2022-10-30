@@ -7,7 +7,10 @@ mod de_at;
 #[cfg(feature = "locale_en_US")]
 mod en_us;
 
-use crate::ValueFormat;
+use crate::{
+    ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
+    ValueFormatPercentage, ValueFormatTimeDuration,
+};
 use icu_locid::Locale;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
@@ -17,21 +20,21 @@ use std::collections::HashMap;
 pub(crate) trait LocalizedValueFormat: Sync {
     fn locale(&self) -> Locale;
     /// Default boolean format.
-    fn boolean_format(&self) -> ValueFormat;
+    fn boolean_format(&self) -> ValueFormatBoolean;
     /// Default number format.
-    fn number_format(&self) -> ValueFormat;
+    fn number_format(&self) -> ValueFormatNumber;
     /// Default percentage format.
-    fn percentage_format(&self) -> ValueFormat;
+    fn percentage_format(&self) -> ValueFormatPercentage;
     /// Default currency format.
-    fn currency_format(&self) -> ValueFormat;
+    fn currency_format(&self) -> ValueFormatCurrency;
     /// Default date format.
-    fn date_format(&self) -> ValueFormat;
+    fn date_format(&self) -> ValueFormatDateTime;
     /// Default date/time format.
-    fn datetime_format(&self) -> ValueFormat;
+    fn datetime_format(&self) -> ValueFormatDateTime;
     /// Default time of day format.
-    fn time_of_day_format(&self) -> ValueFormat;
+    fn time_of_day_format(&self) -> ValueFormatDateTime;
     /// Default time interval format.
-    fn time_interval_format(&self) -> ValueFormat;
+    fn time_interval_format(&self) -> ValueFormatTimeDuration;
 }
 
 lazy_static! {

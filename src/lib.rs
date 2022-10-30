@@ -180,7 +180,10 @@
 #![warn(variant_size_differences)]
 
 pub use crate::error::OdsError;
-pub use crate::format::{ValueFormat, ValueFormatRef};
+pub use crate::format::{
+    ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
+    ValueFormatPercentage, ValueFormatRef, ValueFormatText, ValueFormatTimeDuration,
+};
 pub use crate::io::read::{read_ods, read_ods_buf};
 pub use crate::io::write::{write_ods, write_ods_buf, write_ods_buf_uncompressed};
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
@@ -191,6 +194,7 @@ use crate::config::Config;
 use crate::defaultstyles::{DefaultFormat, DefaultStyle};
 use crate::ds::detach::Detach;
 use crate::ds::detach::Detached;
+use crate::format::ValueFormatTrait;
 use crate::io::filebuf::FileBuf;
 use crate::io::read::default_settings;
 use crate::style::{
@@ -272,7 +276,14 @@ pub struct WorkBook {
     /// Value-styles are actual formatting instructions
     /// for various datatypes.
     /// Represents the various number:xxx-style elements.
-    formats: HashMap<String, ValueFormat>,
+    // formats: HashMap<String, ValueFormat>,
+    formats_boolean: HashMap<String, ValueFormatBoolean>,
+    formats_number: HashMap<String, ValueFormatNumber>,
+    formats_percentage: HashMap<String, ValueFormatPercentage>,
+    formats_currency: HashMap<String, ValueFormatCurrency>,
+    formats_text: HashMap<String, ValueFormatText>,
+    formats_datetime: HashMap<String, ValueFormatDateTime>,
+    formats_timeduration: HashMap<String, ValueFormatTimeDuration>,
 
     /// Default-styles per Type.
     /// This is only used when writing the ods file.
@@ -325,7 +336,28 @@ impl fmt::Debug for WorkBook {
         for s in self.graphicstyles.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.formats.values() {
+        // for s in self.formats.values() {
+        //     writeln!(f, "{:?}", s)?;
+        // }
+        for s in self.formats_boolean.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for s in self.formats_number.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for s in self.formats_percentage.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for s in self.formats_currency.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for s in self.formats_text.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for s in self.formats_datetime.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for s in self.formats_timeduration.values() {
             writeln!(f, "{:?}", s)?;
         }
         for (t, s) in &self.def_styles {
@@ -391,7 +423,14 @@ impl WorkBook {
             paragraphstyles: Default::default(),
             textstyles: Default::default(),
             graphicstyles: Default::default(),
-            formats: Default::default(),
+            // formats: Default::default(),
+            formats_boolean: Default::default(),
+            formats_number: Default::default(),
+            formats_percentage: Default::default(),
+            formats_currency: Default::default(),
+            formats_text: Default::default(),
+            formats_datetime: Default::default(),
+            formats_timeduration: Default::default(),
             def_styles: Default::default(),
             pagestyles: Default::default(),
             masterpages: Default::default(),
@@ -424,14 +463,14 @@ impl WorkBook {
     /// The available locales can be activated via feature-flags.
     pub fn locale_settings(&mut self, locale: Locale) {
         if let Some(lf) = locale::localized_format(locale) {
-            self.add_format(lf.boolean_format());
-            self.add_format(lf.number_format());
-            self.add_format(lf.percentage_format());
-            self.add_format(lf.currency_format());
-            self.add_format(lf.date_format());
-            self.add_format(lf.datetime_format());
-            self.add_format(lf.time_of_day_format());
-            self.add_format(lf.time_interval_format());
+            self.add_boolean_format(lf.boolean_format());
+            self.add_number_format(lf.number_format());
+            self.add_percentage_format(lf.percentage_format());
+            self.add_currency_format(lf.currency_format());
+            self.add_datetime_format(lf.date_format());
+            self.add_datetime_format(lf.datetime_format());
+            self.add_datetime_format(lf.time_of_day_format());
+            self.add_timeduration_format(lf.time_interval_format());
         }
 
         self.add_cellstyle(CellStyle::new(
@@ -584,18 +623,18 @@ impl WorkBook {
         self.def_styles.get(&value_type)
     }
 
-    /// Finds a ValueFormat starting with the stylename attached to a cell.
-    pub fn find_value_format(&self, style_name: &str) -> Option<&ValueFormat> {
-        if let Some(style) = self.cellstyles.get(style_name) {
-            if let Some(value_format_name) = style.value_format() {
-                if let Some(value_format) = self.formats.get(value_format_name) {
-                    return Some(value_format);
-                }
-            }
-        }
-
-        None
-    }
+    // /// Finds a ValueFormat starting with the stylename attached to a cell.
+    // pub fn find_value_format(&self, style_name: &str) -> Option<&ValueFormat> {
+    //     if let Some(style) = self.cellstyles.get(style_name) {
+    //         if let Some(value_format_name) = style.value_format() {
+    //             if let Some(value_format) = self.formats.get(value_format_name) {
+    //                 return Some(value_format);
+    //             }
+    //         }
+    //     }
+    //
+    //     None
+    // }
 
     /// Adds a font.
     pub fn add_font(&mut self, font: FontFaceDecl) {
@@ -807,30 +846,249 @@ impl WorkBook {
         self.graphicstyles.get_mut(name)
     }
 
+    // /// Adds a value format.
+    // /// Unnamed formats will be assigned an automatic name.
+    // pub fn add_format(&mut self, mut vstyle: ValueFormat) -> ValueFormatRef {
+    //     if vstyle.name().is_empty() {
+    //         vstyle.set_name(auto_style_name(&mut self.autonum, "val", &self.formats));
+    //     }
+    //     let sref = vstyle.format_ref();
+    //     self.formats.insert(vstyle.name().to_string(), vstyle);
+    //     sref
+    // }
+    //
+    // /// Removes the format.
+    // pub fn remove_format(&mut self, name: &str) -> Option<ValueFormat> {
+    //     self.formats.remove(name)
+    // }
+    //
+    // /// Returns the format.
+    // pub fn format(&self, name: &str) -> Option<&ValueFormat> {
+    //     self.formats.get(name)
+    // }
+    //
+    // /// Returns the mutable format.
+    // pub fn format_mut(&mut self, name: &str) -> Option<&mut ValueFormat> {
+    //     self.formats.get_mut(name)
+    // }
+
     /// Adds a value format.
     /// Unnamed formats will be assigned an automatic name.
-    pub fn add_format(&mut self, mut vstyle: ValueFormat) -> ValueFormatRef {
+    pub fn add_boolean_format(&mut self, mut vstyle: ValueFormatBoolean) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(auto_style_name(&mut self.autonum, "val", &self.formats));
+            vstyle.set_name(auto_style_name(
+                &mut self.autonum,
+                "val_boolean",
+                &self.formats_boolean,
+            ));
         }
         let sref = vstyle.format_ref();
-        self.formats.insert(vstyle.name().to_string(), vstyle);
+        self.formats_boolean
+            .insert(vstyle.name().to_string(), vstyle);
         sref
     }
 
     /// Removes the format.
-    pub fn remove_format(&mut self, name: &str) -> Option<ValueFormat> {
-        self.formats.remove(name)
+    pub fn remove_boolean_format(&mut self, name: &str) -> Option<ValueFormatBoolean> {
+        self.formats_boolean.remove(name)
     }
 
     /// Returns the format.
-    pub fn format(&self, name: &str) -> Option<&ValueFormat> {
-        self.formats.get(name)
+    pub fn boolean_format(&self, name: &str) -> Option<&ValueFormatBoolean> {
+        self.formats_boolean.get(name)
     }
 
     /// Returns the mutable format.
-    pub fn format_mut(&mut self, name: &str) -> Option<&mut ValueFormat> {
-        self.formats.get_mut(name)
+    pub fn boolean_format_mut(&mut self, name: &str) -> Option<&mut ValueFormatBoolean> {
+        self.formats_boolean.get_mut(name)
+    }
+
+    /// Adds a value format.
+    /// Unnamed formats will be assigned an automatic name.
+    pub fn add_number_format(&mut self, mut vstyle: ValueFormatNumber) -> ValueFormatRef {
+        if vstyle.name().is_empty() {
+            vstyle.set_name(auto_style_name(
+                &mut self.autonum,
+                "val_number",
+                &self.formats_number,
+            ));
+        }
+        let sref = vstyle.format_ref();
+        self.formats_number
+            .insert(vstyle.name().to_string(), vstyle);
+        sref
+    }
+
+    /// Removes the format.
+    pub fn remove_number_format(&mut self, name: &str) -> Option<ValueFormatNumber> {
+        self.formats_number.remove(name)
+    }
+
+    /// Returns the format.
+    pub fn number_format(&self, name: &str) -> Option<&ValueFormatBoolean> {
+        self.formats_boolean.get(name)
+    }
+
+    /// Returns the mutable format.
+    pub fn number_format_mut(&mut self, name: &str) -> Option<&mut ValueFormatBoolean> {
+        self.formats_boolean.get_mut(name)
+    }
+
+    /// Adds a value format.
+    /// Unnamed formats will be assigned an automatic name.
+    pub fn add_percentage_format(&mut self, mut vstyle: ValueFormatPercentage) -> ValueFormatRef {
+        if vstyle.name().is_empty() {
+            vstyle.set_name(auto_style_name(
+                &mut self.autonum,
+                "val_percentage",
+                &self.formats_percentage,
+            ));
+        }
+        let sref = vstyle.format_ref();
+        self.formats_percentage
+            .insert(vstyle.name().to_string(), vstyle);
+        sref
+    }
+
+    /// Removes the format.
+    pub fn remove_percentage_format(&mut self, name: &str) -> Option<ValueFormatPercentage> {
+        self.formats_percentage.remove(name)
+    }
+
+    /// Returns the format.
+    pub fn percentage_format(&self, name: &str) -> Option<&ValueFormatPercentage> {
+        self.formats_percentage.get(name)
+    }
+
+    /// Returns the mutable format.
+    pub fn percentage_format_mut(&mut self, name: &str) -> Option<&mut ValueFormatPercentage> {
+        self.formats_percentage.get_mut(name)
+    }
+
+    /// Adds a value format.
+    /// Unnamed formats will be assigned an automatic name.
+    pub fn add_currency_format(&mut self, mut vstyle: ValueFormatCurrency) -> ValueFormatRef {
+        if vstyle.name().is_empty() {
+            vstyle.set_name(auto_style_name(
+                &mut self.autonum,
+                "val_currency",
+                &self.formats_currency,
+            ));
+        }
+        let sref = vstyle.format_ref();
+        self.formats_currency
+            .insert(vstyle.name().to_string(), vstyle);
+        sref
+    }
+
+    /// Removes the format.
+    pub fn remove_currency_format(&mut self, name: &str) -> Option<ValueFormatCurrency> {
+        self.formats_currency.remove(name)
+    }
+
+    /// Returns the format.
+    pub fn currency_format(&self, name: &str) -> Option<&ValueFormatCurrency> {
+        self.formats_currency.get(name)
+    }
+
+    /// Returns the mutable format.
+    pub fn currency_format_mut(&mut self, name: &str) -> Option<&mut ValueFormatCurrency> {
+        self.formats_currency.get_mut(name)
+    }
+
+    /// Adds a value format.
+    /// Unnamed formats will be assigned an automatic name.
+    pub fn add_text_format(&mut self, mut vstyle: ValueFormatText) -> ValueFormatRef {
+        if vstyle.name().is_empty() {
+            vstyle.set_name(auto_style_name(
+                &mut self.autonum,
+                "val_text",
+                &self.formats_text,
+            ));
+        }
+        let sref = vstyle.format_ref();
+        self.formats_text.insert(vstyle.name().to_string(), vstyle);
+        sref
+    }
+
+    /// Removes the format.
+    pub fn remove_text_format(&mut self, name: &str) -> Option<ValueFormatText> {
+        self.formats_text.remove(name)
+    }
+
+    /// Returns the format.
+    pub fn text_format(&self, name: &str) -> Option<&ValueFormatText> {
+        self.formats_text.get(name)
+    }
+
+    /// Returns the mutable format.
+    pub fn text_format_mut(&mut self, name: &str) -> Option<&mut ValueFormatText> {
+        self.formats_text.get_mut(name)
+    }
+
+    /// Adds a value format.
+    /// Unnamed formats will be assigned an automatic name.
+    pub fn add_datetime_format(&mut self, mut vstyle: ValueFormatDateTime) -> ValueFormatRef {
+        if vstyle.name().is_empty() {
+            vstyle.set_name(auto_style_name(
+                &mut self.autonum,
+                "val_datetime",
+                &self.formats_datetime,
+            ));
+        }
+        let sref = vstyle.format_ref();
+        self.formats_datetime
+            .insert(vstyle.name().to_string(), vstyle);
+        sref
+    }
+
+    /// Removes the format.
+    pub fn remove_datetime_format(&mut self, name: &str) -> Option<ValueFormatDateTime> {
+        self.formats_datetime.remove(name)
+    }
+
+    /// Returns the format.
+    pub fn datetime_format(&self, name: &str) -> Option<&ValueFormatDateTime> {
+        self.formats_datetime.get(name)
+    }
+
+    /// Returns the mutable format.
+    pub fn datetime_format_mut(&mut self, name: &str) -> Option<&mut ValueFormatDateTime> {
+        self.formats_datetime.get_mut(name)
+    }
+
+    /// Adds a value format.
+    /// Unnamed formats will be assigned an automatic name.
+    pub fn add_timeduration_format(
+        &mut self,
+        mut vstyle: ValueFormatTimeDuration,
+    ) -> ValueFormatRef {
+        if vstyle.name().is_empty() {
+            vstyle.set_name(auto_style_name(
+                &mut self.autonum,
+                "val_timeduration",
+                &self.formats_timeduration,
+            ));
+        }
+        let sref = vstyle.format_ref();
+        self.formats_timeduration
+            .insert(vstyle.name().to_string(), vstyle);
+        sref
+    }
+
+    /// Removes the format.
+    pub fn remove_timeduration_format(&mut self, name: &str) -> Option<ValueFormatTimeDuration> {
+        self.formats_timeduration.remove(name)
+    }
+
+    /// Returns the format.
+    pub fn timeduration_format(&self, name: &str) -> Option<&ValueFormatTimeDuration> {
+        self.formats_timeduration.get(name)
+    }
+
+    /// Returns the mutable format.
+    pub fn timeduration_format_mut(&mut self, name: &str) -> Option<&mut ValueFormatTimeDuration> {
+        self.formats_timeduration.get_mut(name)
     }
 
     /// Adds a value PageStyle.
@@ -1133,8 +1391,6 @@ impl<'a> IntoIterator for &'a Sheet {
 }
 
 /// Iterator over cells.
-// The internal structure looks complicated, but this is in preparation for
-// a possible split of the celldata into multiple BTreeMaps
 #[derive(Clone, Debug)]
 pub struct CellIter<'a> {
     it_data: std::collections::btree_map::Iter<'a, (u32, u32), CellData>,
