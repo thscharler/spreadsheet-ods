@@ -33,7 +33,7 @@ mktemp = "0.4"
 time = "0.3"
 nom = "7.1"
 nom_locate = "4.0"
-icu_locid = "0.6.0"
+icu_locid = "1.0.0"
 lazy_static = "1.4.0"
 
 [dependencies.quick-xml]

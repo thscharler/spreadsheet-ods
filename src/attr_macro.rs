@@ -2741,14 +2741,14 @@ macro_rules! number_locale {
         /// Returns number:language, number:country and number:script as a locale.
         pub fn locale(&self) -> Option<Locale> {
             if let Some(language) = self.attr.attr("number:language") {
-                if let Ok(language) = Language::from_bytes(language.as_bytes()) {
+                if let Ok(language) = Language::try_from_bytes(language.as_bytes()) {
                     let region = if let Some(region) = self.attr.attr("number:country") {
-                        Region::from_bytes(region.as_bytes()).ok()
+                        Region::try_from_bytes(region.as_bytes()).ok()
                     } else {
                         None
                     };
                     let script = if let Some(script) = self.attr.attr("number:script") {
-                        Script::from_bytes(script.as_bytes()).ok()
+                        Script::try_from_bytes(script.as_bytes()).ok()
                     } else {
                         None
                     };
@@ -2798,9 +2798,9 @@ macro_rules! number_transliteration_locale {
         /// Returns number:transliteration_language and number:transliteration_country as a locale.
         pub fn transliteration_locale(&self) -> Option<Locale> {
             if let Some(language) = self.attr.attr("number:language") {
-                if let Ok(language) = Language::from_bytes(language.as_bytes()) {
+                if let Ok(language) = Language::try_from_bytes(language.as_bytes()) {
                     let region = if let Some(region) = self.attr.attr("number:country") {
-                        Region::from_bytes(region.as_bytes()).ok()
+                        Region::try_from_bytes(region.as_bytes()).ok()
                     } else {
                         None
                     };
