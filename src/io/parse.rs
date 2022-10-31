@@ -14,18 +14,7 @@ use nom::error::{ErrorKind, FromExternalError};
 use nom::number::complete::double;
 use nom::sequence::{pair, preceded, terminated, tuple};
 use nom::{IResult, Slice};
-use quick_xml::escape::unescape;
 use std::str::{from_utf8, from_utf8_unchecked};
-
-/// Unescape and decode as UTF8
-pub(crate) fn unescape_bytes(input: &[u8]) -> Result<String, OdsError> {
-    let result = match unescape(from_utf8(input)?) {
-        Ok(result) => result,
-        Err(err) => return Err(OdsError::Parse(err.to_string())),
-    };
-
-    Ok(result.to_string())
-}
 
 /// Parse as Visibility.
 pub(crate) fn parse_visibility(input: &[u8]) -> Result<Visibility, OdsError> {
@@ -305,17 +294,8 @@ pub(crate) fn byte(c: u8) -> impl Fn(&[u8]) -> IResult<&[u8], u8> {
 mod tests {
     use crate::io::parse::{
         parse_bool, parse_datetime, parse_duration, parse_f64, parse_i32, parse_u32, token_nano,
-        unescape_bytes,
     };
     use crate::OdsError;
-
-    #[test]
-    fn test_string() -> Result<(), OdsError> {
-        assert_eq!(unescape_bytes(b"a&lt;sdf")?, "a<sdf");
-        assert_eq!(unescape_bytes(b"asdf")?, "asdf");
-
-        Ok(())
-    }
 
     #[test]
     fn test_u32() -> Result<(), OdsError> {
