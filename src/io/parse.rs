@@ -18,13 +18,11 @@ use quick_xml::escape::unescape;
 use std::str::{from_utf8, from_utf8_unchecked};
 
 /// Unescape and decode as UTF8
-pub(crate) fn parse_string(input: &[u8]) -> Result<String, OdsError> {
-    let result = match unescape(input) {
+pub(crate) fn unescape_bytes(input: &[u8]) -> Result<String, OdsError> {
+    let result = match unescape(from_utf8(input)?) {
         Ok(result) => result,
         Err(err) => return Err(OdsError::Parse(err.to_string())),
     };
-
-    let result = from_utf8(result.as_ref())?;
 
     Ok(result.to_string())
 }
@@ -306,15 +304,15 @@ pub(crate) fn byte(c: u8) -> impl Fn(&[u8]) -> IResult<&[u8], u8> {
 #[cfg(test)]
 mod tests {
     use crate::io::parse::{
-        parse_bool, parse_datetime, parse_duration, parse_f64, parse_i32, parse_string, parse_u32,
-        token_nano,
+        parse_bool, parse_datetime, parse_duration, parse_f64, parse_i32, parse_u32, token_nano,
+        unescape_bytes,
     };
     use crate::OdsError;
 
     #[test]
     fn test_string() -> Result<(), OdsError> {
-        assert_eq!(parse_string(b"a&lt;sdf")?, "a<sdf");
-        assert_eq!(parse_string(b"asdf")?, "asdf");
+        assert_eq!(unescape_bytes(b"a&lt;sdf")?, "a<sdf");
+        assert_eq!(unescape_bytes(b"asdf")?, "asdf");
 
         Ok(())
     }

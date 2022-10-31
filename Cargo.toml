@@ -37,7 +37,7 @@ icu_locid = "0.6.0"
 lazy_static = "1.4.0"
 
 [dependencies.quick-xml]
-version = "0.23.0"
+version = "0.24.0"
 # ?? Should be UTF-8, no need for encoding related stuff.
 #features = ["encoding"]
 

@@ -17,7 +17,7 @@ use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType, ValueFormatTrait};
 use crate::io::parse::{
     parse_bool, parse_currency, parse_datetime, parse_duration, parse_f64, parse_i16, parse_i32,
-    parse_i64, parse_string, parse_u32, parse_visibility,
+    parse_i64, parse_u32, parse_visibility,
 };
 use crate::io::{DUMP_UNUSED, DUMP_XML};
 use crate::refs::{parse_cellranges, parse_cellref};
@@ -217,7 +217,7 @@ fn read_content(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
         if DUMP_XML {
             println!(" read_content {:?}", evt);
@@ -226,21 +226,21 @@ fn read_content(
             Event::Decl(_) => {}
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"office:body"
-                || xml_tag.name() == b"office:spreadsheet" => {
+            if xml_tag.name().as_ref() == b"office:body"
+                || xml_tag.name().as_ref() == b"office:spreadsheet" => {
                 // noop
             }
             Event::End(xml_tag)
-            if xml_tag.name() == b"office:body"
-                || xml_tag.name() == b"office:spreadsheet" => {
+            if xml_tag.name().as_ref() == b"office:body"
+                || xml_tag.name().as_ref() == b"office:spreadsheet" => {
                 // noop
             }
             Event::Start(xml_tag)
-            if xml_tag.name() == b"office:document-content" => {
+            if xml_tag.name().as_ref() == b"office:document-content" => {
                 for attr in xml_tag.attributes().with_checks(false) {
                     match attr? {
-                        attr if attr.key == b"office:version" => {
-                            book.set_version(parse_string(&attr.value)?);
+                        attr if attr.key.as_ref() == b"office:version" => {
+                            book.set_version(attr.unescape_value()?.to_string());
                         }
                         _ => {
                             // noop
@@ -249,71 +249,71 @@ fn read_content(
                 }
             }
             Event::End(xml_tag)
-            if xml_tag.name() == b"office:document-content" => {
+            if xml_tag.name().as_ref() == b"office:document-content" => {
                 // noop
             }
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"office:font-face-decls" =>
+            if xml_tag.name().as_ref() == b"office:font-face-decls" =>
                 read_fonts(bs, book, StyleOrigin::Content, &mut xml)?,
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"office:styles" =>
+            if xml_tag.name().as_ref() == b"office:styles" =>
                 read_styles_tag(bs, book, StyleOrigin::Content, &mut xml)?,
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"office:automatic-styles" =>
+            if xml_tag.name().as_ref() == b"office:automatic-styles" =>
                 read_auto_styles(bs, book, StyleOrigin::Content, &mut xml)?,
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"office:master-styles" =>
+            if xml_tag.name().as_ref() == b"office:master-styles" =>
                 read_master_styles(bs, book, StyleOrigin::Content, &mut xml)?,
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"table:content-validations" =>
+            if xml_tag.name().as_ref() == b"table:content-validations" =>
                 read_validations(bs, book, &mut xml)?,
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"table:table" =>
+            if xml_tag.name().as_ref() == b"table:table" =>
                 book.push_sheet(read_table(bs, &mut xml, xml_tag)?),
 
             Event::Empty(xml_tag) |
             Event::Start(xml_tag)
-            if /* prelude */ xml_tag.name() == b"office:scripts" ||
-                xml_tag.name() == b"table:tracked-changes" ||
-                xml_tag.name() == b"text:variable-decls" ||
-                xml_tag.name() == b"text:sequence-decls" ||
-                xml_tag.name() == b"text:user-field-decls" ||
-                xml_tag.name() == b"text:dde-connection-decls" ||
-                // xml_tag.name() == b"text:alphabetical-index-auto-mark-file" ||
-                xml_tag.name() == b"table:calculation-settings" ||
-                xml_tag.name() == b"table:label-ranges" ||
+            if /* prelude */ xml_tag.name().as_ref() == b"office:scripts" ||
+                xml_tag.name().as_ref() == b"table:tracked-changes" ||
+                xml_tag.name().as_ref() == b"text:variable-decls" ||
+                xml_tag.name().as_ref() == b"text:sequence-decls" ||
+                xml_tag.name().as_ref() == b"text:user-field-decls" ||
+                xml_tag.name().as_ref() == b"text:dde-connection-decls" ||
+                // xml_tag.name().as_ref() == b"text:alphabetical-index-auto-mark-file" ||
+                xml_tag.name().as_ref() == b"table:calculation-settings" ||
+                xml_tag.name().as_ref() == b"table:label-ranges" ||
                 /* epilogue */
-                xml_tag.name() == b"table:named-expressions" ||
-                xml_tag.name() == b"table:database-ranges" ||
-                xml_tag.name() == b"table:data-pilot-tables" ||
-                xml_tag.name() == b"table:consolidation" ||
-                xml_tag.name() == b"table:dde-links" => {
-                let v = read_xml(bs, xml_tag.name(), &mut xml, &xml_tag, empty_tag)?;
+                xml_tag.name().as_ref() == b"table:named-expressions" ||
+                xml_tag.name().as_ref() == b"table:database-ranges" ||
+                xml_tag.name().as_ref() == b"table:data-pilot-tables" ||
+                xml_tag.name().as_ref() == b"table:consolidation" ||
+                xml_tag.name().as_ref() == b"table:dde-links" => {
+                let v = read_xml(bs, xml_tag.name().as_ref(), &mut xml, &xml_tag, empty_tag)?;
                 book.extra.push(v);
             }
 
             Event::End(xml_tag)
-            if /* prelude */ xml_tag.name() == b"office:scripts" ||
-                xml_tag.name() == b"table:tracked-changes" ||
-                xml_tag.name() == b"text:variable-decls" ||
-                xml_tag.name() == b"text:sequence-decls" ||
-                xml_tag.name() == b"text:user-field-decls" ||
-                xml_tag.name() == b"text:dde-connection-decls" ||
-                // xml_tag.name() == b"text:alphabetical-index-auto-mark-file" ||
-                xml_tag.name() == b"table:calculation-settings" ||
-                xml_tag.name() == b"table:label-ranges" ||
+            if /* prelude */ xml_tag.name().as_ref() == b"office:scripts" ||
+                xml_tag.name().as_ref() == b"table:tracked-changes" ||
+                xml_tag.name().as_ref() == b"text:variable-decls" ||
+                xml_tag.name().as_ref() == b"text:sequence-decls" ||
+                xml_tag.name().as_ref() == b"text:user-field-decls" ||
+                xml_tag.name().as_ref() == b"text:dde-connection-decls" ||
+                // xml_tag.name().as_ref() == b"text:alphabetical-index-auto-mark-file" ||
+                xml_tag.name().as_ref() == b"table:calculation-settings" ||
+                xml_tag.name().as_ref() == b"table:label-ranges" ||
                 /* epilogue */
-                xml_tag.name() == b"table:named-expressions" ||
-                xml_tag.name() == b"table:database-ranges" ||
-                xml_tag.name() == b"table:data-pilot-tables" ||
-                xml_tag.name() == b"table:consolidation" ||
-                xml_tag.name() == b"table:dde-links" => {
+                xml_tag.name().as_ref() == b"table:named-expressions" ||
+                xml_tag.name().as_ref() == b"table:database-ranges" ||
+                xml_tag.name().as_ref() == b"table:data-pilot-tables" ||
+                xml_tag.name().as_ref() == b"table:consolidation" ||
+                xml_tag.name().as_ref() == b"table:dde-links" => {
                 // noop
             }
 
@@ -360,71 +360,71 @@ fn read_table(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
         if DUMP_XML {
             println!(" read_table {:?}", evt);
         }
         match evt {
             Event::End(xml_tag)
-            if xml_tag.name() == b"table:table" => {
+            if xml_tag.name().as_ref() == b"table:table" => {
                 break;
             }
 
             Event::Start(xml_tag) |
             Event::Empty(xml_tag)
-            if /* prelude */ xml_tag.name() == b"table:title" ||
-                xml_tag.name() == b"table:desc" ||
-                xml_tag.name() == b"table:table-source" ||
-                xml_tag.name() == b"office:dde-source" ||
-                xml_tag.name() == b"table:scenario" ||
-                xml_tag.name() == b"office:forms" ||
-                xml_tag.name() == b"table:shapes" ||
+            if /* prelude */ xml_tag.name().as_ref() == b"table:title" ||
+                xml_tag.name().as_ref() == b"table:desc" ||
+                xml_tag.name().as_ref() == b"table:table-source" ||
+                xml_tag.name().as_ref() == b"office:dde-source" ||
+                xml_tag.name().as_ref() == b"table:scenario" ||
+                xml_tag.name().as_ref() == b"office:forms" ||
+                xml_tag.name().as_ref() == b"table:shapes" ||
                 /* epilogue */
-                xml_tag.name() == b"table:named-expressions" ||
-                xml_tag.name() == b"calcext:conditional-formats" => {
-                sheet.extra.push(read_xml(bs, xml_tag.name(), xml, &xml_tag, empty_tag)?);
+                xml_tag.name().as_ref() == b"table:named-expressions" ||
+                xml_tag.name().as_ref() == b"calcext:conditional-formats" => {
+                sheet.extra.push(read_xml(bs, xml_tag.name().as_ref(), xml, &xml_tag, empty_tag)?);
             }
 
             Event::End(xml_tag)
-            if /* prelude */ xml_tag.name() == b"table:title" ||
-                xml_tag.name() == b"table:desc" ||
-                xml_tag.name() == b"table:table-source" ||
-                xml_tag.name() == b"office:dde-source" ||
-                xml_tag.name() == b"table:scenario" ||
-                xml_tag.name() == b"office:forms" ||
-                xml_tag.name() == b"table:shapes" ||
+            if /* prelude */ xml_tag.name().as_ref() == b"table:title" ||
+                xml_tag.name().as_ref() == b"table:desc" ||
+                xml_tag.name().as_ref() == b"table:table-source" ||
+                xml_tag.name().as_ref() == b"office:dde-source" ||
+                xml_tag.name().as_ref() == b"table:scenario" ||
+                xml_tag.name().as_ref() == b"office:forms" ||
+                xml_tag.name().as_ref() == b"table:shapes" ||
                 /* epilogue */
-                xml_tag.name() == b"table:named-expressions" ||
-                xml_tag.name() == b"calcext:conditional-formats" => {}
+                xml_tag.name().as_ref() == b"table:named-expressions" ||
+                xml_tag.name().as_ref() == b"calcext:conditional-formats" => {}
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"table:table-header-columns" => {
+            if xml_tag.name().as_ref() == b"table:table-header-columns" => {
                 col_range_from = table_col;
             }
 
             Event::End(xml_tag)
-            if xml_tag.name() == b"table:table-header-columns" => {
+            if xml_tag.name().as_ref() == b"table:table-header-columns" => {
                 sheet.header_cols = Some(ColRange::new(col_range_from, table_col - 1));
             }
 
             Event::Empty(xml_tag)
-            if xml_tag.name() == b"table:table-column" => {
+            if xml_tag.name().as_ref() == b"table:table-column" => {
                 table_col = read_table_col_attr(&mut sheet, table_col,  &xml_tag)?;
             }
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"table:table-header-rows" => {
+            if xml_tag.name().as_ref() == b"table:table-header-rows" => {
                 row_range_from = row;
             }
 
             Event::End(xml_tag)
-            if xml_tag.name() == b"table:table-header-rows" => {
+            if xml_tag.name().as_ref() == b"table:table-header-rows" => {
                 sheet.header_rows = Some(RowRange::new(row_range_from, row - 1));
             }
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"table:table-row" => {
+            if xml_tag.name().as_ref() == b"table:table-row" => {
                 let (repeat, style, cellstyle, visible) = read_table_row_attr( xml_tag)?;
                 row_repeat = repeat;
                 rowstyle = style;
@@ -433,7 +433,7 @@ fn read_table(
             }
 
             Event::End(xml_tag)
-            if xml_tag.name() == b"table:table-row" => {
+            if xml_tag.name().as_ref() == b"table:table-row" => {
                 if row_repeat > 1 {
                     sheet.set_row_repeat(row, row_repeat);
                 }
@@ -456,12 +456,12 @@ fn read_table(
             }
 
             Event::Empty(xml_tag)
-            if xml_tag.name() == b"table:table-cell" || xml_tag.name() == b"table:covered-table-cell" => {
+            if xml_tag.name().as_ref() == b"table:table-cell" || xml_tag.name().as_ref() == b"table:covered-table-cell" => {
                 col = read_empty_table_cell(&mut sheet, row, col, xml_tag)?;
             }
 
             Event::Start(xml_tag)
-            if xml_tag.name() == b"table:table-cell" || xml_tag.name() == b"table:covered-table-cell" => {
+            if xml_tag.name().as_ref() == b"table:table-cell" || xml_tag.name().as_ref() == b"table:covered-table-cell" => {
                 col = read_table_cell2(bs, &mut sheet, row, col, xml, xml_tag)?;
             }
 
@@ -480,25 +480,25 @@ fn read_table(
 fn read_table_attr(sheet: &mut Sheet, xml_tag: BytesStart<'_>) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"table:name" => {
-                sheet.set_name(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"table:name" => {
+                sheet.set_name(attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"table:style-name" => {
-                sheet.set_style(&parse_string(&attr.value)?.into());
+            attr if attr.key.as_ref() == b"table:style-name" => {
+                sheet.set_style(&attr.unescape_value()?.as_ref().into());
             }
-            attr if attr.key == b"table:print" => {
+            attr if attr.key.as_ref() == b"table:print" => {
                 sheet.set_print(parse_bool(&attr.value)?);
             }
-            attr if attr.key == b"table:display" => {
+            attr if attr.key.as_ref() == b"table:display" => {
                 sheet.set_display(parse_bool(&attr.value)?);
             }
-            attr if attr.key == b"table:print-ranges" => {
-                let v = attr.unescaped_value()?;
+            attr if attr.key.as_ref() == b"table:print-ranges" => {
+                let v = attr.unescape_value()?;
                 let mut pos = 0usize;
-                sheet.print_ranges = parse_cellranges(from_utf8(v.as_ref())?, &mut pos)?;
+                sheet.print_ranges = parse_cellranges(v.as_ref(), &mut pos)?;
             }
             attr => {
-                dump_unused("read_table_attr", xml_tag.name(), &attr)?;
+                dump_unused("read_table_attr", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -518,20 +518,20 @@ fn read_table_row_attr(
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
             // table:default-cell-style-name 19.615, table:visibility 19.749 and xml:id 19.914.
-            attr if attr.key == b"table:number-rows-repeated" => {
+            attr if attr.key.as_ref() == b"table:number-rows-repeated" => {
                 row_repeat = parse_u32(&attr.value)?;
             }
-            attr if attr.key == b"table:style-name" => {
-                rowstyle = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"table:style-name" => {
+                rowstyle = Some(attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"table:default-cell-style-name" => {
-                row_cellstyle = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
+                row_cellstyle = Some(attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"table:visibility" => {
+            attr if attr.key.as_ref() == b"table:visibility" => {
                 row_visible = parse_visibility(&attr.value)?;
             }
             attr => {
-                dump_unused("read_table_row_attr", xml_tag.name(), &attr)?;
+                dump_unused("read_table_row_attr", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -552,30 +552,30 @@ fn read_table_col_attr(
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"table:number-columns-repeated" => {
+            attr if attr.key.as_ref() == b"table:number-columns-repeated" => {
                 repeat = parse_u32(&attr.value)?;
             }
-            attr if attr.key == b"table:style-name" => {
-                style = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"table:style-name" => {
+                style = Some(attr.unescape_value()?);
             }
-            attr if attr.key == b"table:default-cell-style-name" => {
-                cellstyle = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
+                cellstyle = Some(attr.unescape_value()?);
             }
-            attr if attr.key == b"table:visibility" => {
+            attr if attr.key.as_ref() == b"table:visibility" => {
                 visible = parse_visibility(&attr.value)?;
             }
             attr => {
-                dump_unused("read_table_col_attr", xml_tag.name(), &attr)?;
+                dump_unused("read_table_col_attr", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
 
     while repeat > 0 {
         if let Some(style) = &style {
-            sheet.set_colstyle(table_col, &style.into());
+            sheet.set_colstyle(table_col, &style.as_ref().into());
         }
         if let Some(cellstyle) = &cellstyle {
-            sheet.set_col_cellstyle(table_col, &cellstyle.into());
+            sheet.set_col_cellstyle(table_col, &cellstyle.as_ref().into());
         }
         sheet.set_col_visible(table_col, visible);
         table_col += 1;
@@ -641,22 +641,22 @@ fn read_table_cell2(
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"table:number-columns-repeated" => {
+            attr if attr.key.as_ref() == b"table:number-columns-repeated" => {
                 cell_repeat = parse_u32(&attr.value)?;
             }
-            attr if attr.key == b"table:number-rows-spanned" => {
+            attr if attr.key.as_ref() == b"table:number-rows-spanned" => {
                 cell.span.row_span = parse_u32(&attr.value)?;
             }
-            attr if attr.key == b"table:number-columns-spanned" => {
+            attr if attr.key.as_ref() == b"table:number-columns-spanned" => {
                 cell.span.col_span = parse_u32(&attr.value)?;
             }
-            attr if attr.key == b"table:content-validation-name" => {
-                cell.validation_name = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"table:content-validation-name" => {
+                cell.validation_name = Some(attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"calcext:value-type" => {
+            attr if attr.key.as_ref() == b"calcext:value-type" => {
                 // not used. office:value-type seems to be good enough.
             }
-            attr if attr.key == b"office:value-type" => {
+            attr if attr.key.as_ref() == b"office:value-type" => {
                 tc.val_type = match attr.value.as_ref() {
                     b"string" => ValueType::Text,
                     b"float" => ValueType::Number,
@@ -668,48 +668,48 @@ fn read_table_cell2(
                     other => return Err(OdsError::Parse(format!("Unknown cell-type {:?}", other))),
                 }
             }
-            attr if attr.key == b"office:date-value" => {
+            attr if attr.key.as_ref() == b"office:date-value" => {
                 tc.val_datetime = Some(parse_datetime(&attr.value)?);
             }
-            attr if attr.key == b"office:time-value" => {
+            attr if attr.key.as_ref() == b"office:time-value" => {
                 tc.val_duration = Some(parse_duration(&attr.value)?);
             }
-            attr if attr.key == b"office:value" => {
+            attr if attr.key.as_ref() == b"office:value" => {
                 tc.val_float = Some(parse_f64(&attr.value)?);
             }
-            attr if attr.key == b"office:boolean-value" => {
+            attr if attr.key.as_ref() == b"office:boolean-value" => {
                 tc.val_bool = Some(parse_bool(&attr.value)?);
             }
-            attr if attr.key == b"office:string-value" => {
-                tc.val_string = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"office:string-value" => {
+                tc.val_string = Some(attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"office:currency" => {
+            attr if attr.key.as_ref() == b"office:currency" => {
                 tc.val_currency = Some(parse_currency(&attr.value)?);
             }
-            attr if attr.key == b"table:formula" => {
-                cell.formula = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"table:formula" => {
+                cell.formula = Some(attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"table:style-name" => {
-                cell.style = Some(parse_string(attr.value.as_ref())?);
+            attr if attr.key.as_ref() == b"table:style-name" => {
+                cell.style = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused("read_table_cell2", xml_tag.name(), &attr)?;
+                dump_unused("read_table_cell2", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_table_cell {:?}", evt);
         }
         match evt {
-            Event::Start(xml_tag) if xml_tag.name() == b"text:p" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"text:p" => {
                 let new_txt = read_text_or_tag(bs, b"text:p", xml, &xml_tag, false)?;
                 tc.content = append_text(new_txt, tc.content);
             }
-            Event::Empty(xml_tag) if xml_tag.name() == b"text:p" => {
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"text:p" => {
                 // noop
             }
 
@@ -899,28 +899,30 @@ fn read_empty_table_cell(
     let mut cell_repeat = 1;
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"table:number-columns-repeated" => {
+            attr if attr.key.as_ref() == b"table:number-columns-repeated" => {
                 cell_repeat = parse_u32(&attr.value)?;
             }
-            attr if attr.key == b"table:formula" => {
-                cell.get_or_insert_with(CellData::new).formula = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"table:formula" => {
+                cell.get_or_insert_with(CellData::new).formula =
+                    Some(attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"table:style-name" => {
-                cell.get_or_insert_with(CellData::new).style = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"table:style-name" => {
+                cell.get_or_insert_with(CellData::new).style =
+                    Some(attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"table:number-rows-spanned" => {
+            attr if attr.key.as_ref() == b"table:number-rows-spanned" => {
                 cell.get_or_insert_with(CellData::new).span.row_span = parse_u32(&attr.value)?;
             }
-            attr if attr.key == b"table:number-columns-spanned" => {
+            attr if attr.key.as_ref() == b"table:number-columns-spanned" => {
                 cell.get_or_insert_with(CellData::new).span.col_span = parse_u32(&attr.value)?;
             }
-            attr if attr.key == b"table:content-validation-name" => {
+            attr if attr.key.as_ref() == b"table:content-validation-name" => {
                 cell.get_or_insert_with(CellData::new).validation_name =
-                    Some(parse_string(&attr.value)?);
+                    Some(attr.unescape_value()?.to_string());
             }
 
             attr => {
-                dump_unused("read_empty_table_cell", xml_tag.name(), &attr)?;
+                dump_unused("read_empty_table_cell", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -953,27 +955,29 @@ fn read_fonts(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_fonts {:?}", evt);
         }
         match evt {
-            Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                b"style:font-face" => {
-                    let name = proc_style_attr(font.attrmap_mut(), xml_tag)?;
-                    font.set_name(name);
+            Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
+                match xml_tag.name().as_ref() {
+                    b"style:font-face" => {
+                        let name = proc_style_attr(font.attrmap_mut(), xml_tag)?;
+                        font.set_name(name);
 
-                    book.add_font(font);
+                        book.add_font(font);
 
-                    font = FontFaceDecl::new_empty();
-                    font.set_origin(StyleOrigin::Content);
+                        font = FontFaceDecl::new_empty();
+                        font.set_origin(StyleOrigin::Content);
+                    }
+                    _ => {
+                        dump_unused2("read_fonts", &evt)?;
+                    }
                 }
-                _ => {
-                    dump_unused2("read_fonts", &evt)?;
-                }
-            },
+            }
             Event::End(ref e) => {
-                if e.name() == b"office:font-face-decls" {
+                if e.name().as_ref() == b"office:font-face-decls" {
                     break;
                 }
             }
@@ -1002,14 +1006,14 @@ fn read_page_style(
     let mut pl = PageStyle::new_empty();
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"style:name" => {
-                pl.set_name(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"style:name" => {
+                pl.set_name(&attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"style:page-usage" => {
-                pl.master_page_usage = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"style:page-usage" => {
+                pl.master_page_usage = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused("read_page_style", xml_tag.name(), &attr)?;
+                dump_unused("read_page_style", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -1019,13 +1023,13 @@ fn read_page_style(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_page_layout {:?}", evt);
         }
         match evt {
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
-                match xml_tag.name() {
+                match xml_tag.name().as_ref() {
                     b"style:page-layout-properties" => copy_attr2(pl.style_mut(), xml_tag)?,
                     b"style:header-style" => headerstyle = true,
                     b"style:footer-style" => footerstyle = true,
@@ -1046,7 +1050,7 @@ fn read_page_style(
                 }
             }
             Event::Text(_) => (),
-            Event::End(ref end) => match end.name() {
+            Event::End(ref end) => match end.name().as_ref() {
                 b"style:page-layout" => break,
                 b"style:page-layout-properties" => {}
                 b"style:header-style" => headerstyle = false,
@@ -1080,137 +1084,147 @@ fn read_validations(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
         if DUMP_XML {
             println!(" read_master_styles {:?}", evt);
         }
         match evt {
-            Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                b"table:content-validation" => {
-                    for attr in xml_tag.attributes().with_checks(false) {
-                        match attr? {
-                            attr if attr.key == b"table:name" => {
-                                valid.set_name(parse_string(&attr.value)?);
-                            }
-                            attr if attr.key == b"table:condition" => {
-                                // split off 'of:' prefix
-                                let v = parse_string(&attr.value)?;
-                                valid.set_condition(Condition::new(v.split_at(3).1));
-                            }
-                            attr if attr.key == b"table:allow-empty-cell" => {
-                                valid.set_allow_empty(parse_bool(&attr.value)?);
-                            }
-                            attr if attr.key == b"table:base-cell-address" => {
-                                // todo: maybe better
-                                let v = attr.unescaped_value()?;
-                                let mut pos = 0usize;
-                                valid.set_base_cell(parse_cellref(
-                                    from_utf8(v.as_ref())?,
-                                    &mut pos,
-                                )?);
-                            }
-                            attr if attr.key == b"table:display-list" => {
-                                valid.set_display(attr.value.as_ref().try_into()?);
-                            }
-                            attr => {
-                                dump_unused("read_validations", xml_tag.name(), &attr)?;
+            Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
+                match xml_tag.name().as_ref() {
+                    b"table:content-validation" => {
+                        for attr in xml_tag.attributes().with_checks(false) {
+                            match attr? {
+                                attr if attr.key.as_ref() == b"table:name" => {
+                                    valid.set_name(attr.unescape_value()?.to_string());
+                                }
+                                attr if attr.key.as_ref() == b"table:condition" => {
+                                    // split off 'of:' prefix
+                                    let v = attr.unescape_value()?.to_string();
+                                    valid.set_condition(Condition::new(v.split_at(3).1));
+                                }
+                                attr if attr.key.as_ref() == b"table:allow-empty-cell" => {
+                                    valid.set_allow_empty(parse_bool(&attr.value)?);
+                                }
+                                attr if attr.key.as_ref() == b"table:base-cell-address" => {
+                                    // todo: maybe better
+                                    let v = attr.unescape_value()?;
+                                    let mut pos = 0usize;
+                                    valid.set_base_cell(parse_cellref(&v, &mut pos)?);
+                                }
+                                attr if attr.key.as_ref() == b"table:display-list" => {
+                                    valid.set_display(attr.value.as_ref().try_into()?);
+                                }
+                                attr => {
+                                    dump_unused(
+                                        "read_validations",
+                                        xml_tag.name().as_ref(),
+                                        &attr,
+                                    )?;
+                                }
                             }
                         }
-                    }
 
-                    if empty_tag {
-                        book.add_validation(valid);
-                        valid = Validation::new();
+                        if empty_tag {
+                            book.add_validation(valid);
+                            valid = Validation::new();
+                        }
+                    }
+                    b"table:error-message" => {
+                        let mut ve = ValidationError::new();
+
+                        for attr in xml_tag.attributes().with_checks(false) {
+                            match attr? {
+                                attr if attr.key.as_ref() == b"table:display" => {
+                                    ve.set_display(parse_bool(&attr.value)?);
+                                }
+                                attr if attr.key.as_ref() == b"table:message-type" => {
+                                    let mt = match attr.value.as_ref() {
+                                        b"stop" => MessageType::Error,
+                                        b"warning" => MessageType::Warning,
+                                        b"information" => MessageType::Info,
+                                        _ => {
+                                            return Err(OdsError::Parse(format!(
+                                                "unknown message-type {}",
+                                                attr.unescape_value()?
+                                            )))
+                                        }
+                                    };
+                                    ve.set_msg_type(mt);
+                                }
+                                attr if attr.key.as_ref() == b"table:title" => {
+                                    ve.set_title(Some(attr.unescape_value()?.to_string()));
+                                }
+                                attr => {
+                                    dump_unused(
+                                        "read_validations",
+                                        xml_tag.name().as_ref(),
+                                        &attr,
+                                    )?;
+                                }
+                            }
+                        }
+                        let txt =
+                            read_text_or_tag(bs, b"table:error-message", xml, xml_tag, empty_tag)?;
+                        match txt {
+                            TextContent2::Empty => {}
+                            TextContent2::Xml(txt) => {
+                                ve.set_text(Some(txt));
+                            }
+                            _ => {
+                                return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
+                                    format!("table:error-message invalid {:?}", txt),
+                                )));
+                            }
+                        }
+
+                        valid.set_err(Some(ve));
+                    }
+                    b"table:help-message" => {
+                        let mut vh = ValidationHelp::new();
+
+                        for attr in xml_tag.attributes().with_checks(false) {
+                            match attr? {
+                                attr if attr.key.as_ref() == b"table:display" => {
+                                    vh.set_display(parse_bool(&attr.value)?);
+                                }
+                                attr if attr.key.as_ref() == b"table:title" => {
+                                    vh.set_title(Some(attr.unescape_value()?.to_string()));
+                                }
+                                attr => {
+                                    dump_unused(
+                                        "read_validations",
+                                        xml_tag.name().as_ref(),
+                                        &attr,
+                                    )?;
+                                }
+                            }
+                        }
+                        let txt =
+                            read_text_or_tag(bs, b"table:help-message", xml, xml_tag, empty_tag)?;
+                        match txt {
+                            TextContent2::Empty => {}
+                            TextContent2::Xml(txt) => {
+                                vh.set_text(Some(txt));
+                            }
+                            _ => {
+                                return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
+                                    format!("table:help-message invalid {:?}", txt),
+                                )));
+                            }
+                        }
+
+                        valid.set_help(Some(vh));
+                    }
+                    // no macros
+                    // b"office:event-listeners"
+                    // b"table:error-macro"
+                    _ => {
+                        dump_unused2("read_validations", &evt)?;
                     }
                 }
-                b"table:error-message" => {
-                    let mut ve = ValidationError::new();
-
-                    for attr in xml_tag.attributes().with_checks(false) {
-                        match attr? {
-                            attr if attr.key == b"table:display" => {
-                                ve.set_display(parse_bool(&attr.value)?);
-                            }
-                            attr if attr.key == b"table:message-type" => {
-                                let mt = match attr.value.as_ref() {
-                                    b"stop" => MessageType::Error,
-                                    b"warning" => MessageType::Warning,
-                                    b"information" => MessageType::Info,
-                                    _ => {
-                                        return Err(OdsError::Parse(format!(
-                                            "unknown message-type {}",
-                                            parse_string(&attr.value)?
-                                        )))
-                                    }
-                                };
-                                ve.set_msg_type(mt);
-                            }
-                            attr if attr.key == b"table:title" => {
-                                ve.set_title(Some(parse_string(&attr.value)?));
-                            }
-                            attr => {
-                                dump_unused("read_validations", xml_tag.name(), &attr)?;
-                            }
-                        }
-                    }
-                    let txt =
-                        read_text_or_tag(bs, b"table:error-message", xml, xml_tag, empty_tag)?;
-                    match txt {
-                        TextContent2::Empty => {}
-                        TextContent2::Xml(txt) => {
-                            ve.set_text(Some(txt));
-                        }
-                        _ => {
-                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
-                                "table:error-message invalid {:?}",
-                                txt
-                            ))));
-                        }
-                    }
-
-                    valid.set_err(Some(ve));
-                }
-                b"table:help-message" => {
-                    let mut vh = ValidationHelp::new();
-
-                    for attr in xml_tag.attributes().with_checks(false) {
-                        match attr? {
-                            attr if attr.key == b"table:display" => {
-                                vh.set_display(parse_bool(&attr.value)?);
-                            }
-                            attr if attr.key == b"table:title" => {
-                                vh.set_title(Some(parse_string(&attr.value)?));
-                            }
-                            attr => {
-                                dump_unused("read_validations", xml_tag.name(), &attr)?;
-                            }
-                        }
-                    }
-                    let txt = read_text_or_tag(bs, b"table:help-message", xml, xml_tag, empty_tag)?;
-                    match txt {
-                        TextContent2::Empty => {}
-                        TextContent2::Xml(txt) => {
-                            vh.set_text(Some(txt));
-                        }
-                        _ => {
-                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
-                                "table:help-message invalid {:?}",
-                                txt
-                            ))));
-                        }
-                    }
-
-                    valid.set_help(Some(vh));
-                }
-                // no macros
-                // b"office:event-listeners"
-                // b"table:error-macro"
-                _ => {
-                    dump_unused2("read_validations", &evt)?;
-                }
-            },
-            Event::End(ref e) => match e.name() {
+            }
+            Event::End(ref e) => match e.name().as_ref() {
                 b"table:content-validation" => {
                     book.add_validation(valid);
                     valid = Validation::new();
@@ -1245,22 +1259,24 @@ fn read_master_styles(
 ) -> Result<(), OdsError> {
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_master_styles {:?}", evt);
         }
         match evt {
-            Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                b"style:master-page" => {
-                    read_master_page(bs, book, origin, xml, xml_tag)?;
+            Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
+                match xml_tag.name().as_ref() {
+                    b"style:master-page" => {
+                        read_master_page(bs, book, origin, xml, xml_tag)?;
+                    }
+                    _ => {
+                        dump_unused2("read_master_styles", &evt)?;
+                    }
                 }
-                _ => {
-                    dump_unused2("read_master_styles", &evt)?;
-                }
-            },
+            }
             Event::Text(_) => (),
             Event::End(ref e) => {
-                if e.name() == b"office:master-styles" {
+                if e.name().as_ref() == b"office:master-styles" {
                     break;
                 }
             }
@@ -1289,26 +1305,26 @@ fn read_master_page(
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"style:name" => {
-                masterpage.set_name(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"style:name" => {
+                masterpage.set_name(attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"style:page-layout-name" => {
-                masterpage.set_pagestyle(&parse_string(&attr.value)?.into());
+            attr if attr.key.as_ref() == b"style:page-layout-name" => {
+                masterpage.set_pagestyle(&attr.unescape_value()?.as_ref().into());
             }
             attr => {
-                dump_unused("read_master_page", xml_tag.name(), &attr)?;
+                dump_unused("read_master_page", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_master_page {:?}", evt);
         }
         match evt {
-            Event::Start(ref xml_tag) => match xml_tag.name() {
+            Event::Start(ref xml_tag) => match xml_tag.name().as_ref() {
                 b"style:header" => {
                     masterpage.set_header(read_headerfooter(bs, b"style:header", xml, xml_tag)?);
                 }
@@ -1358,7 +1374,7 @@ fn read_master_page(
 
             Event::Text(_) => (),
             Event::End(ref e) => {
-                if e.name() == b"style:master-page" {
+                if e.name().as_ref() == b"style:master-page" {
                     break;
                 }
             }
@@ -1389,25 +1405,25 @@ fn read_headerfooter(
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"style:display" => {
+            attr if attr.key.as_ref() == b"style:display" => {
                 hf.set_display(parse_bool(&attr.value)?);
             }
             attr => {
-                dump_unused("read_headerfooter", xml_tag.name(), &attr)?;
+                dump_unused("read_headerfooter", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
         if DUMP_XML {
             println!(" read_headerfooter {:?}", evt);
         }
         match evt {
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
-                match xml_tag.name() {
+                match xml_tag.name().as_ref() {
                     b"style:region-left" => {
                         let reg = read_xml(bs, b"style:region-left", xml, xml_tag, empty_tag)?;
                         hf.set_left(reg.into_vec()?);
@@ -1436,7 +1452,7 @@ fn read_headerfooter(
             }
             Event::Text(_) => (),
             Event::End(ref e) => {
-                if e.name() == end_tag {
+                if e.name().as_ref() == end_tag {
                     hf.set_content(match content {
                         TextContent2::Empty => Vec::new(),
                         TextContent2::Text(v) => vec![TextP::new().text(v).into()],
@@ -1469,14 +1485,14 @@ fn read_styles_tag(
 ) -> Result<(), OdsError> {
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
         if DUMP_XML {
             println!(" read_styles_tag {:?}", evt);
         }
         match evt {
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
-                match xml_tag.name() {
+                match xml_tag.name().as_ref() {
                     b"style:style" => {
                         read_style_style(
                             bs,
@@ -1518,7 +1534,7 @@ fn read_styles_tag(
             }
             Event::Text(_) => (),
             Event::End(ref e) => {
-                if e.name() == b"office:styles" {
+                if e.name().as_ref() == b"office:styles" {
                     break;
                 }
             }
@@ -1545,14 +1561,14 @@ fn read_auto_styles(
 ) -> Result<(), OdsError> {
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
         if DUMP_XML {
             println!(" read_auto_styles {:?}", evt);
         }
         match evt {
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
-                match xml_tag.name() {
+                match xml_tag.name().as_ref() {
                     b"style:style" => {
                         read_style_style(
                             bs,
@@ -1585,7 +1601,7 @@ fn read_auto_styles(
             }
             Event::Text(_) => (),
             Event::End(ref e) => {
-                if e.name() == b"office:automatic-styles" {
+                if e.name().as_ref() == b"office:automatic-styles" {
                     break;
                 }
             }
@@ -1611,7 +1627,7 @@ fn read_value_format(
     xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
 ) -> Result<(), OdsError> {
-    match xml_tag.name() {
+    match xml_tag.name().as_ref() {
         b"number:boolean-style" => {
             let mut valuestyle = ValueFormatBoolean::new_empty();
             read_value_format_parts(bs, origin, styleuse, &mut valuestyle, xml, xml_tag)?;
@@ -1649,8 +1665,9 @@ fn read_value_format(
         }
         _ => {
             if DUMP_UNUSED {
-                let n = xml.decode(xml_tag.name())?;
-                println!(" read_value_format unused {}", n);
+                let tag_name = xml_tag.name();
+                let n = xml.decoder().decode(tag_name.as_ref())?;
+                println!(" read_value_format unused {n}");
             }
         }
     }
@@ -1677,13 +1694,13 @@ fn read_value_format_parts<T: ValueFormatTrait>(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_value_format {:?}", evt);
         }
         match evt {
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
-                match xml_tag.name() {
+                match xml_tag.name().as_ref() {
                     b"number:boolean" => {
                         valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Boolean)?)
                     }
@@ -1791,10 +1808,10 @@ fn read_value_format_parts<T: ValueFormatTrait>(
             }
             Event::Text(ref e) => {
                 if let Some(part) = &mut valuestyle_part {
-                    part.set_content(e.unescape_and_decode(xml)?);
+                    part.set_content(xml.decoder().decode(e.unescape()?.as_bytes())?);
                 }
             }
-            Event::End(ref e) => match e.name() {
+            Event::End(ref e) => match e.name().as_ref() {
                 b"number:boolean-style"
                 | b"number:date-style"
                 | b"number:time-style"
@@ -1839,34 +1856,36 @@ fn read_part(
     // There is one relevant subtag embedded-text.
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_part {:?}", evt);
         }
         match evt {
-            Event::Start(ref xml_tag2) | Event::Empty(ref xml_tag2) => match xml_tag2.name() {
-                b"number:embedded-text" => {
-                    for attr in xml_tag2.attributes().with_checks(false) {
-                        let attr = attr?;
-                        match attr.key {
-                            b"number:position" => {
-                                part.set_position(parse_u32(&attr.value)?);
-                            }
-                            attr => {
-                                return Err(OdsError::Ods(format!(
-                                    "embedded-text: attribute unknown {} ",
-                                    from_utf8(attr)?
-                                )))
+            Event::Start(ref xml_tag2) | Event::Empty(ref xml_tag2) => {
+                match xml_tag2.name().as_ref() {
+                    b"number:embedded-text" => {
+                        for attr in xml_tag2.attributes().with_checks(false) {
+                            let attr = attr?;
+                            match attr.key.as_ref() {
+                                b"number:position" => {
+                                    part.set_position(parse_u32(&attr.value)?);
+                                }
+                                attr => {
+                                    return Err(OdsError::Ods(format!(
+                                        "embedded-text: attribute unknown {} ",
+                                        from_utf8(attr)?
+                                    )))
+                                }
                             }
                         }
                     }
+                    _ => dump_unused2("read_value_format", &evt)?,
                 }
-                _ => dump_unused2("read_value_format", &evt)?,
-            },
-            Event::Text(ref e) => {
-                part.set_content(e.unescape_and_decode(xml)?);
             }
-            Event::End(ref e) => match e.name() {
+            Event::Text(ref e) => {
+                part.set_content(xml.decoder().decode(e.unescape()?.as_bytes())?);
+            }
+            Event::End(ref e) => match e.name().as_ref() {
                 b"number:embedded-text" => {
                     break;
                 }
@@ -1898,7 +1917,7 @@ fn read_style_style(
 ) -> Result<(), OdsError> {
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"style:family" => {
+            attr if attr.key.as_ref() == b"style:family" => {
                 match attr.value.as_ref() {
                     b"table" => read_tablestyle(
                         bs, book, origin, styleuse, end_tag, xml, xml_tag, empty_tag,
@@ -1930,7 +1949,7 @@ fn read_style_style(
                 };
             }
             attr => {
-                dump_unused("read_style_style", xml_tag.name(), &attr)?;
+                dump_unused("read_style_style", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -1963,20 +1982,22 @@ fn read_tablestyle(
     } else {
         let mut buf = bs.get_buf();
         loop {
-            let evt = xml.read_event(&mut buf)?;
+            let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
                 println!(" read_table_style {:?}", evt);
             }
             match evt {
-                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:table-properties" => copy_attr2(style.tablestyle_mut(), xml_tag)?,
-                    _ => {
-                        dump_unused2("read_table_style", &evt)?;
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
+                    match xml_tag.name().as_ref() {
+                        b"style:table-properties" => copy_attr2(style.tablestyle_mut(), xml_tag)?,
+                        _ => {
+                            dump_unused2("read_table_style", &evt)?;
+                        }
                     }
-                },
+                }
                 Event::Text(_) => (),
                 Event::End(ref e) => {
-                    if e.name() == end_tag {
+                    if e.name().as_ref() == end_tag {
                         book.add_tablestyle(style);
                         break;
                     } else {
@@ -2021,20 +2042,22 @@ fn read_rowstyle(
     } else {
         let mut buf = bs.get_buf();
         loop {
-            let evt = xml.read_event(&mut buf)?;
+            let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
                 println!(" read_rowstyle {:?}", evt);
             }
             match evt {
-                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:table-row-properties" => copy_attr2(style.rowstyle_mut(), xml_tag)?,
-                    _ => {
-                        dump_unused2("read_rowstyle", &evt)?;
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
+                    match xml_tag.name().as_ref() {
+                        b"style:table-row-properties" => copy_attr2(style.rowstyle_mut(), xml_tag)?,
+                        _ => {
+                            dump_unused2("read_rowstyle", &evt)?;
+                        }
                     }
-                },
+                }
                 Event::Text(_) => (),
                 Event::End(ref e) => {
-                    if e.name() == end_tag {
+                    if e.name().as_ref() == end_tag {
                         book.add_rowstyle(style);
                         break;
                     } else {
@@ -2078,12 +2101,15 @@ fn read_colstyle(
     } else {
         let mut buf = bs.get_buf();
         loop {
-            let evt = xml.read_event(&mut buf)?;
+            let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
                 println!(" read_colstyle {:?}", evt);
             }
             match evt {
-                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag
+                    .name()
+                    .as_ref()
+                {
                     b"style:table-column-properties" => copy_attr2(style.colstyle_mut(), xml_tag)?,
                     _ => {
                         dump_unused2("read_colstyle", &evt)?;
@@ -2091,7 +2117,7 @@ fn read_colstyle(
                 },
                 Event::Text(_) => (),
                 Event::End(ref e) => {
-                    if e.name() == end_tag {
+                    if e.name().as_ref() == end_tag {
                         book.add_colstyle(style);
                         break;
                     } else {
@@ -2135,12 +2161,15 @@ fn read_cellstyle(
     } else {
         let mut buf = bs.get_buf();
         loop {
-            let evt = xml.read_event(&mut buf)?;
+            let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
                 println!(" read_cellstyle {:?}", evt);
             }
             match evt {
-                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag
+                    .name()
+                    .as_ref()
+                {
                     b"style:table-cell-properties" => copy_attr2(style.cellstyle_mut(), xml_tag)?,
                     b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml_tag)?,
                     b"style:paragraph-properties" => {
@@ -2161,10 +2190,10 @@ fn read_cellstyle(
                 },
                 Event::Text(_) => (),
                 Event::End(ref e) => {
-                    if e.name() == end_tag {
+                    if e.name().as_ref() == end_tag {
                         book.add_cellstyle(style);
                         break;
-                    } else if e.name() == b"style:paragraph-properties" {
+                    } else if e.name().as_ref() == b"style:paragraph-properties" {
                         // noop
                     } else {
                         dump_unused2("read_cellstyle", &evt)?;
@@ -2207,35 +2236,37 @@ fn read_paragraphstyle(
     } else {
         let mut buf = bs.get_buf();
         loop {
-            let evt = xml.read_event(&mut buf)?;
+            let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
                 println!(" read_paragraphstyle {:?}", evt);
             }
             match evt {
-                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml_tag)?,
-                    b"style:paragraph-properties" => {
-                        copy_attr2(style.paragraphstyle_mut(), xml_tag)?
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
+                    match xml_tag.name().as_ref() {
+                        b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml_tag)?,
+                        b"style:paragraph-properties" => {
+                            copy_attr2(style.paragraphstyle_mut(), xml_tag)?
+                        }
+                        // b"style:graphic-properties" => copy_attr(style.graphic_mut(), xml, xml_tag)?,
+                        // b"style:map" => style.push_stylemap(read_stylemap(xml, xml_tag)?),
+                        b"style:tab-stops" => (),
+                        b"style:tab-stop" => {
+                            let mut ts = TabStop::new();
+                            copy_attr2(ts.attrmap_mut(), xml_tag)?;
+                            style.add_tabstop(ts);
+                        }
+                        _ => {
+                            dump_unused2("read_paragraphstyle", &evt)?;
+                        }
                     }
-                    // b"style:graphic-properties" => copy_attr(style.graphic_mut(), xml, xml_tag)?,
-                    // b"style:map" => style.push_stylemap(read_stylemap(xml, xml_tag)?),
-                    b"style:tab-stops" => (),
-                    b"style:tab-stop" => {
-                        let mut ts = TabStop::new();
-                        copy_attr2(ts.attrmap_mut(), xml_tag)?;
-                        style.add_tabstop(ts);
-                    }
-                    _ => {
-                        dump_unused2("read_paragraphstyle", &evt)?;
-                    }
-                },
+                }
                 Event::Text(_) => (),
                 Event::End(ref e) => {
-                    if e.name() == end_tag {
+                    if e.name().as_ref() == end_tag {
                         book.add_paragraphstyle(style);
                         break;
-                    } else if e.name() == b"style:tab-stops"
-                        || e.name() == b"style:paragraph-properties"
+                    } else if e.name().as_ref() == b"style:tab-stops"
+                        || e.name().as_ref() == b"style:paragraph-properties"
                     {
                         // noop
                     } else {
@@ -2279,20 +2310,22 @@ fn read_textstyle(
     } else {
         let mut buf = bs.get_buf();
         loop {
-            let evt = xml.read_event(&mut buf)?;
+            let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
                 println!(" read_textstyle {:?}", evt);
             }
             match evt {
-                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
-                    b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml_tag)?,
-                    _ => {
-                        dump_unused2("read_textstyle", &evt)?;
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
+                    match xml_tag.name().as_ref() {
+                        b"style:text-properties" => copy_attr2(style.textstyle_mut(), xml_tag)?,
+                        _ => {
+                            dump_unused2("read_textstyle", &evt)?;
+                        }
                     }
-                },
+                }
                 Event::Text(_) => (),
                 Event::End(ref e) => {
-                    if e.name() == end_tag {
+                    if e.name().as_ref() == end_tag {
                         book.add_textstyle(style);
                         break;
                     } else {
@@ -2336,12 +2369,15 @@ fn read_graphicstyle(
     } else {
         let mut buf = bs.get_buf();
         loop {
-            let evt = xml.read_event(&mut buf)?;
+            let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
                 println!(" read_graphicstyle {:?}", evt);
             }
             match evt {
-                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag.name() {
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => match xml_tag
+                    .name()
+                    .as_ref()
+                {
                     b"style:graphic-properties" => copy_attr2(style.graphicstyle_mut(), xml_tag)?,
                     _ => {
                         dump_unused2("read_graphicstyle", &evt)?;
@@ -2349,7 +2385,7 @@ fn read_graphicstyle(
                 },
                 Event::Text(_) => (),
                 Event::End(ref e) => {
-                    if e.name() == end_tag {
+                    if e.name().as_ref() == end_tag {
                         book.add_graphicstyle(style);
                         break;
                     } else {
@@ -2372,20 +2408,20 @@ fn read_stylemap(xml_tag: &BytesStart<'_>) -> Result<StyleMap, OdsError> {
     let mut sm = StyleMap::default();
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"style:condition" => {
-                sm.set_condition(ValueCondition::new(parse_string(&attr.value)?));
+            attr if attr.key.as_ref() == b"style:condition" => {
+                sm.set_condition(ValueCondition::new(attr.unescape_value()?.to_string()));
             }
-            attr if attr.key == b"style:apply-style-name" => {
-                sm.set_applied_style(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"style:apply-style-name" => {
+                sm.set_applied_style(attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"style:base-cell-address" => {
+            attr if attr.key.as_ref() == b"style:base-cell-address" => {
                 // todo: maybe better?
-                let v = attr.unescaped_value()?;
+                let v = attr.unescape_value()?;
                 let mut pos = 0usize;
-                sm.set_base_cell(parse_cellref(from_utf8(v.as_ref())?, &mut pos)?);
+                sm.set_base_cell(parse_cellref(v.as_ref(), &mut pos)?);
             }
             attr => {
-                dump_unused("read_stylemap", xml_tag.name(), &attr)?;
+                dump_unused("read_stylemap", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -2402,12 +2438,12 @@ fn proc_style_attr<'a>(
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"style:name" => {
-                name = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"style:name" => {
+                name = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                let k = from_utf8(attr.key)?;
-                let v = parse_string(&attr.value)?;
+                let k = from_utf8(attr.key.as_ref())?;
+                let v = attr.unescape_value()?.to_string();
                 attrmap.set_attr(k, v);
             }
         }
@@ -2421,8 +2457,8 @@ fn copy_attr2(attrmap: &mut AttrMap2, xml_tag: &BytesStart<'_>) -> Result<(), Od
     for attr in xml_tag.attributes().with_checks(false) {
         let attr = attr?;
 
-        let k = from_utf8(attr.key)?;
-        let v = parse_string(&attr.value)?;
+        let k = from_utf8(attr.key.as_ref())?;
+        let v = attr.unescape_value()?.to_string();
         attrmap.set_attr(k, v);
     }
 
@@ -2442,33 +2478,33 @@ fn read_styles(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_styles {:?}", evt);
         }
         match evt {
             Event::Decl(_) => {}
 
-            Event::Start(xml_tag) if xml_tag.name() == b"office:document-styles" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:document-styles" => {
                 // noop
             }
-            Event::End(xml_tag) if xml_tag.name() == b"office:document-styles" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-styles" => {
                 // noop
             }
 
-            Event::Start(xml_tag) if xml_tag.name() == b"office:font-face-decls" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:font-face-decls" => {
                 read_fonts(bs, book, StyleOrigin::Styles, &mut xml)?
             }
 
-            Event::Start(xml_tag) if xml_tag.name() == b"office:styles" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:styles" => {
                 read_styles_tag(bs, book, StyleOrigin::Styles, &mut xml)?
             }
 
-            Event::Start(xml_tag) if xml_tag.name() == b"office:automatic-styles" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:automatic-styles" => {
                 read_auto_styles(bs, book, StyleOrigin::Styles, &mut xml)?
             }
 
-            Event::Start(xml_tag) if xml_tag.name() == b"office:master-styles" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:master-styles" => {
                 read_master_styles(bs, book, StyleOrigin::Styles, &mut xml)?
             }
 
@@ -2591,7 +2627,7 @@ fn read_settings(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_settings {:?}", evt);
         }
@@ -2599,14 +2635,14 @@ fn read_settings(
         match evt {
             Event::Decl(_) => {}
 
-            Event::Start(xml_tag) if xml_tag.name() == b"office:document-settings" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:document-settings" => {
                 // noop
             }
-            Event::End(xml_tag) if xml_tag.name() == b"office:document-settings" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-settings" => {
                 // noop
             }
 
-            Event::Start(xml_tag) if xml_tag.name() == b"office:settings" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:settings" => {
                 book.config = Detach::new(read_office_settings(bs, &mut xml)?);
             }
 
@@ -2635,16 +2671,16 @@ fn read_office_settings(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_office_settings {:?}", evt);
         }
         match evt {
-            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-set" => {
+            Event::Start(ref xml_tag) if xml_tag.name().as_ref() == b"config:config-item-set" => {
                 let (name, set) = read_config_item_set(bs, xml_tag, xml)?;
                 config.insert(name, set);
             }
-            Event::End(ref e) if e.name() == b"office:settings" => {
+            Event::End(ref e) if e.name().as_ref() == b"office:settings" => {
                 break;
             }
             Event::Eof => break,
@@ -2672,11 +2708,11 @@ fn read_config_item_set(
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"config:name" => {
-                name = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"config:name" => {
+                name = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused("read_config_item_set", xml_tag.name(), &attr)?;
+                dump_unused("read_config_item_set", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -2689,28 +2725,32 @@ fn read_config_item_set(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_office_item_set {:?}", evt);
         }
         match evt {
-            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item" => {
+            Event::Start(ref xml_tag) if xml_tag.name().as_ref() == b"config:config-item" => {
                 let (name, val) = read_config_item(bs, xml_tag, xml)?;
                 config_set.insert(name, val);
             }
-            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-set" => {
+            Event::Start(ref xml_tag) if xml_tag.name().as_ref() == b"config:config-item-set" => {
                 let (name, val) = read_config_item_set(bs, xml_tag, xml)?;
                 config_set.insert(name, val);
             }
-            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-indexed" => {
+            Event::Start(ref xml_tag)
+                if xml_tag.name().as_ref() == b"config:config-item-map-indexed" =>
+            {
                 let (name, val) = read_config_item_map_indexed(bs, xml_tag, xml)?;
                 config_set.insert(name, val);
             }
-            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-named" => {
+            Event::Start(ref xml_tag)
+                if xml_tag.name().as_ref() == b"config:config-item-map-named" =>
+            {
                 let (name, val) = read_config_item_map_named(bs, xml_tag, xml)?;
                 config_set.insert(name, val);
             }
-            Event::End(ref e) if e.name() == b"config:config-item-set" => {
+            Event::End(ref e) if e.name().as_ref() == b"config:config-item-set" => {
                 break;
             }
             Event::Eof => break,
@@ -2738,11 +2778,15 @@ fn read_config_item_map_indexed(
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"config:name" => {
-                name = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"config:name" => {
+                name = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused("read_config_item_map_indexed", xml_tag.name(), &attr)?;
+                dump_unused(
+                    "read_config_item_map_indexed",
+                    xml_tag.name().as_ref(),
+                    &attr,
+                )?;
             }
         }
     }
@@ -2759,17 +2803,19 @@ fn read_config_item_map_indexed(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_office_item_set {:?}", evt);
         }
         match evt {
-            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-entry" => {
+            Event::Start(ref xml_tag)
+                if xml_tag.name().as_ref() == b"config:config-item-map-entry" =>
+            {
                 let (_, entry) = read_config_item_map_entry(bs, xml_tag, xml)?;
                 config_vec.insert(index.to_string(), entry);
                 index += 1;
             }
-            Event::End(ref e) if e.name() == b"config:config-item-map-indexed" => {
+            Event::End(ref e) if e.name().as_ref() == b"config:config-item-map-indexed" => {
                 break;
             }
             Event::Eof => break,
@@ -2797,11 +2843,11 @@ fn read_config_item_map_named(
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"config:name" => {
-                name = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"config:name" => {
+                name = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused("read_config_item_map_named", xml_tag.name(), &attr)?;
+                dump_unused("read_config_item_map_named", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -2816,12 +2862,14 @@ fn read_config_item_map_named(
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_config_item_map_named {:?}", evt);
         }
         match evt {
-            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-entry" => {
+            Event::Start(ref xml_tag)
+                if xml_tag.name().as_ref() == b"config:config-item-map-entry" =>
+            {
                 let (name, entry) = read_config_item_map_entry(bs, xml_tag, xml)?;
 
                 let name = if let Some(name) = name {
@@ -2834,7 +2882,7 @@ fn read_config_item_map_named(
 
                 config_map.insert(name, entry);
             }
-            Event::End(ref e) if e.name() == b"config:config-item-map-named" => {
+            Event::End(ref e) if e.name().as_ref() == b"config:config-item-map-named" => {
                 break;
             }
             Event::Eof => break,
@@ -2862,39 +2910,43 @@ fn read_config_item_map_entry(
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"config:name" => {
-                name = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"config:name" => {
+                name = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused("read_config_item_map_entry", xml_tag.name(), &attr)?;
+                dump_unused("read_config_item_map_entry", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
 
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
             println!(" read_config_item_map_entry {:?}", evt);
         }
         match evt {
-            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item" => {
+            Event::Start(ref xml_tag) if xml_tag.name().as_ref() == b"config:config-item" => {
                 let (name, val) = read_config_item(bs, xml_tag, xml)?;
                 config_set.insert(name, ConfigItem::from(val));
             }
-            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-set" => {
+            Event::Start(ref xml_tag) if xml_tag.name().as_ref() == b"config:config-item-set" => {
                 let (name, val) = read_config_item_set(bs, xml_tag, xml)?;
                 config_set.insert(name, val);
             }
-            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-indexed" => {
+            Event::Start(ref xml_tag)
+                if xml_tag.name().as_ref() == b"config:config-item-map-indexed" =>
+            {
                 let (name, val) = read_config_item_map_indexed(bs, xml_tag, xml)?;
                 config_set.insert(name, val);
             }
-            Event::Start(ref xml_tag) if xml_tag.name() == b"config:config-item-map-named" => {
+            Event::Start(ref xml_tag)
+                if xml_tag.name().as_ref() == b"config:config-item-map-named" =>
+            {
                 let (name, val) = read_config_item_map_named(bs, xml_tag, xml)?;
                 config_set.insert(name, val);
             }
-            Event::End(ref e) if e.name() == b"config:config-item-map-entry" => {
+            Event::End(ref e) if e.name().as_ref() == b"config:config-item-map-entry" => {
                 break;
             }
             Event::Eof => break,
@@ -2936,10 +2988,10 @@ fn read_config_item(
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
-            attr if attr.key == b"config:name" => {
-                name = Some(parse_string(&attr.value)?);
+            attr if attr.key.as_ref() == b"config:name" => {
+                name = Some(attr.unescape_value()?.to_string());
             }
-            attr if attr.key == b"config:type" => {
+            attr if attr.key.as_ref() == b"config:type" => {
                 val_type = match attr.value.as_ref() {
                     b"base64Binary" => ConfigValueType::Base64Binary,
                     b"boolean" => ConfigValueType::Boolean,
@@ -2958,7 +3010,7 @@ fn read_config_item(
                 };
             }
             attr => {
-                dump_unused("read_config_item", xml_tag.name(), &attr)?;
+                dump_unused("read_config_item", xml_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -2980,17 +3032,18 @@ fn read_config_item(
     let mut value = bs.get_buf();
     let mut buf = bs.get_buf();
     loop {
-        let evt = xml.read_event(&mut buf)?;
+        let evt = xml.read_event_into(&mut buf)?;
         match evt {
             Event::Text(ref txt) => {
-                value.write_all(txt.unescaped()?.as_ref())?;
+                value.write_all(txt.unescape()?.as_bytes())?;
             }
-            Event::End(ref e) if e.name() == b"config:config-item" => {
+            Event::End(ref e) if e.name().as_ref() == b"config:config-item" => {
                 let value = <Cow<'_, [u8]> as From<&Vec<u8>>>::from(value.as_ref());
                 match val_type {
                     ConfigValueType::None => {}
                     ConfigValueType::Base64Binary => {
-                        config_val = Some(ConfigValue::Base64Binary(parse_string(&value)?));
+                        config_val =
+                            Some(ConfigValue::Base64Binary(from_utf8(&value)?.to_string()));
                     }
                     ConfigValueType::Boolean => {
                         config_val = Some(ConfigValue::Boolean(parse_bool(&value)?));
@@ -3052,26 +3105,26 @@ fn read_xml(
 ) -> Result<XmlTag, OdsError> {
     let mut stack = Vec::new();
 
-    let mut tag = XmlTag::new(xml.decode(xml_tag.name())?);
+    let mut tag = XmlTag::new(xml.decoder().decode(xml_tag.name().as_ref())?);
     copy_attr2(tag.attrmap_mut(), xml_tag)?;
     stack.push(tag);
 
     if !empty_tag {
         let mut buf = bs.get_buf();
         loop {
-            let evt = xml.read_event(&mut buf)?;
+            let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
                 println!(" read_xml {:?}", evt);
             }
             match evt {
                 Event::Start(xmlbytes) => {
-                    let mut tag = XmlTag::new(xml.decode(xmlbytes.name())?);
+                    let mut tag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
                     copy_attr2(tag.attrmap_mut(), &xmlbytes)?;
                     stack.push(tag);
                 }
 
                 Event::End(xmlbytes) => {
-                    if xmlbytes.name() == end_tag {
+                    if xmlbytes.name().as_ref() == end_tag {
                         break;
                     } else {
                         let tag = stack.pop().unwrap();
@@ -3084,7 +3137,7 @@ fn read_xml(
                 }
 
                 Event::Empty(xmlbytes) => {
-                    let mut emptytag = XmlTag::new(xml.decode(xmlbytes.name())?);
+                    let mut emptytag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
                     copy_attr2(emptytag.attrmap_mut(), &xmlbytes)?;
 
                     if let Some(parent) = stack.last_mut() {
@@ -3096,7 +3149,11 @@ fn read_xml(
 
                 Event::Text(xmlbytes) => {
                     if let Some(parent) = stack.last_mut() {
-                        parent.add_text(xmlbytes.unescape_and_decode(xml).unwrap());
+                        parent.add_text(
+                            xml.decoder()
+                                .decode(xmlbytes.unescape().unwrap().as_bytes())
+                                .unwrap(),
+                        );
                     } else {
                         unreachable!()
                     }
@@ -3135,7 +3192,7 @@ fn read_text_or_tag(
     // element. If there is only text this is not needed.
     let create_toplevel = |t: Option<String>| -> Result<XmlTag, OdsError> {
         // No parent tag on the stack. Create the parent.
-        let mut toplevel = XmlTag::new(from_utf8(xml_tag.name())?);
+        let mut toplevel = XmlTag::new(from_utf8(xml_tag.name().as_ref())?);
         copy_attr2(toplevel.attrmap_mut(), xml_tag)?;
         if let Some(t) = t {
             toplevel.add_text(t);
@@ -3146,14 +3203,13 @@ fn read_text_or_tag(
     if !empty_tag {
         let mut buf = bs.get_buf();
         loop {
-            let evt = xml.read_event(&mut buf)?;
+            let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
                 println!(" read_xml {:?}", evt);
             }
             match evt {
                 Event::Text(xmlbytes) => {
-                    let v = xmlbytes.unescaped()?;
-                    let v = from_utf8(v.as_ref())?;
+                    let v = xmlbytes.unescape()?;
 
                     cellcontent = match cellcontent {
                         TextContent2::Empty => {
@@ -3162,7 +3218,7 @@ fn read_text_or_tag(
                         }
                         TextContent2::Text(mut old_txt) => {
                             // We have a previous plain text string. Append to it.
-                            old_txt.push_str(v);
+                            old_txt.push_str(&v);
                             TextContent2::Text(old_txt)
                         }
                         TextContent2::Xml(mut xml) => {
@@ -3192,12 +3248,12 @@ fn read_text_or_tag(
                     }
 
                     // Set the new tag.
-                    let mut new_tag = XmlTag::new(xml.decode(xmlbytes.name())?);
+                    let mut new_tag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
                     copy_attr2(new_tag.attrmap_mut(), &xmlbytes)?;
                     cellcontent = TextContent2::Xml(new_tag)
                 }
                 Event::End(xmlbytes) => {
-                    if xmlbytes.name() == end_tag {
+                    if xmlbytes.name().as_ref() == end_tag {
                         if !stack.is_empty() {
                             return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!("XML corrupted. Endtag {} occured before all elements are closed: {:?}", from_utf8(end_tag)?, stack))));
                         }
@@ -3208,7 +3264,7 @@ fn read_text_or_tag(
                         TextContent2::Empty | TextContent2::Text(_) => {
                             return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
                                 "XML corrupted. Endtag {} occured without start tag",
-                                from_utf8(xmlbytes.name())?
+                                from_utf8(xmlbytes.name().as_ref())?
                             ))));
                         }
                         TextContent2::Xml(tag) => {
@@ -3219,7 +3275,7 @@ fn read_text_or_tag(
                                 return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
                                     format!(
                                         "XML corrupted. Endtag {} occured without start tag",
-                                        from_utf8(xmlbytes.name())?
+                                        from_utf8(xmlbytes.name().as_ref())?
                                     ),
                                 )));
                             }
@@ -3246,7 +3302,8 @@ fn read_text_or_tag(
                     }
                     if let Some(mut parent) = stack.pop() {
                         // Create the tag and append it immediately to the parent.
-                        let mut emptytag = XmlTag::new(xml.decode(xmlbytes.name())?);
+                        let mut emptytag =
+                            XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
                         copy_attr2(emptytag.attrmap_mut(), &xmlbytes)?;
                         parent.add_tag(emptytag);
 
@@ -3274,7 +3331,7 @@ fn read_text_or_tag(
 fn dump_unused(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsError> {
     if DUMP_UNUSED {
         let tag = from_utf8(tag)?;
-        let key = from_utf8(attr.key)?;
+        let key = from_utf8(attr.key.as_ref())?;
         let value = from_utf8(attr.value.as_ref())?;
         println!("unused attr: {} {} ({}:{})", func, tag, key, value);
     }
