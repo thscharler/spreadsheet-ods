@@ -44,8 +44,6 @@ pub(crate) fn parse_visibility(input: &[u8]) -> Result<Visibility, OdsError> {
 
 /// Parse a attribute value as a currency.
 pub(crate) fn parse_currency(input: &[u8]) -> Result<[u8; 3], OdsError> {
-    
-
     match input.len() {
         0 => Ok([b' ', b' ', b' ']),
         1 => Ok([input[0], b' ', b' ']),
