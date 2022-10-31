@@ -11,6 +11,7 @@ pub enum OdsError {
     Io(std::io::Error),
     Zip(zip::result::ZipError),
     Xml(quick_xml::Error),
+    XmlAttr(quick_xml::events::attributes::AttrError),
     Escape(String),
     Utf8(std::str::Utf8Error),
     Parse(String),
@@ -29,6 +30,7 @@ impl Display for OdsError {
             OdsError::Io(e) => write!(f, "IO {}", e)?,
             OdsError::Zip(e) => write!(f, "Zip {:?}", e)?,
             OdsError::Xml(e) => write!(f, "Xml {}", e)?,
+            OdsError::XmlAttr(e) => write!(f, "Xml attribute {}", e)?,
             OdsError::Parse(e) => write!(f, "Parse {}", e)?,
             OdsError::ParseInt(e) => write!(f, "ParseInt {}", e)?,
             OdsError::ParseBool(e) => write!(f, "ParseBool {}", e)?,
@@ -51,6 +53,7 @@ impl std::error::Error for OdsError {
             OdsError::Io(e) => Some(e),
             OdsError::Zip(e) => Some(e),
             OdsError::Xml(e) => Some(e),
+            OdsError::XmlAttr(e) => Some(e),
             OdsError::Parse(_) => None,
             OdsError::ParseInt(e) => Some(e),
             OdsError::ParseBool(e) => Some(e),
@@ -79,6 +82,12 @@ impl From<zip::result::ZipError> for OdsError {
 impl From<quick_xml::Error> for OdsError {
     fn from(err: quick_xml::Error) -> OdsError {
         OdsError::Xml(err)
+    }
+}
+
+impl From<quick_xml::events::attributes::AttrError> for OdsError {
+    fn from(err: quick_xml::events::attributes::AttrError) -> OdsError {
+        OdsError::XmlAttr(err)
     }
 }
 
