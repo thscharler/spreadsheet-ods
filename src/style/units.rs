@@ -251,7 +251,7 @@ impl ParseStyleAttr<TransliterationStyle> for TransliterationStyle {
 /// • script: the family of script fonts.
 /// • swiss: the family roman fonts (without serifs).
 /// • system: the family system fonts.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum FontFamilyGeneric {
     Decorative,
@@ -311,7 +311,7 @@ impl Display for FontPitch {
 /// • right: <style:header-left> and <style:footer-left> elements are ignored.
 ///
 /// The default value for this attribute is all.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum MasterPageUsage {
     All,
@@ -393,7 +393,7 @@ impl Default for TabStopType {
 ///
 /// The values of the svg:font-stretch attribute are normal, ultra-condensed, extracondensed,
 /// condensed, semi-condensed, semi-expanded, expanded, extraexpanded or ultra-expanded.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum FontStretch {
     Normal,
@@ -637,7 +637,7 @@ impl Display for FontWeight {
 /// See §7.15.1 of XSL.
 ///  
 /// The values of the fo:hyphenation-keep attribute are auto or page
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum Hyphenation {
     Auto,
@@ -660,7 +660,7 @@ impl Display for Hyphenation {
 /// The defined values for the fo:hyphenation-ladder-count attribute are:
 /// • no-limit:
 /// • a value of type positiveInteger
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum HyphenationLadderCount {
     NoLimit,
@@ -1160,7 +1160,7 @@ impl Display for LineBreak {
 /// • i: number sequence starts with “i”.
 /// • I: number sequence start with “I”.
 /// • a value of type string 18.2
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum StyleNumFormat {
     None,
@@ -1195,7 +1195,7 @@ impl Display for StyleNumFormat {
 /// The defined values for the style:page-number attribute are:
 /// • auto: a page has the page number of the previous page, incremented by one.
 /// • a value of type nonNegativeInteger 18.2: specifies a page number.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum PageNumber {
     Auto,
@@ -1313,7 +1313,7 @@ impl Display for PrintOrientation {
 /// • hanging: a punctuation mark can be placed in the margin area at the end of a full line of text.
 /// • simple: a punctuation mark cannot be placed in the margin area at the end of a full line of
 /// text.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum PunctuationWrap {
     Hanging,
@@ -1449,7 +1449,7 @@ impl Display for TextAlignSource {
 /// • ideograph-alpha: space should be added between portions of Asian, Western and
 /// Complex texts.
 /// • none: space should not be added between portions of Asian, Western and complex texts.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum TextAutoSpace {
     IdeographAlpha,
@@ -1936,7 +1936,7 @@ impl Display for WritingMode {
 /// • right: table aligns to the right margin.
 ///
 /// Consumers that do not support the margins value, may treat this value as left.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum TableAlign {
     Center,
@@ -1970,7 +1970,7 @@ impl Display for TableAlign {
 /// or padding. This means that, while the width and height of the content area is less than the
 /// column width and row height, the sum of the widths of all columns is equal to the total width of the
 /// table.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum TableBorderModel {
     Collapsing,
@@ -1990,7 +1990,7 @@ impl Display for TableBorderModel {
 ///
 /// The text:condition attribute specifies the display of text.
 /// The defined value of the text:condition attribute is none, which means text is hidden.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum TextCondition {
     None,
@@ -2013,7 +2013,7 @@ impl Display for TextCondition {
 /// attribute.
 /// • none: text is hidden unconditionally.
 /// • true: text is displayed. This is the default setting
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum TextDisplay {
     None,
