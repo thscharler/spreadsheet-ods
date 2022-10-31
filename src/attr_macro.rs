@@ -107,11 +107,11 @@ macro_rules! fo_padding {
         /// Padding for all sides. See §7.29.15 of XSL.
         ///
         /// The fo:padding attribute is usable with the following elements:
-        /// <style:graphicproperties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:pagelayout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:tablecell-properties> 17.18.
+        /// style:graphicproperties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:pagelayout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:tablecell-properties 17.18.
         pub fn set_padding(&mut self, padding: Length) {
             assert!(padding.is_positive());
             self.$acc.set_attr("fo:padding", padding.to_string());
@@ -120,11 +120,11 @@ macro_rules! fo_padding {
         /// Padding. See §7.7.36 of XSL.
         ///
         /// The fo:padding-bottom attribute is usable with the following elements:
-        /// <style:graphicproperties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:pagelayout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:tablecell-properties> 17.18.
+        /// style:graphicproperties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:pagelayout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:tablecell-properties 17.18.
         pub fn set_padding_bottom(&mut self, padding: Length) {
             assert!(padding.is_positive());
             self.$acc.set_attr("fo:padding-bottom", padding.to_string());
@@ -133,11 +133,11 @@ macro_rules! fo_padding {
         /// Padding. See §7.7.37 of XSL.
         ///
         /// The fo:padding-left attribute is usable with the following elements:
-        /// <style:graphicproperties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:pagelayout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:tablecell-properties> 17.18.
+        /// style:graphicproperties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:pagelayout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:tablecell-properties 17.18.
         pub fn set_padding_left(&mut self, padding: Length) {
             assert!(padding.is_positive());
             self.$acc.set_attr("fo:padding-left", padding.to_string());
@@ -146,11 +146,11 @@ macro_rules! fo_padding {
         /// Padding. See §7.7.38 of XSL.
         ///
         /// The fo:padding-right attribute is usable with the following elements:
-        /// <style:graphicproperties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:pagelayout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:tablecell-properties> 17.18.
+        /// style:graphicproperties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:pagelayout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:tablecell-properties 17.18.
         pub fn set_padding_right(&mut self, padding: Length) {
             assert!(padding.is_positive());
             self.$acc.set_attr("fo:padding-right", padding.to_string());
@@ -159,11 +159,11 @@ macro_rules! fo_padding {
         /// Padding. See §7.7.35 of XSL.
         ///
         /// The fo:padding-top attribute is usable with the following elements:
-        /// <style:graphicproperties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:pagelayout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:tablecell-properties> 17.18.
+        /// style:graphicproperties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:pagelayout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:tablecell-properties 17.18.
         pub fn set_padding_top(&mut self, padding: Length) {
             assert!(padding.is_positive());
             self.$acc.set_attr("fo:padding-top", padding.to_string());
@@ -194,11 +194,11 @@ macro_rules! fo_border_line_width {
         /// * The third value specifies the width of the outer line
         ///
         /// The style:border-line-width attribute is usable with the following elements:
-        /// <style:graphic-properties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:page-layout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:table-cell-properties> 17.18.
+        /// style:graphic-properties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:page-layout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:table-cell-properties 17.18.
         pub fn set_border_line_width(&mut self, inner: Length, spacing: Length, outer: Length) {
             self.$acc.set_attr(
                 "style:border-line-width",
@@ -215,11 +215,11 @@ macro_rules! fo_border_line_width {
         /// * The third value specifies the width of the outer line
         ///
         /// The style:border-line-width attribute is usable with the following elements:
-        /// <style:graphic-properties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:page-layout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:table-cell-properties> 17.18.
+        /// style:graphic-properties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:page-layout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:table-cell-properties 17.18.
         pub fn set_border_line_width_bottom(
             &mut self,
             inner: Length,
@@ -241,11 +241,11 @@ macro_rules! fo_border_line_width {
         /// * The third value specifies the width of the outer line
         ///
         /// The style:border-line-width attribute is usable with the following elements:
-        /// <style:graphic-properties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:page-layout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:table-cell-properties> 17.18.
+        /// style:graphic-properties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:page-layout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:table-cell-properties 17.18.
         pub fn set_border_line_width_left(
             &mut self,
             inner: Length,
@@ -267,11 +267,11 @@ macro_rules! fo_border_line_width {
         /// * The third value specifies the width of the outer line
         ///
         /// The style:border-line-width attribute is usable with the following elements:
-        /// <style:graphic-properties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:page-layout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:table-cell-properties> 17.18.
+        /// style:graphic-properties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:page-layout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:table-cell-properties 17.18.
         pub fn set_border_line_width_right(
             &mut self,
             inner: Length,
@@ -293,11 +293,11 @@ macro_rules! fo_border_line_width {
         /// * The third value specifies the width of the outer line
         ///
         /// The style:border-line-width attribute is usable with the following elements:
-        /// <style:graphic-properties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:page-layout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:table-cell-properties> 17.18.
+        /// style:graphic-properties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:page-layout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:table-cell-properties 17.18.
         pub fn set_border_line_width_top(&mut self, inner: Length, spacing: Length, outer: Length) {
             self.$acc.set_attr(
                 "style:border-line-width-top",
@@ -424,7 +424,7 @@ macro_rules! style_print_content {
         /// The style:print-content attribute specifies if content is printed.
         /// The style:print-content attribute specifies if cell content is printed.
         /// The style:print-content attribute is usable with the following element:
-        /// * <style:tablecell-properties> 17.18.
+        /// * style:tablecell-properties 17.18.
         pub fn set_print_content(&mut self, print: bool) {
             self.$acc.set_attr("style:print-content", print.to_string());
         }
@@ -500,12 +500,12 @@ macro_rules! style_shadow {
         /// a table cell.
         ///
         /// The style:shadow attribute is usable with the following elements:
-        /// <style:graphicproperties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:pagelayout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6,
-        /// <style:tablecell-properties> 17.18 and
-        /// <style:table-properties> 17.15.
+        /// style:graphicproperties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:pagelayout-properties 17.2,
+        /// style:paragraph-properties 17.6,
+        /// style:tablecell-properties 17.18 and
+        /// style:table-properties 17.15.
         pub fn set_shadow(
             &mut self,
             x_offset: Length,
@@ -622,8 +622,8 @@ macro_rules! fo_keep_together {
         /// support the integer value.
         ///
         /// The fo:keep-together attribute is usable with the following elements:
-        /// <style:paragraphproperties> 17.6 and
-        /// <style:table-row-properties> 17.17.
+        /// style:paragraphproperties 17.6 and
+        /// style:table-row-properties 17.17.
         pub fn set_keep_together(&mut self, keep_together: TextKeep) {
             self.$acc
                 .set_attr("fo:keep-together", keep_together.to_string());
@@ -658,7 +658,7 @@ macro_rules! fo_line_height {
         /// * a value of type percent 18.3.23
         ///
         /// The fo:line-height attribute is usable with the following element:
-        /// <style:paragraphproperties> 17.6.
+        /// style:paragraphproperties 17.6.
         pub fn set_line_height(&mut self, line_height: LineHeight) {
             assert!(line_height.is_positive());
             self.$acc
@@ -674,81 +674,81 @@ macro_rules! fo_margin {
         /// auto and inherit values.
         ///
         /// The fo:margin attribute is usable with the following elements:
-        /// <style:graphicproperties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:pagelayout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:tableproperties> 17.15.
+        /// style:graphicproperties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:pagelayout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:tableproperties 17.15.
         pub fn set_margin(&mut self, margin: Margin) {
             assert!(margin.is_positive());
             self.$acc.set_attr("fo:margin", margin.to_string());
         }
 
         /// See §7.10.2 of XSL.
-        /// If this attribute is contained in a <style:paragraph-properties> 17.6 element, its value may
+        /// If this attribute is contained in a style:paragraph-properties 17.6 element, its value may
         /// be a percentage that refers to the corresponding margin of a parent style.
         /// In the OpenDocument XSL-compatible namespace, the fo:margin-bottom attribute does not
         /// support the auto and inherit values.
         ///
         /// The fo:margin-bottom attribute is usable with the following elements:
-        /// <style:graphicproperties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:pagelayout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:tableproperties> 17.15.
+        /// style:graphicproperties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:pagelayout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:tableproperties 17.15.
         pub fn set_margin_bottom(&mut self, margin: Margin) {
             assert!(margin.is_positive());
             self.$acc.set_attr("fo:margin-bottom", margin.to_string());
         }
 
         /// See §7.10.3 of XSL.
-        /// If this attribute is contained in a <style:paragraph-properties> 17.6 element, its value may
+        /// If this attribute is contained in a style:paragraph-properties 17.6 element, its value may
         /// be a percentage that refers to the corresponding margin of a parent style.
         /// Tables that align to the left or to the center ignore right margins, and tables that align to the right
         /// or to the center ignore left margins.
         ///
         /// The fo:margin-left attribute is usable with the following elements:
-        /// <style:graphicproperties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:pagelayout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6,
-        /// <style:sectionproperties> 17.11 and
-        /// <style:table-properties> 17.15.
+        /// style:graphicproperties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:pagelayout-properties 17.2,
+        /// style:paragraph-properties 17.6,
+        /// style:sectionproperties 17.11 and
+        /// style:table-properties 17.15.
         pub fn set_margin_left(&mut self, margin: Margin) {
             assert!(margin.is_positive());
             self.$acc.set_attr("fo:margin-left", margin.to_string());
         }
 
         /// See §7.10.4 of XSL.
-        /// If this attribute is contained in a <style:paragraph-properties> 17.6 element, its value may
+        /// If this attribute is contained in a style:paragraph-properties 17.6 element, its value may
         /// be a percentage that refers to the corresponding margin of a parent style.
         /// Tables that align to the left or to the center ignore right margins, and tables that align to the right
         /// or to the center ignore left margins.
         ///
         /// The fo:margin-right attribute is usable with the following elements:
-        /// <style:graphicproperties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:pagelayout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6,
-        /// <style:sectionproperties> 17.11 and
-        /// <style:table-properties> 17.15.
+        /// style:graphicproperties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:pagelayout-properties 17.2,
+        /// style:paragraph-properties 17.6,
+        /// style:sectionproperties 17.11 and
+        /// style:table-properties 17.15.
         pub fn set_margin_right(&mut self, margin: Margin) {
             assert!(margin.is_positive());
             self.$acc.set_attr("fo:margin-right", margin.to_string());
         }
 
         /// See §7.10.1 of XSL.
-        /// If this attribute is contained in a <style:paragraph-properties> 17.6 element, its value may
+        /// If this attribute is contained in a style:paragraph-properties 17.6 element, its value may
         /// be a percentage that refers to the corresponding margin of a parent style.
         /// In the OpenDocument XSL-compatible namespace, the fo:margin-top attribute does not
         /// support the inherit value.
         ///
         /// The fo:margin-top attribute is usable with the following elements:
-        /// <style:graphicproperties> 17.21,
-        /// <style:header-footer-properties> 17.5,
-        /// <style:pagelayout-properties> 17.2,
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:tableproperties> 17.15.
+        /// style:graphicproperties 17.21,
+        /// style:header-footer-properties 17.5,
+        /// style:pagelayout-properties 17.2,
+        /// style:paragraph-properties 17.6 and
+        /// style:tableproperties 17.15.
         pub fn set_margin_top(&mut self, margin: Margin) {
             assert!(margin.is_positive());
             self.$acc.set_attr("fo:margin-top", margin.to_string());
@@ -761,7 +761,7 @@ macro_rules! fo_orphans {
         /// See §7.19.6 of XSL.
         ///
         /// The fo:orphans attribute is usable with the following element:
-        /// <style:paragraphproperties> 17.6.
+        /// style:paragraphproperties 17.6.
         pub fn set_orphans(&mut self, orphans: u32) {
             self.$acc.set_attr("fo:orphans", orphans.to_string());
         }
@@ -779,8 +779,8 @@ macro_rules! fo_text_align {
         /// support the inherit, inside, outside, or string values.
         ///
         /// The fo:text-align attribute is usable with the following elements:
-        /// <style:list-levelproperties> 17.19 and
-        /// <style:paragraph-properties> 17.6.
+        /// style:list-levelproperties 17.19 and
+        /// style:paragraph-properties 17.6.
         pub fn set_text_align(&mut self, align: TextAlign) {
             self.$acc.set_attr("fo:text-align", align.to_string());
         }
@@ -794,7 +794,7 @@ macro_rules! fo_text_align_last {
         /// If no value is specified for this attribute, the value is set to start.
         ///
         /// The fo:text-align-last attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         pub fn set_text_align_last(&mut self, align: TextAlignLast) {
             self.$acc.set_attr("fo:text-align-last", align.to_string());
         }
@@ -809,7 +809,7 @@ macro_rules! fo_text_indent {
         /// indent of a parent style.
         ///
         /// The fo:text-indent attribute is usable with the following element:
-        /// <style:paragraphproperties> 17.6.
+        /// style:paragraphproperties 17.6.
         ///
         /// The values of the fo:text-indent attribute are a value of type length 18.3.18 or a value of
         /// type percent 18.3.23.
@@ -828,7 +828,7 @@ macro_rules! fo_widows {
         /// the inherit value.
         ///
         /// The fo:widows attribute is usable with the following element:
-        /// <style:paragraphproperties> 17.6.
+        /// style:paragraphproperties 17.6.
         ///
         /// The fo:widows attribute has the data type nonNegativeInteger 18.2
         pub fn set_widows(&mut self, num: u32) {
@@ -845,7 +845,7 @@ macro_rules! style_auto_text_indent {
         /// attribute the fo:text-indent attribute is ignored.
         ///
         /// The style:auto-text-indent attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         ///
         /// The style:auto-text-indent attribute has the data type boolean 18.3.3.
         pub fn set_auto_text_indent(&mut self, indent: bool) {
@@ -860,7 +860,7 @@ macro_rules! style_background_transparency {
         /// The style:background-transparency attribute specifies the transparency of a paragraph's
         /// background color.
         /// The style:background-transparency attribute is usable with the following elements:
-        /// <style:graphic-properties> 17.21 and <style:paragraph-properties> 17.6.
+        /// style:graphic-properties> 17.21 and <style:paragraph-properties 17.6.
         pub fn set_background_transpareny(&mut self, percent: Percent) {
             self.$acc
                 .set_attr("style:background-transparency", percent.to_string());
@@ -882,7 +882,7 @@ macro_rules! style_contextual_spacing {
         /// The default value for this attribute is false.
         ///
         /// The style:contextual-spacing attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         pub fn set_contextual_spacing(&mut self, spacing: bool) {
             self.$acc
                 .set_attr("style:contextual-spacing", spacing.to_string());
@@ -901,7 +901,7 @@ macro_rules! style_font_independent_line_spacing {
         /// fo:font-size 20.190, style:font-size-asian 20.284 and style:font-sizecomplex 20.285.
         ///
         /// The style:font-independent-line-spacing attribute is usable with the following
-        /// element: <style:paragraph-properties> 17.6.
+        /// element: style:paragraph-properties 17.6.
         pub fn set_font_independent_line_spacing(&mut self, spacing: bool) {
             self.$acc
                 .set_attr("style:font-independent-line-spacing", spacing.to_string());
@@ -941,7 +941,7 @@ macro_rules! style_join_border {
         /// * true: borders should be joined.
         ///
         /// The style:join-border attribute is usable with the following element:
-        /// <style:paragraphproperties> 17.6.
+        /// style:paragraphproperties 17.6.
         pub fn set_join_border(&mut self, join: bool) {
             self.$acc.set_attr("style:join-border", join.to_string());
         }
@@ -961,7 +961,7 @@ macro_rules! style_justify_single_word {
         /// * true: single word should be justified when last line in a paragraph is justified.
         ///
         /// The style:justify-single-word attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         pub fn set_justify_single_word(&mut self, justify: bool) {
             self.$acc
                 .set_attr("style:justify-single-word", justify.to_string());
@@ -976,7 +976,7 @@ macro_rules! style_line_break {
         /// * normal: line breaks may occur between any characters.
         /// * strict: line breaks shall not occur before or after implementation-defined characters.
         ///
-        /// The style:line-break attribute is usable with the following element: <style:paragraphproperties> 17.6.
+        /// The style:line-break attribute is usable with the following element: style:paragraphproperties 17.6.
         ///
         /// The values of the style:line-break attribute are normal or strict.
         pub fn set_line_break(&mut self, linebreak: LineBreak) {
@@ -993,7 +993,7 @@ macro_rules! style_line_height_at_least {
         /// The effect of this attribute is disabled when fo:line-height 20.204 has the value of normal.
         ///
         /// The style:line-height-at-least attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         pub fn set_line_height_at_least(&mut self, height: Length) {
             assert!(height.is_positive());
             self.$acc
@@ -1008,7 +1008,7 @@ macro_rules! style_line_spacing {
         /// The effect of this attribute is disabled when fo:line-height 20.204 has the value of normal.
         ///
         /// The style:line-spacing attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         pub fn set_line_spacing(&mut self, spacing: Length) {
             self.$acc
                 .set_attr("style:line-spacing", spacing.to_string());
@@ -1027,8 +1027,8 @@ macro_rules! style_page_number {
         /// * a value of type nonNegativeInteger 18.2: specifies a page number.
         ///
         /// The style:page-number attribute is usable with the following elements:
-        /// <style:paragraph-properties> 17.6 and
-        /// <style:table-properties> 17.15.
+        /// style:paragraph-properties 17.6 and
+        /// style:table-properties 17.15.
         ///
         /// The values of the style:page-number attribute are a value of type nonNegativeInteger
         /// 18.2 or auto.
@@ -1051,7 +1051,7 @@ macro_rules! style_punctuation_wrap {
         /// text.
         ///
         /// The style:punctuation-wrap attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         pub fn set_punctuation_wrap(&mut self, wrap: PunctuationWrap) {
             self.$acc
                 .set_attr("style:punctuation-wrap", wrap.to_string());
@@ -1068,7 +1068,7 @@ macro_rules! style_register_true {
         /// * true: lines on both sides of a printed text should align.
         ///
         /// The style:register-true attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         ///
         /// The style:register-true attribute has the data type boolean 18.3.3
         pub fn set_register_true(&mut self, register: bool) {
@@ -1090,7 +1090,7 @@ macro_rules! style_snap_to_layout_grid {
         /// appears.
         ///
         /// The style:snap-to-layout-grid attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         pub fn set_snap_to_layout_grid(&mut self, snap: bool) {
             self.$acc
                 .set_attr("style:snap-to-layout-grid", snap.to_string());
@@ -1105,7 +1105,7 @@ macro_rules! style_tab_stop_distance {
         /// evaluated if they are specified within a default style.
         ///
         /// The style:tab-stop-distance attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         pub fn set_tab_stop_distance(&mut self, tab: Length) {
             assert!(tab.is_positive());
             self.$acc
@@ -1125,7 +1125,7 @@ macro_rules! style_text_autospace {
         /// * none: space should not be added between portions of Asian, Western and complex texts.
         ///
         /// The style:text-autospace attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         pub fn set_text_autospace(&mut self, space: TextAutoSpace) {
             self.$acc
                 .set_attr("style:text-autospace", space.to_string());
@@ -1148,7 +1148,7 @@ macro_rules! style_vertical_align_para {
         /// * top: to the top of the line.
         ///
         /// The style:vertical-align attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         pub fn set_vertical_align_para(&mut self, align: ParaAlignVertical) {
             self.$acc
                 .set_attr("style:vertical-align", align.to_string());
@@ -1184,7 +1184,7 @@ macro_rules! style_writing_mode_automatic {
         /// edited.
         ///
         /// The style:writing-mode-automatic attribute is usable with the following element:
-        /// <style:paragraph-properties> 17.6.
+        /// style:paragraph-properties 17.6.
         pub fn set_writing_mode_automatic(&mut self, auto: bool) {
             self.$acc
                 .set_attr("style:writing-mode-automatic", auto.to_string());
@@ -1196,9 +1196,9 @@ macro_rules! style_line_number {
     ($acc:ident) => {
         /// The text:line-number attribute specifies a new start value for line numbering, if a
         /// text:number-lines 20.434 attribute, with the value true, appears on the same
-        /// <style:paragraph-properties> 17.6 element. Otherwise, this attribute shall be ignored.
+        /// style:paragraph-properties 17.6 element. Otherwise, this attribute shall be ignored.
         ///
-        /// The text:line-number attribute is usable with the following element: <style:paragraphproperties> 17.6.
+        /// The text:line-number attribute is usable with the following element: style:paragraphproperties 17.6.
         /// The text:line-number attribute has the data type nonNegativeInteger 18.2.
         pub fn set_line_number(&mut self, line: u32) {
             self.$acc.set_attr("text:line-number", line.to_string());
@@ -1214,7 +1214,7 @@ macro_rules! style_number_lines {
         /// * true: lines should be numbered.
         ///
         /// The text:number-lines attribute is usable with the following element:
-        /// <style:paragraphproperties> 17.6.
+        /// style:paragraphproperties 17.6.
         pub fn set_number_lines(&mut self, lines: bool) {
             self.$acc.set_attr("text:number-lines", lines.to_string());
         }
@@ -1265,7 +1265,7 @@ macro_rules! style_font_name {
     ($acc:ident) => {
         // LATIN
 
-        /// The style:font-name attribute specifies a font that is declared by a <style:font-face>
+        /// The style:font-name attribute specifies a font that is declared by a style:font-face
         /// 16.23 element with a style:name 19.502 attribute whose name is the same as that of the
         /// style:font-name attribute value.
         ///
@@ -1393,7 +1393,7 @@ macro_rules! style_locale_asian {
 
 macro_rules! style_font_name_asian {
     ($acc:ident) => {
-        /// The style:font-name attribute specifies a font that is declared by a <style:font-face>
+        /// The style:font-name attribute specifies a font that is declared by a style:font-face
         /// 16.23 element with a style:name 19.502 attribute whose name is the same as that of the
         /// style:font-name attribute value.
         ///
@@ -1520,7 +1520,7 @@ macro_rules! style_locale_complex {
 
 macro_rules! style_font_name_complex {
     ($acc:ident) => {
-        /// The style:font-name attribute specifies a font that is declared by a <style:font-face>
+        /// The style:font-name attribute specifies a font that is declared by a style:font-face
         /// 16.23 element with a style:name 19.502 attribute whose name is the same as that of the
         /// style:font-name attribute value.
         ///
