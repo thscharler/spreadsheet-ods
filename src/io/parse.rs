@@ -14,20 +14,7 @@ use nom::error::{ErrorKind, FromExternalError};
 use nom::number::complete::double;
 use nom::sequence::{pair, preceded, terminated, tuple};
 use nom::{IResult, Slice};
-use quick_xml::escape::unescape;
 use std::str::{from_utf8, from_utf8_unchecked};
-
-/// Unescape and decode as UTF8
-pub(crate) fn parse_string(input: &[u8]) -> Result<String, OdsError> {
-    let result = match unescape(input) {
-        Ok(result) => result,
-        Err(err) => return Err(OdsError::Parse(err.to_string())),
-    };
-
-    let result = from_utf8(result.as_ref())?;
-
-    Ok(result.to_string())
-}
 
 /// Parse as Visibility.
 pub(crate) fn parse_visibility(input: &[u8]) -> Result<Visibility, OdsError> {
@@ -44,15 +31,13 @@ pub(crate) fn parse_visibility(input: &[u8]) -> Result<Visibility, OdsError> {
 
 /// Parse a attribute value as a currency.
 pub(crate) fn parse_currency(input: &[u8]) -> Result<[u8; 3], OdsError> {
-    let result = match input.len() {
+    match input.len() {
         0 => Ok([b' ', b' ', b' ']),
         1 => Ok([input[0], b' ', b' ']),
         2 => Ok([input[0], input[1], b' ']),
         3 => Ok([input[0], input[1], input[2]]),
         _ => Err(OdsError::Parse(format!("{:?} not a currency", input))),
-    };
-
-    result
+    }
 }
 
 /// Parse a bool.
@@ -308,18 +293,9 @@ pub(crate) fn byte(c: u8) -> impl Fn(&[u8]) -> IResult<&[u8], u8> {
 #[cfg(test)]
 mod tests {
     use crate::io::parse::{
-        parse_bool, parse_datetime, parse_duration, parse_f64, parse_i32, parse_string, parse_u32,
-        token_nano,
+        parse_bool, parse_datetime, parse_duration, parse_f64, parse_i32, parse_u32, token_nano,
     };
     use crate::OdsError;
-
-    #[test]
-    fn test_string() -> Result<(), OdsError> {
-        assert_eq!(parse_string(b"a&lt;sdf")?, "a<sdf");
-        assert_eq!(parse_string(b"asdf")?, "asdf");
-
-        Ok(())
-    }
 
     #[test]
     fn test_u32() -> Result<(), OdsError> {

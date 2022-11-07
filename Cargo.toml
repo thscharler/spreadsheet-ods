@@ -9,10 +9,7 @@ repository = "https://github.com/thscharler/spreadsheet-ods"
 readme = "README.md"
 keywords = ["ODS", "spreadsheet"]
 categories = ["parser-implementations"]
-exclude = [
-    ".idea/*",
-    ".gitignore",
-]
+exclude = [".idea/*", ".gitignore"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -23,7 +20,7 @@ use_decimal = []
 # Check the xml output for wellformedness.
 check_xml = []
 
-all_locales = [ "locale_de_AT", "locale_en_US" ]
+all_locales = ["locale_de_AT", "locale_en_US"]
 locale_de_AT = []
 locale_en_US = []
 
@@ -34,13 +31,13 @@ color-rs = "0.7"
 string_cache = "0.8"
 mktemp = "0.4"
 time = "0.3"
-nom = "6.2"
-nom_locate = "3.0.1"
-icu_locid = "0.6.0"
+nom = "7.1"
+nom_locate = "4.0"
+icu_locid = "1.0.0"
 lazy_static = "1.4.0"
 
 [dependencies.quick-xml]
-version = "0.22.0"
+version = "0.26.0"
 # ?? Should be UTF-8, no need for encoding related stuff.
 #features = ["encoding"]
 
