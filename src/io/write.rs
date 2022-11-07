@@ -363,7 +363,7 @@ fn write_meta<W: Write + Seek>(
 
         xml_out.elem("office:meta")?;
 
-        xml_out.elem_text("meta:generator", "spreadsheet-ods 0.12.0")?;
+        xml_out.elem_text("meta:generator", "spreadsheet-ods 0.12.1")?;
         let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
         let d = NaiveDateTime::from_timestamp(s.as_secs() as i64, 0);
         xml_out.elem_text(

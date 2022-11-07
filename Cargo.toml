@@ -1,13 +1,13 @@
 [package]
 name = "spreadsheet-ods"
-version = "0.12.0"
+version = "0.12.1"
 authors = ["thomasscharler <thscharler@gmail.com>"]
 edition = "2021"
 description = "Read and write ODS files"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/thscharler/spreadsheet-ods"
 readme = "README.md"
-keywords = ["ODS", "spreadsheet"]
+keywords = ["ODS", "spreadsheet", "reader", "writer", "OpenOffice", "LibreOffice"]
 categories = ["parser-implementations"]
 exclude = [".idea/*", ".gitignore"]
 

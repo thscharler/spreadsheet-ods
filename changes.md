@@ -1,3 +1,7 @@
+# 0.12.1
+
+- Upgrade icu_locid and quick_xml to latest.
+
 # 0.12.0
 
 BREAKING:
