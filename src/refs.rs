@@ -563,6 +563,7 @@ impl RowRange {
 /// Parse the colname.
 /// Stops when the colname ends and returns the byte position in end.
 #[allow(clippy::manual_range_contains)]
+// TODO: KILL
 pub(crate) fn parse_colname(buf: &str, pos: &mut usize) -> Option<u32> {
     let mut col = 0u32;
 
@@ -599,6 +600,7 @@ pub(crate) fn parse_colname(buf: &str, pos: &mut usize) -> Option<u32> {
 /// Parse the rowname.
 /// Stops when the rowname ends and returns the byte position in end.
 #[allow(clippy::manual_range_contains)]
+// TODO: KILL
 pub(crate) fn parse_rowname(buf: &str, pos: &mut usize) -> Option<u32> {
     let mut row = 0u32;
 
@@ -628,6 +630,7 @@ pub(crate) fn parse_rowname(buf: &str, pos: &mut usize) -> Option<u32> {
 
 /// Parse a table-name in a reference
 #[allow(clippy::collapsible_else_if)]
+// TODO: KILL
 pub(crate) fn parse_tablename(buf: &str, pos: &mut usize) -> Result<Option<String>, OdsError> {
     let mut dot_idx = None;
     let mut any_quote = false;
@@ -680,6 +683,7 @@ pub(crate) fn parse_tablename(buf: &str, pos: &mut usize) -> Result<Option<Strin
 }
 
 /// Parse a cell reference.
+// TODO: KILL
 pub(crate) fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, OdsError> {
     let table = parse_tablename(buf, pos)?;
 
@@ -719,6 +723,7 @@ pub(crate) fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, OdsEr
 }
 
 /// Parse a range ref.
+// TODO: KILL
 pub(crate) fn parse_cellrange(buf: &str, pos: &mut usize) -> Result<CellRange, OdsError> {
     let cell = {
         let table = parse_tablename(buf, pos)?;
@@ -814,6 +819,7 @@ pub(crate) fn parse_cellrange(buf: &str, pos: &mut usize) -> Result<CellRange, O
 }
 
 /// Parse a list of range refs
+// TODO: KILL
 pub(crate) fn parse_cellranges(
     buf: &str,
     pos: &mut usize,
@@ -848,6 +854,7 @@ pub(crate) fn parse_cellranges(
 }
 
 /// Appends the spreadsheet column name.
+// TODO: KILL
 pub(crate) fn push_colname(buf: &mut String, mut col: u32) {
     let mut i = 0;
     let mut dbuf = [0u8; 7];
@@ -883,6 +890,7 @@ pub(crate) fn push_colname(buf: &mut String, mut col: u32) {
 }
 
 /// Appends the spreadsheet row name
+// TODO: KILL
 pub(crate) fn push_rowname(buf: &mut String, row: u32) {
     let mut i = 0;
     let mut dbuf = [0u8; 10];
@@ -906,6 +914,7 @@ pub(crate) fn push_rowname(buf: &mut String, row: u32) {
 }
 
 /// Appends the table-name
+// TODO: KILL
 pub(crate) fn push_tablename(buf: &mut String, table: Option<&String>, abs: bool) {
     if let Some(table) = table {
         if abs {
@@ -925,6 +934,7 @@ pub(crate) fn push_tablename(buf: &mut String, table: Option<&String>, abs: bool
 }
 
 /// Appends the cell reference
+// TODO: KILL
 pub(crate) fn push_cellref(buf: &mut String, cellref: &CellRef) {
     push_tablename(
         buf,
@@ -942,6 +952,7 @@ pub(crate) fn push_cellref(buf: &mut String, cellref: &CellRef) {
 }
 
 /// Appends the range reference
+// TODO: KILL
 pub(crate) fn push_cellrange(buf: &mut String, cellrange: &CellRange) {
     push_tablename(
         buf,
@@ -974,6 +985,7 @@ pub(crate) fn push_cellrange(buf: &mut String, cellrange: &CellRange) {
 }
 
 /// Returns a list of ranges as string.
+// TODO: KILL
 pub(crate) fn cellranges_string(v: &[CellRange]) -> String {
     let mut buf = String::new();
 
