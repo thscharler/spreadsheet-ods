@@ -30,6 +30,7 @@ pub struct CellRef {
 impl TryFrom<&str> for CellRef {
     type Error = OdsError;
 
+    // TODO: KILL
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         let mut pos = 0usize;
         parse_cellref(s, &mut pos)
@@ -37,6 +38,7 @@ impl TryFrom<&str> for CellRef {
 }
 
 impl Display for CellRef {
+    // TODO: KILL
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
         let mut buf = String::new();
         push_cellref(&mut buf, self);
@@ -46,6 +48,7 @@ impl Display for CellRef {
 
 impl CellRef {
     /// Empty.
+    // TODO: KILL
     pub fn new() -> Self {
         Self {
             table: None,
@@ -57,6 +60,7 @@ impl CellRef {
     }
 
     /// Creates a cellref within the same table.
+    // TODO: KILL
     pub fn local(row: u32, col: u32) -> Self {
         Self {
             table: None,
@@ -68,6 +72,7 @@ impl CellRef {
     }
 
     /// Creates a cellref that references another table.
+    // TODO: KILL
     pub fn remote<S: Into<String>>(table: S, row: u32, col: u32) -> Self {
         Self {
             table: Some(table.into()),
@@ -79,56 +84,67 @@ impl CellRef {
     }
 
     /// Table name for references into other tables.
+    // TODO: KILL
     pub fn set_table<S: Into<String>>(&mut self, table: S) {
         self.table = Some(table.into());
     }
 
     /// Table name for references into other tables.
+    // TODO: KILL
     pub fn table(&self) -> Option<&String> {
         self.table.as_ref()
     }
 
     /// Row
+    // TODO: KILL
     pub fn set_row(&mut self, row: u32) {
         self.row = row;
     }
 
     /// Row
+    // TODO: KILL
     pub fn row(&self) -> u32 {
         self.row
     }
 
     /// "$" row reference
+    // TODO: KILL
     pub fn set_row_abs(&mut self, abs: bool) {
         self.row_abs = abs;
     }
 
     /// "$" row reference
+    // TODO: KILL
     pub fn row_abs(&self) -> bool {
         self.row_abs
     }
 
     /// Column
+    // TODO: KILL
     pub fn set_col(&mut self, col: u32) {
         self.col = col;
     }
 
     /// Column
+    // TODO: KILL
     pub fn col(&self) -> u32 {
         self.col
     }
 
     /// "$" column reference
+    // TODO: KILL
     pub fn set_col_abs(&mut self, abs: bool) {
         self.col_abs = abs;
     }
 
     /// "$" column reference
+    // TODO: KILL
     pub fn col_abs(&self) -> bool {
         self.col_abs
     }
 
     /// Returns a cell reference for a formula.
+    // TODO: KILL
     pub fn to_formula(&self) -> String {
         let mut buf = String::new();
         buf.push('[');
@@ -139,6 +155,7 @@ impl CellRef {
     }
 
     /// Makes this CellReference into an absolute reference.
+    // TODO: KILL
     pub fn absolute(mut self) -> Self {
         self.col_abs = true;
         self.row_abs = true;
@@ -147,6 +164,7 @@ impl CellRef {
 
     /// Makes this CellReference into an absolute reference.
     /// The column remains relative, the row is fixed.
+    // TODO: KILL
     pub fn absolute_row(mut self) -> Self {
         self.row_abs = true;
         self
@@ -154,6 +172,7 @@ impl CellRef {
 
     /// Makes this CellReference into an absolute reference.
     /// The row remains relative, the column is fixed.
+    // TODO: KILL
     pub fn absolute_col(mut self) -> Self {
         self.col_abs = true;
         self
@@ -185,6 +204,7 @@ pub struct CellRange {
 
 impl CellRange {
     /// Empty
+    // TODO: KILL
     pub fn new() -> Self {
         Self {
             table: None,
@@ -200,6 +220,7 @@ impl CellRange {
     }
 
     /// Creates the cell range from from + to data.
+    // TODO: KILL
     pub fn local(row: u32, col: u32, to_row: u32, to_col: u32) -> Self {
         assert!(row <= to_row);
         assert!(col <= to_col);
@@ -217,6 +238,7 @@ impl CellRange {
     }
 
     /// Creates the cell range from from + to data.
+    // TODO: KILL
     pub fn remote<S: Into<String>>(table: S, row: u32, col: u32, to_row: u32, to_col: u32) -> Self {
         assert!(row <= to_row);
         assert!(col <= to_col);
@@ -234,6 +256,7 @@ impl CellRange {
     }
 
     /// Creates the cell range from origin + spanning data.
+    // TODO: KILL
     pub fn origin_span(row: u32, col: u32, span: (u32, u32)) -> Self {
         assert!(span.0 > 0);
         assert!(span.1 > 0);
@@ -251,96 +274,115 @@ impl CellRange {
     }
 
     /// Table name for references into other tables.
+    // TODO: KILL
     pub fn set_table<S: Into<String>>(&mut self, table: S) {
         self.table = Some(table.into());
     }
 
     /// Table name for references into other tables.
+    // TODO: KILL
     pub fn table(&self) -> Option<&String> {
         self.table.as_ref()
     }
 
     /// Row
+    // TODO: KILL
     pub fn set_row(&mut self, row: u32) {
         self.row = row;
     }
 
     /// Row
+    // TODO: KILL
     pub fn row(&self) -> u32 {
         self.row
     }
 
     /// "$" row reference
+    // TODO: KILL
     pub fn set_row_abs(&mut self, abs: bool) {
         self.row_abs = abs;
     }
 
     /// "$" row reference
+    // TODO: KILL
     pub fn row_abs(&self) -> bool {
         self.row_abs
     }
 
     /// Column
+    // TODO: KILL
     pub fn set_col(&mut self, col: u32) {
         self.col = col;
     }
 
     /// Column
+    // TODO: KILL
     pub fn col(&self) -> u32 {
         self.col
     }
 
     /// "$" column reference
+    // TODO: KILL
     pub fn set_col_abs(&mut self, abs: bool) {
         self.col_abs = abs;
     }
 
     /// "$" column reference
+    // TODO: KILL
     pub fn col_abs(&self) -> bool {
         self.col_abs
     }
 
     /// To row
+    // TODO: KILL
     pub fn set_to_row(&mut self, to_row: u32) {
         self.to_row = to_row;
     }
 
     /// To row
+    // TODO: KILL
     pub fn to_row(&self) -> u32 {
         self.to_row
     }
 
     /// "$" row reference
+    // TODO: KILL
     pub fn set_to_row_abs(&mut self, abs: bool) {
         self.to_row_abs = abs;
     }
 
     /// "$" row reference
+    // TODO: KILL
     pub fn to_row_abs(&self) -> bool {
         self.to_row_abs
     }
 
     /// To column
+    // TODO: KILL
     pub fn set_to_col(&mut self, to_col: u32) {
         self.to_col = to_col;
     }
 
     /// To column
+    // TODO: KILL
     pub fn to_col(&self) -> u32 {
         self.to_col
     }
 
     /// "$" column reference
+    // TODO: KILL
     pub fn set_to_col_abs(&mut self, abs: bool) {
         self.to_col_abs = abs;
     }
 
     /// "$" column reference
+    // TODO: KILL
     pub fn to_col_abs(&self) -> bool {
         self.to_col_abs
     }
 
     /// Returns a range reference for a formula.
+    // TODO: KILL
     pub fn to_formula(&self) -> String {
         let mut buf = String::new();
         buf.push('[');
@@ -350,6 +392,7 @@ impl CellRange {
     }
 
     /// Makes this CellReference into an absolute reference.
+    // TODO: KILL
     pub fn absolute(mut self) -> Self {
         self.col_abs = true;
         self.row_abs = true;
@@ -360,6 +403,7 @@ impl CellRange {
 
     /// Makes this CellReference into an absolute reference.
     /// The columns remain relative, the rows are fixed.
+    // TODO: KILL
     pub fn absolute_rows(mut self) -> Self {
         self.row_abs = true;
         self.to_row_abs = true;
@@ -368,6 +412,7 @@ impl CellRange {
 
     /// Makes this CellReference into an absolute reference.
     /// The rows remain relative, the columns are fixed.
+    // TODO: KILL
     pub fn absolute_cols(mut self) -> Self {
         self.col_abs = true;
         self.to_col_abs = true;
@@ -376,11 +421,13 @@ impl CellRange {
 
     /// Does the range contain the cell.
     /// This is inclusive for to_row and to_col!
+    // TODO: KILL
     pub fn contains(&self, row: u32, col: u32) -> bool {
         row >= self.row && row <= self.to_row && col >= self.col && col <= self.to_col
     }
 
     /// Is this range any longer relevant, when looping rows first, then columns?
+    // TODO: KILL
     pub fn out_looped(&self, row: u32, col: u32) -> bool {
         row > self.to_row || row == self.to_row && col > self.to_col
     }
@@ -389,6 +436,7 @@ impl CellRange {
 impl TryFrom<&str> for CellRange {
     type Error = OdsError;
 
+    // TODO: KILL
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let mut pos = 0usize;
         parse_cellrange(value, &mut pos)
@@ -396,6 +444,7 @@ impl TryFrom<&str> for CellRange {
 }
 
 impl Display for CellRange {
+    // TODO: KILL
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
         let mut buf = String::new();
         push_cellrange(&mut buf, self);
@@ -411,6 +460,7 @@ pub struct ColRange {
 }
 
 impl Display for ColRange {
+    // TODO: KILL
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "{}:{}", self.col, self.to_col)
     }
@@ -418,33 +468,39 @@ impl Display for ColRange {
 
 impl ColRange {
     /// New range.
+    // TODO: KILL
     pub fn new(col: u32, to_col: u32) -> Self {
         assert!(col <= to_col);
         Self { col, to_col }
     }
 
     /// Column
+    // TODO: KILL
     pub fn set_col(&mut self, col: u32) {
         self.col = col;
     }
 
     /// Column
+    // TODO: KILL
     pub fn col(&self) -> u32 {
         self.col
     }
 
     /// To column
+    // TODO: KILL
     pub fn set_to_col(&mut self, to_col: u32) {
         self.to_col = to_col;
     }
 
     /// To column
+    // TODO: KILL
     pub fn to_col(&self) -> u32 {
         self.to_col
     }
 
     /// Is the column in this range.
     /// The range is inclusive with the to_col.
+    // TODO: KILL
     pub fn contains(&self, col: u32) -> bool {
         col >= self.col && col <= self.to_col
     }
@@ -458,6 +514,7 @@ pub struct RowRange {
 }
 
 impl Display for RowRange {
+    // TODO: KILL
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "{}:{}", self.row, self.to_row)
     }
@@ -465,33 +522,39 @@ impl Display for RowRange {
 
 impl RowRange {
     /// New range.
+    // TODO: KILL
     pub fn new(row: u32, to_row: u32) -> Self {
         assert!(row <= to_row);
         Self { row, to_row }
     }
 
     /// Row
+    // TODO: KILL
     pub fn row(&self) -> u32 {
         self.row
     }
 
     /// Row
+    // TODO: KILL
     pub fn set_row(&mut self, row: u32) {
         self.row = row;
     }
 
     /// To row
+    // TODO: KILL
     pub fn to_row(&self) -> u32 {
         self.to_row
     }
 
     /// To row
+    // TODO: KILL
     pub fn set_to_row(&mut self, row: u32) {
         self.to_row = row;
     }
 
     /// Is the row in this range.
     /// The range is inclusive with the to_row.
+    // TODO: KILL
     pub fn contains(&self, row: u32) -> bool {
         row >= self.row && row <= self.to_row
     }
