@@ -2,13 +2,13 @@
 //! Defines types for cell references.
 //!
 
-use spreadsheet_ods_cellref::error::CellRefError;
 use spreadsheet_ods_cellref::refs_format::fmt_cell_range_list;
 use spreadsheet_ods_cellref::refs_parser::{parse_cell_range_list, parse_cell_ref, Span};
+use spreadsheet_ods_cellref::CellRefError;
 use std::fmt;
 use std::fmt::{Display, Formatter, Write};
 
-pub use spreadsheet_ods_cellref::refs::{CellRange, CellRef, ColRange, RowRange};
+pub use spreadsheet_ods_cellref::{CellRange, CellRef, ColRange, RowRange};
 
 /// Parse a cell reference.
 pub fn parse_cellref(buf: &str, pos: &mut usize) -> Result<CellRef, CellRefError> {
