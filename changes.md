@@ -1,3 +1,20 @@
+# 0.13.0
+
+- Upgrade mktemp to latest.
+- Extracted cell references to a separate crate spreadsheet-ods-cellref.
+  - The parser has been rewritten with nom.
+  - The fmt* functions are new too.
+- CellRef
+  - Add an IRI for references to external files.
+- CellRange
+  - Add an IRI for references to external files.
+  - Add a to_table to allow ranges that span multiple sheets.
+- ColRange, RowRange
+  - Add an IRI for references to external files.
+  - Add from_table and to_table.
+  - Add from_col_abs, to_col_abs for fixed columns in ColRange.
+  - Add from_row_abs, to_row_abs for fixed rows in RowRange.
+
 # 0.12.1
 
 - Upgrade icu_locid and quick_xml to latest.

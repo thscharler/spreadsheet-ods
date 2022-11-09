@@ -1,6 +1,6 @@
 [package]
 name = "spreadsheet-ods"
-version = "0.12.1"
+version = "0.13.0"
 authors = ["thomasscharler <thscharler@gmail.com>"]
 edition = "2021"
 description = "Read and write ODS files"
@@ -29,7 +29,7 @@ rust_decimal = "1.24"
 rust_decimal_macros = "1.24"
 color-rs = "0.7"
 string_cache = "0.8"
-mktemp = "0.4"
+mktemp = "0.5"
 time = "0.3"
 nom = "7.1"
 nom_locate = "4.0"
@@ -37,7 +37,7 @@ icu_locid = "1.0.0"
 lazy_static = "1.4.0"
 
 [dependencies.spreadsheet-ods-cellref]
-path = "../spreadsheet-ods-cellref"
+version = "0.1.0"
 
 [dependencies.quick-xml]
 version = "0.26.0"
