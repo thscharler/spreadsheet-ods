@@ -21,6 +21,7 @@ pub enum OdsError {
     Chrono(chrono::format::ParseError),
     SystemTime(std::time::SystemTimeError),
     Nom(nom::error::Error<String>),
+    CellRef(spreadsheet_ods_cellref::error::CellRefError),
 }
 
 impl Display for OdsError {
@@ -40,6 +41,7 @@ impl Display for OdsError {
             OdsError::Utf8(e) => write!(f, "UTF8 {}", e)?,
             OdsError::Nom(e) => write!(f, "Nom {}", e)?,
             OdsError::Escape(s) => write!(f, "Escape {}", s)?,
+            OdsError::CellRef(e) => write!(f, "CellRef {:?}", e)?,
         }
 
         Ok(())
@@ -63,6 +65,7 @@ impl std::error::Error for OdsError {
             OdsError::Utf8(e) => Some(e),
             OdsError::Nom(e) => Some(e),
             OdsError::Escape(_) => None,
+            OdsError::CellRef(e) => Some(e),
         }
     }
 }
@@ -140,5 +143,11 @@ impl<'a> From<nom::Err<nom::error::Error<&'a [u8]>>> for OdsError {
                 err.code,
             )),
         }
+    }
+}
+
+impl From<spreadsheet_ods_cellref::error::CellRefError> for OdsError {
+    fn from(err: spreadsheet_ods_cellref::error::CellRefError) -> OdsError {
+        OdsError::CellRef(err)
     }
 }

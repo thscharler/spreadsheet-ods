@@ -36,6 +36,9 @@ nom_locate = "4.0"
 icu_locid = "1.0.0"
 lazy_static = "1.4.0"
 
+[dependencies.spreadsheet-ods-cellref]
+path = "../spreadsheet-ods-cellref"
+
 [dependencies.quick-xml]
 version = "0.26.0"
 # ?? Should be UTF-8, no need for encoding related stuff.
