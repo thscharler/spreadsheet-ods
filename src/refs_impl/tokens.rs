@@ -288,7 +288,6 @@ pub fn identifier<'a>(rest: Span<'a>) -> ParseResult<'a, Span<'a>> {
 
 // SheetName ::= QuotedSheetName | '$'? [^\]\. #$']+
 // QuotedSheetName ::= '$'? SingleQuoted
-// TODO: sync with spreadsheet_ods_cellref
 /// Sheet name
 pub fn sheet_name(rest: Span<'_>) -> ParseResult<'_, (Option<Span<'_>>, Span<'_>)> {
     let (rest, abs) = match opt(dollar_nom)(rest) {
@@ -322,7 +321,6 @@ pub fn sheet_name(rest: Span<'_>) -> ParseResult<'_, (Option<Span<'_>>, Span<'_>
 }
 
 // QuotedSheetName ::= '$'? SingleQuoted
-// TODO: sync with spreadsheet_ods_cellref
 /// Sheet name
 pub fn quoted_sheet_name(rest: Span<'_>) -> ParseResult<'_, (Option<Span<'_>>, Span<'_>)> {
     let (rest, abs) = match opt(dollar_nom)(rest) {

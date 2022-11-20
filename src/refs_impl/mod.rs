@@ -70,6 +70,7 @@ pub(crate) fn map_err<'s, O>(mut err: ParseOFError<'s>, code: OFCode) -> ParseRe
         && err.code != OFCode::OFCUnexpected
         && err.code != OFCode::OFCParseIncomplete
     {
+        err.cause.push(err.code);
         err.code = code;
     }
 

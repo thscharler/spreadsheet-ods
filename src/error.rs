@@ -3,7 +3,6 @@
 //!
 
 use crate::refs_impl::error::ParseOFError;
-use spreadsheet_ods_cellref::CellRefError;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
@@ -145,12 +144,6 @@ impl<'a> From<nom::Err<nom::error::Error<&'a [u8]>>> for OdsError {
                 err.code,
             )),
         }
-    }
-}
-
-impl From<CellRefError> for OdsError {
-    fn from(err: CellRefError) -> OdsError {
-        OdsError::CellRef(format!("{:?}", err))
     }
 }
 

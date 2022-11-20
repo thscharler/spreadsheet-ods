@@ -12,6 +12,7 @@ use std::fmt::{Debug, Display, Formatter};
 #[derive(Debug)]
 pub struct ParseOFError<'s> {
     pub code: OFCode,
+    pub cause: Vec<OFCode>,
     pub span: Span<'s>,
     pub unexpected: Option<Box<ParseOFError<'s>>>,
 }
@@ -85,6 +86,7 @@ impl<'s> ParseOFError<'s> {
     pub fn new(code: OFCode, span: Span<'s>) -> Self {
         Self {
             code,
+            cause: Vec::new(),
             span,
             unexpected: None,
         }
@@ -332,6 +334,9 @@ impl<'s, T> LocateError<'s, T, ParseColnameError> for Result<T, ParseColnameErro
 impl<'s> Display for ParseOFError<'s> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?} ", self.code)?;
+        if !self.cause.is_empty() {
+            write!(f, "{:?}", self.cause)?;
+        }
         write!(
             f,
             "for span={}::{}:{} '{}'",

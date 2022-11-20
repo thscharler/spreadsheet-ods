@@ -9,32 +9,32 @@ use crate::refs_impl::{conv, map_err, panic_parse, tokens, ParseResult, Span, Tr
 
 /// Parses a space separated list of cell-ranges.
 pub(crate) fn parse_cell_range_list<'s>(
-    i: Span<'s>,
+    rest: Span<'s>,
 ) -> ParseResult<'s, Option<Vec<OFCellRange<'s>>>> {
     let mut vec = Vec::new();
 
-    let mut rest_loop = i;
-    let rest2 = loop {
-        let (rest1, cell_range) = parse_cell_range(rest_loop)?;
-        vec.push(cell_range);
-
-        if rest1.is_empty() {
-            break rest1;
-        }
-
-        // eat one space or fail
-        let rest1 = match space(rest1) {
-            Ok((rest1, _sp)) => rest1,
-            Err(e) => return Err(ParseOFError::nom(e)),
+    let mut rest_loop = rest;
+    loop {
+        rest_loop = match parse_cell_range(rest_loop) {
+            Ok((rest1, cell_range)) => {
+                vec.push(cell_range);
+                rest1
+            }
+            Err(e) if e.code == OFCCellRange => break,
+            Err(e) => panic_parse(e),
         };
 
-        rest_loop = rest1;
-    };
+        rest_loop = match space(rest_loop) {
+            Ok((rest1, _sp)) => rest1,
+            Err(nom::Err::Error(e)) if e.code == nom::error::ErrorKind::Tag => break,
+            Err(e) => return Err(ParseOFError::nom(e)),
+        };
+    }
 
     if vec.is_empty() {
-        Ok((rest2, None))
+        Ok((rest_loop, None))
     } else {
-        Ok((rest2, Some(vec)))
+        Ok((rest_loop, Some(vec)))
     }
 }
 
