@@ -1,11 +1,8 @@
-use crate::refs::CellRef;
+use crate::refs_impl::ast::{OFAst, OFCol, OFIri, OFRow, OFSheetName};
 use crate::refs_impl::error::OFCode::*;
 use crate::refs_impl::error::{LocateError, ParseOFError};
 use crate::refs_impl::tokens::eat_space;
-use crate::refs_impl::{
-    conv, map_err, panic_parse, tokens, OFAst, OFCol, OFIri, OFRow, OFSheetName, ParseResult, Span,
-    TrackParseResult,
-};
+use crate::refs_impl::{conv, map_err, panic_parse, tokens, ParseResult, Span, TrackParseResult};
 
 /// Parses a simple cell reference.
 #[allow(unused)]
