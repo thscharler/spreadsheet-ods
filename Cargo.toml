@@ -37,9 +37,6 @@ icu_locid = "1.0.0"
 lazy_static = "1.4.0"
 unicode-ident = "1.0.5"
 
-[dependencies.spreadsheet-ods-cellref]
-version = "0.1.0"
-
 [dependencies.quick-xml]
 version = "0.26.0"
 # ?? Should be UTF-8, no need for encoding related stuff.

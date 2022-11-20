@@ -5,7 +5,7 @@ use crate::refs_impl::error::OFCode::*;
 use crate::refs_impl::error::{LocateError, ParseOFError};
 use crate::refs_impl::tokens::eat_space;
 use crate::refs_impl::tokens::nomtokens::space;
-use crate::refs_impl::{conv, map_err, panic_parse, tokens, ParseResult, Span, TrackParseResult};
+use crate::refs_impl::{conv, map_err, tokens, ParseResult, Span, TrackParseResult};
 
 /// Parses a space separated list of cell-ranges.
 pub(crate) fn parse_cell_range_list<'s>(
@@ -21,7 +21,7 @@ pub(crate) fn parse_cell_range_list<'s>(
                 rest1
             }
             Err(e) if e.code == OFCCellRange => break,
-            Err(e) => panic_parse(e),
+            Err(e) => return map_err(e, OFCUnexpected),
         };
 
         rest_loop = match space(rest_loop) {
@@ -142,7 +142,7 @@ fn parse_iri<'s>(rest: Span<'s>) -> ParseResult<'s, Option<OFIri<'s>>> {
         Err(e) if e.code == OFCSingleQuoteStart || e.code == OFCHashtag => Ok((rest, None)),
         Err(e) if e.code == OFCString => map_err(e, OFCIri),
         Err(e) if e.code == OFCSingleQuoteEnd => map_err(e, OFCIri),
-        Err(e) => panic_parse(e),
+        Err(e) => map_err(e, OFCUnexpected),
     }
 }
 
@@ -160,7 +160,7 @@ fn parse_sheet_name<'s>(rest: Span<'s>) -> ParseResult<'s, Option<OFSheetName<'s
         Err(e) if e.code == OFCSingleQuoteStart => (rest, None),
         Err(e) if e.code == OFCString => return map_err(e, OFCSheetName),
         Err(e) if e.code == OFCSingleQuoteEnd => return map_err(e, OFCSheetName),
-        Err(e) => panic_parse(e),
+        Err(e) => return map_err(e, OFCUnexpected),
     };
 
     Ok((rest, sheet_name))
@@ -172,7 +172,7 @@ fn parse_dot<'s>(rest: Span<'s>) -> ParseResult<'s, Span<'s>> {
     let (rest, dot) = match tokens::dot(eat_space(rest)) {
         Ok((rest1, dot)) => (rest1, dot),
         Err(e) if e.code == OFCDot => return map_err(e, OFCDot),
-        Err(e) => panic_parse(e),
+        Err(e) => return map_err(e, OFCUnexpected),
     };
 
     Ok((rest, dot))
@@ -183,7 +183,7 @@ fn parse_col_term<'s>(rest: Span<'s>) -> ParseResult<'s, OFCol<'s>> {
     let (rest, col) = match tokens::col(rest) {
         Ok((rest, col)) => (rest, col),
         Err(e) if e.code == OFCAlpha => return map_err(e, OFCCol),
-        Err(e) => panic_parse(e),
+        Err(e) => return map_err(e, OFCUnexpected),
     };
 
     let col = OFAst::col(
@@ -199,7 +199,7 @@ fn parse_row_term<'s>(rest: Span<'s>) -> ParseResult<'s, OFRow<'s>> {
     let (rest, row) = match tokens::row(rest) {
         Ok((rest, row)) => (rest, row),
         Err(e) if e.code == OFCDigit => return map_err(e, OFCRow),
-        Err(e) => panic_parse(e),
+        Err(e) => return map_err(e, OFCUnexpected),
     };
 
     let row = OFAst::row(
@@ -215,7 +215,7 @@ fn parse_colon_term<'s>(rest: Span<'s>) -> ParseResult<'s, ()> {
     let (rest, _colon) = match tokens::colon(eat_space(rest)) {
         Ok((rest1, dot)) => (rest1, dot),
         Err(e) if e.code == OFCColon => return map_err(e, OFCColon),
-        Err(e) => panic_parse(e),
+        Err(e) => return map_err(e, OFCUnexpected),
     };
 
     Ok((rest, ()))

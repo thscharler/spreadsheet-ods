@@ -1,3 +1,5 @@
+#![allow(clippy::needless_lifetimes)]
+
 use crate::refs_impl::error::{OFCode, ParseOFError};
 use nom::Offset;
 use nom_locate::LocatedSpan;
@@ -75,12 +77,6 @@ pub(crate) fn map_err<'s, O>(mut err: ParseOFError<'s>, code: OFCode) -> ParseRe
     }
 
     Err(err)
-}
-
-/// Panic in the parser.
-#[track_caller]
-pub(crate) fn panic_parse<'s>(e: ParseOFError<'s>) -> ! {
-    unreachable!("{}", e)
 }
 
 /// MOD: Here it just calls map_err to change the error-code in a convenient way.
