@@ -88,9 +88,8 @@ pub fn lah_identifier<'a>(i: Span<'a>) -> bool {
 }
 
 /// Lookahead for a sheet-name
-// TODO: sync with spreadsheet_ods_cellref
 pub fn lah_sheet_name(i: Span<'_>) -> bool {
-    // TODO: none_of("]. #$") is a very wide definition.
+    // NOTE: none_of("]. #$") is a very wide definition.
     alt::<_, char, nom::error::Error<_>, _>((nchar('$'), nchar('\''), none_of("]. #$")))(i).is_ok()
 }
 

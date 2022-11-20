@@ -84,6 +84,21 @@ impl<'a> OFAst<'a> {
 // Functions that return some OFxxx
 //
 impl<'a> OFAst<'a> {
+    /// CellRef variant
+    pub(crate) fn cell_ref(
+        iri: Option<OFIri<'a>>,
+        table: Option<OFSheetName<'a>>,
+        row: OFRow<'a>,
+        col: OFCol<'a>,
+    ) -> OFAst<'a> {
+        OFAst::NodeCellRef(OFCellRef {
+            iri,
+            table,
+            row,
+            col,
+        })
+    }
+
     /// CellRange variant
     pub(crate) fn cell_range(
         iri: Option<OFIri<'a>>,
@@ -102,6 +117,40 @@ impl<'a> OFAst<'a> {
             to_table,
             to_row,
             to_col,
+        })
+    }
+
+    /// ColRange variant
+    pub(crate) fn col_range(
+        iri: Option<OFIri<'a>>,
+        table: Option<OFSheetName<'a>>,
+        col: OFCol<'a>,
+        to_table: Option<OFSheetName<'a>>,
+        to_col: OFCol<'a>,
+    ) -> OFAst<'a> {
+        OFAst::NodeColRange(OFColRange {
+            iri,
+            table,
+            col,
+            to_table,
+            to_col,
+        })
+    }
+
+    /// RowRange variant
+    pub(crate) fn row_range(
+        iri: Option<OFIri<'a>>,
+        table: Option<OFSheetName<'a>>,
+        row: OFRow<'a>,
+        to_table: Option<OFSheetName<'a>>,
+        to_row: OFRow<'a>,
+    ) -> OFAst<'a> {
+        OFAst::NodeRowRange(OFRowRange {
+            iri,
+            table,
+            row,
+            to_table,
+            to_row,
         })
     }
 }
