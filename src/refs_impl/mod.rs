@@ -3,8 +3,8 @@ use nom::Offset;
 use nom_locate::LocatedSpan;
 use std::slice;
 
-mod ast;
-mod parser;
+pub(crate) mod ast;
+pub(crate) mod parser;
 
 // clones from openformula
 #[allow(unreachable_pub)]
@@ -50,6 +50,15 @@ pub(crate) unsafe fn span_union<'a>(span0: Span<'a>, span1: Span<'a>) -> Span<'a
 
         // As span0 was ok the offset used here is ok too.
         Span::new_from_raw_offset(span0.location_offset(), span0.location_line(), str, ())
+    }
+}
+
+/// Fails if the string was not fully parsed.
+pub(crate) fn check_eof<'s>(i: Span<'s>, code: OFCode) -> Result<(), ParseOFError<'s>> {
+    if (*i).is_empty() {
+        Ok(())
+    } else {
+        Err(ParseOFError::new(code, i))
     }
 }
 

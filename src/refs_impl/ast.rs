@@ -5,15 +5,8 @@ use std::marker::PhantomData;
 
 #[derive(PartialEq)]
 #[allow(unused)]
-pub(crate) enum OFAst<'a> {
-    /// CellRef
-    NodeCellRef(OFCellRef<'a>),
-    /// CellRange
-    NodeCellRange(OFCellRange<'a>),
-    /// ColRange
-    NodeColRange(OFColRange<'a>),
-    /// RowRange
-    NodeRowRange(OFRowRange<'a>),
+pub(crate) struct OFAst<'a> {
+    pub(crate) phantom: PhantomData<&'a str>,
 }
 
 //
@@ -53,81 +46,6 @@ impl<'a> OFAst<'a> {
             col,
             phantom: Default::default(),
         }
-    }
-}
-
-//
-// Functions that return some OFxxx
-//
-impl<'a> OFAst<'a> {
-    /// CellRef variant
-    pub(crate) fn cell_ref(
-        iri: Option<OFIri<'a>>,
-        table: Option<OFSheetName<'a>>,
-        row: OFRow<'a>,
-        col: OFCol<'a>,
-    ) -> OFAst<'a> {
-        OFAst::NodeCellRef(OFCellRef {
-            iri,
-            table,
-            row,
-            col,
-        })
-    }
-
-    /// CellRange variant
-    pub(crate) fn cell_range(
-        iri: Option<OFIri<'a>>,
-        table: Option<OFSheetName<'a>>,
-        row: OFRow<'a>,
-        col: OFCol<'a>,
-        to_table: Option<OFSheetName<'a>>,
-        to_row: OFRow<'a>,
-        to_col: OFCol<'a>,
-    ) -> OFAst<'a> {
-        OFAst::NodeCellRange(OFCellRange {
-            iri,
-            table,
-            row,
-            col,
-            to_table,
-            to_row,
-            to_col,
-        })
-    }
-
-    /// ColRange variant
-    pub(crate) fn col_range(
-        iri: Option<OFIri<'a>>,
-        table: Option<OFSheetName<'a>>,
-        col: OFCol<'a>,
-        to_table: Option<OFSheetName<'a>>,
-        to_col: OFCol<'a>,
-    ) -> OFAst<'a> {
-        OFAst::NodeColRange(OFColRange {
-            iri,
-            table,
-            col,
-            to_table,
-            to_col,
-        })
-    }
-
-    /// RowRange variant
-    pub(crate) fn row_range(
-        iri: Option<OFIri<'a>>,
-        table: Option<OFSheetName<'a>>,
-        row: OFRow<'a>,
-        to_table: Option<OFSheetName<'a>>,
-        to_row: OFRow<'a>,
-    ) -> OFAst<'a> {
-        OFAst::NodeRowRange(OFRowRange {
-            iri,
-            table,
-            row,
-            to_table,
-            to_row,
-        })
     }
 }
 

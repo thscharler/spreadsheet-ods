@@ -2,6 +2,8 @@
 //! Error type.
 //!
 
+use crate::refs_impl::error::ParseOFError;
+use spreadsheet_ods_cellref::CellRefError;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
@@ -21,7 +23,7 @@ pub enum OdsError {
     Chrono(chrono::format::ParseError),
     SystemTime(std::time::SystemTimeError),
     Nom(nom::error::Error<String>),
-    CellRef(spreadsheet_ods_cellref::error::CellRefError),
+    CellRef(String),
 }
 
 impl Display for OdsError {
@@ -65,7 +67,7 @@ impl std::error::Error for OdsError {
             OdsError::Utf8(e) => Some(e),
             OdsError::Nom(e) => Some(e),
             OdsError::Escape(_) => None,
-            OdsError::CellRef(e) => Some(e),
+            OdsError::CellRef(_) => None,
         }
     }
 }
@@ -146,8 +148,14 @@ impl<'a> From<nom::Err<nom::error::Error<&'a [u8]>>> for OdsError {
     }
 }
 
-impl From<spreadsheet_ods_cellref::error::CellRefError> for OdsError {
-    fn from(err: spreadsheet_ods_cellref::error::CellRefError) -> OdsError {
-        OdsError::CellRef(err)
+impl From<CellRefError> for OdsError {
+    fn from(err: CellRefError) -> OdsError {
+        OdsError::CellRef(format!("{:?}", err))
+    }
+}
+
+impl<'s> From<ParseOFError<'s>> for OdsError {
+    fn from(err: ParseOFError<'s>) -> OdsError {
+        OdsError::CellRef(format!("{:?}", err))
     }
 }

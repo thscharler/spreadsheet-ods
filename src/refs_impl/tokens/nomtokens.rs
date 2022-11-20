@@ -31,6 +31,11 @@ pub fn eat_space<'a>(i: Span<'a>) -> Span<'a> {
     }
 }
 
+/// Parse one space
+pub fn space(i: Span<'_>) -> IResult<Span<'_>, Span<'_>> {
+    tag(" ")(i)
+}
+
 /// Lookahead for a number
 pub fn lah_number<'a>(i: Span<'a>) -> bool {
     alt::<Span<'a>, char, nom::error::Error<_>, _>((nchar('.'), one_of("0123456789")))(i).is_ok()
