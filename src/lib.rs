@@ -2871,14 +2871,14 @@ impl From<Option<NaiveDateTime>> for Value {
 
 impl From<NaiveDate> for Value {
     fn from(dt: NaiveDate) -> Self {
-        Value::DateTime(dt.and_hms(0, 0, 0))
+        Value::DateTime(dt.and_hms_opt(0, 0, 0).unwrap())
     }
 }
 
 impl From<Option<NaiveDate>> for Value {
     fn from(dt: Option<NaiveDate>) -> Self {
         if let Some(dt) = dt {
-            Value::DateTime(dt.and_hms(0, 0, 0))
+            Value::DateTime(dt.and_hms_opt(0, 0, 0).unwrap())
         } else {
             Value::Empty
         }
@@ -2887,14 +2887,20 @@ impl From<Option<NaiveDate>> for Value {
 
 impl From<NaiveTime> for Value {
     fn from(ti: NaiveTime) -> Self {
-        Value::DateTime(NaiveDateTime::new(NaiveDate::from_ymd(1900, 1, 1), ti))
+        Value::DateTime(NaiveDateTime::new(
+            NaiveDate::from_ymd_opt(1900, 1, 1).unwrap(),
+            ti,
+        ))
     }
 }
 
 impl From<Option<NaiveTime>> for Value {
     fn from(dt: Option<NaiveTime>) -> Self {
         if let Some(ti) = dt {
-            Value::DateTime(NaiveDateTime::new(NaiveDate::from_ymd(1900, 1, 1), ti))
+            Value::DateTime(NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(1900, 1, 1).unwrap(),
+                ti,
+            ))
         } else {
             Value::Empty
         }

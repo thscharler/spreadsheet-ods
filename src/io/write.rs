@@ -365,11 +365,13 @@ fn write_meta<W: Write + Seek>(
 
         xml_out.elem_text("meta:generator", "spreadsheet-ods 0.14.0")?;
         let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
-        let d = NaiveDateTime::from_timestamp(s.as_secs() as i64, 0);
-        xml_out.elem_text(
-            "meta:creation-date",
-            &d.format("%Y-%m-%dT%H:%M:%S%.f").to_string(),
-        )?;
+        let d = NaiveDateTime::from_timestamp_opt(s.as_secs() as i64, 0);
+        if let Some(d) = d {
+            xml_out.elem_text(
+                "meta:creation-date",
+                &d.format("%Y-%m-%dT%H:%M:%S%.f").to_string(),
+            )?;
+        }
         xml_out.elem_text("meta:editing-duration", "P0D")?;
         xml_out.elem_text("meta:editing-cycles", "1")?;
         // xml_out.elem_text_esc("meta:initial-creator", &username::get_user_name().unwrap())?;
