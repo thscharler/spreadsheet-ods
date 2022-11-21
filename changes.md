@@ -1,3 +1,14 @@
+# 0.14.0
+
+- Undo spreadsheet-ods-cellref. Was a reasonable start, but didn't work out
+  as expected. 
+- Instead use a splinter of a parser for OpenFormula I'm working on separately 
+  for cellref parsing. 
+- This means 
+  - Cell-references now can contain external references via an IRI.
+  - Cell-ranges can span more than one table.
+  - Colranges and Rowranges have IRI, from-table and to-table now too.
+  
 # 0.13.0
 
 - Upgrade mktemp to latest.
