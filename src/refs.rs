@@ -67,7 +67,7 @@ impl Display for CCol {
 
 /// A reference to a cell, possibly in another sheet in another file.
 /// ```
-/// use spreadsheet_ods_cellref::CellRef;
+/// use spreadsheet_ods::CellRef;
 /// let c1 = CellRef::local(5,2);
 /// let c2 = CellRef::local(7,4).absolute_col();
 /// let c3 = CellRef::remote("spreadsheet-2", 9,6);
