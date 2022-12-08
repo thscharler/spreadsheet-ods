@@ -286,7 +286,7 @@ pub struct FormatPart {
     /// Text is inserted before the digit at the specified position. If the value of number:position
     /// attribute is greater than the value of number:min-integer-digits 19.355 and greater than
     /// the number of integer digits in the number, text is prepended to the number.
-    position: u32,
+    position: i32,
     /// Some content.
     content: Option<String>,
 }
@@ -380,12 +380,12 @@ impl FormatPart {
     }
 
     /// Sets the position for embedded text in a number format part.
-    pub fn set_position(&mut self, pos: u32) {
+    pub fn set_position(&mut self, pos: i32) {
         self.position = pos;
     }
 
     /// The position for embedded text in a number format part.
-    pub fn position(&self) -> u32 {
+    pub fn position(&self) -> i32 {
         self.position
     }
 

@@ -1868,7 +1868,7 @@ fn read_part(
                             let attr = attr?;
                             match attr.key.as_ref() {
                                 b"number:position" => {
-                                    part.set_position(parse_u32(&attr.value)?);
+                                    part.set_position(parse_i32(&attr.value)?);
                                 }
                                 attr => {
                                     return Err(OdsError::Ods(format!(

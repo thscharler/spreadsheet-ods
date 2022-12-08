@@ -140,7 +140,7 @@ impl<'vf, T: ValueFormatTrait> PartNumberBuilder<'vf, T> {
     /// The number:embedded-text element has no child elements.
     /// The number:embedded-text element has character data content
     #[must_use]
-    pub fn embedded_text<S: Into<String>>(mut self, text: S, pos: u32) -> Self {
+    pub fn embedded_text<S: Into<String>>(mut self, text: S, pos: i32) -> Self {
         self.part.position = pos;
         self.part.content = Some(text.into());
         self
