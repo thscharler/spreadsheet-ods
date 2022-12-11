@@ -1696,7 +1696,7 @@ fn read_value_format_parts<T: ValueFormatTrait>(
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
-            println!(" read_value_format {:?}", evt);
+            println!(" read_value_format_parts {:?}", evt);
         }
         match evt {
             Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
@@ -1705,6 +1705,8 @@ fn read_value_format_parts<T: ValueFormatTrait>(
                         valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Boolean)?)
                     }
                     b"number:number" => {
+                        // TODO: embedded-text below is completeley broken. removed it as a quick fix.
+                        //       embedded-text is a sub-tag of number:number. correct someday.
                         valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Number)?)
                     }
                     b"number:scientific-number" => valuestyle.push_part(read_part(
@@ -1828,12 +1830,12 @@ fn read_value_format_parts<T: ValueFormatTrait>(
                     valuestyle_part = None;
                 }
                 _ => {
-                    dump_unused2("read_value_format", &evt)?;
+                    dump_unused2("read_value_format_parts", &evt)?;
                 }
             },
             Event::Eof => break,
             _ => {
-                dump_unused2("read_value_format", &evt)?;
+                dump_unused2("read_value_format_parts", &evt)?;
             }
         }
 
@@ -1853,52 +1855,52 @@ fn read_part(
     let mut part = FormatPart::new(part_type);
     copy_attr2(part.attrmap_mut(), xml_tag)?;
 
-    // There is one relevant subtag embedded-text.
-    let mut buf = bs.get_buf();
-    loop {
-        let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
-            println!(" read_part {:?}", evt);
-        }
-        match evt {
-            Event::Start(ref xml_tag2) | Event::Empty(ref xml_tag2) => {
-                match xml_tag2.name().as_ref() {
-                    b"number:embedded-text" => {
-                        for attr in xml_tag2.attributes().with_checks(false) {
-                            let attr = attr?;
-                            match attr.key.as_ref() {
-                                b"number:position" => {
-                                    part.set_position(parse_i32(&attr.value)?);
-                                }
-                                attr => {
-                                    return Err(OdsError::Ods(format!(
-                                        "embedded-text: attribute unknown {} ",
-                                        from_utf8(attr)?
-                                    )))
-                                }
-                            }
-                        }
-                    }
-                    _ => dump_unused2("read_value_format", &evt)?,
-                }
-            }
-            Event::Text(ref e) => {
-                part.set_content(xml.decoder().decode(e.unescape()?.as_bytes())?);
-            }
-            Event::End(ref e) => match e.name().as_ref() {
-                b"number:embedded-text" => {
-                    break;
-                }
-                _ => {
-                    dump_unused2("read_value_format", &evt)?;
-                }
-            },
-            Event::Eof => break,
-            _ => {}
-        }
-    }
-
-    bs.push(buf);
+    // // There is one relevant subtag embedded-text.
+    // let mut buf = bs.get_buf();
+    // loop {
+    //     let evt = xml.read_event_into(&mut buf)?;
+    //     if DUMP_XML {
+    //         println!(" read_part {:?}", evt);
+    //     }
+    //     match evt {
+    //         Event::Start(ref xml_tag2) | Event::Empty(ref xml_tag2) => {
+    //             match xml_tag2.name().as_ref() {
+    //                 b"number:embedded-text" => {
+    //                     for attr in xml_tag2.attributes().with_checks(false) {
+    //                         let attr = attr?;
+    //                         match attr.key.as_ref() {
+    //                             b"number:position" => {
+    //                                 part.set_position(parse_i32(&attr.value)?);
+    //                             }
+    //                             attr => {
+    //                                 return Err(OdsError::Ods(format!(
+    //                                     "embedded-text: attribute unknown {} ",
+    //                                     from_utf8(attr)?
+    //                                 )))
+    //                             }
+    //                         }
+    //                     }
+    //                 }
+    //                 _ => dump_unused2("read_value_format", &evt)?,
+    //             }
+    //         }
+    //         Event::Text(ref e) => {
+    //             part.set_content(xml.decoder().decode(e.unescape()?.as_bytes())?);
+    //         }
+    //         Event::End(ref e) => match e.name().as_ref() {
+    //             b"number:embedded-text" => {
+    //                 break;
+    //             }
+    //             _ => {
+    //                 dump_unused2("read_value_format", &evt)?;
+    //             }
+    //         },
+    //         Event::Eof => break,
+    //         _ => {}
+    //     }
+    // }
+    //
+    // bs.push(buf);
 
     Ok(part)
 }
