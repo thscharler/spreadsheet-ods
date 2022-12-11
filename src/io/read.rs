@@ -1847,8 +1847,8 @@ fn read_value_format_parts<T: ValueFormatTrait>(
 }
 
 fn read_part(
-    bs: &mut BufStack,
-    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    _bs: &mut BufStack,
+    _xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
     xml_tag: &BytesStart<'_>,
     part_type: FormatPartType,
 ) -> Result<FormatPart, OdsError> {
