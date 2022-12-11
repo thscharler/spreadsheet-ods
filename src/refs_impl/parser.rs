@@ -39,18 +39,18 @@ pub(crate) fn parse_cell_range_list<'s>(
 }
 
 pub(crate) fn parse_cell_range<'s>(rest: Span<'s>) -> ParseResult<'s, OFCellRange<'s>> {
-    let (rest, iri) = parse_iri(eat_space(rest)).trace(OFCCellRange)?;
-    let (rest, table) = parse_sheet_name(eat_space(rest)).trace(OFCCellRange)?;
-    let (rest, _dot) = parse_dot(eat_space(rest)).trace(OFCCellRange)?;
-    let (rest, col) = parse_col_term(eat_space(rest)).trace(OFCCellRange)?;
-    let (rest, row) = parse_row_term(rest).trace(OFCCellRange)?;
+    let (rest, iri) = parse_iri(eat_space(rest))?;
+    let (rest, table) = parse_sheet_name(eat_space(rest))?;
+    let (rest, _dot) = parse_dot(eat_space(rest))?;
+    let (rest, col) = parse_col_term(eat_space(rest))?;
+    let (rest, row) = parse_row_term(rest)?;
 
-    let (rest, _colon) = parse_colon_term(eat_space(rest)).trace(OFCCellRange)?;
+    let (rest, _colon) = parse_colon_term(eat_space(rest))?;
 
-    let (rest, to_table) = parse_sheet_name(eat_space(rest)).trace(OFCCellRange)?;
-    let (rest, _to_dot) = parse_dot(eat_space(rest)).trace(OFCCellRange)?;
-    let (rest, to_col) = parse_col_term(eat_space(rest)).trace(OFCCellRange)?;
-    let (rest, to_row) = parse_row_term(rest).trace(OFCCellRange)?;
+    let (rest, to_table) = parse_sheet_name(eat_space(rest))?;
+    let (rest, _to_dot) = parse_dot(eat_space(rest))?;
+    let (rest, to_col) = parse_col_term(eat_space(rest))?;
+    let (rest, to_row) = parse_row_term(rest)?;
 
     let ast = OFCellRange {
         iri,
@@ -66,11 +66,11 @@ pub(crate) fn parse_cell_range<'s>(rest: Span<'s>) -> ParseResult<'s, OFCellRang
 }
 
 pub(crate) fn parse_cell_ref<'s>(rest: Span<'s>) -> ParseResult<'s, OFCellRef<'s>> {
-    let (rest, iri) = parse_iri(eat_space(rest)).trace(OFCCellRef)?;
-    let (rest, table) = parse_sheet_name(eat_space(rest)).trace(OFCCellRef)?;
-    let (rest, _dot) = parse_dot(eat_space(rest)).trace(OFCCellRef)?;
-    let (rest, col) = parse_col_term(eat_space(rest)).trace(OFCCellRef)?;
-    let (rest, row) = parse_row_term(rest).trace(OFCCellRef)?;
+    let (rest, iri) = parse_iri(eat_space(rest))?;
+    let (rest, table) = parse_sheet_name(eat_space(rest))?;
+    let (rest, _dot) = parse_dot(eat_space(rest))?;
+    let (rest, col) = parse_col_term(eat_space(rest))?;
+    let (rest, row) = parse_row_term(rest)?;
 
     let ast = OFCellRef {
         iri,
@@ -84,16 +84,16 @@ pub(crate) fn parse_cell_ref<'s>(rest: Span<'s>) -> ParseResult<'s, OFCellRef<'s
 
 #[allow(unused)]
 pub(crate) fn parse_col_range<'s>(rest: Span<'s>) -> ParseResult<'s, OFColRange<'s>> {
-    let (rest, iri) = parse_iri(eat_space(rest)).trace(OFCColRange)?;
-    let (rest, table) = parse_sheet_name(eat_space(rest)).trace(OFCColRange)?;
-    let (rest, _dot) = parse_dot(eat_space(rest)).trace(OFCColRange)?;
-    let (rest, col) = parse_col_term(eat_space(rest)).trace(OFCColRange)?;
+    let (rest, iri) = parse_iri(eat_space(rest))?;
+    let (rest, table) = parse_sheet_name(eat_space(rest))?;
+    let (rest, _dot) = parse_dot(eat_space(rest))?;
+    let (rest, col) = parse_col_term(eat_space(rest))?;
 
-    let (rest, _colon) = parse_colon_term(eat_space(rest)).trace(OFCColRange)?;
+    let (rest, _colon) = parse_colon_term(eat_space(rest))?;
 
-    let (rest, to_table) = parse_sheet_name(eat_space(rest)).trace(OFCColRange)?;
-    let (rest, _to_dot) = parse_dot(eat_space(rest)).trace(OFCColRange)?;
-    let (rest, to_col) = parse_col_term(eat_space(rest)).trace(OFCColRange)?;
+    let (rest, to_table) = parse_sheet_name(eat_space(rest))?;
+    let (rest, _to_dot) = parse_dot(eat_space(rest))?;
+    let (rest, to_col) = parse_col_term(eat_space(rest))?;
 
     let ast = OFColRange {
         iri,
@@ -108,16 +108,16 @@ pub(crate) fn parse_col_range<'s>(rest: Span<'s>) -> ParseResult<'s, OFColRange<
 
 #[allow(unused)]
 pub(crate) fn parse_row_range<'s>(rest: Span<'s>) -> ParseResult<'s, OFRowRange<'s>> {
-    let (rest, iri) = parse_iri(eat_space(rest)).trace(OFCRowRange)?;
-    let (rest, table) = parse_sheet_name(eat_space(rest)).trace(OFCRowRange)?;
-    let (rest, _dot) = parse_dot(eat_space(rest)).trace(OFCRowRange)?;
-    let (rest, row) = parse_row_term(eat_space(rest)).trace(OFCRowRange)?;
+    let (rest, iri) = parse_iri(eat_space(rest))?;
+    let (rest, table) = parse_sheet_name(eat_space(rest))?;
+    let (rest, _dot) = parse_dot(eat_space(rest))?;
+    let (rest, row) = parse_row_term(eat_space(rest))?;
 
-    let (rest, _colon) = parse_colon_term(eat_space(rest)).trace(OFCRowRange)?;
+    let (rest, _colon) = parse_colon_term(eat_space(rest))?;
 
-    let (rest, to_table) = parse_sheet_name(eat_space(rest)).trace(OFCRowRange)?;
-    let (rest, _to_dot) = parse_dot(eat_space(rest)).trace(OFCRowRange)?;
-    let (rest, to_row) = parse_row_term(eat_space(rest)).trace(OFCRowRange)?;
+    let (rest, to_table) = parse_sheet_name(eat_space(rest))?;
+    let (rest, _to_dot) = parse_dot(eat_space(rest))?;
+    let (rest, to_row) = parse_row_term(eat_space(rest))?;
 
     let ast = OFRowRange {
         iri,
@@ -148,7 +148,7 @@ fn parse_iri<'s>(rest: Span<'s>) -> ParseResult<'s, Option<OFIri<'s>>> {
 
 fn parse_sheet_name<'s>(rest: Span<'s>) -> ParseResult<'s, Option<OFSheetName<'s>>> {
     // QuotedSheetName ::= '$'? SingleQuoted "."
-    let (rest, sheet_name) = match tokens::quoted_sheet_name(eat_space(rest)) {
+    let (rest, sheet_name) = match tokens::sheet_name(eat_space(rest)) {
         Ok((rest1, (abs, sheet_name))) => {
             let term = OFAst::sheet_name(
                 conv::try_bool_from_abs_flag(abs),
