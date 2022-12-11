@@ -5,7 +5,7 @@ use crate::refs_impl::error::OFCode::*;
 use crate::refs_impl::error::{LocateError, ParseOFError};
 use crate::refs_impl::tokens::eat_space;
 use crate::refs_impl::tokens::nomtokens::space;
-use crate::refs_impl::{conv, map_err, tokens, ParseResult, Span, TrackParseResult};
+use crate::refs_impl::{conv, map_err, tokens, ParseResult, Span};
 
 /// Parses a space separated list of cell-ranges.
 pub(crate) fn parse_cell_range_list<'s>(
@@ -158,6 +158,7 @@ fn parse_sheet_name<'s>(rest: Span<'s>) -> ParseResult<'s, Option<OFSheetName<'s
             (rest1, Some(term))
         }
         Err(e) if e.code == OFCSingleQuoteStart => (rest, None),
+        Err(e) if e.code == OFCSheetName => (rest, None),
         Err(e) if e.code == OFCString => return map_err(e, OFCSheetName),
         Err(e) if e.code == OFCSingleQuoteEnd => return map_err(e, OFCSheetName),
         Err(e) => return map_err(e, OFCUnexpected),
