@@ -28,13 +28,19 @@ impl LocalizedValueFormat for LocaleEnUs {
 
     fn number_format(&self) -> ValueFormatNumber {
         let mut v = ValueFormatNumber::new_localized(DefaultFormat::number(), Self::LOCALE);
-        v.part_number().decimal_places(2).build();
+        v.part_number()
+            .min_integer_digits(1)
+            .decimal_places(2)
+            .build();
         v
     }
 
     fn percentage_format(&self) -> ValueFormatPercentage {
         let mut v = ValueFormatPercentage::new_localized(DefaultFormat::percent(), Self::LOCALE);
-        v.part_number().decimal_places(2).build();
+        v.part_number()
+            .min_integer_digits(1)
+            .decimal_places(2)
+            .build();
         v.part_text("%").build();
         v
     }
@@ -44,11 +50,7 @@ impl LocalizedValueFormat for LocaleEnUs {
         v.part_currency().locale(Self::LOCALE).symbol("$").build();
         v.part_text(" ").build();
         v.part_number()
-            .decimal_places(2)
-            .min_decimal_places(2)
-            .grouping()
-            .build();
-        v.part_number()
+            .min_integer_digits(1)
             .decimal_places(2)
             .min_decimal_places(2)
             .grouping()

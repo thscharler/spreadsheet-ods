@@ -245,12 +245,8 @@ fn token_datetime(input: &[u8]) -> IResult<&[u8], NaiveDateTime> {
     match p.to_naive_datetime_with_offset(0) {
         Ok(v) => Ok((input, v)),
         Err(err) => {
-            dbg!(&err);
-            Err(nom::Err::Error(nom::error::Error::from_external_error(
-                input,
-                ErrorKind::Verify,
-                err,
-            )))
+            // in settings.xml dates like "0000-00-00" have been spotted.
+            Ok((input, NaiveDateTime::default()))
         }
     }
 }
