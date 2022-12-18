@@ -368,6 +368,20 @@ fn read_table(
         match evt {
             Event::End(xml_tag)
             if xml_tag.name().as_ref() == b"table:table" => {
+                // TODO: Maybe find a better fix for the repeat error.
+                // Reset the repeat count for the last two rows to one if it exceeds
+                // some arbitrary limit. 
+                let mut it = sheet.row_header.iter_mut().rev();
+                if let Some((_row, last)) = it.next() {
+                    if last.repeat > 1000 {
+                        last.repeat = 1;
+                    }
+                }
+                if let Some((_row, last)) = it.next() {
+                    if last.repeat > 1000 {
+                        last.repeat = 1;
+                    }
+                }
                 break;
             }
 
