@@ -224,7 +224,6 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::iter::FusedIterator;
 use std::ops::RangeBounds;
-use std::str::from_utf8;
 
 #[macro_use]
 mod attr_macro;
@@ -2439,7 +2438,7 @@ pub enum Value {
     Boolean(bool),
     Number(f64),
     Percentage(f64),
-    Currency(f64, [u8; 3]),
+    Currency(f64, String),
     Text(String),
     TextXml(Vec<TextTag>),
     DateTime(NaiveDateTime),
@@ -2785,7 +2784,7 @@ impl Value {
     /// Returns the currency code or "" if the value is not a currency.
     pub fn currency(&self) -> &str {
         match self {
-            Value::Currency(_, c) => from_utf8(c).unwrap(),
+            Value::Currency(_, c) => &c,
             _ => "",
         }
     }
@@ -2793,22 +2792,7 @@ impl Value {
     /// Create a currency value.
     #[allow(clippy::needless_range_loop)]
     pub fn new_currency<S: AsRef<str>>(cur: S, value: f64) -> Self {
-        let mut cur_bytes = [0u8; 3];
-
-        let mut idx = 0;
-        for c in cur.as_ref().as_bytes() {
-            cur_bytes[idx] = *c;
-            idx += 1;
-
-            if idx >= 3 {
-                break;
-            }
-        }
-        for i in idx..3 {
-            cur_bytes[i] = b' ';
-        }
-
-        Value::Currency(value, cur_bytes)
+        Value::Currency(value, cur.as_ref().to_string())
     }
 
     /// Create a percentage value.

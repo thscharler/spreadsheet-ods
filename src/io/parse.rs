@@ -30,28 +30,8 @@ pub(crate) fn parse_visibility(input: &[u8]) -> Result<Visibility, OdsError> {
 }
 
 /// Parse a attribute value as a currency.
-pub(crate) fn parse_currency(input: &[u8]) -> Result<[u8; 3], OdsError> {
-    match input.len() {
-        0 => Ok([b' ', b' ', b' ']),
-        1 => Ok([input[0], b' ', b' ']),
-        2 => Ok([input[0], input[1], b' ']),
-        3 => Ok([input[0], input[1], input[2]]),
-        _ => {
-            // TODO: bit of a hack. it seems currency CAN be longer than 3 bytes.
-            // this is a bit of a mess with the size of our value type.
-            // do some more research on this.
-            // the case i had was a leading or trailing space in the format,
-            // that was not a separate text part, but part of the currency symbol.
-            // it seems the currency symbol is not really iso, but any string.
-            // again ...
-            let cur = String::from_utf8_lossy(input).trim().to_string();
-            if cur.len() <= 3 {
-                parse_currency(cur.as_bytes())
-            } else {
-                Err(OdsError::Parse(format!("{:?} not a currency", cur)))
-            }
-        }
-    }
+pub(crate) fn parse_currency(input: &[u8]) -> Result<String, OdsError> {
+    Ok(String::from_utf8_lossy(input).to_string())
 }
 
 /// Parse a bool.

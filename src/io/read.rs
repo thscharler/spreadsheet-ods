@@ -616,7 +616,7 @@ struct ReadTableCell2 {
     val_float: Option<f64>,
     val_bool: Option<bool>,
     val_string: Option<String>,
-    val_currency: Option<[u8; 3]>,
+    val_currency: Option<String>,
 
     content: TextContent2,
 }
