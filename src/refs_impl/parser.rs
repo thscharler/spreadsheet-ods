@@ -1,10 +1,9 @@
 use crate::refs_impl::ast::{
     OFAst, OFCellRange, OFCellRef, OFCol, OFColRange, OFIri, OFRow, OFRowRange, OFSheetName,
 };
+use crate::refs_impl::error::LocateError;
 use crate::refs_impl::error::OFCode::*;
-use crate::refs_impl::error::{LocateError, ParseOFError};
 use crate::refs_impl::tokens::eat_space;
-use crate::refs_impl::tokens::nomtokens::space;
 use crate::refs_impl::{conv, map_err, tokens, ParseResult, Span};
 
 /// Parses a space separated list of cell-ranges.
@@ -24,11 +23,10 @@ pub(crate) fn parse_cell_range_list<'s>(
             Err(e) => return map_err(e, OFCUnexpected),
         };
 
-        rest_loop = match space(rest_loop) {
-            Ok((rest1, _sp)) => rest1,
-            Err(nom::Err::Error(e)) if e.code == nom::error::ErrorKind::Tag => break,
-            Err(e) => return Err(ParseOFError::nom(e)),
-        };
+        rest_loop = eat_space(rest_loop);
+        if rest_loop.is_empty() {
+            break;
+        }
     }
 
     if vec.is_empty() {
