@@ -50,7 +50,7 @@
 //! let mut sheet = wb.sheet_mut(1);
 //! sheet.set_value(0, 0, 21.4f32);
 //! sheet.set_value(0, 1, "foo");
-//! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), &date_style_ref);
+//! sheet.set_styled_value(0, 2, NaiveDate::from_ymd_opt(2020, 03, 01), &date_style_ref);
 //! sheet.set_formula(0, 3, format!("of:={}+1", formula::fcellref(0,0)));
 //!
 //! let mut sheet = Sheet::new("sample");
