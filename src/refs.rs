@@ -1182,8 +1182,11 @@ pub fn parse_cellranges(buf: &str, _pos: &mut usize) -> Result<Option<Vec<CellRa
 pub fn cellranges_string(vec: &[CellRange]) -> String {
     let mut buf = String::new();
 
-    for range in vec {
-        let _err = write!(buf, "{} ", range);
+    for (i, range) in vec.iter().enumerate() {
+        if i > 0 {
+            let _ = write!(buf, " ");
+        }
+        let _ = write!(buf, "{}", range);
     }
 
     buf
