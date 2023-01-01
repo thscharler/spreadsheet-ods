@@ -51,7 +51,7 @@ impl TempZip {
         let name = name.into();
         let add = self.temp_path.join(&name);
 
-        create_dir_all(&add)?;
+        create_dir_all(add)?;
 
         self.entries.push(TempZipEntry {
             is_dir: true,

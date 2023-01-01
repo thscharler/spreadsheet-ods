@@ -2784,7 +2784,7 @@ impl Value {
     /// Returns the currency code or "" if the value is not a currency.
     pub fn currency(&self) -> &str {
         match self {
-            Value::Currency(_, c) => &c,
+            Value::Currency(_, c) => c,
             _ => "",
         }
     }

@@ -64,10 +64,10 @@ fn test_currency() {
     sh.set_value(0, 0, currency!("€", 20));
     assert_eq!(sh.value(0, 0).value_type(), ValueType::Currency);
 
-    assert_eq!(currency!("F", 20).currency(), "F  ");
-    assert_eq!(currency!("FR", 20).currency(), "FR ");
+    assert_eq!(currency!("F", 20).currency(), "F");
+    assert_eq!(currency!("FR", 20).currency(), "FR");
     assert_eq!(currency!("FRB", 20).currency(), "FRB");
-    assert_eq!(currency!("FRBX", 20).currency(), "FRB");
+    assert_eq!(currency!("FRBX", 20).currency(), "FRBX");
 }
 
 #[test]

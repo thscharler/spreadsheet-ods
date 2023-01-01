@@ -107,7 +107,7 @@ fn write_format() -> Result<(), OdsError> {
     sh.set_styled_value(
         7,
         0,
-        NaiveDateTime::from_timestamp(1_223_222_222, 22992),
+        NaiveDateTime::from_timestamp_opt(1_223_222_222, 22992).unwrap(),
         &f7,
     );
     sh.set_styled_value(8, 0, 1.234567f64, &f8);
