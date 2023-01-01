@@ -358,8 +358,8 @@ text_tag!(Title, "text:title");
 // <text:meta-field> 7.5.19,
 // ok <text:modification-date> 7.5.16
 // ok <text:modification-time> 7.5.15
-// <text:note> 6.3.2
-// <text:note-ref> 7.7.7
+// <text:not_e> 6.3.2
+// <text:not_e-ref> 7.7.7
 // <text:object-count> 7.5.18.8
 // <text:pagecontinuation> 7.3.5
 // ok <text:page-count> 7.5.18.2

@@ -1121,7 +1121,6 @@ fn read_validations(
                                     valid.set_allow_empty(parse_bool(&attr.value)?);
                                 }
                                 attr if attr.key.as_ref() == b"table:base-cell-address" => {
-                                    // todo: maybe better
                                     let v = attr.unescape_value()?;
                                     let mut pos = 0usize;
                                     valid.set_base_cell(parse_cellref(&v, &mut pos)?);
@@ -2431,7 +2430,6 @@ fn read_stylemap(xml_tag: &BytesStart<'_>) -> Result<StyleMap, OdsError> {
                 sm.set_applied_style(attr.unescape_value()?.to_string());
             }
             attr if attr.key.as_ref() == b"style:base-cell-address" => {
-                // todo: maybe better?
                 let v = attr.unescape_value()?;
                 let mut pos = 0usize;
                 sm.set_base_cell(parse_cellref(v.as_ref(), &mut pos)?);

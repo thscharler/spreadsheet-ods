@@ -114,7 +114,7 @@
 //! * Spreadsheets
 //!   * Row and column grouping
 //!
-//! Next on the TODO list:
+//! Next on the TO-DO list:
 //! * Row and column grouping.
 //! * Calculation settings.
 //! * Named expressions.
