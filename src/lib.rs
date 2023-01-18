@@ -152,7 +152,7 @@
 //! for now.
 //!
 
-#![doc(html_root_url = "https://docs.rs/spreadsheet-ods/0.4.0")]
+#![doc(html_root_url = "https://docs.rs/spreadsheet-ods")]
 #![warn(absolute_paths_not_starting_with_crate)]
 // NO #![warn(box_pointers)]
 #![warn(elided_lifetimes_in_paths)]
