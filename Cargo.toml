@@ -36,6 +36,7 @@ nom_locate = "4.0"
 icu_locid = "1.0"
 lazy_static = "1.4"
 unicode-ident = "1.0"
+kparse = "1.1.0"
 
 [dependencies.quick-xml]
 version = "0.26"

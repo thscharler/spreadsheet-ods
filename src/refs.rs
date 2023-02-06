@@ -5,9 +5,12 @@
 use crate::refs::format_refs::{
     fmt_cell_range, fmt_cell_ref, fmt_col, fmt_col_range, fmt_row, fmt_row_range,
 };
-use crate::refs_impl::error::OFCode;
-use crate::refs_impl::{check_eof, parser, Span};
+use crate::refs_impl::parser;
+use crate::refs_impl::parser::CParserError;
+use crate::refs_impl::parser::CRCode::{CRCellRange, CRCellRef, CRColRange, CRRowRange};
 use crate::OdsError;
+#[cfg(debug_assertions)]
+use kparse::tracker::StdTracker;
 use std::fmt;
 use std::fmt::{Display, Formatter, Write};
 
@@ -1071,110 +1074,91 @@ mod format_refs {
 
 /// Parse a cell reference.
 pub fn parse_cellref(buf: &str, _pos: &mut usize) -> Result<CellRef, OdsError> {
-    let rest = Span::new(buf);
+    #[cfg(debug_assertions)]
+    let trk = StdTracker::new();
+    #[cfg(debug_assertions)]
+    let span = trk.span(buf);
+    #[cfg(not(debug_assertions))]
+    let span = buf;
 
-    let (rest, tok) = crate::refs_impl::parser::parse_cell_ref(rest)?;
-
-    check_eof(rest, OFCode::OFCCellRef)?;
-
-    Ok(CellRef::new_all(
-        tok.iri.map(|v| v.iri),
-        tok.table.map(|v| v.name),
-        tok.row.abs,
-        tok.row.row,
-        tok.col.abs,
-        tok.col.col,
-    ))
+    let (rest, tok) = parser::parse_cell_ref(span)?;
+    if rest.len() > 0 {
+        Err(nom::Err::Error(CParserError::new(CRCellRef, rest)))?
+    } else {
+        Ok(tok)
+    }
 }
 
 /// Parse a cell reference.
 pub fn parse_cellrange(buf: &str, _pos: &mut usize) -> Result<CellRange, OdsError> {
-    let rest = Span::new(buf);
+    #[cfg(debug_assertions)]
+    let trk = StdTracker::new();
+    #[cfg(debug_assertions)]
+    let span = trk.span(buf);
+    #[cfg(not(debug_assertions))]
+    let span = buf;
 
-    let (rest, tok) = crate::refs_impl::parser::parse_cell_range(rest)?;
-
-    check_eof(rest, OFCode::OFCCellRef)?;
-
-    Ok(CellRange::new_all(
-        tok.iri.map(|v| v.iri),
-        tok.table.map(|v| v.name),
-        tok.row.abs,
-        tok.row.row,
-        tok.col.abs,
-        tok.col.col,
-        tok.to_table.map(|v| v.name),
-        tok.to_row.abs,
-        tok.to_row.row,
-        tok.to_col.abs,
-        tok.to_col.col,
-    ))
+    let (rest, tok) = parser::parse_cell_range(span)?;
+    if rest.len() > 0 {
+        Err(nom::Err::Error(CParserError::new(CRCellRange, rest)))?
+    } else {
+        Ok(tok)
+    }
 }
 
 /// Parse a cell reference.
 pub fn parse_colrange(buf: &str, _pos: &mut usize) -> Result<ColRange, OdsError> {
-    let rest = Span::new(buf);
+    #[cfg(debug_assertions)]
+    let trk = StdTracker::new();
+    #[cfg(debug_assertions)]
+    let span = trk.span(buf);
+    #[cfg(not(debug_assertions))]
+    let span = buf;
 
-    let (rest, tok) = crate::refs_impl::parser::parse_col_range(rest)?;
-
-    check_eof(rest, OFCode::OFCColRange)?;
-
-    Ok(ColRange::new_all(
-        tok.iri.map(|v| v.iri),
-        tok.table.map(|v| v.name),
-        tok.col.abs,
-        tok.col.col,
-        tok.to_table.map(|v| v.name),
-        tok.to_col.abs,
-        tok.to_col.col,
-    ))
+    let (rest, tok) = parser::parse_col_range(span)?;
+    if rest.len() > 0 {
+        Err(nom::Err::Error(CParserError::new(CRColRange, rest)))?
+    } else {
+        Ok(tok)
+    }
 }
 
 /// Parse a cell reference.
 pub fn parse_rowrange(buf: &str, _pos: &mut usize) -> Result<RowRange, OdsError> {
-    let rest = Span::new(buf);
+    #[cfg(debug_assertions)]
+    let trk = StdTracker::new();
+    #[cfg(debug_assertions)]
+    let span = trk.span(buf);
+    #[cfg(not(debug_assertions))]
+    let span = buf;
 
-    let (rest, tok) = crate::refs_impl::parser::parse_row_range(rest)?;
-
-    check_eof(rest, OFCode::OFCRowRange)?;
-
-    Ok(RowRange::new_all(
-        tok.iri.map(|v| v.iri),
-        tok.table.map(|v| v.name),
-        tok.row.abs,
-        tok.row.row,
-        tok.to_table.map(|v| v.name),
-        tok.to_row.abs,
-        tok.to_row.row,
-    ))
+    let (rest, tok) = parser::parse_row_range(span)?;
+    if rest.len() > 0 {
+        Err(nom::Err::Error(CParserError::new(CRRowRange, rest)))?
+    } else {
+        Ok(tok)
+    }
 }
 
 /// Parse a list of range refs
 pub fn parse_cellranges(buf: &str, _pos: &mut usize) -> Result<Option<Vec<CellRange>>, OdsError> {
-    let rest = Span::new(buf);
-    let (rest, ranges) = parser::parse_cell_range_list(rest)?;
+    #[cfg(debug_assertions)]
+    let trk = StdTracker::new();
+    #[cfg(debug_assertions)]
+    let span = trk.span(buf);
+    #[cfg(not(debug_assertions))]
+    let span = buf;
 
-    check_eof(rest, OFCode::OFCCellRef)?;
-
-    let ranges = ranges.map(|o| {
-        o.into_iter()
-            .map(|tok| {
-                CellRange::new_all(
-                    tok.iri.map(|v| v.iri),
-                    tok.table.map(|v| v.name),
-                    tok.row.abs,
-                    tok.row.row,
-                    tok.col.abs,
-                    tok.col.col,
-                    tok.to_table.map(|v| v.name),
-                    tok.to_row.abs,
-                    tok.to_row.row,
-                    tok.to_col.abs,
-                    tok.to_col.col,
-                )
-            })
-            .collect()
-    });
-
+    let (_, ranges) = match parser::parse_cell_range_list(span) {
+        Ok((r, ranges)) => (r, ranges),
+        Err(err) => {
+            dbg!(&span);
+            dbg!(&err);
+            dbg!(&trk.results());
+            Err(err)?;
+            unreachable!()
+        }
+    };
     Ok(ranges)
 }
 

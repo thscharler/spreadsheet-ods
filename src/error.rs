@@ -2,7 +2,7 @@
 //! Error type.
 //!
 
-use crate::refs_impl::error::ParseOFError;
+use crate::refs_impl::parser::CParserError;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
@@ -147,8 +147,8 @@ impl<'a> From<nom::Err<nom::error::Error<&'a [u8]>>> for OdsError {
     }
 }
 
-impl<'s> From<ParseOFError<'s>> for OdsError {
-    fn from(err: ParseOFError<'s>) -> OdsError {
+impl<'s> From<nom::Err<CParserError<'s>>> for OdsError {
+    fn from(err: nom::Err<CParserError<'s>>) -> OdsError {
         OdsError::CellRef(format!("{:?}", err))
     }
 }
