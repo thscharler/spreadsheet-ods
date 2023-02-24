@@ -2,8 +2,9 @@
 //! Error type.
 //!
 
-use crate::refs_impl::parser::CParserError;
-use std::fmt::{Display, Formatter};
+use kparse::{Code, TokenizerError};
+use nom::{InputIter, InputLength, InputTake};
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug)]
 #[allow(missing_docs)]
@@ -147,8 +148,12 @@ impl<'a> From<nom::Err<nom::error::Error<&'a [u8]>>> for OdsError {
     }
 }
 
-impl<'s> From<nom::Err<CParserError<'s>>> for OdsError {
-    fn from(err: nom::Err<CParserError<'s>>) -> OdsError {
+impl<C, I> From<nom::Err<TokenizerError<C, I>>> for OdsError
+where
+    C: Code,
+    I: Clone + Debug + InputTake + InputLength + InputIter,
+{
+    fn from(err: nom::Err<TokenizerError<C, I>>) -> OdsError {
         OdsError::CellRef(format!("{:?}", err))
     }
 }

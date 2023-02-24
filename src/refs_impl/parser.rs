@@ -1,17 +1,20 @@
+use crate::error::AsStatic;
 use crate::refs_impl::parser::parser::{parse_col, parse_iri, parse_row, parse_sheet_name};
-use crate::refs_impl::parser::tokens::{colon, dot};
+use crate::refs_impl::parser::tokens::colon;
 use crate::{CellRange, CellRef, ColRange, RowRange};
 use kparse::prelude::*;
-use kparse::tracker::TrackResult;
 #[cfg(debug_assertions)]
 use kparse::tracker::TrackSpan;
-use kparse::{Code, Context, ParserError};
-use nom::character::complete::{multispace0, multispace1};
+use kparse::{Code, Context, TokenizerError, TokenizerResult};
+use nom::character::complete::multispace1;
+use nom::combinator::all_consuming;
+use nom::multi::separated_list0;
+use nom::sequence::tuple;
 use std::fmt::{Display, Formatter};
 use CRCode::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CRCode {
+pub(crate) enum CRCode {
     CRNomError,
 
     CRCellRangeList,
@@ -21,7 +24,6 @@ pub enum CRCode {
     CRCellRef,
 
     CRIri,
-    CRSheetName,
 
     CRCol,
     CRColInteger,
@@ -37,6 +39,32 @@ pub enum CRCode {
     CRUnquotedName,
 }
 
+impl AsStatic<str> for CRCode {
+    fn as_static(&self) -> &'static str {
+        match self {
+            CRNomError => "NomError",
+            CRCellRangeList => "CellRangeList",
+            CRCellRange => "CellRange",
+            CRColRange => "ColRange",
+            CRRowRange => "RowRange",
+            CRCellRef => "CellRef",
+            CRIri => "Iri",
+            CRCol => "Col",
+            CRColInteger => "ColInteger",
+            CRColon => "Colon",
+            CRDollar => "Dollar",
+            CRDot => "Dot",
+            CRHash => "Hash",
+            CRRow => "Row",
+            CRRowInteger => "RowInteger",
+            CRSingleQuoteEnd => "SingleQuoteEnd",
+            CRSingleQuoteStart => "SingleQuoteStart",
+            CRString => "String",
+            CRUnquotedName => "UnquotedName",
+        }
+    }
+}
+
 impl Display for CRCode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let str = match self {
@@ -47,7 +75,6 @@ impl Display for CRCode {
             CRRowRange => "row-range",
             CRCellRef => "cell-ref",
             CRIri => "iri",
-            CRSheetName => "sheet-name",
             CRCol => "col",
             CRColInteger => "col int",
             CRColon => ":",
@@ -70,21 +97,24 @@ impl Code for CRCode {
 }
 
 #[cfg(debug_assertions)]
-pub(crate) type CSpan<'s> = TrackSpan<'s, CRCode, &'s str>;
+pub(crate) type KSpan<'s> = TrackSpan<'s, CRCode, &'s str>;
 #[cfg(not(debug_assertions))]
-pub(crate) type CSpan<'s> = &'s str;
-pub(crate) type CParserResult<'s, O> = TrackResult<CRCode, CSpan<'s>, O, ()>;
-pub(crate) type CNomResult<'s> = TrackResult<CRCode, CSpan<'s>, CSpan<'s>, ()>;
-pub(crate) type CParserError<'s> = ParserError<CRCode, CSpan<'s>, ()>;
+pub(crate) type KSpan<'s> = &'s str;
+// pub(crate) type KParserResult<'s, O> = ParserResult<CRCode, KSpan<'s>, O>;
+pub(crate) type KTokenizerResult<'s, O> = TokenizerResult<CRCode, KSpan<'s>, O>;
+// pub(crate) type KParserError<'s> = ParserError<CRCode, KSpan<'s>>;
+pub(crate) type KTokenizerError<'s> = TokenizerError<CRCode, KSpan<'s>>;
 
-pub(crate) fn parse_cell_ref(input: CSpan<'_>) -> CParserResult<'_, CellRef> {
+pub(crate) fn parse_cell_ref(input: KSpan<'_>) -> KTokenizerResult<'_, CellRef> {
     Context.enter(CRCellRef, input);
 
-    let (rest, iri) = parse_iri(input).track()?;
-    let (rest, table) = parse_sheet_name(rest).track()?;
-    let (rest, _) = dot(rest).track()?;
-    let (rest, (abs_col, col)) = parse_col(rest).track()?;
-    let (rest, (abs_row, row)) = parse_row(rest).track()?;
+    let (rest, (iri, table, (abs_col, col), (abs_row, row))) = all_consuming(tuple((
+        parse_iri, //
+        parse_sheet_name,
+        parse_col,
+        parse_row,
+    )))(input)
+    .track()?;
 
     Context.ok(
         rest,
@@ -93,55 +123,46 @@ pub(crate) fn parse_cell_ref(input: CSpan<'_>) -> CParserResult<'_, CellRef> {
     )
 }
 
-pub(crate) fn parse_cell_range_list(input: CSpan<'_>) -> CParserResult<'_, Option<Vec<CellRange>>> {
+pub(crate) fn parse_cell_range_list(
+    input: KSpan<'_>,
+) -> KTokenizerResult<'_, Option<Vec<CellRange>>> {
     Context.enter(CRCellRangeList, input);
 
-    let mut vec = Vec::new();
-
-    let mut rest_loop = input;
-    loop {
-        let rest = match parse_cell_range(rest_loop) {
-            Ok((rest1, cell_range)) => {
-                vec.push(cell_range);
-                rest1
-            }
-            Err(nom::Err::Error(e)) if e.code == CRDot => {
-                break;
-            }
-            Err(e) => return Context.err(e),
-        };
-
-        let (rest, _) = multispace0(rest)?;
-
-        if rest.len() == 0 {
-            break;
-        }
-
-        rest_loop = rest;
-    }
+    let (rest, vec) = separated_list0(multispace1, parse_cell_range)(input).track()?;
 
     if vec.is_empty() {
-        Context.ok(rest_loop, input, None)
+        Context.ok(rest, input, None)
     } else {
-        Context.ok(rest_loop, input, Some(vec))
+        Context.ok(rest, input, Some(vec))
     }
 }
 
-pub(crate) fn parse_cell_range(input: CSpan<'_>) -> CParserResult<'_, CellRange> {
+pub(crate) fn parse_cell_range(input: KSpan<'_>) -> KTokenizerResult<'_, CellRange> {
     Context.enter(CRCellRange, input);
 
-    let (rest, iri) = parse_iri(input).track()?;
-    let (rest, table) = parse_sheet_name(rest).track()?;
-    let (rest, _) = dot(rest).track()?;
-    let (rest, (abs_col, col)) = parse_col(rest).track()?;
-    let (rest, (abs_row, row)) = parse_row(rest).track()?;
-
-    let (rest, _) = colon(rest).track()?;
-
-    let (rest, to_table) = parse_sheet_name(rest).track()?;
-    let (rest, _) = dot(rest).track()?;
-    let (rest, (abs_to_col, to_col)) = parse_col(rest).track()?;
-    let (rest, (abs_to_row, to_row)) = parse_row(rest).track()?;
+    let (
+        rest,
+        (
+            iri,
+            table,
+            (abs_col, col),
+            (abs_row, row),
+            _,
+            to_table,
+            (abs_to_col, to_col),
+            (abs_to_row, to_row),
+        ),
+    ) = tuple((
+        parse_iri,
+        parse_sheet_name,
+        parse_col,
+        parse_row,
+        colon,
+        parse_sheet_name,
+        parse_col,
+        parse_row,
+    ))(input)
+    .track()?;
 
     Context.ok(
         rest,
@@ -153,19 +174,18 @@ pub(crate) fn parse_cell_range(input: CSpan<'_>) -> CParserResult<'_, CellRange>
     )
 }
 
-pub(crate) fn parse_col_range(input: CSpan<'_>) -> CParserResult<'_, ColRange> {
+pub(crate) fn parse_col_range(input: KSpan<'_>) -> KTokenizerResult<'_, ColRange> {
     Context.enter(CRColRange, input);
 
-    let (rest, iri) = parse_iri(input).track()?;
-    let (rest, table) = parse_sheet_name(rest).track()?;
-    let (rest, _) = dot(rest).track()?;
-    let (rest, (abs_col, col)) = parse_col(rest).track()?;
-
-    let (rest, _) = colon(rest).track()?;
-
-    let (rest, to_table) = parse_sheet_name(rest).track()?;
-    let (rest, _) = dot(rest).track()?;
-    let (rest, (abs_to_col, to_col)) = parse_col(rest).track()?;
+    let (rest, (iri, table, (abs_col, col), _, to_table, (abs_to_col, to_col))) = tuple((
+        parse_iri,
+        parse_sheet_name,
+        parse_col,
+        colon,
+        parse_sheet_name,
+        parse_col,
+    ))(input)
+    .track()?;
 
     Context.ok(
         rest,
@@ -174,19 +194,18 @@ pub(crate) fn parse_col_range(input: CSpan<'_>) -> CParserResult<'_, ColRange> {
     )
 }
 
-pub(crate) fn parse_row_range(input: CSpan<'_>) -> CParserResult<'_, RowRange> {
+pub(crate) fn parse_row_range(input: KSpan<'_>) -> KTokenizerResult<'_, RowRange> {
     Context.enter(CRRowRange, input);
 
-    let (rest, iri) = parse_iri(input).track()?;
-    let (rest, table) = parse_sheet_name(rest).track()?;
-    let (rest, _) = dot(rest).track()?;
-    let (rest, (abs_row, row)) = parse_row(rest).track()?;
-
-    let (rest, _) = colon(rest).track()?;
-
-    let (rest, to_table) = parse_sheet_name(rest).track()?;
-    let (rest, _) = dot(rest).track()?;
-    let (rest, (abs_to_row, to_row)) = parse_row(rest).track()?;
+    let (rest, (iri, table, (abs_row, row), _, to_table, (abs_to_row, to_row))) = tuple((
+        parse_iri,
+        parse_sheet_name,
+        parse_row,
+        colon,
+        parse_sheet_name,
+        parse_row,
+    ))(input)
+    .track()?;
 
     Context.ok(
         rest,
@@ -196,7 +215,7 @@ pub(crate) fn parse_row_range(input: CSpan<'_>) -> CParserResult<'_, RowRange> {
 }
 
 mod conv {
-    use crate::refs_impl::parser::CSpan;
+    use crate::refs_impl::parser::KSpan;
     #[cfg(not(debug_assertions))]
     use kparse::prelude::*;
     use std::error::Error;
@@ -206,7 +225,7 @@ mod conv {
 
     /// Replaces two single quotes (') with a single on.
     /// Strips one leading and one trailing quote.
-    pub(crate) fn unquote_single(i: CSpan<'_>) -> Result<String, ()> {
+    pub(crate) fn unquote_single(i: KSpan<'_>) -> String {
         let i = match i.strip_prefix('\'') {
             None => i.fragment(),
             Some(s) => s,
@@ -216,11 +235,11 @@ mod conv {
             Some(s) => s,
         };
 
-        Ok(i.replace("''", "'"))
+        i.replace("''", "'")
     }
 
     /// Parse a bool if a '$' exists.
-    pub(crate) fn try_bool_from_abs_flag(i: Option<CSpan<'_>>) -> bool {
+    pub(crate) fn try_bool_from_abs_flag(i: Option<KSpan<'_>>) -> bool {
         if let Some(i) = i {
             *i.fragment() == "$"
         } else {
@@ -275,7 +294,7 @@ mod conv {
 
     /// Parse a row number to a row index.
     #[allow(clippy::explicit_auto_deref)]
-    pub(crate) fn try_u32_from_rowname(i: CSpan<'_>) -> Result<u32, ParseRownameError> {
+    pub(crate) fn try_u32_from_rowname(i: KSpan<'_>) -> Result<u32, ParseRownameError> {
         match u32::from_str(i.fragment()) {
             Ok(v) if v > 0 => Ok(v - 1),
             Ok(_v) => Err(ParseRownameError::Zero),
@@ -317,7 +336,7 @@ mod conv {
     impl Error for ParseColnameError {}
 
     /// Parse a col label to a column index.
-    pub(crate) fn try_u32_from_colname(i: CSpan<'_>) -> Result<u32, ParseColnameError> {
+    pub(crate) fn try_u32_from_colname(i: KSpan<'_>) -> Result<u32, ParseColnameError> {
         let mut col = 0u32;
 
         for c in (*i).chars() {
@@ -345,22 +364,23 @@ mod conv {
 }
 
 mod parser {
-    use crate::refs_impl::parser::conv::{unquote_single, ParseColnameError, ParseRownameError};
-    use crate::refs_impl::parser::tokens::{col, hashtag, row, sheet_name, single_quoted_string};
+    use crate::refs_impl::parser::tokens::{
+        col, dollar_nom, dot, hashtag, row, single_quoted_string, unquoted_sheet_name,
+    };
     use crate::refs_impl::parser::CRCode::*;
-    use crate::refs_impl::parser::{conv, CParserError, CParserResult, CRCode, CSpan};
-    use kparse::combinators::{track, transform, transform_p};
+    use crate::refs_impl::parser::{conv, KSpan, KTokenizerError, KTokenizerResult};
+    use kparse::combinators::track;
     use kparse::prelude::*;
-    use nom::sequence::terminated;
+    use nom::combinator::opt;
+    use nom::sequence::{terminated, tuple};
+    use nom::Parser;
 
-    pub(crate) fn parse_iri(input: CSpan<'_>) -> CParserResult<'_, Option<String>> {
+    pub(crate) fn parse_iri(input: KSpan<'_>) -> KTokenizerResult<'_, Option<String>> {
         let parsed = track(
-            CRIri,
-            terminated(
-                transform(single_quoted_string, |v| unquote_single(v), CRIri),
-                hashtag,
-            ),
-        )(input);
+            CRIri, //
+            terminated(single_quoted_string, hashtag),
+        )
+        .parse(input);
 
         let (rest, iri) = match parsed {
             Ok((rest, iri)) => (rest, Some(iri)),
@@ -371,156 +391,145 @@ mod parser {
 
         Ok((rest, iri))
     }
-
-    pub(crate) fn parse_sheet_name(input: CSpan<'_>) -> CParserResult<'_, Option<String>> {
-        let parsed = track(
-            CRSheetName,
-            transform(sheet_name, |v| unquote_single(v), CRSheetName),
-        )(input);
-
-        let (rest, name) = match parsed {
-            Ok((rest, name)) => (rest, Some(name)),
-            Err(nom::Err::Error(e)) if e.code == CRSingleQuoteStart || e.code == CRUnquotedName => {
-                (input, None)
-            }
-            Err(e) => return Err(e),
-        };
-
-        Ok((rest, name))
+    /// Sheet name
+    pub(crate) fn parse_sheet_name(input: KSpan<'_>) -> KTokenizerResult<'_, Option<String>> {
+        tuple((
+            opt(dollar_nom),
+            opt(single_quoted_string.or(unquoted_sheet_name)),
+            dot,
+        ))
+        .map(|(_, sheet_name, _)| sheet_name)
+        .parse(input)
     }
 
-    impl<'s> WithSpan<CRCode, CSpan<'s>, CParserError<'s>> for ParseRownameError {
-        fn with_span(self, code: CRCode, span: CSpan<'s>) -> nom::Err<CParserError<'s>> {
-            nom::Err::Error(CParserError::new(code, span).with_cause(self))
-        }
+    pub(crate) fn parse_row(input: KSpan<'_>) -> KTokenizerResult<'_, (bool, u32)> {
+        track(CRRow, row)
+            .map_res(|(abs, row)| {
+                let abs = conv::try_bool_from_abs_flag(abs);
+                let row = match conv::try_u32_from_rowname(row) {
+                    Ok(v) => v,
+                    Err(_) => return Err(KTokenizerError::new(CRRowInteger, row).error()),
+                };
+                Ok((abs, row))
+            })
+            .parse(input)
     }
 
-    impl<'s> WithSpan<CRCode, CSpan<'s>, CParserError<'s>> for ParseColnameError {
-        fn with_span(self, code: CRCode, span: CSpan<'s>) -> nom::Err<CParserError<'s>> {
-            nom::Err::Error(CParserError::new(code, span).with_cause(self))
-        }
-    }
-
-    pub(crate) fn parse_row(input: CSpan<'_>) -> CParserResult<'_, (bool, u32)> {
-        track(
-            CRRow,
-            transform_p(row, |(abs, row)| {
-                Ok((
-                    conv::try_bool_from_abs_flag(abs),
-                    conv::try_u32_from_rowname(row).with_span(CRRowInteger, row)?,
-                ))
-            }),
-        )(input)
-    }
-
-    pub(crate) fn parse_col(input: CSpan<'_>) -> CParserResult<'_, (bool, u32)> {
-        track(
-            CRCol,
-            transform_p(col, |(abs, col)| {
-                Ok((
-                    conv::try_bool_from_abs_flag(abs),
-                    conv::try_u32_from_colname(col).with_span(CRColInteger, col)?,
-                ))
-            }),
-        )(input)
+    pub(crate) fn parse_col(input: KSpan<'_>) -> KTokenizerResult<'_, (bool, u32)> {
+        track(CRCol, col)
+            .map_res(|(abs, col)| {
+                let abs = conv::try_bool_from_abs_flag(abs);
+                let col = match conv::try_u32_from_colname(col) {
+                    Ok(v) => v,
+                    Err(_) => return Err(KTokenizerError::new(CRColInteger, col).error()),
+                };
+                Ok((abs, col))
+            })
+            .parse(input)
     }
 }
 
 mod tokens {
+    use crate::refs_impl::parser::conv::unquote_single;
     use crate::refs_impl::parser::CRCode::*;
-    use crate::refs_impl::parser::{CNomResult, CParserError, CParserResult, CSpan};
-    use kparse::combinators::error_code;
+    use crate::refs_impl::parser::{KSpan, KTokenizerResult};
+    use kparse::combinators::pchar;
     use kparse::prelude::*;
     use nom::branch::alt;
     use nom::bytes::complete::{tag, take_while1};
-    use nom::character::complete::{alpha1, char as nchar, digit1, none_of};
+    use nom::character::complete::{alpha1, char as nchar, digit1};
     use nom::combinator::{opt, recognize};
-    use nom::multi::{count, many0, many1};
-    use nom::sequence::{preceded, tuple};
+    use nom::multi::{count, many0};
+    use nom::sequence::tuple;
+    use nom::Parser;
 
     const SINGLE_QUOTE: char = '\'';
-
-    /// A quote '
-    pub(crate) fn single_quote(input: CSpan<'_>) -> CNomResult<'_> {
-        recognize(nchar(SINGLE_QUOTE))(input)
-    }
-
-    /// A string containing double ''' and ending (excluding) with a quote '
-    pub(crate) fn string_esc_single_quote(input: CSpan<'_>) -> CNomResult<'_> {
-        recognize(many0(alt((
-            take_while1(|v| v != SINGLE_QUOTE),
-            recognize(count(nchar(SINGLE_QUOTE), 2)),
-        ))))(input)
-    }
 
     /// SingleQuoted ::= "'" ([^'] | "''")+ "'"
     /// Parse a quoted string. A double quote within is an escaped quote.
     /// Returns the string within the outer quotes. The double quotes are not
     /// reduced.
-    pub(crate) fn single_quoted_string(input: CSpan<'_>) -> CNomResult<'_> {
+    pub(crate) fn single_quoted_string(input: KSpan<'_>) -> KTokenizerResult<'_, String> {
         recognize(tuple((
-            error_code(single_quote, CRSingleQuoteStart),
-            error_code(string_esc_single_quote, CRString),
-            error_code(single_quote, CRSingleQuoteEnd),
-        )))(input)
+            pchar(SINGLE_QUOTE).with_code(CRSingleQuoteStart),
+            recognize(many0(alt((
+                take_while1(|v| v != SINGLE_QUOTE),
+                recognize(count(nchar(SINGLE_QUOTE), 2)),
+            ))))
+            .with_code(CRString),
+            pchar(SINGLE_QUOTE).with_code(CRSingleQuoteEnd),
+        )))
+        .map(|v| unquote_single(v))
+        .parse(input)
     }
 
     /// Hashtag
-    pub(crate) fn hashtag(input: CSpan<'_>) -> CNomResult<'_> {
-        error_code(tag("#"), CRHash)(input)
+    pub(crate) fn hashtag(input: KSpan<'_>) -> KTokenizerResult<'_, KSpan<'_>> {
+        tag("#").with_code(CRHash).parse(input)
     }
 
-    /// Sheet name
-    pub(crate) fn sheet_name(input: CSpan<'_>) -> CParserResult<'_, CSpan<'_>> {
-        let (rest, name) = match preceded(opt(dollar_nom), single_quoted_string)(input) {
-            Ok((rest, name)) => (rest, name),
-            Err(mut e) => match unquoted_sheet_name(input) {
-                Ok((rest, name)) => (rest, name),
-                Err(e2) => {
-                    e.append(e2)?;
-                    return Err(e);
-                }
-            },
-        };
+    const T: bool = true;
+    const F: bool = false;
 
-        Ok((rest, name))
-    }
+    const SHEET_NAME: [bool; 128] = [
+        F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, //
+        F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, //
+        F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, //  !"#$%&'()*+,-./
+        T, T, T, T, T, T, T, T, T, T, F, F, F, F, F, F, // 0123456789:;<=>?
+        F, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, // @ABCDEFGHIJKLMNO
+        T, T, T, T, T, T, T, T, T, T, T, F, F, F, F, T, // PQRSTUVWXYZ[\]^_
+        F, T, T, T, T, T, T, T, T, T, T, T, T, T, T, T, // `abcdefghijklmno
+        T, T, T, T, T, T, T, T, T, T, T, F, F, F, F, F, // pqrstuvwxyz{|}~
+    ];
 
-    /// SheetName ::= QuotedSheetName | '$'? [^\]\. #$']+
-    /// QuotedSheetName ::= '$'? SingleQuoted
-    pub(crate) fn unquoted_sheet_name(i: CSpan<'_>) -> CNomResult<'_> {
-        recognize(error_code(many1(none_of(":]. #$'")), CRUnquotedName))(i)
+    // SheetName ::= QuotedSheetName | '$'? [^\]\. #$']+
+    // QuotedSheetName ::= '$'? SingleQuoted
+    pub(crate) fn unquoted_sheet_name(i: KSpan<'_>) -> KTokenizerResult<'_, String> {
+        take_while1(|v| {
+            if (v as i32) < 128 {
+                SHEET_NAME[v as usize]
+            } else {
+                true
+            }
+        })
+        .with_code(CRUnquotedName)
+        .map(|v: KSpan<'_>| v.fragment().to_string())
+        .parse(i)
     }
 
     /// Parse dollar
-    pub(crate) fn dollar_nom(input: CSpan<'_>) -> CNomResult<'_> {
-        error_code(tag("$"), CRDollar)(input)
+    pub(crate) fn dollar_nom(input: KSpan<'_>) -> KTokenizerResult<'_, KSpan<'_>> {
+        tag("$").with_code(CRDollar).parse(input)
     }
 
     /// Parse dot
-    pub(crate) fn dot(input: CSpan<'_>) -> CNomResult<'_> {
-        error_code(tag("."), CRDot)(input)
+    pub(crate) fn dot(input: KSpan<'_>) -> KTokenizerResult<'_, KSpan<'_>> {
+        tag(".").with_code(CRDot).parse(input)
     }
 
     /// Parse colon
-    pub(crate) fn colon(input: CSpan<'_>) -> CNomResult<'_> {
-        error_code(tag(":"), CRColon)(input)
+    pub(crate) fn colon(input: KSpan<'_>) -> KTokenizerResult<'_, KSpan<'_>> {
+        tag(":").with_code(CRColon).parse(input)
     }
 
     // Column ::= '$'? [A-Z]+
     /// Column label
-    pub(crate) fn col(i: CSpan<'_>) -> CParserResult<'_, (Option<CSpan<'_>>, CSpan<'_>)> {
-        let (i, abs) = opt(error_code(tag("$"), CRDollar))(i)?;
-        let (i, col) = error_code(alpha1::<_, CParserError<'_>>, CRCol)(i)?;
-        Ok((i, (abs, col)))
+    pub(crate) fn col(i: KSpan<'_>) -> KTokenizerResult<'_, (Option<KSpan<'_>>, KSpan<'_>)> {
+        tuple((
+            opt(dollar_nom), //
+            alpha1.with_code(CRCol),
+        ))
+        .parse(i)
     }
 
     // Row ::= '$'? [1-9] [0-9]*
     /// Row label
-    pub(crate) fn row(i: CSpan<'_>) -> CParserResult<'_, (Option<CSpan<'_>>, CSpan<'_>)> {
-        let (i, abs) = opt(error_code(tag("$"), CRDollar))(i)?;
-        let (i, row) = recognize(error_code(digit1, CRRow))(i)?;
-        Ok((i, (abs, row)))
+    pub(crate) fn row(i: KSpan<'_>) -> KTokenizerResult<'_, (Option<KSpan<'_>>, KSpan<'_>)> {
+        tuple((
+            opt(dollar_nom), //
+            digit1.with_code(CRRow),
+        ))
+        .parse(i)
     }
 }
 
@@ -533,7 +542,6 @@ mod tests {
     };
     use crate::{CellRange, CellRef, ColRange, RowRange};
     use kparse::test::{str_parse, CheckTrace};
-    use nom::error::ErrorKind;
 
     const R: CheckTrace = CheckTrace;
 
@@ -677,31 +685,21 @@ mod tests {
             .q(R);
         str_parse(&mut None, ".A1:.3", parse_cell_range)
             .err(CRCol)
-            .nom_err(ErrorKind::Alpha)
-            .expect(CRCol)
             .q(R);
         str_parse(&mut None, ".A1:.C", parse_cell_range)
             .err(CRRow)
-            .nom_err(ErrorKind::Digit)
-            .expect(CRRow)
             .q(R);
         str_parse(&mut None, ".A:.C3", parse_cell_range)
             .err(CRRow)
-            .nom_err(ErrorKind::Digit)
-            .expect(CRRow)
             .q(R);
         str_parse(&mut None, ".1:.C3", parse_cell_range)
             .err(CRCol)
-            .nom_err(ErrorKind::Alpha)
-            .expect(CRCol)
             .q(R);
         str_parse(&mut None, ":.C3", parse_cell_range)
             .err(CRDot)
-            .expect(CRDot)
             .q(R);
         str_parse(&mut None, "A1:C3", parse_cell_range)
             .err(CRDot)
-            .expect(CRDot)
             .q(R);
         str_parse(
             &mut None,
@@ -731,10 +729,7 @@ mod tests {
             (result.col(), result.to_col()) == *test
         }
 
-        str_parse(&mut None, "", parse_col_range)
-            .err(CRDot)
-            .expect(CRDot)
-            .q(R);
+        str_parse(&mut None, "", parse_col_range).err(CRDot).q(R);
         str_parse(&mut None, "'iri'#.A:.C", parse_col_range)
             .ok(iri, "iri")
             .q(R);
@@ -744,30 +739,15 @@ mod tests {
         str_parse(&mut None, ".A:.C", parse_col_range)
             .ok(col_col, &(0, 2))
             .q(R);
-        str_parse(&mut None, ".1:", parse_col_range)
-            .err(CRCol)
-            .expect(CRCol)
-            .nom_err(ErrorKind::Alpha)
-            .q(R);
+        str_parse(&mut None, ".1:", parse_col_range).err(CRCol).q(R);
         str_parse(&mut None, ".A", parse_col_range)
             .err(CRColon)
-            .expect(CRColon)
             .q(R);
-        str_parse(&mut None, ":", parse_col_range)
-            .err(CRDot)
-            .expect(CRDot)
-            .q(R);
-        str_parse(&mut None, ":.A", parse_col_range)
-            .err(CRDot)
-            .expect(CRDot)
-            .q(R);
-        str_parse(&mut None, ":A", parse_col_range)
-            .err(CRDot)
-            .expect(CRDot)
-            .q(R);
+        str_parse(&mut None, ":", parse_col_range).err(CRDot).q(R);
+        str_parse(&mut None, ":.A", parse_col_range).err(CRDot).q(R);
+        str_parse(&mut None, ":A", parse_col_range).err(CRDot).q(R);
         str_parse(&mut None, ".5:.7", parse_col_range)
             .err(CRCol)
-            .nom_err(ErrorKind::Alpha)
             .q(R);
         str_parse(&mut None, "'iri'#'sheet'.$A:.$C", parse_col_range)
             .ok(iri, "iri")
@@ -793,10 +773,7 @@ mod tests {
             (result.row(), result.to_row()) == *test
         }
 
-        str_parse(&mut None, "", parse_row_range)
-            .err(CRDot)
-            .expect(CRDot)
-            .q(R);
+        str_parse(&mut None, "", parse_row_range).err(CRDot).q(R);
         str_parse(&mut None, "'iri'#.1:.3", parse_row_range)
             .ok(iri, "iri")
             .q(R);
@@ -806,25 +783,14 @@ mod tests {
         str_parse(&mut None, ".1:.3", parse_row_range)
             .ok(row_row, &(0, 2))
             .q(R);
-        str_parse(&mut None, ".1:", parse_row_range)
-            .err(CRDot)
-            .expect(CRDot)
-            .q(R);
+        str_parse(&mut None, ".1:", parse_row_range).err(CRDot).q(R);
         str_parse(&mut None, ".1", parse_row_range)
             .err(CRColon)
-            .expect(CRColon)
             .q(R);
-        str_parse(&mut None, ":", parse_row_range)
-            .err(CRDot)
-            .expect(CRDot)
-            .q(R);
-        str_parse(&mut None, ":.1", parse_row_range)
-            .err(CRDot)
-            .expect(CRDot)
-            .q(R);
+        str_parse(&mut None, ":", parse_row_range).err(CRDot).q(R);
+        str_parse(&mut None, ":.1", parse_row_range).err(CRDot).q(R);
         str_parse(&mut None, ".C:.E", parse_row_range)
             .err(CRRow)
-            .nom_err(ErrorKind::Digit)
             .q(R);
         str_parse(&mut None, "'iri'#'sheet'.$1:.$3", parse_row_range)
             .ok(iri, "iri")

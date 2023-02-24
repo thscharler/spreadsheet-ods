@@ -6,8 +6,8 @@ use crate::refs::format_refs::{
     fmt_cell_range, fmt_cell_ref, fmt_col, fmt_col_range, fmt_row, fmt_row_range,
 };
 use crate::refs_impl::parser;
-use crate::refs_impl::parser::CParserError;
 use crate::refs_impl::parser::CRCode::{CRCellRange, CRCellRef, CRColRange, CRRowRange};
+use crate::refs_impl::parser::KTokenizerError;
 use crate::OdsError;
 #[cfg(debug_assertions)]
 use kparse::tracker::StdTracker;
@@ -1083,7 +1083,7 @@ pub fn parse_cellref(buf: &str, _pos: &mut usize) -> Result<CellRef, OdsError> {
 
     let (rest, tok) = parser::parse_cell_ref(span)?;
     if rest.len() > 0 {
-        Err(nom::Err::Error(CParserError::new(CRCellRef, rest)))?
+        Err(nom::Err::Error(KTokenizerError::new(CRCellRef, rest)))?
     } else {
         Ok(tok)
     }
@@ -1100,7 +1100,7 @@ pub fn parse_cellrange(buf: &str, _pos: &mut usize) -> Result<CellRange, OdsErro
 
     let (rest, tok) = parser::parse_cell_range(span)?;
     if rest.len() > 0 {
-        Err(nom::Err::Error(CParserError::new(CRCellRange, rest)))?
+        Err(nom::Err::Error(KTokenizerError::new(CRCellRange, rest)))?
     } else {
         Ok(tok)
     }
@@ -1117,7 +1117,7 @@ pub fn parse_colrange(buf: &str, _pos: &mut usize) -> Result<ColRange, OdsError>
 
     let (rest, tok) = parser::parse_col_range(span)?;
     if rest.len() > 0 {
-        Err(nom::Err::Error(CParserError::new(CRColRange, rest)))?
+        Err(nom::Err::Error(KTokenizerError::new(CRColRange, rest)))?
     } else {
         Ok(tok)
     }
@@ -1134,7 +1134,7 @@ pub fn parse_rowrange(buf: &str, _pos: &mut usize) -> Result<RowRange, OdsError>
 
     let (rest, tok) = parser::parse_row_range(span)?;
     if rest.len() > 0 {
-        Err(nom::Err::Error(CParserError::new(CRRowRange, rest)))?
+        Err(nom::Err::Error(KTokenizerError::new(CRRowRange, rest)))?
     } else {
         Ok(tok)
     }
@@ -1154,6 +1154,7 @@ pub fn parse_cellranges(buf: &str, _pos: &mut usize) -> Result<Option<Vec<CellRa
         Err(err) => {
             dbg!(&span);
             dbg!(&err);
+            #[cfg(debug_assertions)]
             dbg!(&trk.results());
             Err(err)?;
             unreachable!()
