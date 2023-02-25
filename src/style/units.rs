@@ -102,7 +102,7 @@ impl ParseStyleAttr<Length> for Length {
             } else if s.ends_with("em") {
                 Ok(Some(Length::Em(s.split_at(s.len() - 2).0.parse()?)))
             } else {
-                Err(OdsError::Parse(format!("invalid length {}", s)))
+                Err(OdsError::Parse("invalid length", Some(s.clone())))
             }
         } else {
             Ok(None)
@@ -190,7 +190,7 @@ impl ParseStyleAttr<FormatSource> for FormatSource {
             match attr.as_str() {
                 "fixed" => Ok(Some(FormatSource::Fixed)),
                 "language" => Ok(Some(FormatSource::Language)),
-                s => Err(OdsError::Parse(s.to_string())),
+                _ => Err(OdsError::Parse("invalid format source", Some(attr.clone()))),
             }
         } else {
             Ok(None)
@@ -232,7 +232,10 @@ impl ParseStyleAttr<TransliterationStyle> for TransliterationStyle {
                 "short" => Ok(Some(TransliterationStyle::Short)),
                 "medium" => Ok(Some(TransliterationStyle::Medium)),
                 "long" => Ok(Some(TransliterationStyle::Long)),
-                s => Err(OdsError::Parse(s.to_string())),
+                _ => Err(OdsError::Parse(
+                    "invalid number:transliteration-style",
+                    Some(attr.clone()),
+                )),
             }
         } else {
             Ok(None)
@@ -339,7 +342,10 @@ impl ParseStyleAttr<MasterPageUsage> for MasterPageUsage {
                 "left" => Ok(Some(MasterPageUsage::Left)),
                 "mirrored" => Ok(Some(MasterPageUsage::Mirrored)),
                 "right" => Ok(Some(MasterPageUsage::Right)),
-                v => Err(OdsError::Parse(format!("invalid style:page-usage {}", v))),
+                _ => Err(OdsError::Parse(
+                    "invalid style:page-usage",
+                    Some(attr.clone()),
+                )),
             }
         } else {
             Ok(None)

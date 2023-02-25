@@ -2,9 +2,15 @@
 //! Error type.
 //!
 
+use kparse::tracker::TrackSpan;
 use kparse::{Code, TokenizerError};
-use nom::{InputIter, InputLength, InputTake};
+use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use std::str::from_utf8;
+
+pub(crate) trait AsStatic<T: ?Sized> {
+    fn as_static(&self) -> &'static T;
+}
 
 #[derive(Debug)]
 #[allow(missing_docs)]
@@ -14,16 +20,13 @@ pub enum OdsError {
     Zip(zip::result::ZipError),
     Xml(quick_xml::Error),
     XmlAttr(quick_xml::events::attributes::AttrError),
-    Escape(String),
     Utf8(std::str::Utf8Error),
-    Parse(String),
+    Parse(&'static str, Option<String>),
     ParseInt(std::num::ParseIntError),
     ParseBool(std::str::ParseBoolError),
     ParseFloat(std::num::ParseFloatError),
     Chrono(chrono::format::ParseError),
     SystemTime(std::time::SystemTimeError),
-    Nom(nom::error::Error<String>),
-    CellRef(String),
 }
 
 impl Display for OdsError {
@@ -34,40 +37,34 @@ impl Display for OdsError {
             OdsError::Zip(e) => write!(f, "Zip {:?}", e)?,
             OdsError::Xml(e) => write!(f, "Xml {}", e)?,
             OdsError::XmlAttr(e) => write!(f, "Xml attribute {}", e)?,
-            OdsError::Parse(e) => write!(f, "Parse {}", e)?,
+            OdsError::Parse(e, v) => write!(f, "Parse {} {:?}", e, v)?,
             OdsError::ParseInt(e) => write!(f, "ParseInt {}", e)?,
             OdsError::ParseBool(e) => write!(f, "ParseBool {}", e)?,
             OdsError::ParseFloat(e) => write!(f, "ParseFloat {}", e)?,
             OdsError::Chrono(e) => write!(f, "Chrono {}", e)?,
             OdsError::SystemTime(e) => write!(f, "SystemTime {}", e)?,
             OdsError::Utf8(e) => write!(f, "UTF8 {}", e)?,
-            OdsError::Nom(e) => write!(f, "Nom {}", e)?,
-            OdsError::Escape(s) => write!(f, "Escape {}", s)?,
-            OdsError::CellRef(e) => write!(f, "CellRef {:?}", e)?,
         }
 
         Ok(())
     }
 }
 
-impl std::error::Error for OdsError {
-    fn cause(&self) -> Option<&dyn std::error::Error> {
+impl Error for OdsError {
+    fn cause(&self) -> Option<&dyn Error> {
         match self {
             OdsError::Ods(_) => None,
             OdsError::Io(e) => Some(e),
             OdsError::Zip(e) => Some(e),
             OdsError::Xml(e) => Some(e),
             OdsError::XmlAttr(e) => Some(e),
-            OdsError::Parse(_) => None,
+            OdsError::Parse(_, _) => None,
             OdsError::ParseInt(e) => Some(e),
             OdsError::ParseBool(e) => Some(e),
             OdsError::ParseFloat(e) => Some(e),
             OdsError::Chrono(e) => Some(e),
             OdsError::SystemTime(e) => Some(e),
             OdsError::Utf8(e) => Some(e),
-            OdsError::Nom(e) => Some(e),
-            OdsError::Escape(_) => None,
-            OdsError::CellRef(_) => None,
         }
     }
 }
@@ -132,28 +129,45 @@ impl From<std::str::Utf8Error> for OdsError {
     }
 }
 
-impl<'a> From<nom::Err<nom::error::Error<&'a [u8]>>> for OdsError {
-    fn from(err: nom::Err<nom::error::Error<&'a [u8]>>) -> Self {
-        match err {
-            nom::Err::Incomplete(_) => unreachable!(),
-            nom::Err::Error(err) => OdsError::Nom(nom::error::Error::new(
-                String::from_utf8_lossy(err.input).to_string(),
-                err.code,
-            )),
-            nom::Err::Failure(err) => OdsError::Nom(nom::error::Error::new(
-                String::from_utf8_lossy(err.input).to_string(),
-                err.code,
-            )),
+impl<C> From<nom::Err<TokenizerError<C, &[u8]>>> for OdsError
+where
+    C: AsStatic<str>,
+{
+    fn from(value: nom::Err<TokenizerError<C, &[u8]>>) -> Self {
+        match value {
+            nom::Err::Incomplete(_) => OdsError::Parse("incomplete", None),
+            nom::Err::Error(e) | nom::Err::Failure(e) => OdsError::Parse(
+                e.code.as_static(),
+                Some(from_utf8(e.span).unwrap_or("decoding failed").into()),
+            ),
         }
     }
 }
 
-impl<C, I> From<nom::Err<TokenizerError<C, I>>> for OdsError
+impl<C> From<nom::Err<TokenizerError<C, &str>>> for OdsError
 where
-    C: Code,
-    I: Clone + Debug + InputTake + InputLength + InputIter,
+    C: AsStatic<str>,
 {
-    fn from(err: nom::Err<TokenizerError<C, I>>) -> OdsError {
-        OdsError::CellRef(format!("{:?}", err))
+    fn from(value: nom::Err<TokenizerError<C, &str>>) -> Self {
+        match value {
+            nom::Err::Incomplete(_) => OdsError::Parse("incomplete", None),
+            nom::Err::Error(e) | nom::Err::Failure(e) => {
+                OdsError::Parse(e.code.as_static(), Some(e.span.into()))
+            }
+        }
+    }
+}
+
+impl<'s, C> From<nom::Err<TokenizerError<C, TrackSpan<'s, C, &'s str>>>> for OdsError
+where
+    C: Code + AsStatic<str>,
+{
+    fn from(value: nom::Err<TokenizerError<C, TrackSpan<'s, C, &'s str>>>) -> Self {
+        match value {
+            nom::Err::Incomplete(_) => OdsError::Parse("incomplete", None),
+            nom::Err::Error(e) | nom::Err::Failure(e) => {
+                OdsError::Parse(e.code.as_static(), Some((*e.span).into()))
+            }
+        }
     }
 }

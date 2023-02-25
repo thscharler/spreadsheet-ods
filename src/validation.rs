@@ -35,10 +35,10 @@ impl TryFrom<&str> for ValidationDisplay {
             "unsorted" => Ok(ValidationDisplay::Unsorted),
             "sort-ascending" => Ok(ValidationDisplay::SortAscending),
             "none" => Ok(ValidationDisplay::NoDisplay),
-            _ => Err(OdsError::Parse(format!(
-                "unknown value or table:display-list: {}",
-                value
-            ))),
+            _ => Err(OdsError::Parse(
+                "invalid table:display-list ",
+                Some(value.to_string()),
+            )),
         }
     }
 }
@@ -51,10 +51,10 @@ impl TryFrom<&[u8]> for ValidationDisplay {
             b"unsorted" => Ok(ValidationDisplay::Unsorted),
             b"sort-ascending" => Ok(ValidationDisplay::SortAscending),
             b"none" => Ok(ValidationDisplay::NoDisplay),
-            _ => Err(OdsError::Parse(format!(
-                "unknown value or table:display-list: {}",
-                from_utf8(value)?
-            ))),
+            _ => Err(OdsError::Parse(
+                "invalid table:display-list ",
+                Some(from_utf8(value)?.into()),
+            )),
         }
     }
 }

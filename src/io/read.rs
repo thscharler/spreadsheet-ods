@@ -494,8 +494,7 @@ fn read_table_attr(sheet: &mut Sheet, xml_tag: BytesStart<'_>) -> Result<(), Ods
             }
             attr if attr.key.as_ref() == b"table:print-ranges" => {
                 let v = attr.unescape_value()?;
-                let mut pos = 0usize;
-                sheet.print_ranges = parse_cellranges(v.as_ref(), &mut pos)?;
+                sheet.print_ranges = parse_cellranges(v.as_ref())?;
             }
             attr => {
                 dump_unused("read_table_attr", xml_tag.name().as_ref(), &attr)?;
@@ -665,7 +664,12 @@ fn read_table_cell2(
                     b"time" => ValueType::TimeDuration,
                     b"boolean" => ValueType::Boolean,
                     b"currency" => ValueType::Currency,
-                    other => return Err(OdsError::Parse(format!("Unknown cell-type {:?}", other))),
+                    other => {
+                        return Err(OdsError::Parse(
+                            "Unknown cell-type {:?}",
+                            Some(from_utf8(other)?.into()),
+                        ))
+                    }
                 }
             }
             attr if attr.key.as_ref() == b"office:date-value" => {
@@ -815,21 +819,21 @@ fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError>
             if let Some(v) = tc.val_bool {
                 cell.value = Value::Boolean(v);
             } else {
-                return Err(OdsError::Parse("no boolean value".to_string()));
+                return Err(OdsError::Parse("no boolean value", None));
             }
         }
         ValueType::Number => {
             if let Some(v) = tc.val_float {
                 cell.value = Value::Number(v);
             } else {
-                return Err(OdsError::Parse("no float value".to_string()));
+                return Err(OdsError::Parse("no float value", None));
             }
         }
         ValueType::Percentage => {
             if let Some(v) = tc.val_float {
                 cell.value = Value::Percentage(v);
             } else {
-                return Err(OdsError::Parse("no float value".to_string()));
+                return Err(OdsError::Parse("no float value", None));
             }
         }
         ValueType::Currency => {
@@ -837,10 +841,10 @@ fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError>
                 if let Some(c) = tc.val_currency {
                     cell.value = Value::Currency(v, c);
                 } else {
-                    return Err(OdsError::Parse("no currency value".to_string()));
+                    return Err(OdsError::Parse("no currency value", None));
                 }
             } else {
-                return Err(OdsError::Parse("no float value".to_string()));
+                return Err(OdsError::Parse("no float value", None));
             }
         }
         ValueType::Text => {
@@ -870,14 +874,14 @@ fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError>
             if let Some(v) = tc.val_datetime {
                 cell.value = Value::DateTime(v);
             } else {
-                return Err(OdsError::Parse("no datetime value".to_string()));
+                return Err(OdsError::Parse("no datetime value", None));
             }
         }
         ValueType::TimeDuration => {
             if let Some(v) = tc.val_duration {
                 cell.value = Value::TimeDuration(v);
             } else {
-                return Err(OdsError::Parse("no duration value".to_string()));
+                return Err(OdsError::Parse("no duration value", None));
             }
         }
     }
@@ -1109,8 +1113,7 @@ fn read_validations(
                                 attr if attr.key.as_ref() == b"table:base-cell-address" => {
                                     // todo: maybe better
                                     let v = attr.unescape_value()?;
-                                    let mut pos = 0usize;
-                                    valid.set_base_cell(parse_cellref(&v, &mut pos)?);
+                                    valid.set_base_cell(parse_cellref(&v)?);
                                 }
                                 attr if attr.key.as_ref() == b"table:display-list" => {
                                     valid.set_display(attr.value.as_ref().try_into()?);
@@ -1144,10 +1147,10 @@ fn read_validations(
                                         b"warning" => MessageType::Warning,
                                         b"information" => MessageType::Info,
                                         _ => {
-                                            return Err(OdsError::Parse(format!(
-                                                "unknown message-type {}",
-                                                attr.unescape_value()?
-                                            )))
+                                            return Err(OdsError::Parse(
+                                                "unknown message-type",
+                                                Some(attr.unescape_value()?.into()),
+                                            ))
                                         }
                                     };
                                     ve.set_msg_type(mt);
@@ -2419,8 +2422,7 @@ fn read_stylemap(xml_tag: &BytesStart<'_>) -> Result<StyleMap, OdsError> {
             attr if attr.key.as_ref() == b"style:base-cell-address" => {
                 // todo: maybe better?
                 let v = attr.unescape_value()?;
-                let mut pos = 0usize;
-                sm.set_base_cell(parse_cellref(v.as_ref(), &mut pos)?);
+                sm.set_base_cell(parse_cellref(v.as_ref())?);
             }
             attr => {
                 dump_unused("read_stylemap", xml_tag.name().as_ref(), &attr)?;

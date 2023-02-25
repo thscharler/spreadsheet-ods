@@ -212,7 +212,7 @@ impl XmlTag {
         for c in self.content {
             match c {
                 XmlContent::Text(v) => {
-                    return Err(OdsError::Parse(format!("Unexpected literal text '{}'", v)))
+                    return Err(OdsError::Parse("Unexpected literal text ", Some(v)))
                 }
                 XmlContent::Tag(v) => content.push(v),
             }

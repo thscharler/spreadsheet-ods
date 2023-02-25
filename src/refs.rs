@@ -238,7 +238,7 @@ impl TryFrom<&str> for CellRef {
     type Error = OdsError;
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
-        parse_cellref(s, &mut 0)
+        parse_cellref(s)
     }
 }
 
@@ -573,7 +573,7 @@ impl TryFrom<&str> for CellRange {
     type Error = OdsError;
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
-        parse_cellrange(s, &mut 0)
+        parse_cellrange(s)
     }
 }
 
@@ -743,7 +743,7 @@ impl TryFrom<&str> for ColRange {
     type Error = OdsError;
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
-        parse_colrange(s, &mut 0)
+        parse_colrange(s)
     }
 }
 
@@ -910,7 +910,7 @@ impl TryFrom<&str> for RowRange {
     type Error = OdsError;
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
-        parse_rowrange(s, &mut 0)
+        parse_rowrange(s)
     }
 }
 
@@ -1073,7 +1073,7 @@ mod format_refs {
 }
 
 /// Parse a cell reference.
-pub fn parse_cellref(buf: &str, _pos: &mut usize) -> Result<CellRef, OdsError> {
+pub fn parse_cellref(buf: &str) -> Result<CellRef, OdsError> {
     #[cfg(debug_assertions)]
     let trk = StdTracker::new();
     #[cfg(debug_assertions)]
@@ -1090,7 +1090,7 @@ pub fn parse_cellref(buf: &str, _pos: &mut usize) -> Result<CellRef, OdsError> {
 }
 
 /// Parse a cell reference.
-pub fn parse_cellrange(buf: &str, _pos: &mut usize) -> Result<CellRange, OdsError> {
+pub fn parse_cellrange(buf: &str) -> Result<CellRange, OdsError> {
     #[cfg(debug_assertions)]
     let trk = StdTracker::new();
     #[cfg(debug_assertions)]
@@ -1107,7 +1107,7 @@ pub fn parse_cellrange(buf: &str, _pos: &mut usize) -> Result<CellRange, OdsErro
 }
 
 /// Parse a cell reference.
-pub fn parse_colrange(buf: &str, _pos: &mut usize) -> Result<ColRange, OdsError> {
+pub fn parse_colrange(buf: &str) -> Result<ColRange, OdsError> {
     #[cfg(debug_assertions)]
     let trk = StdTracker::new();
     #[cfg(debug_assertions)]
@@ -1124,7 +1124,7 @@ pub fn parse_colrange(buf: &str, _pos: &mut usize) -> Result<ColRange, OdsError>
 }
 
 /// Parse a cell reference.
-pub fn parse_rowrange(buf: &str, _pos: &mut usize) -> Result<RowRange, OdsError> {
+pub fn parse_rowrange(buf: &str) -> Result<RowRange, OdsError> {
     #[cfg(debug_assertions)]
     let trk = StdTracker::new();
     #[cfg(debug_assertions)]
@@ -1141,7 +1141,7 @@ pub fn parse_rowrange(buf: &str, _pos: &mut usize) -> Result<RowRange, OdsError>
 }
 
 /// Parse a list of range refs
-pub fn parse_cellranges(buf: &str, _pos: &mut usize) -> Result<Option<Vec<CellRange>>, OdsError> {
+pub fn parse_cellranges(buf: &str) -> Result<Option<Vec<CellRange>>, OdsError> {
     #[cfg(debug_assertions)]
     let trk = StdTracker::new();
     #[cfg(debug_assertions)]
