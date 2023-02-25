@@ -244,7 +244,6 @@ pub mod error;
 pub mod format;
 pub mod formula;
 pub mod refs;
-mod refs_impl;
 pub mod style;
 pub mod text;
 pub mod validation;

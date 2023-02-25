@@ -1,6 +1,6 @@
 use crate::error::AsStatic;
-use crate::refs_impl::parser::parser::{parse_col, parse_iri, parse_row, parse_sheet_name};
-use crate::refs_impl::parser::tokens::colon;
+use crate::refs::parser::parser::{parse_col, parse_iri, parse_row, parse_sheet_name};
+use crate::refs::parser::tokens::colon;
 use crate::{CellRange, CellRef, ColRange, RowRange};
 use kparse::prelude::*;
 #[cfg(debug_assertions)]
@@ -215,7 +215,7 @@ pub(crate) fn parse_row_range(input: KSpan<'_>) -> KTokenizerResult<'_, RowRange
 }
 
 mod conv {
-    use crate::refs_impl::parser::KSpan;
+    use crate::refs::parser::KSpan;
     #[cfg(not(debug_assertions))]
     use kparse::prelude::*;
     use std::error::Error;
@@ -364,11 +364,11 @@ mod conv {
 }
 
 mod parser {
-    use crate::refs_impl::parser::tokens::{
+    use crate::refs::parser::tokens::{
         col, dollar_nom, dot, hashtag, row, single_quoted_string, unquoted_sheet_name,
     };
-    use crate::refs_impl::parser::CRCode::*;
-    use crate::refs_impl::parser::{conv, KSpan, KTokenizerError, KTokenizerResult};
+    use crate::refs::parser::CRCode::*;
+    use crate::refs::parser::{conv, KSpan, KTokenizerError, KTokenizerResult};
     use kparse::combinators::track;
     use kparse::prelude::*;
     use nom::combinator::opt;
@@ -430,9 +430,9 @@ mod parser {
 }
 
 mod tokens {
-    use crate::refs_impl::parser::conv::unquote_single;
-    use crate::refs_impl::parser::CRCode::*;
-    use crate::refs_impl::parser::{KSpan, KTokenizerResult};
+    use crate::refs::parser::conv::unquote_single;
+    use crate::refs::parser::CRCode::*;
+    use crate::refs::parser::{KSpan, KTokenizerResult};
     use kparse::combinators::pchar;
     use kparse::prelude::*;
     use nom::branch::alt;
@@ -535,11 +535,9 @@ mod tokens {
 
 #[cfg(test)]
 mod tests {
-    use crate::refs_impl::parser::tokens::{col, row};
-    use crate::refs_impl::parser::CRCode::*;
-    use crate::refs_impl::parser::{
-        parse_cell_range, parse_cell_ref, parse_col_range, parse_row_range,
-    };
+    use crate::refs::parser::tokens::{col, row};
+    use crate::refs::parser::CRCode::*;
+    use crate::refs::parser::{parse_cell_range, parse_cell_ref, parse_col_range, parse_row_range};
     use crate::{CellRange, CellRef, ColRange, RowRange};
     use kparse::test::{str_parse, CheckTrace};
 

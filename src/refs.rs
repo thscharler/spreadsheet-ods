@@ -5,9 +5,8 @@
 use crate::refs::format_refs::{
     fmt_cell_range, fmt_cell_ref, fmt_col, fmt_col_range, fmt_row, fmt_row_range,
 };
-use crate::refs_impl::parser;
-use crate::refs_impl::parser::CRCode::{CRCellRange, CRCellRef, CRColRange, CRRowRange};
-use crate::refs_impl::parser::KTokenizerError;
+use crate::refs::parser::CRCode::{CRCellRange, CRCellRef, CRColRange, CRRowRange};
+use crate::refs::parser::KTokenizerError;
 use crate::OdsError;
 #[cfg(debug_assertions)]
 use kparse::tracker::StdTracker;
@@ -921,8 +920,8 @@ impl Display for RowRange {
 }
 
 mod format_refs {
+    use crate::refs::format::{fmt_abs, fmt_col_name, fmt_row_name};
     use crate::refs::{CCol, CRow};
-    use crate::refs_impl::format::{fmt_abs, fmt_col_name, fmt_row_name};
     use crate::{CellRange, CellRef, ColRange, RowRange};
     use std::fmt;
     use std::fmt::Formatter;
