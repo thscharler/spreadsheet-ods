@@ -13,6 +13,9 @@ use kparse::tracker::StdTracker;
 use std::fmt;
 use std::fmt::{Display, Formatter, Write};
 
+mod format;
+mod parser;
+
 /// Basic cell reference.
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct CRow {
@@ -205,7 +208,7 @@ impl CellRef {
     pub fn to_formula(&self) -> String {
         let mut buf = String::new();
         buf.push('[');
-        let _ = write!(buf, "{}", Fmt(|f| fmt_cell_ref(f, self)));
+        let _ = fmt_cell_ref(&mut buf, self);
         buf.push(']');
 
         buf
@@ -523,7 +526,7 @@ impl CellRange {
     pub fn to_formula(&self) -> String {
         let mut buf = String::new();
         buf.push('[');
-        let _ = write!(buf, "{}", Fmt(|f| fmt_cell_range(f, self)));
+        let _ = fmt_cell_range(&mut buf, self);
         buf.push(']');
         buf
     }
@@ -719,7 +722,7 @@ impl ColRange {
     pub fn to_formula(&self) -> String {
         let mut buf = String::new();
         buf.push('[');
-        let _ = write!(buf, "{}", Fmt(|f| fmt_col_range(f, self)));
+        let _ = fmt_col_range(&mut buf, self);
         buf.push(']');
         buf
     }
@@ -886,7 +889,7 @@ impl RowRange {
     pub fn to_formula(&self) -> String {
         let mut buf = String::new();
         buf.push('[');
-        let _ = write!(buf, "{}", Fmt(|f| fmt_row_range(f, self)));
+        let _ = fmt_row_range(&mut buf, self);
         buf.push(']');
         buf
     }
@@ -915,7 +918,7 @@ impl TryFrom<&str> for RowRange {
 
 impl Display for RowRange {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", Fmt(|f| fmt_row_range(f, self)))
+        fmt_row_range(f, self)
     }
 }
 
@@ -924,24 +927,23 @@ mod format_refs {
     use crate::refs::{CCol, CRow};
     use crate::{CellRange, CellRef, ColRange, RowRange};
     use std::fmt;
-    use std::fmt::Formatter;
 
     /// Appends a simple cell reference.
-    pub(crate) fn fmt_row(f: &mut Formatter<'_>, row: &CRow) -> fmt::Result {
+    pub(crate) fn fmt_row(f: &mut impl fmt::Write, row: &CRow) -> fmt::Result {
         fmt_abs(f, row.row_abs())?;
         fmt_row_name(f, row.row())?;
         Ok(())
     }
 
     /// Appends a simple cell reference.
-    pub(crate) fn fmt_col(f: &mut Formatter<'_>, col: &CCol) -> fmt::Result {
+    pub(crate) fn fmt_col(f: &mut impl fmt::Write, col: &CCol) -> fmt::Result {
         fmt_abs(f, col.col_abs())?;
         fmt_col_name(f, col.col())?;
         Ok(())
     }
 
     /// Appends the cell reference
-    pub(crate) fn fmt_cell_ref(f: &mut Formatter<'_>, cell_ref: &CellRef) -> fmt::Result {
+    pub(crate) fn fmt_cell_ref(f: &mut impl fmt::Write, cell_ref: &CellRef) -> fmt::Result {
         fmt_iri(f, cell_ref.iri())?;
         if let Some(sheet) = cell_ref.table().as_ref() {
             fmt_table_name(
@@ -957,7 +959,7 @@ mod format_refs {
     }
 
     /// Appends the range reference
-    pub(crate) fn fmt_cell_range(f: &mut Formatter<'_>, cell_range: &CellRange) -> fmt::Result {
+    pub(crate) fn fmt_cell_range(f: &mut impl fmt::Write, cell_range: &CellRange) -> fmt::Result {
         fmt_iri(f, cell_range.iri())?;
         if let Some(table) = cell_range.table().as_ref() {
             fmt_table_name(
@@ -992,7 +994,7 @@ mod format_refs {
     }
 
     /// Appends the cell reference
-    pub(crate) fn fmt_col_range(f: &mut Formatter<'_>, col_range: &ColRange) -> fmt::Result {
+    pub(crate) fn fmt_col_range(f: &mut impl fmt::Write, col_range: &ColRange) -> fmt::Result {
         fmt_iri(f, col_range.iri())?;
         if let Some(sheet) = col_range.table().as_ref() {
             fmt_table_name(
@@ -1017,7 +1019,7 @@ mod format_refs {
     }
 
     /// Appends the cell reference
-    pub(crate) fn fmt_row_range(f: &mut Formatter<'_>, row_range: &RowRange) -> fmt::Result {
+    pub(crate) fn fmt_row_range(f: &mut impl fmt::Write, row_range: &RowRange) -> fmt::Result {
         fmt_iri(f, row_range.iri())?;
         if let Some(table) = row_range.table().as_ref() {
             fmt_table_name(
@@ -1042,7 +1044,7 @@ mod format_refs {
     }
 
     /// Appends the IRI
-    pub(crate) fn fmt_iri(f: &mut Formatter<'_>, iri: Option<&String>) -> fmt::Result {
+    pub(crate) fn fmt_iri(f: &mut impl fmt::Write, iri: Option<&String>) -> fmt::Result {
         if let Some(iri) = iri {
             write!(f, "'")?;
             write!(f, "{}", &iri.replace('\'', "''"))?;
@@ -1055,7 +1057,7 @@ mod format_refs {
 
     /// Appends the table-name
     pub(crate) fn fmt_table_name(
-        f: &mut Formatter<'_>,
+        f: &mut impl fmt::Write,
         table_name: &str,
         abs: bool,
     ) -> fmt::Result {
@@ -1173,16 +1175,16 @@ pub fn cellranges_string(vec: &[CellRange]) -> String {
     buf
 }
 
-struct Fmt<F>(F)
-where
-    for<'a> F: Fn(&mut Formatter<'a>) -> fmt::Result;
-
-impl<F> Display for Fmt<F>
-where
-    for<'a> F: Fn(&mut Formatter<'a>) -> fmt::Result,
-{
-    /// Calls f with the given Formatter.
-    fn fmt<'a>(&self, f: &mut Formatter<'a>) -> fmt::Result {
-        (self.0)(f)
-    }
-}
+// struct Fmt<F>(F)
+// where
+//     for<'a> F: Fn(&mut Formatter<'a>) -> fmt::Result;
+//
+// impl<F> Display for Fmt<F>
+// where
+//     for<'a> F: Fn(&mut Formatter<'a>) -> fmt::Result,
+// {
+//     /// Calls f with the given Formatter.
+//     fn fmt<'a>(&self, f: &mut Formatter<'a>) -> fmt::Result {
+//         (self.0)(f)
+//     }
+// }
