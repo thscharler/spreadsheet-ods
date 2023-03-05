@@ -368,6 +368,20 @@ fn read_table(
         match evt {
             Event::End(xml_tag)
             if xml_tag.name().as_ref() == b"table:table" => {
+                // TODO: Maybe find a better fix for the repeat error.
+                // Reset the repeat count for the last two rows to one if it exceeds
+                // some arbitrary limit. 
+                let mut it = sheet.row_header.iter_mut().rev();
+                if let Some((_row, last)) = it.next() {
+                    if last.repeat > 1000 {
+                        last.repeat = 1;
+                    }
+                }
+                if let Some((_row, last)) = it.next() {
+                    if last.repeat > 1000 {
+                        last.repeat = 1;
+                    }
+                }
                 break;
             }
 
@@ -601,7 +615,7 @@ struct ReadTableCell2 {
     val_float: Option<f64>,
     val_bool: Option<bool>,
     val_string: Option<String>,
-    val_currency: Option<[u8; 3]>,
+    val_currency: Option<String>,
 
     content: TextContent2,
 }
@@ -1111,7 +1125,6 @@ fn read_validations(
                                     valid.set_allow_empty(parse_bool(&attr.value)?);
                                 }
                                 attr if attr.key.as_ref() == b"table:base-cell-address" => {
-                                    // todo: maybe better
                                     let v = attr.unescape_value()?;
                                     valid.set_base_cell(parse_cellref(&v)?);
                                 }
@@ -2420,7 +2433,6 @@ fn read_stylemap(xml_tag: &BytesStart<'_>) -> Result<StyleMap, OdsError> {
                 sm.set_applied_style(attr.unescape_value()?.to_string());
             }
             attr if attr.key.as_ref() == b"style:base-cell-address" => {
-                // todo: maybe better?
                 let v = attr.unescape_value()?;
                 sm.set_base_cell(parse_cellref(v.as_ref())?);
             }

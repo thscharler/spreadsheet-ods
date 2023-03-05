@@ -73,17 +73,8 @@ pub(crate) fn parse_visibility(input: &[u8]) -> Result<Visibility, OdsError> {
 }
 
 /// Parse a attribute value as a currency.
-pub(crate) fn parse_currency(input: &[u8]) -> Result<[u8; 3], OdsError> {
-    match input.len() {
-        0 => Ok([b' ', b' ', b' ']),
-        1 => Ok([input[0], b' ', b' ']),
-        2 => Ok([input[0], input[1], b' ']),
-        3 => Ok([input[0], input[1], input[2]]),
-        _ => Err(OdsError::Parse(
-            "not a currency",
-            Some(from_utf8(input)?.into()),
-        )),
-    }
+pub(crate) fn parse_currency(input: &[u8]) -> Result<String, OdsError> {
+    Ok(String::from_utf8_lossy(input).to_string())
 }
 
 /// Parse a bool.

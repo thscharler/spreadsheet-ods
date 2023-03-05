@@ -50,7 +50,7 @@
 //! let mut sheet = wb.sheet_mut(1);
 //! sheet.set_value(0, 0, 21.4f32);
 //! sheet.set_value(0, 1, "foo");
-//! sheet.set_styled_value(0, 2, NaiveDate::from_ymd(2020, 03, 01), &date_style_ref);
+//! sheet.set_styled_value(0, 2, NaiveDate::from_ymd_opt(2020, 03, 01), &date_style_ref);
 //! sheet.set_formula(0, 3, format!("of:={}+1", formula::fcellref(0,0)));
 //!
 //! let mut sheet = Sheet::new("sample");
@@ -114,6 +114,11 @@
 //! * Spreadsheets
 //!   * Row and column grouping
 //!
+//! Next on the TO-DO list:
+//! * Row and column grouping.
+//! * Calculation settings.
+//! * Named expressions.
+//!
 //! There are a number of features that are not parsed to a structure,
 //! but which are stored as a XML. This might work as long as
 //! these features don't refer to data that is no longer valid after
@@ -125,9 +130,9 @@
 //! * sequence-decls
 //! * user-field-decls
 //! * dde-connection-decls
-//! * calculation-settings
-//! * label-ranges
-//! * named-expressions
+//! * calculation-settings  
+//! * label-ranges  
+//! * named-expressions  
 //! * database-ranges
 //! * data-pilot-tables
 //! * consolidation
@@ -147,7 +152,7 @@
 //! for now.
 //!
 
-#![doc(html_root_url = "https://docs.rs/spreadsheet-ods/0.4.0")]
+#![doc(html_root_url = "https://docs.rs/spreadsheet-ods")]
 #![warn(absolute_paths_not_starting_with_crate)]
 // NO #![warn(box_pointers)]
 #![warn(elided_lifetimes_in_paths)]
@@ -219,7 +224,6 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::iter::FusedIterator;
 use std::ops::RangeBounds;
-use std::str::from_utf8;
 
 #[macro_use]
 mod attr_macro;
@@ -2017,18 +2021,18 @@ impl Sheet {
     /// position.
     pub fn split_col_header(&mut self, col: u32) {
         self.config_mut().hor_split_mode = SplitMode::Heading;
-        self.config_mut().hor_split_pos = col;
-        self.config_mut().position_right = col;
-        self.config_mut().cursor_x = col;
+        self.config_mut().hor_split_pos = col + 1;
+        self.config_mut().position_right = col + 1;
+        self.config_mut().cursor_x = col + 1;
     }
 
     /// Split vertically on a cell boundary. The splitting is fixed in
     /// position.
     pub fn split_row_header(&mut self, row: u32) {
         self.config_mut().vert_split_mode = SplitMode::Heading;
-        self.config_mut().vert_split_pos = row;
-        self.config_mut().position_bottom = row;
-        self.config_mut().cursor_y = row;
+        self.config_mut().vert_split_pos = row + 1;
+        self.config_mut().position_bottom = row + 1;
+        self.config_mut().cursor_y = row + 1;
     }
 
     /// Split horizontally with a pixel width. The split can be moved around.
@@ -2433,7 +2437,7 @@ pub enum Value {
     Boolean(bool),
     Number(f64),
     Percentage(f64),
-    Currency(f64, [u8; 3]),
+    Currency(f64, String),
     Text(String),
     TextXml(Vec<TextTag>),
     DateTime(NaiveDateTime),
@@ -2461,6 +2465,50 @@ impl Value {
         match self {
             Value::Boolean(b) => *b,
             _ => d,
+        }
+    }
+
+    /// Return the content as i64 if the value is a number, percentage or
+    /// currency. Default otherwise.
+    pub fn as_i64_or(&self, d: i64) -> i64 {
+        match self {
+            Value::Number(n) => *n as i64,
+            Value::Percentage(p) => *p as i64,
+            Value::Currency(v, _) => *v as i64,
+            _ => d,
+        }
+    }
+
+    /// Return the content as i64 if the value is a number, percentage or
+    /// currency.
+    pub fn as_i64_opt(&self) -> Option<i64> {
+        match self {
+            Value::Number(n) => Some(*n as i64),
+            Value::Percentage(p) => Some(*p as i64),
+            Value::Currency(v, _) => Some(*v as i64),
+            _ => None,
+        }
+    }
+
+    /// Return the content as u64 if the value is a number, percentage or
+    /// currency. Default otherwise.
+    pub fn as_u64_or(&self, d: u64) -> u64 {
+        match self {
+            Value::Number(n) => *n as u64,
+            Value::Percentage(p) => *p as u64,
+            Value::Currency(v, _) => *v as u64,
+            _ => d,
+        }
+    }
+
+    /// Return the content as u64 if the value is a number, percentage or
+    /// currency.
+    pub fn as_u64_opt(&self) -> Option<u64> {
+        match self {
+            Value::Number(n) => Some(*n as u64),
+            Value::Percentage(p) => Some(*p as u64),
+            Value::Currency(v, _) => Some(*v as u64),
+            _ => None,
         }
     }
 
@@ -2504,6 +2552,94 @@ impl Value {
             Value::Number(n) => Some(*n as u32),
             Value::Percentage(p) => Some(*p as u32),
             Value::Currency(v, _) => Some(*v as u32),
+            _ => None,
+        }
+    }
+
+    /// Return the content as i16 if the value is a number, percentage or
+    /// currency. Default otherwise.
+    pub fn as_i16_or(&self, d: i16) -> i16 {
+        match self {
+            Value::Number(n) => *n as i16,
+            Value::Percentage(p) => *p as i16,
+            Value::Currency(v, _) => *v as i16,
+            _ => d,
+        }
+    }
+
+    /// Return the content as i16 if the value is a number, percentage or
+    /// currency.
+    pub fn as_i16_opt(&self) -> Option<i16> {
+        match self {
+            Value::Number(n) => Some(*n as i16),
+            Value::Percentage(p) => Some(*p as i16),
+            Value::Currency(v, _) => Some(*v as i16),
+            _ => None,
+        }
+    }
+
+    /// Return the content as u16 if the value is a number, percentage or
+    /// currency. Default otherwise.
+    pub fn as_u16_or(&self, d: u16) -> u16 {
+        match self {
+            Value::Number(n) => *n as u16,
+            Value::Percentage(p) => *p as u16,
+            Value::Currency(v, _) => *v as u16,
+            _ => d,
+        }
+    }
+
+    /// Return the content as u16 if the value is a number, percentage or
+    /// currency.
+    pub fn as_u16_opt(&self) -> Option<u16> {
+        match self {
+            Value::Number(n) => Some(*n as u16),
+            Value::Percentage(p) => Some(*p as u16),
+            Value::Currency(v, _) => Some(*v as u16),
+            _ => None,
+        }
+    }
+
+    /// Return the content as i8 if the value is a number, percentage or
+    /// currency. Default otherwise.
+    pub fn as_i8_or(&self, d: i8) -> i8 {
+        match self {
+            Value::Number(n) => *n as i8,
+            Value::Percentage(p) => *p as i8,
+            Value::Currency(v, _) => *v as i8,
+            _ => d,
+        }
+    }
+
+    /// Return the content as i8 if the value is a number, percentage or
+    /// currency.
+    pub fn as_i8_opt(&self) -> Option<i8> {
+        match self {
+            Value::Number(n) => Some(*n as i8),
+            Value::Percentage(p) => Some(*p as i8),
+            Value::Currency(v, _) => Some(*v as i8),
+            _ => None,
+        }
+    }
+
+    /// Return the content as u8 if the value is a number, percentage or
+    /// currency. Default otherwise.
+    pub fn as_u8_or(&self, d: u8) -> u8 {
+        match self {
+            Value::Number(n) => *n as u8,
+            Value::Percentage(p) => *p as u8,
+            Value::Currency(v, _) => *v as u8,
+            _ => d,
+        }
+    }
+
+    /// Return the content as u8 if the value is a number, percentage or
+    /// currency.
+    pub fn as_u8_opt(&self) -> Option<u8> {
+        match self {
+            Value::Number(n) => Some(*n as u8),
+            Value::Percentage(p) => Some(*p as u8),
+            Value::Currency(v, _) => Some(*v as u8),
             _ => None,
         }
     }
@@ -2647,7 +2783,7 @@ impl Value {
     /// Returns the currency code or "" if the value is not a currency.
     pub fn currency(&self) -> &str {
         match self {
-            Value::Currency(_, c) => from_utf8(c).unwrap(),
+            Value::Currency(_, c) => c,
             _ => "",
         }
     }
@@ -2655,22 +2791,7 @@ impl Value {
     /// Create a currency value.
     #[allow(clippy::needless_range_loop)]
     pub fn new_currency<S: AsRef<str>>(cur: S, value: f64) -> Self {
-        let mut cur_bytes = [0u8; 3];
-
-        let mut idx = 0;
-        for c in cur.as_ref().as_bytes() {
-            cur_bytes[idx] = *c;
-            idx += 1;
-
-            if idx >= 3 {
-                break;
-            }
-        }
-        for i in idx..3 {
-            cur_bytes[i] = b' ';
-        }
-
-        Value::Currency(value, cur_bytes)
+        Value::Currency(value, cur.as_ref().to_string())
     }
 
     /// Create a percentage value.

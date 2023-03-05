@@ -63,12 +63,12 @@ pub fn test_locale3() -> Result<(), OdsError> {
     sheet.set_value(
         5,
         1,
-        Value::DateTime(NaiveDate::from_ymd(2000, 1, 1).and_hms(0, 0, 0)),
+        Value::DateTime(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()),
     );
     sheet.set_value(
         6,
         1,
-        Value::DateTime(NaiveDateTime::from_timestamp(1234, 0)),
+        Value::DateTime(NaiveDateTime::from_timestamp_opt(1234, 0).unwrap()),
     );
     sheet.set_value(8, 1, Value::TimeDuration(Duration::hours(1234)));
 
@@ -103,19 +103,19 @@ pub fn test_locale4() -> Result<(), OdsError> {
     sheet.set_styled_value(
         5,
         1,
-        Value::DateTime(NaiveDate::from_ymd(2000, 1, 1).and_hms(0, 0, 0)),
+        Value::DateTime(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()),
         &DefaultStyle::date(),
     );
     sheet.set_styled_value(
         6,
         1,
-        Value::DateTime(NaiveDate::from_ymd(2000, 1, 1).and_hms(1, 2, 3)),
+        Value::DateTime(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap().and_hms_opt(1, 2, 3).unwrap()),
         &DefaultStyle::datetime(),
     );
     sheet.set_styled_value(
         7,
         1,
-        Value::DateTime(NaiveDate::from_ymd(2000, 1, 1).and_hms(1, 2, 3)),
+        Value::DateTime(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap().and_hms_opt(1, 2, 3).unwrap()),
         &DefaultStyle::time_of_day(),
     );
     sheet.set_styled_value(

@@ -363,7 +363,7 @@ fn write_meta<W: Write + Seek>(
 
         xml_out.elem("office:meta")?;
 
-        xml_out.elem_text("meta:generator", "spreadsheet-ods 0.14.0")?;
+        xml_out.elem_text("meta:generator", "spreadsheet-ods 0.15.0")?;
         let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
         let d = NaiveDateTime::from_timestamp_opt(s.as_secs() as i64, 0);
         if let Some(d) = d {
@@ -1733,11 +1733,11 @@ fn write_cell<W: Write + Seek>(
         }
         Some(Value::Currency(v, c)) => {
             xml_out.attr("office:value-type", "currency")?;
-            xml_out.attr_esc("office:currency", String::from_utf8_lossy(c))?;
+            xml_out.attr_esc("office:currency", c)?;
             let value = v.to_string();
             xml_out.attr("office:value", value.as_str())?;
             xml_out.elem("text:p")?;
-            xml_out.text(String::from_utf8_lossy(c))?;
+            xml_out.text(c)?;
             xml_out.text(" ")?;
             xml_out.text(value)?;
             xml_out.end_elem("text:p")?;

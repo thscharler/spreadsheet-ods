@@ -65,7 +65,7 @@ impl<'vf, T: ValueFormatTrait> PartNumberBuilder<'vf, T> {
     /// The grouping character that is used and the number of digits that are grouped together depends
     /// on the language and country of the style.
     /// The defined values for the number:grouping attribute are:
-    /// * false: integer digits of a number are note grouped using a separator character.
+    /// * false: integer digits of a number are not grouped using a separator character.
     /// * true: integer digits of a number should be grouped by a separator character.
     /// The default value for this attribute is false.
     #[must_use]
@@ -282,7 +282,7 @@ impl<'vf, T: ValueFormatTrait> PartScientificBuilder<'vf, T> {
     /// The grouping character that is used and the number of digits that are grouped together depends
     /// on the language and country of the style.
     /// The defined values for the number:grouping attribute are:
-    /// * false: integer digits of a number are note grouped using a separator character.
+    /// * false: integer digits of a number are not grouped using a separator character.
     /// * true: integer digits of a number should be grouped by a separator character.
     /// The default value for this attribute is false.
     #[must_use]
@@ -391,7 +391,7 @@ impl<'vf, T: ValueFormatTrait> PartFractionBuilder<'vf, T> {
     /// The grouping character that is used and the number of digits that are grouped together depends
     /// on the language and country of the style.
     /// The defined values for the number:grouping attribute are:
-    /// * false: integer digits of a number are note grouped using a separator character.
+    /// * false: integer digits of a number are not grouped using a separator character.
     /// * true: integer digits of a number should be grouped by a separator character.
     /// The default value for this attribute is false.
     #[must_use]

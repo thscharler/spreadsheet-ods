@@ -1,3 +1,26 @@
+# 0.15.0
+
+- It was an error to assume that currency values use an ISO code for 
+  the currency string. Removed the optimization and use a String again.
+
+- number-rows-repeated a million times. Can be found for the last or the
+  second to last row. If the row is overwritten with actual data and 
+  opened in LibreOffice this results to a real memory stress test. 
+  Any repeat count of more than 1000 for the last two rows are now ignored.
+
+- Sheet::split_col_header() and split_row_header() now split after
+  the given row/column.
+- Add as_*64, as_*16, as_*8 conversions for Value.
+
+- Bug: Default number-format should set min-integer-digits to 1. Fixed.
+- Bug: LibreOffice uses dates like 0000-00-00. Fixed.
+- Bug: embedded-text in format broke the parser. Removed that part for now
+  and ignore this tag. 
+- Bug: Parsing sheet-names failed with the new reference parser. Fixed.
+
+- Update dependencies
+
+
 # 0.14.0
 
 - Undo spreadsheet-ods-cellref. Was a reasonable start, but didn't work out
