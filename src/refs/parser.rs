@@ -3,9 +3,7 @@ use crate::refs::parser::parser::{parse_col, parse_iri, parse_row, parse_sheet_n
 use crate::refs::parser::tokens::colon;
 use crate::{CellRange, CellRef, ColRange, RowRange};
 use kparse::prelude::*;
-#[cfg(debug_assertions)]
-use kparse::tracker::TrackSpan;
-use kparse::{Code, Context, TokenizerError, TokenizerResult};
+use kparse::{TokenizerError, TokenizerResult};
 use nom::character::complete::multispace1;
 use nom::combinator::all_consuming;
 use nom::multi::separated_list0;
@@ -96,17 +94,12 @@ impl Code for CRCode {
     const NOM_ERROR: Self = Self::CRNomError;
 }
 
-#[cfg(debug_assertions)]
-pub(crate) type KSpan<'s> = TrackSpan<'s, CRCode, &'s str>;
-#[cfg(not(debug_assertions))]
-pub(crate) type KSpan<'s> = &'s str;
-// pub(crate) type KParserResult<'s, O> = ParserResult<CRCode, KSpan<'s>, O>;
+define_span!(pub(crate) KSpan = CRCode, str);
 pub(crate) type KTokenizerResult<'s, O> = TokenizerResult<CRCode, KSpan<'s>, O>;
-// pub(crate) type KParserError<'s> = ParserError<CRCode, KSpan<'s>>;
 pub(crate) type KTokenizerError<'s> = TokenizerError<CRCode, KSpan<'s>>;
 
 pub(crate) fn parse_cell_ref(input: KSpan<'_>) -> KTokenizerResult<'_, CellRef> {
-    Context.enter(CRCellRef, input);
+    Track.enter(CRCellRef, input);
 
     let (rest, (iri, table, (abs_col, col), (abs_row, row))) = all_consuming(tuple((
         parse_iri, //
@@ -116,7 +109,7 @@ pub(crate) fn parse_cell_ref(input: KSpan<'_>) -> KTokenizerResult<'_, CellRef> 
     )))(input)
     .track()?;
 
-    Context.ok(
+    Track.ok(
         rest,
         input,
         CellRef::new_all(iri, table, abs_row, row, abs_col, col),
@@ -126,19 +119,19 @@ pub(crate) fn parse_cell_ref(input: KSpan<'_>) -> KTokenizerResult<'_, CellRef> 
 pub(crate) fn parse_cell_range_list(
     input: KSpan<'_>,
 ) -> KTokenizerResult<'_, Option<Vec<CellRange>>> {
-    Context.enter(CRCellRangeList, input);
+    Track.enter(CRCellRangeList, input);
 
     let (rest, vec) = separated_list0(multispace1, parse_cell_range)(input).track()?;
 
     if vec.is_empty() {
-        Context.ok(rest, input, None)
+        Track.ok(rest, input, None)
     } else {
-        Context.ok(rest, input, Some(vec))
+        Track.ok(rest, input, Some(vec))
     }
 }
 
 pub(crate) fn parse_cell_range(input: KSpan<'_>) -> KTokenizerResult<'_, CellRange> {
-    Context.enter(CRCellRange, input);
+    Track.enter(CRCellRange, input);
 
     let (
         rest,
@@ -164,7 +157,7 @@ pub(crate) fn parse_cell_range(input: KSpan<'_>) -> KTokenizerResult<'_, CellRan
     ))(input)
     .track()?;
 
-    Context.ok(
+    Track.ok(
         rest,
         input,
         CellRange::new_all(
@@ -175,7 +168,7 @@ pub(crate) fn parse_cell_range(input: KSpan<'_>) -> KTokenizerResult<'_, CellRan
 }
 
 pub(crate) fn parse_col_range(input: KSpan<'_>) -> KTokenizerResult<'_, ColRange> {
-    Context.enter(CRColRange, input);
+    Track.enter(CRColRange, input);
 
     let (rest, (iri, table, (abs_col, col), _, to_table, (abs_to_col, to_col))) = tuple((
         parse_iri,
@@ -187,7 +180,7 @@ pub(crate) fn parse_col_range(input: KSpan<'_>) -> KTokenizerResult<'_, ColRange
     ))(input)
     .track()?;
 
-    Context.ok(
+    Track.ok(
         rest,
         input,
         ColRange::new_all(iri, table, abs_col, col, to_table, abs_to_col, to_col),
@@ -195,7 +188,7 @@ pub(crate) fn parse_col_range(input: KSpan<'_>) -> KTokenizerResult<'_, ColRange
 }
 
 pub(crate) fn parse_row_range(input: KSpan<'_>) -> KTokenizerResult<'_, RowRange> {
-    Context.enter(CRRowRange, input);
+    Track.enter(CRRowRange, input);
 
     let (rest, (iri, table, (abs_row, row), _, to_table, (abs_to_row, to_row))) = tuple((
         parse_iri,
@@ -207,7 +200,7 @@ pub(crate) fn parse_row_range(input: KSpan<'_>) -> KTokenizerResult<'_, RowRange
     ))(input)
     .track()?;
 
-    Context.ok(
+    Track.ok(
         rest,
         input,
         RowRange::new_all(iri, table, abs_row, row, to_table, abs_to_row, to_row),

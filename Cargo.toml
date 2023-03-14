@@ -36,10 +36,10 @@ nom_locate = "4.0"
 icu_locid = "1.0"
 lazy_static = "1.4"
 unicode-ident = "1.0"
-kparse = "2.0.0"
+kparse = "3.0.1"
 
 [dependencies.quick-xml]
-version = "0.27.1"
+version = "0.28.0"
 # ?? Should be UTF-8, no need for encoding related stuff.
 #features = ["encoding"]
 

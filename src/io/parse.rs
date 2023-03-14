@@ -7,13 +7,13 @@ use crate::error::AsStatic;
 use crate::{OdsError, Visibility};
 use chrono::Duration;
 use chrono::NaiveDateTime;
-use kparse::{Code, KParser, TokenizerError, TokenizerResult};
-use nom::bytes::complete::tag;
+use kparse::prelude::*;
+use kparse::{TokenizerError, TokenizerResult};
 use nom::character::complete::digit1;
 use nom::combinator::{all_consuming, eof, opt};
 use nom::number::complete::double;
 use nom::sequence::{pair, preceded, terminated, tuple};
-use nom::{AsChar, Parser};
+use nom::AsChar;
 use std::fmt::{Display, Formatter};
 use std::str::{from_utf8, from_utf8_unchecked};
 
@@ -26,6 +26,7 @@ pub(crate) enum RCode {
 
     Integer,
     DateTime,
+    Bool,
 }
 
 impl AsStatic<str> for RCode {
@@ -36,6 +37,7 @@ impl AsStatic<str> for RCode {
             RCode::Digit => "Digit",
             RCode::Integer => "Integer",
             RCode::DateTime => "DateTime",
+            RCode::Bool => "Bool",
         }
     }
 }
@@ -50,17 +52,13 @@ impl Code for RCode {
     const NOM_ERROR: Self = Self::NomError;
 }
 
-// #[cfg(debug_assertions)]
-// pub(crate) type KSpan<'s> = TrackSpan<'s, ACode, &'s [u8]>;
-// #[cfg(not(debug_assertions))]
 pub(crate) type KSpan<'s> = &'s [u8];
-// pub(crate) type KParserResult<'s, O> = ParserResult<ACode, KSpan<'s>, O>;
+pub(crate) type KTokenResult<'s, O> = Result<O, nom::Err<TokenizerError<RCode, KSpan<'s>>>>;
 pub(crate) type KTokenizerResult<'s, O> = TokenizerResult<RCode, KSpan<'s>, O>;
-// pub(crate) type KParserError<'s> = ParserError<ACode, KSpan<'s>>;
 pub(crate) type KTokenizerError<'s> = TokenizerError<RCode, KSpan<'s>>;
 
 /// Parse as Visibility.
-pub(crate) fn parse_visibility(input: &[u8]) -> Result<Visibility, OdsError> {
+pub(crate) fn parse_visibility(input: KSpan<'_>) -> Result<Visibility, OdsError> {
     match input {
         b"visible" => Ok(Visibility::Visible),
         b"filter" => Ok(Visibility::Filtered),
@@ -73,62 +71,62 @@ pub(crate) fn parse_visibility(input: &[u8]) -> Result<Visibility, OdsError> {
 }
 
 /// Parse a attribute value as a currency.
-pub(crate) fn parse_currency(input: &[u8]) -> Result<String, OdsError> {
+pub(crate) fn parse_currency(input: KSpan<'_>) -> Result<String, OdsError> {
     Ok(String::from_utf8_lossy(input).to_string())
 }
 
 /// Parse a bool.
-pub(crate) fn parse_bool(input: &[u8]) -> Result<bool, OdsError> {
-    Ok(token_bool(input)?.1)
+pub(crate) fn parse_bool(input: KSpan<'_>) -> Result<bool, OdsError> {
+    Ok(token_bool(input)?)
 }
 
 /// Parse a u32.
-pub(crate) fn parse_u32(input: &[u8]) -> Result<u32, OdsError> {
-    Ok(token_u32(input)?.1)
+pub(crate) fn parse_u32(input: KSpan<'_>) -> Result<u32, OdsError> {
+    Ok(token_u32(input)?)
 }
 
 /// Parse a i64.
-pub(crate) fn parse_i64(input: &[u8]) -> Result<i64, OdsError> {
-    Ok(token_i64(input)?.1)
+pub(crate) fn parse_i64(input: KSpan<'_>) -> Result<i64, OdsError> {
+    Ok(token_i64(input)?)
 }
 
 /// Parse a i32.
-pub(crate) fn parse_i32(input: &[u8]) -> Result<i32, OdsError> {
-    Ok(token_i32(input)?.1)
+pub(crate) fn parse_i32(input: KSpan<'_>) -> Result<i32, OdsError> {
+    Ok(token_i32(input)?)
 }
 
 /// Parse a i16.
-pub(crate) fn parse_i16(input: &[u8]) -> Result<i16, OdsError> {
-    Ok(token_i16(input)?.1)
+pub(crate) fn parse_i16(input: KSpan<'_>) -> Result<i16, OdsError> {
+    Ok(token_i16(input)?)
 }
 
 /// Parse a f64.
-pub(crate) fn parse_f64(input: &[u8]) -> Result<f64, OdsError> {
-    Ok(token_float(input)?.1)
+pub(crate) fn parse_f64(input: KSpan<'_>) -> Result<f64, OdsError> {
+    Ok(token_float(input)?)
 }
 
 /// Parse a XML Schema datetime.
-pub(crate) fn parse_datetime(input: &[u8]) -> Result<NaiveDateTime, OdsError> {
-    Ok(token_datetime(input)?.1)
+pub(crate) fn parse_datetime(input: KSpan<'_>) -> Result<NaiveDateTime, OdsError> {
+    Ok(token_datetime(input)?)
 }
 
 /// Parse a XML Schema time duration.
-pub(crate) fn parse_duration(input: &[u8]) -> Result<Duration, OdsError> {
-    Ok(token_duration(input)?.1)
+pub(crate) fn parse_duration(input: KSpan<'_>) -> Result<Duration, OdsError> {
+    Ok(token_duration(input)?)
 }
 
 #[inline(always)]
-fn token_bool(input: &[u8]) -> KTokenizerResult<'_, bool> {
-    let (_rest, val) = tag::<_, _, TokenizerError<RCode, _>>(b"true")
-        .value(true)
-        .or(tag(b"false").value(false))
-        .parse(input)?;
-    Ok((input, val))
+fn token_bool(input: KSpan<'_>) -> KTokenResult<'_, bool> {
+    match input {
+        b"true" => Ok(true),
+        b"false" => Ok(false),
+        _ => Err(nom::Err::Error(KTokenizerError::new(RCode::Bool, input))),
+    }
 }
 
 #[inline(always)]
-fn token_i16(input: &[u8]) -> KTokenizerResult<'_, i16> {
-    let _ = opt(byte(b'-')).and(all_digits).parse(input)?;
+fn token_i16(input: KSpan<'_>) -> KTokenResult<'_, i16> {
+    let _ = sign_all_digits(input)?;
 
     let result = match unsafe { from_utf8_unchecked(input) }.parse::<i16>() {
         Ok(result) => result,
@@ -137,12 +135,12 @@ fn token_i16(input: &[u8]) -> KTokenizerResult<'_, i16> {
         }
     };
 
-    Ok((input, result))
+    Ok(result)
 }
 
 #[inline(always)]
-fn token_u32(input: &[u8]) -> KTokenizerResult<'_, u32> {
-    let _ = all_digits.parse(input)?;
+fn token_u32(input: KSpan<'_>) -> KTokenResult<'_, u32> {
+    let _ = all_digits(input)?;
 
     let result = match unsafe { from_utf8_unchecked(input) }.parse::<u32>() {
         Ok(result) => result,
@@ -151,12 +149,12 @@ fn token_u32(input: &[u8]) -> KTokenizerResult<'_, u32> {
         }
     };
 
-    Ok((input, result))
+    Ok(result)
 }
 
 #[inline(always)]
-fn token_i32(input: &[u8]) -> KTokenizerResult<'_, i32> {
-    let _ = opt(byte(b'-')).and(all_digits).parse(input)?;
+fn token_i32(input: KSpan<'_>) -> KTokenResult<'_, i32> {
+    let _ = sign_all_digits(input)?;
 
     let result = match unsafe { from_utf8_unchecked(input) }.parse::<i32>() {
         Ok(result) => result,
@@ -165,12 +163,12 @@ fn token_i32(input: &[u8]) -> KTokenizerResult<'_, i32> {
         }
     };
 
-    Ok((input, result))
+    Ok(result)
 }
 
 #[inline(always)]
-fn token_i64(input: &[u8]) -> KTokenizerResult<'_, i64> {
-    let _ = opt(byte(b'-')).and(all_digits).parse(input)?;
+fn token_i64(input: KSpan<'_>) -> KTokenResult<'_, i64> {
+    let _ = sign_all_digits(input)?;
 
     let result = match unsafe { from_utf8_unchecked(input) }.parse::<i64>() {
         Ok(result) => result,
@@ -179,20 +177,19 @@ fn token_i64(input: &[u8]) -> KTokenizerResult<'_, i64> {
         }
     };
 
-    Ok((input, result))
+    Ok(result)
 }
 
 #[inline(always)]
-fn token_float(input: &[u8]) -> KTokenizerResult<'_, f64> {
-    let (input, result) = all_consuming(double)(input)?;
-
-    Ok((input, result))
+fn token_float(input: KSpan<'_>) -> KTokenResult<'_, f64> {
+    let (_, result) = all_consuming(double)(input)?;
+    Ok(result)
 }
 
 // Part of a date/duration. An unsigned integer, but for chrono we need an i64.
 #[inline]
-fn token_datepart(input: &[u8]) -> KTokenizerResult<'_, i64> {
-    let (input, result) = digit1(input)?;
+fn token_datepart(input: KSpan<'_>) -> KTokenizerResult<'_, i64> {
+    let (rest, result) = digit1(input)?;
 
     let result = match unsafe { from_utf8_unchecked(result) }.parse::<i64>() {
         Ok(result) => result,
@@ -201,14 +198,14 @@ fn token_datepart(input: &[u8]) -> KTokenizerResult<'_, i64> {
         }
     };
 
-    Ok((input, result))
+    Ok((rest, result))
 }
 
 // Part of a date/duration. Parses an integer as nanoseconds but with
 // the caveat that there can be arbitrary many trailing 0s omitted.
 #[inline]
-fn token_nano(input: &[u8]) -> KTokenizerResult<'_, i64> {
-    let (input, result) = digit1(input)?;
+fn token_nano(input: KSpan<'_>) -> KTokenizerResult<'_, i64> {
+    let (rest, result) = digit1(input)?;
 
     let mut v = 0i64;
     for i in 0..9 {
@@ -219,12 +216,12 @@ fn token_nano(input: &[u8]) -> KTokenizerResult<'_, i64> {
             v *= 10;
         }
     }
-    Ok((input, v))
+    Ok((rest, v))
 }
 
 #[inline(always)]
-fn token_datetime(input: &[u8]) -> KTokenizerResult<'_, NaiveDateTime> {
-    let (input, (minus, year, _, month, _, day, time)) = terminated(
+fn token_datetime(input: KSpan<'_>) -> KTokenResult<'_, NaiveDateTime> {
+    let (_, (minus, year, _, month, _, day, time)) = terminated(
         tuple((
             opt(byte(b'-')),
             token_datepart,
@@ -269,7 +266,7 @@ fn token_datetime(input: &[u8]) -> KTokenizerResult<'_, NaiveDateTime> {
         p.second = Some(0);
     }
     match p.to_naive_datetime_with_offset(0) {
-        Ok(v) => Ok((input, v)),
+        Ok(v) => Ok(v),
         Err(err) => {
             dbg!(&err);
             return Err(nom::Err::Error(KTokenizerError::new(
@@ -281,8 +278,8 @@ fn token_datetime(input: &[u8]) -> KTokenizerResult<'_, NaiveDateTime> {
 }
 
 #[inline(always)]
-fn token_duration(input: &[u8]) -> KTokenizerResult<'_, Duration> {
-    let (input, (_, day, _, hour, minute, (second, nanos))) = all_consuming(tuple((
+fn token_duration(input: KSpan<'_>) -> KTokenResult<'_, Duration> {
+    let (_, (_, day, _, hour, minute, (second, nanos))) = all_consuming(tuple((
         byte(b'P'),
         // these do not occur?
         //opt(terminated(token_datepart, byte(b'Y'))),
@@ -305,22 +302,38 @@ fn token_duration(input: &[u8]) -> KTokenizerResult<'_, Duration> {
         result = result + Duration::nanoseconds(nanos);
     }
 
-    Ok((input, result))
+    Ok(result)
 }
 
 #[inline(always)]
-fn all_digits(input: &[u8]) -> KTokenizerResult<'_, ()> {
+fn all_digits(input: KSpan<'_>) -> KTokenResult<'_, ()> {
     for c in input {
         if !c.is_dec_digit() {
             return Err(nom::Err::Error(KTokenizerError::new(RCode::Digit, input)));
         }
     }
-    Ok((&input[input.len()..], ()))
+    Ok(())
 }
 
 #[inline(always)]
-pub(crate) fn byte(c: u8) -> impl Fn(&[u8]) -> KTokenizerResult<'_, ()> {
-    move |i: &[u8]| {
+fn sign_all_digits(input: KSpan<'_>) -> KTokenResult<'_, ()> {
+    let mut it = input.iter();
+    match it.next() {
+        Some(b'-') => {}
+        Some(v) if v.is_dec_digit() => {}
+        _ => return Err(nom::Err::Error(KTokenizerError::new(RCode::Digit, input))),
+    }
+    for b in it {
+        if !b.is_dec_digit() {
+            return Err(nom::Err::Error(KTokenizerError::new(RCode::Digit, input)));
+        }
+    }
+    Ok(())
+}
+
+#[inline(always)]
+pub(crate) fn byte(c: u8) -> impl Fn(KSpan<'_>) -> KTokenizerResult<'_, ()> {
+    move |i: KSpan<'_>| {
         if i.len() > 0 && i[0] == c {
             Ok((&i[1..], ()))
         } else {

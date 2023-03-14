@@ -8,8 +8,7 @@ use crate::refs::format_refs::{
 use crate::refs::parser::CRCode::{CRCellRange, CRCellRef, CRColRange, CRRowRange};
 use crate::refs::parser::KTokenizerError;
 use crate::OdsError;
-#[cfg(debug_assertions)]
-use kparse::tracker::StdTracker;
+use kparse::Track;
 use std::fmt;
 use std::fmt::{Display, Formatter, Write};
 
@@ -1075,12 +1074,8 @@ mod format_refs {
 
 /// Parse a cell reference.
 pub fn parse_cellref(buf: &str) -> Result<CellRef, OdsError> {
-    #[cfg(debug_assertions)]
-    let trk = StdTracker::new();
-    #[cfg(debug_assertions)]
-    let span = trk.span(buf);
-    #[cfg(not(debug_assertions))]
-    let span = buf;
+    let trk = Track::new_tracker();
+    let span = Track::new_span(&trk, buf);
 
     let (rest, tok) = parser::parse_cell_ref(span)?;
     if rest.len() > 0 {
@@ -1092,12 +1087,8 @@ pub fn parse_cellref(buf: &str) -> Result<CellRef, OdsError> {
 
 /// Parse a cell reference.
 pub fn parse_cellrange(buf: &str) -> Result<CellRange, OdsError> {
-    #[cfg(debug_assertions)]
-    let trk = StdTracker::new();
-    #[cfg(debug_assertions)]
-    let span = trk.span(buf);
-    #[cfg(not(debug_assertions))]
-    let span = buf;
+    let trk = Track::new_tracker();
+    let span = Track::new_span(&trk, buf);
 
     let (rest, tok) = parser::parse_cell_range(span)?;
     if rest.len() > 0 {
@@ -1109,12 +1100,8 @@ pub fn parse_cellrange(buf: &str) -> Result<CellRange, OdsError> {
 
 /// Parse a cell reference.
 pub fn parse_colrange(buf: &str) -> Result<ColRange, OdsError> {
-    #[cfg(debug_assertions)]
-    let trk = StdTracker::new();
-    #[cfg(debug_assertions)]
-    let span = trk.span(buf);
-    #[cfg(not(debug_assertions))]
-    let span = buf;
+    let trk = Track::new_tracker();
+    let span = Track::new_span(&trk, buf);
 
     let (rest, tok) = parser::parse_col_range(span)?;
     if rest.len() > 0 {
@@ -1126,12 +1113,8 @@ pub fn parse_colrange(buf: &str) -> Result<ColRange, OdsError> {
 
 /// Parse a cell reference.
 pub fn parse_rowrange(buf: &str) -> Result<RowRange, OdsError> {
-    #[cfg(debug_assertions)]
-    let trk = StdTracker::new();
-    #[cfg(debug_assertions)]
-    let span = trk.span(buf);
-    #[cfg(not(debug_assertions))]
-    let span = buf;
+    let trk = Track::new_tracker();
+    let span = Track::new_span(&trk, buf);
 
     let (rest, tok) = parser::parse_row_range(span)?;
     if rest.len() > 0 {
@@ -1143,25 +1126,13 @@ pub fn parse_rowrange(buf: &str) -> Result<RowRange, OdsError> {
 
 /// Parse a list of range refs
 pub fn parse_cellranges(buf: &str) -> Result<Option<Vec<CellRange>>, OdsError> {
-    #[cfg(debug_assertions)]
-    let trk = StdTracker::new();
-    #[cfg(debug_assertions)]
-    let span = trk.span(buf);
-    #[cfg(not(debug_assertions))]
-    let span = buf;
+    let trk = Track::new_tracker();
+    let span = Track::new_span(&trk, buf);
 
-    let (_, ranges) = match parser::parse_cell_range_list(span) {
-        Ok((r, ranges)) => (r, ranges),
-        Err(err) => {
-            dbg!(&span);
-            dbg!(&err);
-            #[cfg(debug_assertions)]
-            dbg!(&trk.results());
-            Err(err)?;
-            unreachable!()
-        }
-    };
-    Ok(ranges)
+    match parser::parse_cell_range_list(span) {
+        Ok((_, ranges)) => Ok(ranges),
+        Err(err) => Err(err.into()),
+    }
 }
 
 /// Returns a list of ranges as string.
@@ -1177,17 +1148,3 @@ pub fn cellranges_string(vec: &[CellRange]) -> String {
 
     buf
 }
-
-// struct Fmt<F>(F)
-// where
-//     for<'a> F: Fn(&mut Formatter<'a>) -> fmt::Result;
-//
-// impl<F> Display for Fmt<F>
-// where
-//     for<'a> F: Fn(&mut Formatter<'a>) -> fmt::Result,
-// {
-//     /// Calls f with the given Formatter.
-//     fn fmt<'a>(&self, f: &mut Formatter<'a>) -> fmt::Result {
-//         (self.0)(f)
-//     }
-// }

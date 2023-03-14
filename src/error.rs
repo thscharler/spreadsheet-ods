@@ -2,8 +2,8 @@
 //! Error type.
 //!
 
-use kparse::tracker::TrackSpan;
 use kparse::{Code, TokenizerError};
+use nom_locate::LocatedSpan;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::from_utf8;
@@ -158,16 +158,31 @@ where
     }
 }
 
-impl<'s, C> From<nom::Err<TokenizerError<C, TrackSpan<'s, C, &'s str>>>> for OdsError
+impl<'s, C, X> From<nom::Err<TokenizerError<C, LocatedSpan<&'s str, X>>>> for OdsError
 where
     C: Code + AsStatic<str>,
 {
-    fn from(value: nom::Err<TokenizerError<C, TrackSpan<'s, C, &'s str>>>) -> Self {
+    fn from(value: nom::Err<TokenizerError<C, LocatedSpan<&'s str, X>>>) -> Self {
         match value {
             nom::Err::Incomplete(_) => OdsError::Parse("incomplete", None),
             nom::Err::Error(e) | nom::Err::Failure(e) => {
                 OdsError::Parse(e.code.as_static(), Some((*e.span).into()))
             }
+        }
+    }
+}
+
+impl<'s, C, X> From<nom::Err<TokenizerError<C, LocatedSpan<&'s [u8], X>>>> for OdsError
+where
+    C: Code + AsStatic<str>,
+{
+    fn from(value: nom::Err<TokenizerError<C, LocatedSpan<&'s [u8], X>>>) -> Self {
+        match value {
+            nom::Err::Incomplete(_) => OdsError::Parse("incomplete", None),
+            nom::Err::Error(e) | nom::Err::Failure(e) => OdsError::Parse(
+                e.code.as_static(),
+                Some(from_utf8(*e.span).unwrap_or("decoding failed").into()),
+            ),
         }
     }
 }
