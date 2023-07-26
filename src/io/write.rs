@@ -1989,7 +1989,9 @@ fn write_cellstyle<W: Write + Seek>(
             xml_out.empty("style:map")?;
             xml_out.attr_esc("style:condition", sm.condition())?;
             xml_out.attr_esc("style:apply-style-name", sm.applied_style())?;
-            xml_out.attr_esc("style:base-cell-address", &sm.base_cell().to_string())?;
+            if let Some(r) = sm.base_cell() {
+                xml_out.attr_esc("style:base-cell-address", r.to_string())?;
+            }
         }
     }
     if style.styleuse() == StyleUse::Default {
@@ -2237,7 +2239,6 @@ fn write_valuestyles<W: Write + Seek, T: ValueFormatTrait>(
                 xml_out.empty("style:map")?;
                 xml_out.attr_esc("style:condition", sm.condition())?;
                 xml_out.attr_esc("style:apply-style-name", sm.applied_style())?;
-                xml_out.attr_esc("style:base-cell-address", &sm.base_cell().to_string())?;
             }
         }
 

@@ -17,7 +17,7 @@ macro_rules! valueformat {
             /// Parts of the format.
             parts: Vec<FormatPart>,
             /// Style map data.
-            stylemaps: Option<Vec<StyleMap>>,
+            stylemaps: Option<Vec<ValueStyleMap>>,
         }
 
         impl $format {
@@ -207,17 +207,17 @@ macro_rules! valueformat {
             }
 
             /// Adds a stylemap.
-            fn push_stylemap(&mut self, stylemap: StyleMap) {
+            fn push_stylemap(&mut self, stylemap: ValueStyleMap) {
                 self.stylemaps.get_or_insert_with(Vec::new).push(stylemap);
             }
 
             /// Returns the stylemaps
-            fn stylemaps(&self) -> Option<&Vec<StyleMap>> {
+            fn stylemaps(&self) -> Option<&Vec<ValueStyleMap>> {
                 self.stylemaps.as_ref()
             }
 
             /// Returns the mutable stylemap.
-            fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap> {
+            fn stylemaps_mut(&mut self) -> &mut Vec<ValueStyleMap> {
                 self.stylemaps.get_or_insert_with(Vec::new)
             }
         }

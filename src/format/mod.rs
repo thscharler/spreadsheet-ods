@@ -36,12 +36,13 @@
 
 mod builder;
 mod create;
+mod stylemap;
 
 pub use builder::*;
 pub use create::*;
+pub use stylemap::*;
 
 use crate::attrmap2::AttrMap2;
-use crate::style::stylemap::StyleMap;
 use crate::style::units::{
     Angle, FontSize, FontStyle, FontVariant, FontWeight, FormatSource, Length, LetterSpacing,
     LineMode, LineStyle, LineType, LineWidth, Percent, RotationScale, TextCombine, TextCondition,
@@ -113,13 +114,13 @@ pub trait ValueFormatTrait {
     fn parts_mut(&mut self) -> &mut Vec<FormatPart>;
 
     /// Adds a stylemap.
-    fn push_stylemap(&mut self, stylemap: StyleMap);
+    fn push_stylemap(&mut self, stylemap: ValueStyleMap);
 
     /// Returns the stylemaps
-    fn stylemaps(&self) -> Option<&Vec<StyleMap>>;
+    fn stylemaps(&self) -> Option<&Vec<ValueStyleMap>>;
 
     /// Returns the mutable stylemap.
-    fn stylemaps_mut(&mut self) -> &mut Vec<StyleMap>;
+    fn stylemaps_mut(&mut self) -> &mut Vec<ValueStyleMap>;
 }
 
 valueformat!(ValueFormatBoolean, ValueType::Boolean);

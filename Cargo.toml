@@ -11,8 +11,6 @@ keywords = ["ODS", "spreadsheet", "OpenOffice", "LibreOffice"]
 categories = ["parser-implementations"]
 exclude = [".idea/*", ".gitignore"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [features]
 default = ["use_decimal", "all_locales"]
 # Add conversions from rust_decimal.

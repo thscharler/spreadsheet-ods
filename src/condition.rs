@@ -108,7 +108,7 @@ impl ValueCondition {
     /// Compares the cell-content with a value.
     pub fn content_eq<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
-        buf.push_str("cell-content()=");
+        buf.push_str("value()=");
         buf.push_str(value.into().to_string().as_str());
         ValueCondition { cond: buf }
     }
@@ -116,7 +116,7 @@ impl ValueCondition {
     /// Compares the cell-content with a value.
     pub fn content_ne<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
-        buf.push_str("cell-content()!=");
+        buf.push_str("value()!=");
         buf.push_str(value.into().to_string().as_str());
         ValueCondition { cond: buf }
     }
@@ -124,7 +124,7 @@ impl ValueCondition {
     /// Compares the cell-content with a value.
     pub fn content_lt<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
-        buf.push_str("cell-content()<");
+        buf.push_str("value()<");
         buf.push_str(value.into().to_string().as_str());
         ValueCondition { cond: buf }
     }
@@ -132,55 +132,24 @@ impl ValueCondition {
     /// Compares the cell-content with a value.
     pub fn content_gt<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
-        buf.push_str("cell-content()>");
+        buf.push_str("value()>");
         buf.push_str(value.into().to_string().as_str());
         ValueCondition { cond: buf }
     }
 
     /// Compares the cell-content with a value.
-    pub fn content_lte<V: Into<Value>>(value: V) -> ValueCondition {
+    pub fn content_le<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
-        buf.push_str("cell-content()<=");
+        buf.push_str("value()<=");
         buf.push_str(value.into().to_string().as_str());
         ValueCondition { cond: buf }
     }
 
     /// Compares the cell-content with a value.
-    pub fn content_gte<V: Into<Value>>(value: V) -> ValueCondition {
+    pub fn content_ge<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
-        buf.push_str("cell-content()>=");
+        buf.push_str("value()>=");
         buf.push_str(value.into().to_string().as_str());
-        ValueCondition { cond: buf }
-    }
-
-    /// Range check of the cell-content.
-    pub fn content_is_between<V: Into<Value>>(from: V, to: V) -> ValueCondition {
-        let mut buf = String::new();
-        buf.push_str("cell-content-is-between(");
-        buf.push_str(from.into().to_string().as_str());
-        buf.push_str(", ");
-        buf.push_str(to.into().to_string().as_str());
-        buf.push(')');
-        ValueCondition { cond: buf }
-    }
-
-    /// Range check of the cell-content.
-    pub fn content_is_not_between<V: Into<Value>>(from: V, to: V) -> ValueCondition {
-        let mut buf = String::new();
-        buf.push_str("cell-content-is-not-between(");
-        buf.push_str(from.into().to_string().as_str());
-        buf.push_str(", ");
-        buf.push_str(to.into().to_string().as_str());
-        buf.push(')');
-        ValueCondition { cond: buf }
-    }
-
-    /// Evaluates a formula.
-    pub fn is_true_formula<S: AsRef<str>>(formula: S) -> ValueCondition {
-        let mut buf = String::new();
-        buf.push_str("is-true-formula(");
-        buf.push_str(formula.as_ref());
-        buf.push(')');
         ValueCondition { cond: buf }
     }
 }
@@ -236,7 +205,7 @@ impl Condition {
     }
 
     /// Compares the content length to a value.
-    pub fn content_text_length_lte(len: u32) -> Condition {
+    pub fn content_text_length_le(len: u32) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-text-length()<=");
         buf.push_str(len.to_string().as_str());
@@ -244,7 +213,7 @@ impl Condition {
     }
 
     /// Compares the content length to a value.
-    pub fn content_text_length_gte(len: u32) -> Condition {
+    pub fn content_text_length_ge(len: u32) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-text-length()>=");
         buf.push_str(len.to_string().as_str());
@@ -374,21 +343,21 @@ mod tests {
     #[test]
     fn test_valuecondition() {
         let c = ValueCondition::content_eq(5);
-        assert_eq!(c.to_string(), "cell-content()=5");
+        assert_eq!(c.to_string(), "value()=5");
         let c = ValueCondition::content_ne(5);
-        assert_eq!(c.to_string(), "cell-content()!=5");
+        assert_eq!(c.to_string(), "value()!=5");
         let c = ValueCondition::content_lt(5);
-        assert_eq!(c.to_string(), "cell-content()<5");
+        assert_eq!(c.to_string(), "value()<5");
         let c = ValueCondition::content_gt(5);
-        assert_eq!(c.to_string(), "cell-content()>5");
+        assert_eq!(c.to_string(), "value()>5");
         let c = ValueCondition::content_lte(5);
-        assert_eq!(c.to_string(), "cell-content()<=5");
+        assert_eq!(c.to_string(), "value()<=5");
         let c = ValueCondition::content_gte(5);
-        assert_eq!(c.to_string(), "cell-content()>=5");
+        assert_eq!(c.to_string(), "value()>=5");
         let c = ValueCondition::content_is_not_between(1, 5);
-        assert_eq!(c.to_string(), "cell-content-is-not-between(1, 5)");
+        assert_eq!(c.to_string(), "value-is-not-between(1, 5)");
         let c = ValueCondition::content_is_between(1, 5);
-        assert_eq!(c.to_string(), "cell-content-is-between(1, 5)");
+        assert_eq!(c.to_string(), "value-is-between(1, 5)");
         let c = ValueCondition::is_true_formula("formula");
         assert_eq!(c.to_string(), "is-true-formula(formula)");
     }

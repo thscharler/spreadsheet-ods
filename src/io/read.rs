@@ -14,7 +14,7 @@ use crate::config::{Config, ConfigItem, ConfigItemType, ConfigValue};
 use crate::ds::bufstack::BufStack;
 use crate::ds::detach::Detach;
 use crate::error::OdsError;
-use crate::format::{FormatPart, FormatPartType, ValueFormatTrait};
+use crate::format::{FormatPart, FormatPartType, ValueFormatTrait, ValueStyleMap};
 use crate::io::parse::{
     parse_bool, parse_currency, parse_datetime, parse_duration, parse_f64, parse_i16, parse_i32,
     parse_i64, parse_u32, parse_visibility,
@@ -1782,7 +1782,7 @@ fn read_value_format_parts<T: ValueFormatTrait>(
                     b"style:text" => {
                         valuestyle.push_part(read_part(bs, xml, xml_tag, FormatPartType::Day)?)
                     }
-                    b"style:map" => valuestyle.push_stylemap(read_stylemap(xml_tag)?),
+                    b"style:map" => valuestyle.push_stylemap(read_valuestylemap(xml_tag)?),
                     b"number:fill-character" => {
                         valuestyle_part =
                             Some(read_part(bs, xml, xml_tag, FormatPartType::FillCharacter)?);
@@ -2422,6 +2422,25 @@ fn read_graphicstyle(
     Ok(())
 }
 
+fn read_valuestylemap(xml_tag: &BytesStart<'_>) -> Result<ValueStyleMap, OdsError> {
+    let mut sm = ValueStyleMap::default();
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"style:condition" => {
+                sm.set_condition(ValueCondition::new(attr.unescape_value()?.to_string()));
+            }
+            attr if attr.key.as_ref() == b"style:apply-style-name" => {
+                sm.set_applied_style(attr.unescape_value()?.to_string());
+            }
+            attr => {
+                dump_unused("read_stylemap", xml_tag.name().as_ref(), &attr)?;
+            }
+        }
+    }
+
+    Ok(sm)
+}
+
 fn read_stylemap(xml_tag: &BytesStart<'_>) -> Result<StyleMap, OdsError> {
     let mut sm = StyleMap::default();
     for attr in xml_tag.attributes().with_checks(false) {
@@ -2434,7 +2453,7 @@ fn read_stylemap(xml_tag: &BytesStart<'_>) -> Result<StyleMap, OdsError> {
             }
             attr if attr.key.as_ref() == b"style:base-cell-address" => {
                 let v = attr.unescape_value()?;
-                sm.set_base_cell(parse_cellref(v.as_ref())?);
+                sm.set_base_cell(Some(parse_cellref(v.as_ref())?));
             }
             attr => {
                 dump_unused("read_stylemap", xml_tag.name().as_ref(), &attr)?;
