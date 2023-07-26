@@ -1,3 +1,10 @@
+# 0.16.0
+
+- New ValueStyleMap for use in ValueFormat*. 
+- base_cell is optional even for CellStyle stylemaps.
+- ValueCondition has to use 'value()'
+
+
 # 0.15.0
 
 - It was an error to assume that currency values use an ISO code for 
