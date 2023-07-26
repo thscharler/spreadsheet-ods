@@ -43,7 +43,7 @@ fn test_validation0() -> Result<(), OdsError> {
     sheet.set_value(0, cc, "Decimal");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_is_decimal_number_and(
-        ValueCondition::content_gt(0),
+        Condition::content_gt(0),
     ));
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
@@ -52,7 +52,7 @@ fn test_validation0() -> Result<(), OdsError> {
     sheet.set_value(0, cc, "Whole");
     let mut valid = Validation::new();
     valid.set_condition(Condition::content_is_whole_number_and(
-        ValueCondition::content_eq(0),
+        Condition::content_eq(0),
     ));
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
@@ -60,18 +60,14 @@ fn test_validation0() -> Result<(), OdsError> {
     let cc: u32 = 6;
     sheet.set_value(0, cc, "Date");
     let mut valid = Validation::new();
-    valid.set_condition(Condition::content_is_date_and(ValueCondition::content_eq(
-        0,
-    )));
+    valid.set_condition(Condition::content_is_date_and(Condition::content_eq(0)));
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 
     let cc: u32 = 7;
     sheet.set_value(0, cc, "Time");
     let mut valid = Validation::new();
-    valid.set_condition(Condition::content_is_time_and(ValueCondition::content_eq(
-        0,
-    )));
+    valid.set_condition(Condition::content_is_time_and(Condition::content_eq(0)));
     let valid = book.add_validation(valid);
     sheet.set_validation(1, cc, &valid);
 

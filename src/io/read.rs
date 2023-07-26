@@ -45,6 +45,12 @@ pub fn read_ods_buf(buf: &[u8]) -> Result<WorkBook, OdsError> {
     read_ods_impl(zip)
 }
 
+/// Reads an ODS-file from a reader
+pub fn read_ods_from<T: Read + Seek>(ods: T) -> Result<WorkBook, OdsError> {
+    let zip = ZipArchive::new(ods)?;
+    read_ods_impl(zip)
+}
+
 /// Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
     let file = File::open(path.as_ref())?;

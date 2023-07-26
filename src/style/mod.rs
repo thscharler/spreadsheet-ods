@@ -16,7 +16,7 @@
 //! use color::Rgb;
 //! use icu_locid::locale;
 //! use spreadsheet_ods::style::stylemap::StyleMap;
-//! use spreadsheet_ods::condition::ValueCondition;
+//! use spreadsheet_ods::condition::{Condition};
 //!
 //! let mut wb = WorkBook::new(locale!("en_US"));
 //!
@@ -31,8 +31,8 @@
 //! let cs2 = wb.add_cellstyle(cs2);
 //!
 //! let mut cs3 = CellStyle::new("ce13", &"num4".into());
-//! cs3.push_stylemap(StyleMap::new(ValueCondition::content_eq("BB"), "ce12", CellRef::remote("sheet0", 4, 3)));
-//! cs3.push_stylemap(StyleMap::new(ValueCondition::content_eq("CC"), "ce11", CellRef::remote("sheet0", 4, 3)));
+//! cs3.push_stylemap(StyleMap::new(Condition::content_eq("BB"), "ce12", Some(CellRef::remote("sheet0", 4, 3))));
+//! cs3.push_stylemap(StyleMap::new(Condition::content_eq("CC"), "ce11", Some(CellRef::remote("sheet0", 4, 3))));
 //! let cs3 = wb.add_cellstyle(cs3);
 //!
 //!

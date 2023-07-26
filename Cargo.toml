@@ -1,6 +1,6 @@
 [package]
 name = "spreadsheet-ods"
-version = "0.15.0"
+version = "0.16.0"
 authors = ["thomasscharler <thscharler@gmail.com>"]
 edition = "2021"
 description = "Read and write ODS files"
@@ -34,7 +34,7 @@ nom_locate = "4.0"
 icu_locid = "1.0"
 lazy_static = "1.4"
 unicode-ident = "1.0"
-kparse = "3.0.1"
+kparse = "3.0.4"
 
 [dependencies.quick-xml]
 version = "0.28.0"

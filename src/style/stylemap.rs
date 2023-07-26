@@ -29,7 +29,7 @@ impl StyleMap {
         Self {
             condition: condition.to_string(),
             applied_style: applied_style.into(),
-            base_cell: base_cell,
+            base_cell,
         }
     }
 

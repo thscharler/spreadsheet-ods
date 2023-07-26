@@ -1,6 +1,7 @@
 use color::Rgb;
 
-use spreadsheet_ods::condition::ValueCondition;
+use spreadsheet_ods::condition::{Condition, ValueCondition};
+use spreadsheet_ods::format::ValueStyleMap;
 use spreadsheet_ods::style::stylemap::StyleMap;
 use spreadsheet_ods::style::units::{
     Angle, Border, CellAlignVertical, FontFamilyGeneric, FontPitch, FontWeight, Length, PageBreak,
@@ -351,14 +352,14 @@ fn test_stylemap() -> Result<(), OdsError> {
 
     let mut ce13 = CellStyle::new("ce13", &"num4".into());
     ce13.push_stylemap(StyleMap::new(
-        ValueCondition::content_eq("BB"),
+        Condition::content_eq("BB"),
         "ce12",
-        CellRef::remote("s0", 4, 3),
+        Some(CellRef::remote("s0", 4, 3)),
     ));
     ce13.push_stylemap(StyleMap::new(
-        ValueCondition::content_eq("CC"),
+        Condition::content_eq("CC"),
         "ce11",
-        CellRef::remote("s0", 4, 3),
+        Some(CellRef::remote("s0", 4, 3)),
     ));
     let ce13 = wb.add_cellstyle(ce13);
 

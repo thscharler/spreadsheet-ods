@@ -27,7 +27,7 @@ pub fn main() -> Result<(), OdsError> {
         .grouping()
         .build();
     f_number_red.set_color(Rgb::new(255, 0, 0));
-    f_number_red.push_stylemap(ValueStyleMap::new(ValueCondition::content_ge(0), f_number));
+    f_number_red.push_stylemap(ValueStyleMap::new(ValueCondition::value_ge(0), f_number));
     let f_number_red = wb.add_number_format(f_number_red);
 
     // cellstyle for this number format

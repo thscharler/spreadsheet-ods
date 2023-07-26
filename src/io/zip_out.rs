@@ -34,6 +34,13 @@ impl<W: Write + Seek> ZipOut<W> {
         })
     }
 
+    pub(crate) fn new_to(write: W) -> Result<ZipOut<W>, std::io::Error> {
+        Ok(ZipOut {
+            zip: ZipWriter::new(write),
+            compression: CompressionMethod::Deflated,
+        })
+    }
+
     pub(crate) fn new_buf_uncompressed(
         buf: Vec<u8>,
     ) -> Result<ZipOut<Cursor<Vec<u8>>>, std::io::Error> {

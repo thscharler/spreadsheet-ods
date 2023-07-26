@@ -1,10 +1,10 @@
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Cursor, Read, Write};
 use std::path::Path;
 
 use spreadsheet_ods::{
-    read_ods, read_ods_buf, write_ods, write_ods_buf, OdsError, Sheet, SplitMode, ValueType,
-    WorkBook,
+    read_ods, read_ods_buf, write_ods, write_ods_buf, write_ods_to, OdsError, Sheet, SplitMode,
+    ValueType, WorkBook,
 };
 use std::time::Instant;
 
@@ -148,5 +148,19 @@ fn test_read_buf() -> Result<(), OdsError> {
     cc.vert_split_mode = SplitMode::Heading;
 
     write_ods(&mut wb, "test_out/orders.ods")?;
+    Ok(())
+}
+
+#[test]
+fn test_write_write() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new_empty();
+    let mut sh = Sheet::new("1");
+
+    sh.set_value(0, 0, "A");
+    wb.push_sheet(sh);
+
+    let v = Cursor::new(Vec::new());
+    let v = write_ods_to(&mut wb, v)?;
+
     Ok(())
 }

@@ -106,7 +106,7 @@ impl ValueCondition {
     }
 
     /// Compares the cell-content with a value.
-    pub fn content_eq<V: Into<Value>>(value: V) -> ValueCondition {
+    pub fn value_eq<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("value()=");
         buf.push_str(value.into().to_string().as_str());
@@ -114,7 +114,7 @@ impl ValueCondition {
     }
 
     /// Compares the cell-content with a value.
-    pub fn content_ne<V: Into<Value>>(value: V) -> ValueCondition {
+    pub fn value_ne<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("value()!=");
         buf.push_str(value.into().to_string().as_str());
@@ -122,7 +122,7 @@ impl ValueCondition {
     }
 
     /// Compares the cell-content with a value.
-    pub fn content_lt<V: Into<Value>>(value: V) -> ValueCondition {
+    pub fn value_lt<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("value()<");
         buf.push_str(value.into().to_string().as_str());
@@ -130,7 +130,7 @@ impl ValueCondition {
     }
 
     /// Compares the cell-content with a value.
-    pub fn content_gt<V: Into<Value>>(value: V) -> ValueCondition {
+    pub fn value_gt<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("value()>");
         buf.push_str(value.into().to_string().as_str());
@@ -138,7 +138,7 @@ impl ValueCondition {
     }
 
     /// Compares the cell-content with a value.
-    pub fn content_le<V: Into<Value>>(value: V) -> ValueCondition {
+    pub fn value_le<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("value()<=");
         buf.push_str(value.into().to_string().as_str());
@@ -146,7 +146,7 @@ impl ValueCondition {
     }
 
     /// Compares the cell-content with a value.
-    pub fn content_ge<V: Into<Value>>(value: V) -> ValueCondition {
+    pub fn value_ge<V: Into<Value>>(value: V) -> ValueCondition {
         let mut buf = String::new();
         buf.push_str("value()>=");
         buf.push_str(value.into().to_string().as_str());
@@ -170,6 +170,54 @@ impl Condition {
     /// Creates a condition from a read string.
     pub(crate) fn new<S: Into<String>>(str: S) -> Self {
         Self { cond: str.into() }
+    }
+
+    /// Compares the cell-content with a value.
+    pub fn content_eq<V: Into<Value>>(value: V) -> Condition {
+        let mut buf = String::new();
+        buf.push_str("cell-content()=");
+        buf.push_str(value.into().to_string().as_str());
+        Condition { cond: buf }
+    }
+
+    /// Compares the cell-content with a value.
+    pub fn content_ne<V: Into<Value>>(value: V) -> Condition {
+        let mut buf = String::new();
+        buf.push_str("cell-content()!=");
+        buf.push_str(value.into().to_string().as_str());
+        Condition { cond: buf }
+    }
+
+    /// Compares the cell-content with a value.
+    pub fn content_lt<V: Into<Value>>(value: V) -> Condition {
+        let mut buf = String::new();
+        buf.push_str("cell-content()<");
+        buf.push_str(value.into().to_string().as_str());
+        Condition { cond: buf }
+    }
+
+    /// Compares the cell-content with a value.
+    pub fn content_gt<V: Into<Value>>(value: V) -> Condition {
+        let mut buf = String::new();
+        buf.push_str("cell-content()>");
+        buf.push_str(value.into().to_string().as_str());
+        Condition { cond: buf }
+    }
+
+    /// Compares the cell-content with a value.
+    pub fn content_le<V: Into<Value>>(value: V) -> Condition {
+        let mut buf = String::new();
+        buf.push_str("cell-content()<=");
+        buf.push_str(value.into().to_string().as_str());
+        Condition { cond: buf }
+    }
+
+    /// Compares the cell-content with a value.
+    pub fn content_ge<V: Into<Value>>(value: V) -> Condition {
+        let mut buf = String::new();
+        buf.push_str("cell-content()>=");
+        buf.push_str(value.into().to_string().as_str());
+        Condition { cond: buf }
     }
 
     /// Compares the content length to a value.
@@ -289,7 +337,7 @@ impl Condition {
     /// Content is a date and matches a comparison.
     /// The date is an integer value that amounts to the days since
     /// 30.12.1899.
-    pub fn content_is_date_and(vcond: ValueCondition) -> Condition {
+    pub fn content_is_date_and(vcond: Condition) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-is-date()");
         buf.push_str(" and ");
@@ -299,7 +347,7 @@ impl Condition {
 
     /// Content is a time and matches a comparison.
     /// The time is given as a fraction of a day.
-    pub fn content_is_time_and(vcond: ValueCondition) -> Condition {
+    pub fn content_is_time_and(vcond: Condition) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-is-time()");
         buf.push_str(" and ");
@@ -308,7 +356,7 @@ impl Condition {
     }
 
     /// Content is a number and matches the comparison.
-    pub fn content_is_decimal_number_and(vcond: ValueCondition) -> Condition {
+    pub fn content_is_decimal_number_and(vcond: Condition) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-is-decimal-number()");
         buf.push_str(" and ");
@@ -317,7 +365,7 @@ impl Condition {
     }
 
     /// Content is a whole number and matches the comparison.
-    pub fn content_is_whole_number_and(vcond: ValueCondition) -> Condition {
+    pub fn content_is_whole_number_and(vcond: Condition) -> Condition {
         let mut buf = String::new();
         buf.push_str("cell-content-is-whole-number()");
         buf.push_str(" and ");
@@ -342,24 +390,18 @@ mod tests {
 
     #[test]
     fn test_valuecondition() {
-        let c = ValueCondition::content_eq(5);
+        let c = ValueCondition::value_eq(5);
         assert_eq!(c.to_string(), "value()=5");
-        let c = ValueCondition::content_ne(5);
+        let c = ValueCondition::value_ne(5);
         assert_eq!(c.to_string(), "value()!=5");
-        let c = ValueCondition::content_lt(5);
+        let c = ValueCondition::value_lt(5);
         assert_eq!(c.to_string(), "value()<5");
-        let c = ValueCondition::content_gt(5);
+        let c = ValueCondition::value_gt(5);
         assert_eq!(c.to_string(), "value()>5");
-        let c = ValueCondition::content_lte(5);
+        let c = ValueCondition::value_le(5);
         assert_eq!(c.to_string(), "value()<=5");
-        let c = ValueCondition::content_gte(5);
+        let c = ValueCondition::value_ge(5);
         assert_eq!(c.to_string(), "value()>=5");
-        let c = ValueCondition::content_is_not_between(1, 5);
-        assert_eq!(c.to_string(), "value-is-not-between(1, 5)");
-        let c = ValueCondition::content_is_between(1, 5);
-        assert_eq!(c.to_string(), "value-is-between(1, 5)");
-        let c = ValueCondition::is_true_formula("formula");
-        assert_eq!(c.to_string(), "is-true-formula(formula)");
     }
 
     #[test]
@@ -383,16 +425,16 @@ mod tests {
         let c = Condition::content_is_in_cellrange(CellRange::remote("other", 0, 0, 10, 0));
         assert_eq!(c.to_string(), "cell-content-is-in-list([other.A1:.A11])");
 
-        let c = Condition::content_is_date_and(ValueCondition::content_eq(0));
+        let c = Condition::content_is_date_and(Condition::content_eq(0));
         assert_eq!(c.to_string(), "cell-content-is-date() and cell-content()=0");
-        let c = Condition::content_is_time_and(ValueCondition::content_eq(0));
+        let c = Condition::content_is_time_and(Condition::content_eq(0));
         assert_eq!(c.to_string(), "cell-content-is-time() and cell-content()=0");
-        let c = Condition::content_is_decimal_number_and(ValueCondition::content_eq(0));
+        let c = Condition::content_is_decimal_number_and(Condition::content_eq(0));
         assert_eq!(
             c.to_string(),
             "cell-content-is-decimal-number() and cell-content()=0"
         );
-        let c = Condition::content_is_whole_number_and(ValueCondition::content_eq(0));
+        let c = Condition::content_is_whole_number_and(Condition::content_eq(0));
         assert_eq!(
             c.to_string(),
             "cell-content-is-whole-number() and cell-content()=0"

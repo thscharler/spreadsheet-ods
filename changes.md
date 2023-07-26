@@ -4,6 +4,8 @@
 - base_cell is optional even for CellStyle stylemaps.
 - ValueCondition has to use 'value()'
 
+- read_ods_from() and write_ods_to() for Read/Write traits.
+
 
 # 0.15.0
 

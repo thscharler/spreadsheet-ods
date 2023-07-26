@@ -39,6 +39,13 @@ pub fn write_ods_buf(book: &mut WorkBook, buf: Vec<u8>) -> Result<Vec<u8>, OdsEr
     Ok(write_ods_impl(book, zip_writer)?.into_inner())
 }
 
+/// Writes the ODS file to the given Write.
+pub fn write_ods_to<T: Write + Seek>(book: &mut WorkBook, ods: T) -> Result<(), OdsError> {
+    let zip_writer = ZipOut::new_to(ods)?;
+    write_ods_impl(book, zip_writer)?;
+    Ok(())
+}
+
 /// Writes the ODS file.
 ///
 /// All the parts are written to a temp directory and then zipped together.
@@ -363,7 +370,7 @@ fn write_meta<W: Write + Seek>(
 
         xml_out.elem("office:meta")?;
 
-        xml_out.elem_text("meta:generator", "spreadsheet-ods 0.15.0")?;
+        xml_out.elem_text("meta:generator", "spreadsheet-ods 0.16.0")?;
         let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
         let d = NaiveDateTime::from_timestamp_opt(s.as_secs() as i64, 0);
         if let Some(d) = d {
