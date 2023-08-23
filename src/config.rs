@@ -1,9 +1,9 @@
-///! The configuration format is a convoluted tree of typed key/value pairs.
-///! With some complications.
-///!
-///! This is only used internally and is mapped to WorkBookConfig and
-///! SheetConfig which are more accessible.
-///!
+//! The configuration format is a convoluted tree of typed key/value pairs.
+//! With some complications.
+//!
+//! This is only used internally and is mapped to WorkBookConfig and
+//! SheetConfig which are more accessible.
+//!
 use std::collections::HashMap;
 
 use chrono::NaiveDateTime;

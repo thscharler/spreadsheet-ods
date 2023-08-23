@@ -1,4 +1,4 @@
-///! Allows to detach data and reattach it later.
+//! Allows to detach data and reattach it later.
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug)]
