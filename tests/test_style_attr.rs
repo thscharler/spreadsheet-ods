@@ -1,7 +1,6 @@
 use color::Rgb;
 
-use spreadsheet_ods::condition::{Condition, ValueCondition};
-use spreadsheet_ods::format::ValueStyleMap;
+use spreadsheet_ods::condition::Condition;
 use spreadsheet_ods::style::stylemap::StyleMap;
 use spreadsheet_ods::style::units::{
     Angle, Border, CellAlignVertical, FontFamilyGeneric, FontPitch, FontWeight, Length, PageBreak,

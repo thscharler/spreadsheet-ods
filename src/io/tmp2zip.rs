@@ -63,8 +63,8 @@ impl TempZip {
     }
 
     /// Starts a new file inside the zip. Returns a Write for the file.
-    pub(crate) fn start_file<'a>(
-        &'a mut self,
+    pub(crate) fn start_file(
+        &mut self,
         name: &'_ str,
         fopt: FileOptions,
     ) -> Result<TempWrite<'_>, std::io::Error> {

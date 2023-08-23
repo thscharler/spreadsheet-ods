@@ -333,7 +333,7 @@ mod conv {
         let mut col = 0u32;
 
         for c in (*i).chars() {
-            if !('A'..='Z').contains(&c) {
+            if !c.is_ascii_uppercase() {
                 return Err(ParseColnameError::InvalidChar);
             }
 
@@ -452,7 +452,7 @@ mod tokens {
             .with_code(CRString),
             pchar(SINGLE_QUOTE).with_code(CRSingleQuoteEnd),
         )))
-        .map(|v| unquote_single(v))
+        .map(unquote_single)
         .parse(input)
     }
 

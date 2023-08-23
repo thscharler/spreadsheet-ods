@@ -126,7 +126,7 @@ fn token_bool(input: KSpan<'_>) -> KTokenResult<'_, bool> {
 
 #[inline(always)]
 fn token_i16(input: KSpan<'_>) -> KTokenResult<'_, i16> {
-    let _ = sign_all_digits(input)?;
+    sign_all_digits(input)?;
 
     let result = match unsafe { from_utf8_unchecked(input) }.parse::<i16>() {
         Ok(result) => result,
@@ -140,7 +140,7 @@ fn token_i16(input: KSpan<'_>) -> KTokenResult<'_, i16> {
 
 #[inline(always)]
 fn token_u32(input: KSpan<'_>) -> KTokenResult<'_, u32> {
-    let _ = all_digits(input)?;
+    all_digits(input)?;
 
     let result = match unsafe { from_utf8_unchecked(input) }.parse::<u32>() {
         Ok(result) => result,
@@ -154,7 +154,7 @@ fn token_u32(input: KSpan<'_>) -> KTokenResult<'_, u32> {
 
 #[inline(always)]
 fn token_i32(input: KSpan<'_>) -> KTokenResult<'_, i32> {
-    let _ = sign_all_digits(input)?;
+    sign_all_digits(input)?;
 
     let result = match unsafe { from_utf8_unchecked(input) }.parse::<i32>() {
         Ok(result) => result,
@@ -168,7 +168,7 @@ fn token_i32(input: KSpan<'_>) -> KTokenResult<'_, i32> {
 
 #[inline(always)]
 fn token_i64(input: KSpan<'_>) -> KTokenResult<'_, i64> {
-    let _ = sign_all_digits(input)?;
+    sign_all_digits(input)?;
 
     let result = match unsafe { from_utf8_unchecked(input) }.parse::<i64>() {
         Ok(result) => result,
@@ -269,10 +269,10 @@ fn token_datetime(input: KSpan<'_>) -> KTokenResult<'_, NaiveDateTime> {
         Ok(v) => Ok(v),
         Err(err) => {
             dbg!(&err);
-            return Err(nom::Err::Error(KTokenizerError::new(
+            Err(nom::Err::Error(KTokenizerError::new(
                 RCode::DateTime,
                 input,
-            )));
+            )))
         }
     }
 }
@@ -334,7 +334,7 @@ fn sign_all_digits(input: KSpan<'_>) -> KTokenResult<'_, ()> {
 #[inline(always)]
 pub(crate) fn byte(c: u8) -> impl Fn(KSpan<'_>) -> KTokenizerResult<'_, ()> {
     move |i: KSpan<'_>| {
-        if i.len() > 0 && i[0] == c {
+        if !i.is_empty() && i[0] == c {
             Ok((&i[1..], ()))
         } else {
             Err(nom::Err::Error(KTokenizerError::new(RCode::Byte, i)))
@@ -419,8 +419,8 @@ mod tests {
 
     #[test]
     fn test_bool() -> Result<(), OdsError> {
-        assert_eq!(parse_bool(b"true")?, true);
-        assert_eq!(parse_bool(b"false")?, false);
+        assert!(parse_bool(b"true")?);
+        assert!(!(parse_bool(b"false")?));
         parse_bool(b"ffoso").unwrap_err();
         Ok(())
     }

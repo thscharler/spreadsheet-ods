@@ -160,7 +160,7 @@ fn test_write_write() -> Result<(), OdsError> {
     wb.push_sheet(sh);
 
     let v = Cursor::new(Vec::new());
-    let v = write_ods_to(&mut wb, v)?;
+    write_ods_to(&mut wb, v)?;
 
     Ok(())
 }

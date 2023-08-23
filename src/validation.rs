@@ -12,20 +12,18 @@ use std::str::from_utf8;
 
 /// This defines how lists of entries are displayed to the user.
 #[derive(Copy, Clone, Debug)]
+#[derive(Default)]
 pub enum ValidationDisplay {
     /// Don't show.
     NoDisplay,
     /// Show the entries in the original order.
+    #[default]
     Unsorted,
     /// Sort the entries.
     SortAscending,
 }
 
-impl Default for ValidationDisplay {
-    fn default() -> Self {
-        ValidationDisplay::Unsorted
-    }
-}
+
 
 impl TryFrom<&str> for ValidationDisplay {
     type Error = OdsError;

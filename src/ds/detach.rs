@@ -153,7 +153,7 @@ mod tests {
     fn test_detach() {
         let mut dd = Detach::new("fop");
 
-        assert_eq!(dd.is_detached(), false);
+        assert!(!dd.is_detached());
 
         assert_eq!(*dd.as_ref(), "fop");
         assert_eq!(*dd.as_mut(), "fop");
@@ -163,11 +163,11 @@ mod tests {
         assert_eq!(*d, "fop");
         assert_eq!(d.trim(), "fop");
 
-        assert_eq!(dd.is_detached(), true);
+        assert!(dd.is_detached());
 
         dd.attach(d);
 
-        assert_eq!(dd.is_detached(), false);
+        assert!(!dd.is_detached());
 
         let tt = dd.take();
 

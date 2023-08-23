@@ -34,8 +34,10 @@ impl Display for Angle {
 /// A (positive or negative) length, consisting of magnitude and unit, in conformance with the Units of
 /// Measure defined in §5.9.13 of XSL.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Default)]
 pub enum Length {
     /// Unspecified length, the actual value is some default or whatever.
+    #[default]
     Default,
     /// cm
     Cm(f64),
@@ -66,11 +68,7 @@ impl Length {
     }
 }
 
-impl Default for Length {
-    fn default() -> Self {
-        Length::Default
-    }
-}
+
 
 impl Display for Length {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
