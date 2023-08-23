@@ -591,6 +591,11 @@ impl WorkBook {
         self.sheets[n].as_mut()
     }
 
+    /// Returns iterator over sheets.
+    pub fn iter_sheets(&self) -> impl Iterator<Item = &Sheet> {
+        self.sheets.iter().map(|sheet| &**sheet)
+    }
+
     /// Inserts the sheet at the given position.
     pub fn insert_sheet(&mut self, i: usize, sheet: Sheet) {
         self.sheets.insert(i, sheet.into());
