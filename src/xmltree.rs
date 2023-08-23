@@ -50,7 +50,7 @@ use crate::OdsError;
 use std::fmt::{Display, Formatter};
 
 /// Defines a XML tag and it's children.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct XmlTag {
     name: String,
     attr: AttrMap2,
@@ -254,7 +254,7 @@ impl Display for XmlTag {
 ///
 /// A XmlTag can contain any mixture of XmlTags and text content.
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(variant_size_differences)]
 pub enum XmlContent {
     /// Text content.

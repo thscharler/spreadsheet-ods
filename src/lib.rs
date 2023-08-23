@@ -2430,7 +2430,7 @@ pub enum ValueType {
 }
 
 /// Content-Values
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(missing_docs)]
 pub enum Value {
     Empty,
