@@ -194,6 +194,7 @@ pub use crate::io::write::{write_ods, write_ods_buf, write_ods_buf_uncompressed,
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
+pub use color;
 
 use crate::config::Config;
 use crate::defaultstyles::{DefaultFormat, DefaultStyle};
