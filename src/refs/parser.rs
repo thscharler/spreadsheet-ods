@@ -12,6 +12,7 @@ use std::fmt::{Display, Formatter};
 use CRCode::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum CRCode {
     CRNomError,
 
@@ -356,6 +357,7 @@ mod conv {
     }
 }
 
+#[allow(clippy::module_inception)]
 mod parser {
     use crate::refs::parser::tokens::{
         col, dollar_nom, dot, hashtag, row, single_quoted_string, unquoted_sheet_name,
