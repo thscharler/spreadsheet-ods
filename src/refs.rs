@@ -5,7 +5,7 @@
 use crate::refs::format_refs::{
     fmt_cell_range, fmt_cell_ref, fmt_col, fmt_col_range, fmt_row, fmt_row_range,
 };
-use crate::refs::parser::CRCode::{CRCellRange, CRCellRef, CRColRange, CRRowRange};
+use crate::refs::parser::CRCode::{self, CRCellRange, CRCellRef, CRColRange, CRRowRange};
 use crate::refs::parser::KTokenizerError;
 use crate::OdsError;
 use kparse::Track;
@@ -1075,7 +1075,7 @@ mod format_refs {
 /// Parse a cell reference.
 pub fn parse_cellref(buf: &str) -> Result<CellRef, OdsError> {
     let trk = Track::new_tracker();
-    let span = Track::new_span(&trk, buf);
+    let span = Track::new_span::<CRCode, _>(&trk, buf);
 
     let (rest, tok) = parser::parse_cell_ref(span)?;
     if rest.len() > 0 {
@@ -1088,7 +1088,7 @@ pub fn parse_cellref(buf: &str) -> Result<CellRef, OdsError> {
 /// Parse a cell reference.
 pub fn parse_cellrange(buf: &str) -> Result<CellRange, OdsError> {
     let trk = Track::new_tracker();
-    let span = Track::new_span(&trk, buf);
+    let span = Track::new_span::<CRCode, _>(&trk, buf);
 
     let (rest, tok) = parser::parse_cell_range(span)?;
     if rest.len() > 0 {
@@ -1101,7 +1101,7 @@ pub fn parse_cellrange(buf: &str) -> Result<CellRange, OdsError> {
 /// Parse a cell reference.
 pub fn parse_colrange(buf: &str) -> Result<ColRange, OdsError> {
     let trk = Track::new_tracker();
-    let span = Track::new_span(&trk, buf);
+    let span = Track::new_span::<CRCode, _>(&trk, buf);
 
     let (rest, tok) = parser::parse_col_range(span)?;
     if rest.len() > 0 {
@@ -1114,7 +1114,7 @@ pub fn parse_colrange(buf: &str) -> Result<ColRange, OdsError> {
 /// Parse a cell reference.
 pub fn parse_rowrange(buf: &str) -> Result<RowRange, OdsError> {
     let trk = Track::new_tracker();
-    let span = Track::new_span(&trk, buf);
+    let span = Track::new_span::<CRCode, _>(&trk, buf);
 
     let (rest, tok) = parser::parse_row_range(span)?;
     if rest.len() > 0 {
@@ -1127,7 +1127,7 @@ pub fn parse_rowrange(buf: &str) -> Result<RowRange, OdsError> {
 /// Parse a list of range refs
 pub fn parse_cellranges(buf: &str) -> Result<Option<Vec<CellRange>>, OdsError> {
     let trk = Track::new_tracker();
-    let span = Track::new_span(&trk, buf);
+    let span = Track::new_span::<CRCode, _>(&trk, buf);
 
     match parser::parse_cell_range_list(span) {
         Ok((_, ranges)) => Ok(ranges),
