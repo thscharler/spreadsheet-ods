@@ -84,7 +84,7 @@ fn write_ods_impl<W: Write + Seek>(
     Ok(zip_writer.zip()?)
 }
 
-fn sanity_checks(book: &mut WorkBook) -> Result<(), OdsError> {
+fn sanity_checks(book: &WorkBook) -> Result<(), OdsError> {
     if book.sheets.is_empty() {
         return Err(OdsError::Ods("Workbook contains no sheets.".to_string()));
     }
