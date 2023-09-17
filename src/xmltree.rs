@@ -113,6 +113,11 @@ impl XmlTag {
         self.content.is_empty()
     }
 
+    /// Gets an attribute
+    pub fn get_attr<'a, S: Into<&'a str>>(&self, name: S) -> Option<&String> {
+        self.attr.attr(name.into())
+    }
+
     pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
