@@ -3,7 +3,6 @@ use nom::combinator::opt;
 use nom::{AsBytes, AsChar, Parser};
 use std::fmt::{Display, Formatter};
 use std::hint::black_box;
-use std::num::{IntErrorKind, ParseIntError};
 use std::str::from_utf8_unchecked;
 use std::time::Instant;
 

@@ -1,4 +1,4 @@
-use spreadsheet_ods::condition::{Condition, ValueCondition};
+use spreadsheet_ods::condition::Condition;
 use spreadsheet_ods::text::TextP;
 use spreadsheet_ods::validation::{Validation, ValidationError, ValidationHelp};
 use spreadsheet_ods::{write_ods, CellRange, OdsError, Sheet, WorkBook};
