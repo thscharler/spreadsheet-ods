@@ -11,6 +11,7 @@ use nom::sequence::tuple;
 use std::fmt::{Display, Formatter};
 use CRCode::*;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum CRCode {
     CRNomError,
@@ -333,7 +334,7 @@ mod conv {
         let mut col = 0u32;
 
         for c in (*i).chars() {
-            if !('A'..='Z').contains(&c) {
+            if !c.is_ascii_uppercase() {
                 return Err(ParseColnameError::InvalidChar);
             }
 
@@ -356,6 +357,7 @@ mod conv {
     }
 }
 
+#[allow(clippy::module_inception)]
 mod parser {
     use crate::refs::parser::tokens::{
         col, dollar_nom, dot, hashtag, row, single_quoted_string, unquoted_sheet_name,
@@ -452,7 +454,7 @@ mod tokens {
             .with_code(CRString),
             pchar(SINGLE_QUOTE).with_code(CRSingleQuoteEnd),
         )))
-        .map(|v| unquote_single(v))
+        .map(unquote_single)
         .parse(input)
     }
 

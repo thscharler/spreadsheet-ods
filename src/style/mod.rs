@@ -136,23 +136,18 @@ mod textstyle;
 // only for chart: style:percentage-data-style-name 19.511
 
 /// Origin of a style. Content.xml or Styles.xml.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StyleOrigin {
     /// Style comes from Content.xml
+    #[default]
     Content,
     /// Style comes from Styles.xml
     Styles,
 }
 
-impl Default for StyleOrigin {
-    fn default() -> Self {
-        StyleOrigin::Content
-    }
-}
-
 /// Placement of a style. office:styles or office:automatic-styles
 /// Defines the usage pattern for the style.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StyleUse {
     /// The style:default-style element represents default styles. A default style specifies
     /// default formatting properties for a style family. These defaults are used if a formatting property is
@@ -173,13 +168,8 @@ pub enum StyleUse {
     /// consumers. Common styles present to a user as a named set of formatting
     /// properties. The formatting properties of an automatic style present to a user as
     /// properties of the object to which the style is applied.
+    #[default]
     Automatic,
-}
-
-impl Default for StyleUse {
-    fn default() -> Self {
-        StyleUse::Automatic
-    }
 }
 
 /// Parses an attribute string to a value type.

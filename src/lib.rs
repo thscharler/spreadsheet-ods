@@ -1170,18 +1170,13 @@ impl Default for WorkBookConfig {
 }
 
 /// Visibility of a column or row.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 #[allow(missing_docs)]
 pub enum Visibility {
+    #[default]
     Visible,
     Collapsed,
     Filtered,
-}
-
-impl Default for Visibility {
-    fn default() -> Self {
-        Visibility::Visible
-    }
 }
 
 impl Display for Visibility {
@@ -1875,14 +1870,14 @@ impl Sheet {
         value: V,
         style: &CellStyleRef,
     ) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.value = value.into();
         cell.style = Some(style.to_string());
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
     pub fn set_value<V: Into<Value>>(&mut self, row: u32, col: u32, value: V) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.value = value.into();
     }
 
@@ -1897,7 +1892,7 @@ impl Sheet {
 
     /// Sets a formula for the specified cell. Creates a new cell if necessary.
     pub fn set_formula<V: Into<String>>(&mut self, row: u32, col: u32, formula: V) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.formula = Some(formula.into());
     }
 
@@ -1919,7 +1914,7 @@ impl Sheet {
 
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
     pub fn set_cellstyle(&mut self, row: u32, col: u32, style: &CellStyleRef) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.style = Some(style.to_string());
     }
 
@@ -1941,7 +1936,7 @@ impl Sheet {
 
     /// Sets a content-validation for this cell.
     pub fn set_validation(&mut self, row: u32, col: u32, validation: &ValidationRef) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.validation_name = Some(validation.to_string());
     }
 
@@ -1963,7 +1958,7 @@ impl Sheet {
 
     /// Sets the rowspan of the cell. Must be greater than 0.
     pub fn set_row_span(&mut self, row: u32, col: u32, span: u32) {
-        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.span.row_span = span;
     }
 
@@ -1979,7 +1974,7 @@ impl Sheet {
     /// Sets the colspan of the cell. Must be greater than 0.
     pub fn set_col_span(&mut self, row: u32, col: u32, span: u32) {
         assert!(span > 0);
-        let mut cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
         cell.span.col_span = span;
     }
 
@@ -2450,9 +2445,10 @@ pub enum ValueType {
 }
 
 /// Content-Values
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 #[allow(missing_docs)]
 pub enum Value {
+    #[default]
     Empty,
     Boolean(bool),
     Number(f64),
@@ -2817,12 +2813,6 @@ impl Value {
     /// Create a percentage value.
     pub fn new_percentage(value: f64) -> Self {
         Value::Percentage(value)
-    }
-}
-
-impl Default for Value {
-    fn default() -> Self {
-        Value::Empty
     }
 }
 

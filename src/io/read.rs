@@ -2471,10 +2471,7 @@ fn read_stylemap(xml_tag: &BytesStart<'_>) -> Result<StyleMap, OdsError> {
 }
 
 /// Copies all attributes to the map, excluding "style:name" which is returned.
-fn proc_style_attr<'a>(
-    attrmap: &mut AttrMap2,
-    xml_tag: &'a BytesStart<'_>,
-) -> Result<String, OdsError> {
+fn proc_style_attr(attrmap: &mut AttrMap2, xml_tag: &BytesStart<'_>) -> Result<String, OdsError> {
     let mut name = None;
 
     for attr in xml_tag.attributes().with_checks(false) {
