@@ -8,7 +8,7 @@ use spreadsheet_ods::style::TableStyle;
 use spreadsheet_ods::text::TextTag;
 use spreadsheet_ods::{Sheet, Value, WorkBook};
 
-#[test]
+// #[test]
 pub fn sizes() {
     println!("WorkBook {}", size_of::<WorkBook>());
     println!("Sheet {}", size_of::<Sheet>());

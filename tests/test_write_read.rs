@@ -63,8 +63,6 @@ pub fn timingn<E>(name: &str, mut fun: impl FnMut()) -> Result<(), E> {
 fn read_orders() -> Result<(), OdsError> {
     let mut wb = read_ods("tests/orders.ods")?;
 
-    dbg!(wb.iter_manifest().collect::<Vec<_>>());
-
     wb.config_mut().has_sheet_tabs = false;
 
     let cc = wb.sheet_mut(0).config_mut();
