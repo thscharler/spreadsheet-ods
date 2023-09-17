@@ -3,6 +3,15 @@
 - Allow access to meta.xml data.
 - Allow access to manifest.xml.
 
+# 0.16.1
+
+- Add PartialEq for Value and dependencies.
+- Add WorkBook::iter_sheets(), iter_row_styles(), iter_col_styles(), iter_cell_styles().
+- Bump dependencies.
+- Reexport color-rs crate as spreadsheet_ods::color. It seems this is often with
+  the defunct "color" crate.
+- Fixed a compile-error PR#44
+
 # 0.16.0
 
 - New ValueStyleMap for use in ValueFormat*. 
