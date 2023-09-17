@@ -1,4 +1,5 @@
 use crate::attrmap2::AttrMap2;
+use crate::color::Rgb;
 use crate::format::ValueFormatRef;
 use crate::style::stylemap::StyleMap;
 use crate::style::units::{
@@ -14,7 +15,6 @@ use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, text_position,
     StyleOrigin, StyleUse, TextStyleRef,
 };
-use color::Rgb;
 use icu_locid::Locale;
 use std::fmt::{Display, Formatter};
 
@@ -25,7 +25,7 @@ style_ref!(CellStyleRef);
 /// ```
 /// use spreadsheet_ods::{pt, Length, CellStyle, WorkBook, Sheet, CellStyleRef};
 /// use spreadsheet_ods::defaultstyles::DefaultFormat;
-/// use color::Rgb;
+/// use spreadsheet_ods::color::Rgb;
 /// use icu_locid::locale;
 ///
 /// let mut book = WorkBook::new(locale!("en_US"));

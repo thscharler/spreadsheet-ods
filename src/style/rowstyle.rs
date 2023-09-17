@@ -1,4 +1,4 @@
-use color::Rgb;
+use crate::color::Rgb;
 
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak, TextKeep};

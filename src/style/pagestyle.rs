@@ -1,4 +1,5 @@
 use crate::attrmap2::AttrMap2;
+use crate::color::Rgb;
 use crate::style::units::{
     Border, LengthPercent, Margin, MasterPageUsage, Percent, PrintCentering, PrintContent,
     PrintOrder, PrintOrientation, StyleNumFormat, WritingMode,
@@ -7,7 +8,6 @@ use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, ParseStyleAttr,
 };
 use crate::{Length, OdsError};
-use color::Rgb;
 use std::fmt::{Display, Formatter};
 
 style_ref!(PageStyleRef);

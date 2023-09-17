@@ -13,7 +13,7 @@ style_ref!(MasterPageRef);
 /// use spreadsheet_ods::style::{PageStyle, MasterPage, TableStyle};
 /// use spreadsheet_ods::style::units::Border;
 /// use spreadsheet_ods::xmltree::XmlVec;
-/// use color::Rgb;
+/// use spreadsheet_ods::color::Rgb;
 /// use icu_locid::locale;
 ///
 /// let mut wb = WorkBook::new(locale!("en_US"));
