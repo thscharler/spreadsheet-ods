@@ -43,6 +43,7 @@ pub use create::*;
 pub use stylemap::*;
 
 use crate::attrmap2::AttrMap2;
+use crate::color::Rgb;
 use crate::style::units::{
     Angle, FontSize, FontStyle, FontVariant, FontWeight, FormatSource, Length, LetterSpacing,
     LineMode, LineStyle, LineType, LineWidth, Percent, RotationScale, TextCombine, TextCondition,
@@ -54,7 +55,6 @@ use crate::style::{
     color_string, shadow_string, text_position, StyleOrigin, StyleUse, TextStyleRef,
 };
 use crate::{OdsError, ValueType};
-use color::Rgb;
 use icu_locid::subtags::{Language, Region, Script};
 use icu_locid::{LanguageIdentifier, Locale};
 use std::fmt::{Display, Formatter};

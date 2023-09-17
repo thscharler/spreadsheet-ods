@@ -1,4 +1,5 @@
 use crate::attrmap2::AttrMap2;
+use crate::color::Rgb;
 use crate::style::tabstop::TabStop;
 use crate::style::units::{
     Border, FontSize, FontStyle, FontVariant, FontWeight, Hyphenation, HyphenationLadderCount,
@@ -13,7 +14,6 @@ use crate::style::{
     StyleOrigin, StyleUse, TextStyleRef,
 };
 use crate::MasterPageRef;
-use color::Rgb;
 use icu_locid::Locale;
 use std::fmt::{Display, Formatter};
 

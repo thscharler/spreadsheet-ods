@@ -13,7 +13,7 @@
 //! ```
 //! use spreadsheet_ods::{CellRef, Sheet, WorkBook};
 //! use spreadsheet_ods::style::{StyleOrigin, StyleUse, CellStyle};
-//! use color::Rgb;
+//! use spreadsheet_ods::color::Rgb;
 //! use icu_locid::locale;
 //! use spreadsheet_ods::style::stylemap::StyleMap;
 //! use spreadsheet_ods::condition::{Condition};
@@ -89,9 +89,9 @@
 //! value. If a value has not been found by these steps, but this specification defines a default value,
 //! then this default value is used. In all remaining cases an implementation-dependent value is used.
 
+use crate::color::Rgb;
 use crate::style::units::{Border, Length, Percent, TextPosition};
 use crate::OdsError;
-use color::Rgb;
 use std::str::FromStr;
 
 pub use cellstyle::*;
