@@ -23,8 +23,8 @@ locale_de_AT = []
 locale_en_US = []
 
 [dependencies]
-rust_decimal = "1.27"
-rust_decimal_macros = "1.27"
+rust_decimal = "1.32"
+rust_decimal_macros = "1.32"
 color-rs = "0.7"
 string_cache = "0.8"
 mktemp = "0.5"
