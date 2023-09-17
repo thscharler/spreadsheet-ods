@@ -8,7 +8,7 @@ use std::collections::{hash_map, HashMap};
 use string_cache::DefaultAtom;
 
 /// Container type for attributes.
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct AttrMap2 {
     map: Option<HashMap<DefaultAtom, String>>,
 }
