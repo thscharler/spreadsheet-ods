@@ -200,8 +200,8 @@ use crate::defaultstyles::{DefaultFormat, DefaultStyle};
 use crate::ds::detach::Detach;
 use crate::ds::detach::Detached;
 use crate::format::ValueFormatTrait;
-use crate::io::filebuf::FileBuf;
 use crate::io::read::default_settings;
+use crate::manifest::Manifest;
 use crate::style::{
     ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
     PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle,
@@ -247,6 +247,7 @@ pub mod defaultstyles;
 pub mod error;
 pub mod format;
 pub mod formula;
+pub mod manifest;
 pub mod refs;
 pub mod style;
 pub mod text;
@@ -304,8 +305,8 @@ pub struct WorkBook {
     /// User modifiable config.
     workbook_config: WorkBookConfig,
 
-    /// All extra files from the original ODS are copied here.
-    filebuf: FileBuf,
+    /// All extra files contained in the zip manifest are copied here.
+    manifest: HashMap<String, Manifest>,
 
     /// other stuff ...
     extra: Vec<XmlTag>,
@@ -374,7 +375,9 @@ impl fmt::Debug for WorkBook {
         for xtr in &self.extra {
             writeln!(f, "extras {:?}", xtr)?;
         }
-        writeln!(f, "{:#?}", self.filebuf)?;
+        for v in self.manifest.values() {
+            writeln!(f, "extras {:?}", v)?;
+        }
         Ok(())
     }
 }
@@ -436,7 +439,7 @@ impl WorkBook {
             config: default_settings(),
             workbook_config: Default::default(),
             extra: vec![],
-            filebuf: Default::default(),
+            manifest: Default::default(),
         }
     }
 
@@ -1142,6 +1145,31 @@ impl WorkBook {
     /// Returns a mutable Validation.
     pub fn validation_mut(&mut self, name: &str) -> Option<&mut Validation> {
         self.validations.get_mut(name)
+    }
+
+    /// Adds a manifest entry, replaces an existing one with the same name.
+    pub fn add_manifest(&mut self, manifest: Manifest) {
+        self.manifest.insert(manifest.full_path.clone(), manifest);
+    }
+
+    /// Removes a manifest entry.
+    pub fn remove_manifest(&mut self, path: &str) -> Option<Manifest> {
+        self.manifest.remove(path)
+    }
+
+    /// Iterates the manifest.
+    pub fn iter_manifest(&self) -> impl Iterator<Item = &Manifest> {
+        self.manifest.values()
+    }
+
+    /// Returns the manifest entry for the path
+    pub fn manifest(&self, path: &str) -> Option<&Manifest> {
+        self.manifest.get(path)
+    }
+
+    /// Returns the manifest entry for the path
+    pub fn manifest_mut(&mut self, path: &str) -> Option<&mut Manifest> {
+        self.manifest.get_mut(path)
     }
 }
 

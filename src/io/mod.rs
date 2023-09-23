@@ -1,4 +1,3 @@
-pub(crate) mod filebuf;
 pub(crate) mod parse;
 pub(crate) mod read;
 pub(crate) mod write;

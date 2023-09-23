@@ -10,9 +10,9 @@ use zip::write::FileOptions;
 use crate::config::{ConfigItem, ConfigItemType, ConfigValue};
 use crate::error::OdsError;
 use crate::format::FormatPartType;
-use crate::io::filebuf::FileBufEntry;
 use crate::io::xmlwriter::XmlWriter;
 use crate::io::zip_out::{ZipOut, ZipWrite};
+use crate::manifest::Manifest;
 use crate::refs::{cellranges_string, CellRange};
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
@@ -68,18 +68,14 @@ fn write_ods_impl<W: Write + Seek>(
 
     store_derived(book)?;
 
-    // copy all buffered data from the original.
-    copy_workbook(book, &mut zip_writer)?;
-    // write the rest, if necessary.
-    write_mimetype(book, &mut zip_writer)?;
+    create_manifest(book)?;
+
+    write_mimetype(&mut zip_writer)?;
     write_manifest(book, &mut zip_writer)?;
-    write_manifest_rdf(book, &mut zip_writer)?;
-    write_meta(book, &mut zip_writer)?;
-    // not in use any more, just ignore
-    // write_configurations(&mut zip_writer, &mut file_set)?;
     write_settings(book, &mut zip_writer)?;
     write_ods_styles(book, &mut zip_writer)?;
     write_ods_content(book, &mut zip_writer)?;
+    write_extra(book, &mut zip_writer)?;
 
     Ok(zip_writer.zip()?)
 }
@@ -194,18 +190,52 @@ fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
     Ok(())
 }
 
-fn copy_workbook<W: Write + Seek>(
+// Create the standard manifest entries.
+fn create_manifest(book: &mut WorkBook) -> Result<(), OdsError> {
+    if !book.manifest.contains_key("/") {
+        book.add_manifest(Manifest {
+            full_path: "/".to_string(),
+            version: Some(book.version().clone()),
+            media_type: "application/vnd.oasis.opendocument.spreadsheet".to_string(),
+            buffer: None,
+        });
+    }
+    if !book.manifest.contains_key("manifest.rdf") {
+        book.add_manifest(create_manifest_rdf()?);
+    }
+    if !book.manifest.contains_key("styles.xml") {
+        book.add_manifest(Manifest::new("styles.xml", "text/xml"));
+    }
+    if !book.manifest.contains_key("meta.xml") {
+        book.add_manifest(create_meta(book)?);
+    }
+    if !book.manifest.contains_key("content.xml") {
+        book.add_manifest(Manifest::new("content.xml", "text/xml"));
+    }
+    if !book.manifest.contains_key("settings.xml") {
+        book.add_manifest(Manifest::new("settings.xml", "text/xml"));
+    }
+
+    Ok(())
+}
+
+// All extra entries from the manifest.
+fn write_extra<W: Write + Seek>(
     book: &WorkBook,
     zip_writer: &mut OdsWriter<W>,
 ) -> Result<(), OdsError> {
-    for filebuf in book.filebuf.iter() {
-        match filebuf {
-            FileBufEntry::Dir(name) => {
-                zip_writer.add_directory(name, FileOptions::default())?;
-            }
-            FileBufEntry::File(name, buf) => {
-                let mut wr = zip_writer.start_file(name, FileOptions::default())?;
-                wr.write_all(buf.as_slice())?;
+    for manifest in book.manifest.values() {
+        if !matches!(
+            manifest.full_path.as_str(),
+            "/" | "settings.xml" | "styles.xml" | "content.xml"
+        ) {
+            if manifest.is_dir() {
+                zip_writer.add_directory(&manifest.full_path, FileOptions::default())?;
+            } else {
+                let mut wr = zip_writer.start_file(&manifest.full_path, FileOptions::default())?;
+                if let Some(buf) = &manifest.buffer {
+                    wr.write_all(buf.as_slice())?;
+                }
             }
         }
     }
@@ -213,19 +243,14 @@ fn copy_workbook<W: Write + Seek>(
     Ok(())
 }
 
-fn write_mimetype<W: Write + Seek>(
-    book: &WorkBook,
-    zip_out: &mut OdsWriter<W>,
-) -> Result<(), io::Error> {
-    if !book.filebuf.contains("mimetype") {
-        let mut w = zip_out.start_file(
-            "mimetype",
-            FileOptions::default().compression_method(zip::CompressionMethod::Stored),
-        )?;
+fn write_mimetype<W: Write + Seek>(zip_out: &mut OdsWriter<W>) -> Result<(), io::Error> {
+    let mut w = zip_out.start_file(
+        "mimetype",
+        FileOptions::default().compression_method(zip::CompressionMethod::Stored),
+    )?;
 
-        let mime = "application/vnd.oasis.opendocument.spreadsheet";
-        w.write_all(mime.as_bytes())?;
-    }
+    let mime = "application/vnd.oasis.opendocument.spreadsheet";
+    w.write_all(mime.as_bytes())?;
 
     Ok(())
 }
@@ -234,165 +259,112 @@ fn write_manifest<W: Write + Seek>(
     book: &WorkBook,
     zip_out: &mut OdsWriter<W>,
 ) -> Result<(), OdsError> {
-    if !book.filebuf.contains("META-INF/manifest.xml") {
-        zip_out.add_directory("META-INF", FileOptions::default())?;
-        let w = zip_out.start_file("META-INF/manifest.xml", FileOptions::default())?;
+    zip_out.add_directory("META-INF", FileOptions::default())?;
+    let w = zip_out.start_file("META-INF/manifest.xml", FileOptions::default())?;
 
-        let mut xml_out = XmlWriter::new(w);
+    let mut xml_out = XmlWriter::new(w);
 
-        xml_out.dtd("UTF-8")?;
+    xml_out.dtd("UTF-8")?;
 
-        xml_out.elem("manifest:manifest")?;
-        xml_out.attr(
-            "xmlns:manifest",
-            "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0",
-        )?;
-        xml_out.attr("manifest:version", book.version())?;
+    xml_out.elem("manifest:manifest")?;
+    xml_out.attr(
+        "xmlns:manifest",
+        "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0",
+    )?;
+    xml_out.attr("manifest:version", book.version())?;
 
+    for manifest in book.manifest.values() {
         xml_out.empty("manifest:file-entry")?;
-        xml_out.attr("manifest:full-path", "/")?;
-        xml_out.attr("manifest:version", book.version())?;
-        xml_out.attr(
-            "manifest:media-type",
-            "application/vnd.oasis.opendocument.spreadsheet",
-        )?;
-
-        //        xml_out.write_event(xml_empty_a("manifest:file-entry", vec![
-        //            ("manifest:full-path", String::from("Configurations2/")),
-        //            ("manifest:media-type", String::from("application/vnd.sun.xml.ui.configuration")),
-        //        ]))?;
-
-        xml_out.empty("manifest:file-entry")?;
-        xml_out.attr("manifest:full-path", "manifest.rdf")?;
-        xml_out.attr("manifest:media-type", "application/rdf+xml")?;
-
-        xml_out.empty("manifest:file-entry")?;
-        xml_out.attr("manifest:full-path", "styles.xml")?;
-        xml_out.attr("manifest:media-type", "text/xml")?;
-
-        xml_out.empty("manifest:file-entry")?;
-        xml_out.attr("manifest:full-path", "meta.xml")?;
-        xml_out.attr("manifest:media-type", "text/xml")?;
-
-        xml_out.empty("manifest:file-entry")?;
-        xml_out.attr("manifest:full-path", "content.xml")?;
-        xml_out.attr("manifest:media-type", "text/xml")?;
-
-        xml_out.empty("manifest:file-entry")?;
-        xml_out.attr("manifest:full-path", "settings.xml")?;
-        xml_out.attr("manifest:media-type", "text/xml")?;
-
-        xml_out.end_elem("manifest:manifest")?;
-
-        xml_out.close()?;
-    }
-
-    Ok(())
-}
-
-fn write_manifest_rdf<W: Write + Seek>(
-    book: &WorkBook,
-    zip_out: &mut OdsWriter<W>,
-) -> Result<(), OdsError> {
-    if !book.filebuf.contains("manifest.rdf") {
-        let w = zip_out.start_file("manifest.rdf", FileOptions::default())?;
-
-        let mut xml_out = XmlWriter::new(w);
-
-        xml_out.dtd("UTF-8")?;
-
-        xml_out.elem("rdf:RDF")?;
-        xml_out.attr("xmlns:rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")?;
-
-        xml_out.elem("rdf:Description")?;
-        xml_out.attr("rdf:about", "content.xml")?;
-
-        xml_out.empty("rdf:type")?;
-        xml_out.attr(
-            "rdf:resource",
-            "http://docs.oasis-open.org/ns/office/1.2/meta/odf#ContentFile",
-        )?;
-
-        xml_out.end_elem("rdf:Description")?;
-
-        xml_out.elem("rdf:Description")?;
-        xml_out.attr("rdf:about", "")?;
-
-        xml_out.empty("ns0:hasPart")?;
-        xml_out.attr(
-            "xmlns:ns0",
-            "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#",
-        )?;
-        xml_out.attr("rdf:resource", "content.xml")?;
-
-        xml_out.end_elem("rdf:Description")?;
-
-        xml_out.elem("rdf:Description")?;
-        xml_out.attr("rdf:about", "")?;
-
-        xml_out.empty("rdf:type")?;
-        xml_out.attr(
-            "rdf:resource",
-            "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#Document",
-        )?;
-
-        xml_out.end_elem("rdf:Description")?;
-
-        xml_out.end_elem("rdf:RDF")?;
-
-        xml_out.close()?;
-    }
-
-    Ok(())
-}
-
-fn write_meta<W: Write + Seek>(
-    book: &WorkBook,
-    zip_out: &mut OdsWriter<W>,
-) -> Result<(), OdsError> {
-    if !book.filebuf.contains("meta.xml") {
-        let w = zip_out.start_file("meta.xml", FileOptions::default())?;
-
-        let mut xml_out = XmlWriter::new(w);
-
-        xml_out.dtd("UTF-8")?;
-
-        xml_out.elem("office:document-meta")?;
-        xml_out.attr(
-            "xmlns:meta",
-            "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
-        )?;
-        xml_out.attr(
-            "xmlns:office",
-            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-        )?;
-        xml_out.attr("office:version", book.version())?;
-
-        xml_out.elem("office:meta")?;
-
-        xml_out.elem_text("meta:generator", "spreadsheet-ods 0.16.0")?;
-        let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
-        let d = NaiveDateTime::from_timestamp_opt(s.as_secs() as i64, 0);
-        if let Some(d) = d {
-            xml_out.elem_text(
-                "meta:creation-date",
-                &d.format("%Y-%m-%dT%H:%M:%S%.f").to_string(),
-            )?;
+        xml_out.attr("manifest:full-path", &manifest.full_path)?;
+        if let Some(version) = &manifest.version {
+            xml_out.attr("manifest:version", version)?;
         }
-        xml_out.elem_text("meta:editing-duration", "P0D")?;
-        xml_out.elem_text("meta:editing-cycles", "1")?;
-        // xml_out.elem_text_esc("meta:initial-creator", &username::get_user_name().unwrap())?;
-
-        // TODO: allow to set this data.
-
-        xml_out.end_elem("office:meta")?;
-
-        xml_out.end_elem("office:document-meta")?;
-
-        xml_out.close()?;
+        xml_out.attr("manifest:media-type", &manifest.media_type)?;
     }
 
+    xml_out.end_elem("manifest:manifest")?;
+
+    xml_out.close()?;
+
     Ok(())
+}
+
+fn create_manifest_rdf() -> Result<Manifest, OdsError> {
+    let mut buf = Vec::new();
+    let mut xml_out = XmlWriter::new(&mut buf);
+
+    xml_out.dtd("UTF-8")?;
+    xml_out.elem("rdf:RDF")?;
+    xml_out.attr("xmlns:rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")?;
+    xml_out.elem("rdf:Description")?;
+    xml_out.attr("rdf:about", "content.xml")?;
+    xml_out.empty("rdf:type")?;
+    xml_out.attr(
+        "rdf:resource",
+        "http://docs.oasis-open.org/ns/office/1.2/meta/odf#ContentFile",
+    )?;
+    xml_out.end_elem("rdf:Description")?;
+    xml_out.elem("rdf:Description")?;
+    xml_out.attr("rdf:about", "")?;
+    xml_out.empty("ns0:hasPart")?;
+    xml_out.attr(
+        "xmlns:ns0",
+        "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#",
+    )?;
+    xml_out.attr("rdf:resource", "content.xml")?;
+    xml_out.end_elem("rdf:Description")?;
+    xml_out.elem("rdf:Description")?;
+    xml_out.attr("rdf:about", "")?;
+    xml_out.empty("rdf:type")?;
+    xml_out.attr(
+        "rdf:resource",
+        "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#Document",
+    )?;
+    xml_out.end_elem("rdf:Description")?;
+    xml_out.end_elem("rdf:RDF")?;
+    xml_out.close()?;
+
+    Ok(Manifest::with_buf(
+        "manifest.rdf",
+        "application/rdf+xml",
+        buf,
+    ))
+}
+
+fn create_meta(book: &WorkBook) -> Result<Manifest, OdsError> {
+    let mut buf = Vec::new();
+    let mut xml_out = XmlWriter::new(&mut buf);
+
+    xml_out.dtd("UTF-8")?;
+    xml_out.elem("office:document-meta")?;
+    xml_out.attr(
+        "xmlns:meta",
+        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:office",
+        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+    )?;
+    xml_out.attr("office:version", book.version().clone())?;
+    xml_out.elem("office:meta")?;
+    xml_out.elem_text("meta:generator", "spreadsheet-ods 0.16.0")?;
+    let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
+    let d = NaiveDateTime::from_timestamp_opt(s.as_secs() as i64, 0);
+    if let Some(d) = d {
+        xml_out.elem_text(
+            "meta:creation-date",
+            &d.format("%Y-%m-%dT%H:%M:%S%.f").to_string(),
+        )?;
+    }
+    xml_out.elem_text("meta:editing-duration", "P0D")?;
+    xml_out.elem_text("meta:editing-cycles", "1")?;
+    // xml_out.elem_text_esc("meta:initial-creator", &username::get_user_name().unwrap())?;
+    // TODO: allow to set this data.
+    xml_out.end_elem("office:meta")?;
+    xml_out.end_elem("office:document-meta")?;
+    xml_out.close()?;
+
+    Ok(Manifest::with_buf("meta.xml", "text/xml", buf))
 }
 
 fn write_settings<W: Write + Seek>(
@@ -622,36 +594,6 @@ fn write_config_item<W: Write + Seek>(
 
     Ok(())
 }
-
-//fn write_configurations(zip_out: &mut ZipWriter<BufWriter<File>>, file_set: &mut HashSet<String>) -> Result<(), OdsError> {
-//    if !file_set.contains("Configurations2") {
-//        file_set.insert(String::from("Configurations2"));
-//        file_set.insert(String::from("Configurations2/accelerator"));
-//        file_set.insert(String::from("Configurations2/floater"));
-//        file_set.insert(String::from("Configurations2/images"));
-//        file_set.insert(String::from("Configurations2/images/Bitmaps"));
-//        file_set.insert(String::from("Configurations2/menubar"));
-//        file_set.insert(String::from("Configurations2/popupmenu"));
-//        file_set.insert(String::from("Configurations2/progressbar"));
-//        file_set.insert(String::from("Configurations2/statusbar"));
-//        file_set.insert(String::from("Configurations2/toolbar"));
-//        file_set.insert(String::from("Configurations2/toolpanel"));
-//
-//        zip_out.add_directory("Configurations2", FileOptions::default())?;
-//        zip_out.add_directory("Configurations2/accelerator", FileOptions::default())?;
-//        zip_out.add_directory("Configurations2/floater", FileOptions::default())?;
-//        zip_out.add_directory("Configurations2/images", FileOptions::default())?;
-//        zip_out.add_directory("Configurations2/images/Bitmaps", FileOptions::default())?;
-//        zip_out.add_directory("Configurations2/menubar", FileOptions::default())?;
-//        zip_out.add_directory("Configurations2/popupmenu", FileOptions::default())?;
-//        zip_out.add_directory("Configurations2/progressbar", FileOptions::default())?;
-//        zip_out.add_directory("Configurations2/statusbar", FileOptions::default())?;
-//        zip_out.add_directory("Configurations2/toolbar", FileOptions::default())?;
-//        zip_out.add_directory("Configurations2/toolpanel", FileOptions::default())?;
-//    }
-//
-//    Ok(())
-//}
 
 fn write_ods_styles<W: Write + Seek>(
     book: &WorkBook,

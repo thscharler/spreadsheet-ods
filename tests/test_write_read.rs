@@ -63,6 +63,8 @@ pub fn timingn<E>(name: &str, mut fun: impl FnMut()) -> Result<(), E> {
 fn read_orders() -> Result<(), OdsError> {
     let mut wb = read_ods("tests/orders.ods")?;
 
+    dbg!(wb.iter_manifest().collect::<Vec<_>>());
+
     wb.config_mut().has_sheet_tabs = false;
 
     let cc = wb.sheet_mut(0).config_mut();
@@ -160,7 +162,7 @@ fn test_write_write() -> Result<(), OdsError> {
     wb.push_sheet(sh);
 
     let v = Cursor::new(Vec::new());
-    let v = write_ods_to(&mut wb, v)?;
+    let _ = write_ods_to(&mut wb, v)?;
 
     Ok(())
 }
