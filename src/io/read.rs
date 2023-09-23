@@ -20,6 +20,7 @@ use crate::io::parse::{
     parse_i64, parse_u32, parse_visibility,
 };
 use crate::io::{DUMP_UNUSED, DUMP_XML};
+use crate::manifest::Manifest;
 use crate::refs::{parse_cellranges, parse_cellref};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
@@ -71,9 +72,7 @@ fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, Ods
     } else {
         book.config = default_settings();
     }
-
-    // read all extras.
-    read_filebuf(&mut book, &mut zip)?;
+    read_manifest(&mut bufstack, &mut book, &mut zip)?;
 
     // We do some data duplication here, to make everything easier to use.
     calc_derived(&mut book)?;
@@ -81,24 +80,66 @@ fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, Ods
     Ok(book)
 }
 
-// Loads all unprocessed files as byte blobs into a buffer.
-fn read_filebuf<R: Read + Seek>(
+fn read_manifest<R: Read + Seek>(
+    bs: &mut BufStack,
     book: &mut WorkBook,
     zip: &mut ZipArchive<R>,
 ) -> Result<(), OdsError> {
-    for idx in 0..zip.len() {
-        let mut ze = zip.by_index(idx)?;
+    {
+        let zip_file = zip.by_name("META-INF/manifest.xml")?;
+        let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
 
-        // These three are always interpreted and rewritten from scratch.
-        // They have their own mechanism to cope with unknown data.
-        if !matches!(ze.name(), "settings.xml" | "styles.xml" | "content.xml") {
-            if ze.is_dir() {
-                book.filebuf.push_dir(ze.name());
-            } else if ze.is_file() {
-                let mut buf = Vec::new();
-                ze.read_to_end(&mut buf)?;
-                book.filebuf.push_file(ze.name(), buf);
+        let mut buf = bs.get_buf();
+        loop {
+            let evt = xml.read_event_into(&mut buf)?;
+            match evt {
+                Event::Decl(_) => {}
+
+                Event::Start(xml_tag) if xml_tag.name().as_ref() == b"manifest:manifest" => {}
+                Event::End(xml_tag) if xml_tag.name().as_ref() == b"manifest:manifest" => {}
+
+                Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"manifest:file-entry" => {
+                    let mut manifest = Manifest::default();
+
+                    for attr in xml_tag.attributes().with_checks(false) {
+                        let attr = attr?;
+
+                        if attr.key.as_ref() == b"manifest:full-path" {
+                            manifest.full_path = attr.unescape_value()?.to_string();
+                        } else if attr.key.as_ref() == b"manifest:version" {
+                            manifest.version = Some(attr.unescape_value()?.to_string());
+                        } else if attr.key.as_ref() == b"manifest:media-type" {
+                            manifest.media_type = attr.unescape_value()?.to_string();
+                        }
+                    }
+
+                    book.add_manifest(manifest);
+                }
+
+                Event::Eof => {
+                    break;
+                }
+
+                _ => {
+                    dump_unused2("read_manifest", &evt)?;
+                }
             }
+            buf.clear();
+        }
+        bs.push(buf);
+    }
+
+    // now the data if needed ...
+    for manifest in book.manifest.values_mut() {
+        if !matches!(
+            manifest.full_path.as_str(),
+            "/" | "settings.xml" | "styles.xml" | "content.xml"
+        ) && !manifest.is_dir()
+        {
+            let mut ze = zip.by_name(manifest.full_path.as_str())?;
+            let mut buf = Vec::new();
+            ze.read_to_end(&mut buf)?;
+            manifest.buffer = Some(buf);
         }
     }
 

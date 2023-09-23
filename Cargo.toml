@@ -38,7 +38,7 @@ kparse = "3.0.4"
 
 [dependencies.quick-xml]
 version = "0.28.0"
-# ?? Should be UTF-8, no need for encoding related stuff.
+# Should be UTF-8, no need for encoding related stuff.
 #features = ["encoding"]
 
 [dependencies.zip]
