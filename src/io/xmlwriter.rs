@@ -1,8 +1,9 @@
 use std::fmt;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display, Formatter, Write as FmtWrite};
 use std::io::{self, Write};
 #[cfg(not(feature = "check_xml"))]
 use std::marker::PhantomData;
+use std::str::from_utf8_unchecked;
 
 #[derive(PartialEq)]
 enum Open {
@@ -22,7 +23,7 @@ impl Display for Open {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Stack {
     #[cfg(feature = "check_xml")]
     stack: Vec<String>,
@@ -33,7 +34,7 @@ struct Stack {
 #[cfg(feature = "check_xml")]
 impl Stack {
     fn new() -> Self {
-        Self { stack: Vec::new() }
+        Self::default()
     }
 
     fn push(&mut self, name: &str) {
@@ -52,9 +53,7 @@ impl Stack {
 #[cfg(not(feature = "check_xml"))]
 impl Stack {
     fn new() -> Self {
-        Self {
-            stack: PhantomData {},
-        }
+        Self::default()
     }
 
     fn push(&mut self, _name: &str) {}
@@ -74,6 +73,10 @@ pub(crate) struct XmlWriter<W: Write> {
     buf: String,
     stack: Stack,
     open: Open,
+
+    // short time temp space
+    tmp: Vec<u8>,
+    tmp2: Vec<u8>,
 }
 
 impl<W: Write> fmt::Debug for XmlWriter<W> {
@@ -91,9 +94,11 @@ impl<W: Write> XmlWriter<W> {
     pub(crate) fn new(writer: W) -> XmlWriter<W> {
         XmlWriter {
             stack: Stack::new(),
-            buf: String::new(),
+            buf: Default::default(),
             writer: Box::new(writer),
             open: Open::None,
+            tmp: Default::default(),
+            tmp2: Default::default(),
         }
     }
 
@@ -108,14 +113,18 @@ impl<W: Write> XmlWriter<W> {
     }
 
     /// Write an element with inlined text (not escaped)
-    pub(crate) fn elem_text<S: AsRef<str>>(&mut self, name: &str, text: S) -> io::Result<()> {
+    pub(crate) fn elem_text<T: Display + ?Sized>(
+        &mut self,
+        name: &str,
+        text: &T,
+    ) -> io::Result<()> {
         self.close_elem()?;
 
         self.buf.push('<');
         self.buf.push_str(name);
         self.buf.push('>');
 
-        self.buf.push_str(text.as_ref());
+        let _ = write!(self.buf, "{}", text);
 
         self.buf.push('<');
         self.buf.push('/');
@@ -125,62 +134,20 @@ impl<W: Write> XmlWriter<W> {
         Ok(())
     }
 
-    /// Write an element with inlined text (not escaped)
-    pub(crate) fn opt_elem_text<S: AsRef<str>>(&mut self, name: &str, text: S) -> io::Result<()> {
-        if !text.as_ref().is_empty() {
-            self.close_elem()?;
-
-            self.buf.push('<');
-            self.buf.push_str(name);
-            self.buf.push('>');
-
-            self.buf.push_str(text.as_ref());
-
-            self.buf.push('<');
-            self.buf.push('/');
-            self.buf.push_str(name);
-            self.buf.push('>');
-        }
-
-        Ok(())
-    }
-
     /// Write an optional element with inlined text (escaped).
     /// If text.is_empty() the element is not written at all.
-    #[allow(dead_code)]
-    pub(crate) fn opt_elem_text_esc<S: AsRef<str>>(
+    pub(crate) fn elem_text_esc<T: Display + ?Sized>(
         &mut self,
         name: &str,
-        text: S,
+        text: &T,
     ) -> io::Result<()> {
-        if !text.as_ref().is_empty() {
-            self.close_elem()?;
-
-            self.buf.push('<');
-            self.buf.push_str(name);
-            self.buf.push('>');
-
-            self.escape(text.as_ref(), false);
-
-            self.buf.push('<');
-            self.buf.push('/');
-            self.buf.push_str(name);
-            self.buf.push('>');
-        }
-
-        Ok(())
-    }
-
-    /// Write an element with inlined text (escaped)
-    #[allow(dead_code)]
-    pub(crate) fn elem_text_esc<S: AsRef<str>>(&mut self, name: &str, text: S) -> io::Result<()> {
         self.close_elem()?;
 
         self.buf.push('<');
         self.buf.push_str(name);
         self.buf.push('>');
 
-        self.escape(text.as_ref(), false);
+        self.escape(text)?;
 
         self.buf.push('<');
         self.buf.push('/');
@@ -231,7 +198,7 @@ impl<W: Write> XmlWriter<W> {
 
     /// Write an attr, make sure name and value contain only allowed chars.
     /// For an escaping version use `attr_esc`
-    pub(crate) fn attr<S: AsRef<str>>(&mut self, name: &str, value: S) -> io::Result<()> {
+    pub(crate) fn attr_str(&mut self, name: &'static str, value: &'static str) -> io::Result<()> {
         if cfg!(feature = "check_xml") && self.open == Open::None {
             panic!(
                 "Attempted to write attr to elem, when no elem was opened, stack {:?}",
@@ -242,13 +209,36 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push_str(name);
         self.buf.push('=');
         self.buf.push('"');
-        self.buf.push_str(value.as_ref());
+        self.buf.push_str(value);
         self.buf.push('"');
         Ok(())
     }
 
-    /// Write an attr, make sure name contains only allowed chars
-    pub(crate) fn attr_esc<S: AsRef<str>>(&mut self, name: &str, value: S) -> io::Result<()> {
+    /// Write an attr, make sure name and value contain only allowed chars.
+    /// For an escaping version use `attr_esc`
+    pub(crate) fn attr<T: Display + ?Sized>(&mut self, name: &str, value: &T) -> io::Result<()> {
+        if cfg!(feature = "check_xml") && self.open == Open::None {
+            panic!(
+                "Attempted to write attr to elem, when no elem was opened, stack {:?}",
+                self.stack
+            );
+        }
+
+        self.buf.push(' ');
+        self.buf.push_str(name);
+        self.buf.push('=');
+        self.buf.push('"');
+        let _ = write!(self.buf, "{}", value);
+        self.buf.push('"');
+        Ok(())
+    }
+
+    /// Write an attr,  make sure name contains only allowed chars
+    pub(crate) fn attr_esc<T: Display + ?Sized>(
+        &mut self,
+        name: &str,
+        value: &T,
+    ) -> io::Result<()> {
         if cfg!(feature = "check_xml") && self.open == Open::None {
             panic!(
                 "Attempted to write attr to elem, when no elem was opened, stack {:?}",
@@ -256,45 +246,111 @@ impl<W: Write> XmlWriter<W> {
             );
         }
         self.buf.push(' ');
-        self.escape(name, true);
+        self.escape_name(name)?;
         self.buf.push('=');
         self.buf.push('"');
-        self.escape(value.as_ref(), false);
+        self.escape(value)?;
         self.buf.push('"');
         Ok(())
     }
 
-    /// Escape identifiers or text
-    fn escape(&mut self, text: &str, ident: bool) {
-        for c in text.chars() {
-            match c {
-                '"' => self.buf.push_str("&quot;"),
-                '\'' => self.buf.push_str("&apos;"),
-                '&' => self.buf.push_str("&amp;"),
-                '<' => self.buf.push_str("&lt;"),
-                '>' => self.buf.push_str("&gt;"),
-                '\\' if ident => {
-                    self.buf.push('\\');
-                    self.buf.push('\\');
-                }
-                _ => {
-                    self.buf.push(c);
-                }
-            };
+    /// Escape text
+    fn escape<T: Display + ?Sized>(&mut self, text: &T) -> io::Result<()> {
+        #[inline(never)]
+        fn escape_impl(text: &[u8], tmp2: &mut Vec<u8>) {
+            tmp2.clear();
+            for c in text {
+                let _ = match c {
+                    b'"' => {
+                        let _ = write!(tmp2, "&quot;");
+                    }
+                    b'\'' => {
+                        let _ = write!(tmp2, "&apos;");
+                    }
+                    b'&' => {
+                        let _ = write!(tmp2, "&amp;");
+                    }
+                    b'<' => {
+                        let _ = write!(tmp2, "&lt;");
+                    }
+                    b'>' => {
+                        let _ = write!(tmp2, "&gt;");
+                    }
+                    _ => tmp2.push(*c),
+                };
+            }
         }
+
+        self.tmp.clear();
+        let _ = write!(self.tmp, "{}", text);
+        escape_impl(&self.tmp, &mut self.tmp2);
+        // Safety: this is always from a string buffer.
+        unsafe {
+            self.buf.push_str(from_utf8_unchecked(&self.tmp2));
+        }
+
+        Ok(())
+    }
+
+    /// Escape identifiers
+    fn escape_name<T: Display + ?Sized>(&mut self, text: &T) -> io::Result<()> {
+        #[inline(never)]
+        fn escape_impl(text: &[u8], tmp2: &mut Vec<u8>) {
+            tmp2.clear();
+            for c in text {
+                let _ = match c {
+                    b'"' => {
+                        let _ = write!(tmp2, "&quot;");
+                    }
+                    b'\'' => {
+                        let _ = write!(tmp2, "&apos;");
+                    }
+                    b'&' => {
+                        let _ = write!(tmp2, "&amp;");
+                    }
+                    b'<' => {
+                        let _ = write!(tmp2, "&lt;");
+                    }
+                    b'>' => {
+                        let _ = write!(tmp2, "&gt;");
+                    }
+                    b'\\' => {
+                        let _ = write!(tmp2, "\\\\");
+                    }
+                    _ => tmp2.push(*c),
+                };
+            }
+        }
+
+        self.tmp.clear();
+        let _ = write!(self.tmp, "{}", text);
+        escape_impl(&self.tmp, &mut self.tmp2);
+        // Safety: this is always from a string buffer.
+        unsafe {
+            self.buf.push_str(from_utf8_unchecked(&self.tmp2));
+        }
+
+        Ok(())
     }
 
     /// Write a text, doesn't escape the text.
-    pub(crate) fn text<S: AsRef<str>>(&mut self, text: S) -> io::Result<()> {
+    pub(crate) fn text_str(&mut self, text: &'static str) -> io::Result<()> {
         self.close_elem()?;
-        self.buf.push_str(text.as_ref());
+        self.buf.push_str(text);
+        Ok(())
+    }
+
+    /// Write a text, doesn't escape the text.
+    pub(crate) fn text<T: Display + ?Sized>(&mut self, text: &T) -> io::Result<()> {
+        self.close_elem()?;
+        let _ = write!(self.buf, "{}", text);
         Ok(())
     }
 
     /// Write a text, escapes the text automatically
-    pub(crate) fn text_esc<S: AsRef<str>>(&mut self, text: S) -> io::Result<()> {
+    pub(crate) fn text_esc<T: Display + ?Sized>(&mut self, text: &T) -> io::Result<()> {
         self.close_elem()?;
-        self.escape(text.as_ref(), false);
+        self.escape(text)?;
         Ok(())
     }
 

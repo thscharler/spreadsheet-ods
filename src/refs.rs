@@ -11,7 +11,7 @@ use crate::OdsError;
 use kparse::provider::StdTracker;
 use kparse::Track;
 use std::fmt;
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::{Display, Formatter};
 
 mod format;
 mod parser;
@@ -1136,16 +1136,20 @@ pub fn parse_cellranges(buf: &str) -> Result<Option<Vec<CellRange>>, OdsError> {
     }
 }
 
-/// Returns a list of ranges as string.
-pub fn cellranges_string(vec: &[CellRange]) -> String {
-    let mut buf = String::new();
+pub(crate) fn format_cellranges<'a>(v: &'a [CellRange]) -> impl Display + 'a {
+    struct Tmp<'f>(&'f [CellRange]);
 
-    for (i, range) in vec.iter().enumerate() {
-        if i > 0 {
-            let _ = write!(buf, " ");
+    impl<'f> Display for Tmp<'f> {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+            for (i, range) in self.0.iter().enumerate() {
+                if i > 0 {
+                    write!(f, " ")?;
+                }
+                write!(f, "{}", range)?;
+            }
+            Ok(())
         }
-        let _ = write!(buf, "{}", range);
     }
 
-    buf
+    Tmp(v)
 }

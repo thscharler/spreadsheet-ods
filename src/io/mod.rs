@@ -1,3 +1,4 @@
+pub(crate) mod format;
 pub(crate) mod parse;
 pub(crate) mod read;
 pub(crate) mod write;

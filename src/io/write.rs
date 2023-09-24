@@ -4,16 +4,17 @@ use std::io;
 use std::io::{Cursor, Seek, Write};
 use std::path::Path;
 
-use chrono::{Duration, NaiveDateTime};
+use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
 use crate::config::{ConfigItem, ConfigItemType, ConfigValue};
 use crate::error::OdsError;
 use crate::format::FormatPartType;
+use crate::io::format::{format_duration2, format_validation_condition};
 use crate::io::xmlwriter::XmlWriter;
 use crate::io::zip_out::{ZipOut, ZipWrite};
 use crate::manifest::Manifest;
-use crate::refs::{cellranges_string, CellRange};
+use crate::refs::{format_cellranges, CellRange};
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
     ParagraphStyle, RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
@@ -291,19 +292,19 @@ fn write_manifest<W: Write + Seek>(
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("manifest:manifest")?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:manifest",
         "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0",
     )?;
-    xml_out.attr("manifest:version", book.version())?;
+    xml_out.attr_esc("manifest:version", &book.version())?;
 
     for manifest in book.manifest.values() {
         xml_out.empty("manifest:file-entry")?;
-        xml_out.attr("manifest:full-path", &manifest.full_path)?;
+        xml_out.attr_esc("manifest:full-path", &manifest.full_path)?;
         if let Some(version) = &manifest.version {
-            xml_out.attr("manifest:version", version)?;
+            xml_out.attr_esc("manifest:version", version)?;
         }
-        xml_out.attr("manifest:media-type", &manifest.media_type)?;
+        xml_out.attr_esc("manifest:media-type", &manifest.media_type)?;
     }
 
     xml_out.end_elem("manifest:manifest")?;
@@ -324,53 +325,72 @@ fn write_metadata<W: Write + Seek>(
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-meta")?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:meta",
         "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:office",
         "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
     )?;
-    xml_out.attr("office:version", book.version())?;
+    xml_out.attr_esc("office:version", book.version())?;
 
     xml_out.elem("office:meta")?;
 
     xml_out.elem_text("meta:generator", &book.metadata.generator)?;
-    xml_out.opt_elem_text_esc("dc:title", &book.metadata.title)?;
-    xml_out.opt_elem_text_esc("dc:description", &book.metadata.description)?;
-    xml_out.opt_elem_text_esc("dc:subject", &book.metadata.subject)?;
-    xml_out.opt_elem_text_esc("dc:language", &book.metadata.language)?;
-    xml_out.opt_elem_text_esc("meta:keyword", &book.metadata.keyword)?;
-    xml_out.opt_elem_text_esc("meta:initial-creator", &book.metadata.initial_creator)?;
-    xml_out.opt_elem_text_esc("meta:creator", &book.metadata.creator)?;
-    xml_out.opt_elem_text(
-        "meta:editing-cycles",
-        &book.metadata.editing_cycles.to_string(),
-    )?;
-
-    let mut value = String::new();
-    format_duration(book.metadata.editing_duration, &mut value);
-    xml_out.opt_elem_text("meta:editing-duration", value)?;
-
-    xml_out.opt_elem_text_esc("meta:printed-by", &book.metadata.printed_by)?;
+    if !book.metadata.title.is_empty() {
+        xml_out.elem_text_esc("dc:title", &book.metadata.title)?;
+    }
+    if !book.metadata.description.is_empty() {
+        xml_out.elem_text_esc("dc:description", &book.metadata.description)?;
+    }
+    if !book.metadata.description.is_empty() {
+        xml_out.elem_text_esc("dc:description", &book.metadata.description)?;
+    }
+    if !book.metadata.subject.is_empty() {
+        xml_out.elem_text_esc("dc:subject", &book.metadata.subject)?;
+    }
+    if !book.metadata.language.is_empty() {
+        xml_out.elem_text_esc("dc:language", &book.metadata.language)?;
+    }
+    if !book.metadata.keyword.is_empty() {
+        xml_out.elem_text_esc("meta:keyword", &book.metadata.keyword)?;
+    }
+    if !book.metadata.initial_creator.is_empty() {
+        xml_out.elem_text_esc("meta:initial-creator", &book.metadata.initial_creator)?;
+    }
+    if !book.metadata.creator.is_empty() {
+        xml_out.elem_text_esc("meta:creator", &book.metadata.creator)?;
+    }
+    if book.metadata.editing_cycles > 0 {
+        xml_out.elem_text("meta:editing-cycles", &book.metadata.editing_cycles)?;
+    }
+    if book.metadata.editing_duration.num_seconds() > 0 {
+        xml_out.elem_text(
+            "meta:editing-duration",
+            &format_duration2(book.metadata.editing_duration),
+        )?;
+    }
+    if !book.metadata.printed_by.is_empty() {
+        xml_out.elem_text_esc("meta:printed-by", &book.metadata.printed_by)?;
+    }
     if let Some(v) = book.metadata.creation_date {
-        xml_out.elem_text("meta:creation-date", &v.format(DATETIME_FORMAT).to_string())?;
+        xml_out.elem_text("meta:creation-date", &v.format(DATETIME_FORMAT))?;
     }
     if let Some(v) = book.metadata.date {
-        xml_out.elem_text("meta:date", &v.format(DATETIME_FORMAT).to_string())?;
+        xml_out.elem_text("meta:date", &v.format(DATETIME_FORMAT))?;
     }
     if let Some(v) = book.metadata.print_date {
-        xml_out.elem_text("meta:print_date", &v.format(DATETIME_FORMAT).to_string())?;
+        xml_out.elem_text("meta:print_date", &v.format(DATETIME_FORMAT))?;
     }
 
     if !book.metadata.template.is_empty() {
         xml_out.empty("meta:template")?;
         if let Some(v) = book.metadata.template.date {
-            xml_out.attr("meta:date", &v.format(DATETIME_FORMAT).to_string())?;
+            xml_out.attr("meta:date", &v.format(DATETIME_FORMAT))?;
         }
         if let Some(v) = book.metadata.template.actuate {
-            xml_out.attr("xlink:actuate", v.to_string())?;
+            xml_out.attr("xlink:actuate", &v)?;
         }
         if let Some(v) = &book.metadata.template.href {
             xml_out.attr_esc("xlink:href", v)?;
@@ -379,60 +399,55 @@ fn write_metadata<W: Write + Seek>(
             xml_out.attr_esc("xlink:title", v)?;
         }
         if let Some(v) = book.metadata.template.link_type {
-            xml_out.attr("xlink:type", v.to_string())?;
+            xml_out.attr("xlink:type", &v)?;
         }
     }
 
     if !book.metadata.auto_reload.is_empty() {
         xml_out.empty("meta:auto_reload")?;
         if let Some(v) = book.metadata.auto_reload.delay {
-            let mut value = String::new();
-            format_duration(v, &mut value);
-            xml_out.attr("meta:delay", value)?;
+            xml_out.attr("meta:delay", &format_duration2(v))?;
         }
         if let Some(v) = book.metadata.auto_reload.actuate {
-            xml_out.attr("xlink:actuate", v.to_string())?;
+            xml_out.attr("xlink:actuate", &v)?;
         }
         if let Some(v) = &book.metadata.auto_reload.href {
             xml_out.attr_esc("xlink:href", v)?;
         }
         if let Some(v) = &book.metadata.auto_reload.show {
-            xml_out.attr("xlink:show", v.to_string())?;
+            xml_out.attr("xlink:show", v)?;
         }
         if let Some(v) = book.metadata.auto_reload.link_type {
-            xml_out.attr("xlink:type", v.to_string())?;
+            xml_out.attr("xlink:type", &v)?;
         }
     }
 
     if !book.metadata.hyperlink_behaviour.is_empty() {
         xml_out.empty("meta:hyperlink-behaviour")?;
         if let Some(v) = &book.metadata.hyperlink_behaviour.target_frame_name {
-            xml_out.attr_esc("office:target-frame-name", v.to_string())?;
+            xml_out.attr_esc("office:target-frame-name", v)?;
         }
         if let Some(v) = &book.metadata.hyperlink_behaviour.show {
-            xml_out.attr("xlink:show", v.to_string())?;
+            xml_out.attr("xlink:show", v)?;
         }
     }
 
     xml_out.empty("meta:document-statistics")?;
     xml_out.attr(
         "meta:table-count",
-        book.metadata.document_statistics.table_count.to_string(),
+        &book.metadata.document_statistics.table_count,
     )?;
     xml_out.attr(
         "meta:cell-count",
-        book.metadata.document_statistics.cell_count.to_string(),
+        &book.metadata.document_statistics.cell_count,
     )?;
     xml_out.attr(
         "meta:object-count",
-        book.metadata.document_statistics.object_count.to_string(),
+        &book.metadata.document_statistics.object_count,
     )?;
     xml_out.attr(
         "meta:ole-object-count",
-        book.metadata
-            .document_statistics
-            .ole_object_count
-            .to_string(),
+        &book.metadata.document_statistics.ole_object_count,
     )?;
 
     xml_out.end_elem("office:meta")?;
@@ -449,28 +464,28 @@ fn create_manifest_rdf() -> Result<Manifest, OdsError> {
 
     xml_out.dtd("UTF-8")?;
     xml_out.elem("rdf:RDF")?;
-    xml_out.attr("xmlns:rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")?;
+    xml_out.attr_str("xmlns:rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")?;
     xml_out.elem("rdf:Description")?;
-    xml_out.attr("rdf:about", "content.xml")?;
+    xml_out.attr_str("rdf:about", "content.xml")?;
     xml_out.empty("rdf:type")?;
-    xml_out.attr(
+    xml_out.attr_str(
         "rdf:resource",
         "http://docs.oasis-open.org/ns/office/1.2/meta/odf#ContentFile",
     )?;
     xml_out.end_elem("rdf:Description")?;
     xml_out.elem("rdf:Description")?;
-    xml_out.attr("rdf:about", "")?;
+    xml_out.attr_str("rdf:about", "")?;
     xml_out.empty("ns0:hasPart")?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:ns0",
         "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#",
     )?;
-    xml_out.attr("rdf:resource", "content.xml")?;
+    xml_out.attr_str("rdf:resource", "content.xml")?;
     xml_out.end_elem("rdf:Description")?;
     xml_out.elem("rdf:Description")?;
-    xml_out.attr("rdf:about", "")?;
+    xml_out.attr_str("rdf:about", "")?;
     xml_out.empty("rdf:type")?;
-    xml_out.attr(
+    xml_out.attr_str(
         "rdf:resource",
         "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#Document",
     )?;
@@ -496,16 +511,16 @@ fn write_settings<W: Write + Seek>(
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-settings")?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:office",
         "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
     )?;
-    xml_out.attr("xmlns:ooo", "http://openoffice.org/2004/office")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:ooo", "http://openoffice.org/2004/office")?;
+    xml_out.attr_str(
         "xmlns:config",
         "urn:oasis:names:tc:opendocument:xmlns:config:1.0",
     )?;
-    xml_out.attr("office:version", book.version())?;
+    xml_out.attr_esc("office:version", book.version())?;
     xml_out.elem("office:settings")?;
 
     for (name, item) in book.config.iter() {
@@ -540,7 +555,7 @@ fn write_config_item_set<W: Write + Seek>(
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-set")?;
-    xml_out.attr("config:name", name)?;
+    xml_out.attr_esc("config:name", name)?;
 
     for (name, item) in set.iter() {
         match item {
@@ -565,7 +580,7 @@ fn write_config_item_map_indexed<W: Write + Seek>(
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-indexed")?;
-    xml_out.attr("config:name", name)?;
+    xml_out.attr_esc("config:name", name)?;
 
     let mut index = 0;
     loop {
@@ -602,7 +617,7 @@ fn write_config_item_map_named<W: Write + Seek>(
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-named")?;
-    xml_out.attr("config:name", name)?;
+    xml_out.attr_esc("config:name", name)?;
 
     for (name, item) in map.iter() {
         match item {
@@ -632,7 +647,7 @@ fn write_config_item_map_entry<W: Write + Seek>(
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-entry")?;
     if let Some(name) = name {
-        xml_out.attr("config:name", name)?;
+        xml_out.attr_esc("config:name", name)?;
     }
 
     for (name, item) in map_entry.iter() {
@@ -669,39 +684,39 @@ fn write_config_item<W: Write + Seek>(
         xml_out.elem("config:config-item")?;
     }
 
-    xml_out.attr("config:name", name)?;
+    xml_out.attr_esc("config:name", name)?;
 
     match value {
         ConfigValue::Base64Binary(v) => {
-            xml_out.attr("config:type", "base64Binary")?;
+            xml_out.attr_str("config:type", "base64Binary")?;
             xml_out.text(v)?;
         }
         ConfigValue::Boolean(v) => {
-            xml_out.attr("config:type", "boolean")?;
-            xml_out.text(&v.to_string())?;
+            xml_out.attr_str("config:type", "boolean")?;
+            xml_out.text(&v)?;
         }
         ConfigValue::DateTime(v) => {
-            xml_out.attr("config:type", "datetime")?;
-            xml_out.text(&v.format(DATETIME_FORMAT).to_string())?;
+            xml_out.attr_str("config:type", "datetime")?;
+            xml_out.text(&v.format(DATETIME_FORMAT))?;
         }
         ConfigValue::Double(v) => {
-            xml_out.attr("config:type", "double")?;
-            xml_out.text(&v.to_string())?;
+            xml_out.attr_str("config:type", "double")?;
+            xml_out.text(&v)?;
         }
         ConfigValue::Int(v) => {
-            xml_out.attr("config:type", "int")?;
-            xml_out.text(&v.to_string())?;
+            xml_out.attr_str("config:type", "int")?;
+            xml_out.text(&v)?;
         }
         ConfigValue::Long(v) => {
-            xml_out.attr("config:type", "long")?;
-            xml_out.text(&v.to_string())?;
+            xml_out.attr_str("config:type", "long")?;
+            xml_out.text(&v)?;
         }
         ConfigValue::Short(v) => {
-            xml_out.attr("config:type", "short")?;
-            xml_out.text(&v.to_string())?;
+            xml_out.attr_str("config:type", "short")?;
+            xml_out.text(&v)?;
         }
         ConfigValue::String(v) => {
-            xml_out.attr("config:type", "string")?;
+            xml_out.attr_str("config:type", "string")?;
             xml_out.text(v)?;
         }
     }
@@ -724,89 +739,89 @@ fn write_ods_styles<W: Write + Seek>(
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-styles")?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:meta",
         "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:office",
         "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:fo",
         "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
     )?;
-    xml_out.attr("xmlns:ooo", "http://openoffice.org/2004/office")?;
-    xml_out.attr("xmlns:xlink", "http://www.w3.org/1999/xlink")?;
-    xml_out.attr("xmlns:dc", "http://purl.org/dc/elements/1.1/")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:ooo", "http://openoffice.org/2004/office")?;
+    xml_out.attr_str("xmlns:xlink", "http://www.w3.org/1999/xlink")?;
+    xml_out.attr_str("xmlns:dc", "http://purl.org/dc/elements/1.1/")?;
+    xml_out.attr_str(
         "xmlns:style",
         "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:text",
         "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:dr3d",
         "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:svg",
         "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:chart",
         "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
     )?;
-    xml_out.attr("xmlns:rpt", "http://openoffice.org/2005/report")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:rpt", "http://openoffice.org/2005/report")?;
+    xml_out.attr_str(
         "xmlns:table",
         "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:number",
         "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
     )?;
-    xml_out.attr("xmlns:ooow", "http://openoffice.org/2004/writer")?;
-    xml_out.attr("xmlns:oooc", "http://openoffice.org/2004/calc")?;
-    xml_out.attr("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
-    xml_out.attr("xmlns:tableooo", "http://openoffice.org/2009/table")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:ooow", "http://openoffice.org/2004/writer")?;
+    xml_out.attr_str("xmlns:oooc", "http://openoffice.org/2004/calc")?;
+    xml_out.attr_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
+    xml_out.attr_str("xmlns:tableooo", "http://openoffice.org/2009/table")?;
+    xml_out.attr_str(
         "xmlns:calcext",
         "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
     )?;
-    xml_out.attr("xmlns:drawooo", "http://openoffice.org/2010/draw")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:drawooo", "http://openoffice.org/2010/draw")?;
+    xml_out.attr_str(
         "xmlns:draw",
         "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:loext",
         "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:field",
         "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
     )?;
-    xml_out.attr("xmlns:math", "http://www.w3.org/1998/Math/MathML")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:math", "http://www.w3.org/1998/Math/MathML")?;
+    xml_out.attr_str(
         "xmlns:form",
         "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:script",
         "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
     )?;
-    xml_out.attr("xmlns:dom", "http://www.w3.org/2001/xml-events")?;
-    xml_out.attr("xmlns:xhtml", "http://www.w3.org/1999/xhtml")?;
-    xml_out.attr("xmlns:grddl", "http://www.w3.org/2003/g/data-view#")?;
-    xml_out.attr("xmlns:css3t", "http://www.w3.org/TR/css3-text/")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:dom", "http://www.w3.org/2001/xml-events")?;
+    xml_out.attr_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml")?;
+    xml_out.attr_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#")?;
+    xml_out.attr_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/")?;
+    xml_out.attr_str(
         "xmlns:presentation",
         "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
     )?;
-    xml_out.attr("office:version", book.version())?;
+    xml_out.attr_esc("office:version", book.version())?;
 
     xml_out.elem("office:font-face-decls")?;
     write_font_decl(&book.fonts, StyleOrigin::Styles, &mut xml_out)?;
@@ -970,97 +985,97 @@ fn write_ods_content<W: Write + Seek>(
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-content")?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:meta",
         "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:office",
         "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:fo",
         "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
     )?;
-    xml_out.attr("xmlns:ooo", "http://openoffice.org/2004/office")?;
-    xml_out.attr("xmlns:xlink", "http://www.w3.org/1999/xlink")?;
-    xml_out.attr("xmlns:dc", "http://purl.org/dc/elements/1.1/")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:ooo", "http://openoffice.org/2004/office")?;
+    xml_out.attr_str("xmlns:xlink", "http://www.w3.org/1999/xlink")?;
+    xml_out.attr_str("xmlns:dc", "http://purl.org/dc/elements/1.1/")?;
+    xml_out.attr_str(
         "xmlns:style",
         "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:text",
         "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:draw",
         "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:dr3d",
         "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:svg",
         "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:chart",
         "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
     )?;
-    xml_out.attr("xmlns:rpt", "http://openoffice.org/2005/report")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:rpt", "http://openoffice.org/2005/report")?;
+    xml_out.attr_str(
         "xmlns:table",
         "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:number",
         "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
     )?;
-    xml_out.attr("xmlns:ooow", "http://openoffice.org/2004/writer")?;
-    xml_out.attr("xmlns:oooc", "http://openoffice.org/2004/calc")?;
-    xml_out.attr("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
-    xml_out.attr("xmlns:tableooo", "http://openoffice.org/2009/table")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:ooow", "http://openoffice.org/2004/writer")?;
+    xml_out.attr_str("xmlns:oooc", "http://openoffice.org/2004/calc")?;
+    xml_out.attr_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
+    xml_out.attr_str("xmlns:tableooo", "http://openoffice.org/2009/table")?;
+    xml_out.attr_str(
         "xmlns:calcext",
         "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
     )?;
-    xml_out.attr("xmlns:drawooo", "http://openoffice.org/2010/draw")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:drawooo", "http://openoffice.org/2010/draw")?;
+    xml_out.attr_str(
         "xmlns:loext",
         "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:field",
         "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
     )?;
-    xml_out.attr("xmlns:math", "http://www.w3.org/1998/Math/MathML")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:math", "http://www.w3.org/1998/Math/MathML")?;
+    xml_out.attr_str(
         "xmlns:form",
         "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
     )?;
-    xml_out.attr(
+    xml_out.attr_str(
         "xmlns:script",
         "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
     )?;
-    xml_out.attr("xmlns:dom", "http://www.w3.org/2001/xml-events")?;
-    xml_out.attr("xmlns:xforms", "http://www.w3.org/2002/xforms")?;
-    xml_out.attr("xmlns:xsd", "http://www.w3.org/2001/XMLSchema")?;
-    xml_out.attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:dom", "http://www.w3.org/2001/xml-events")?;
+    xml_out.attr_str("xmlns:xforms", "http://www.w3.org/2002/xforms")?;
+    xml_out.attr_str("xmlns:xsd", "http://www.w3.org/2001/XMLSchema")?;
+    xml_out.attr_str("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")?;
+    xml_out.attr_str(
         "xmlns:formx",
         "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0",
     )?;
-    xml_out.attr("xmlns:xhtml", "http://www.w3.org/1999/xhtml")?;
-    xml_out.attr("xmlns:grddl", "http://www.w3.org/2003/g/data-view#")?;
-    xml_out.attr("xmlns:css3t", "http://www.w3.org/TR/css3-text/")?;
-    xml_out.attr(
+    xml_out.attr_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml")?;
+    xml_out.attr_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#")?;
+    xml_out.attr_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/")?;
+    xml_out.attr_str(
         "xmlns:presentation",
         "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
     )?;
 
-    xml_out.attr("office:version", book.version())?;
+    xml_out.attr_esc("office:version", book.version())?;
 
     xml_out.empty("office:scripts")?;
 
@@ -1175,14 +1190,12 @@ fn write_content_validations<W: Write + Seek>(
         for valid in book.validations.values() {
             xml_out.elem("table:content-validation")?;
             xml_out.attr_esc("table:name", valid.name())?;
-            let mut cond = "of:".to_string();
-            cond.push_str(valid.condition());
-            xml_out.attr_esc("table:condition", cond.as_str())?;
-            xml_out.attr(
+            xml_out.attr_esc("table:condition", &format_validation_condition(valid))?;
+            xml_out.attr_str(
                 "table:allow-empty-cell",
                 if valid.allow_empty() { "true" } else { "false" },
             )?;
-            xml_out.attr(
+            xml_out.attr_str(
                 "table:display-list",
                 match valid.display() {
                     ValidationDisplay::NoDisplay => "no",
@@ -1190,7 +1203,7 @@ fn write_content_validations<W: Write + Seek>(
                     ValidationDisplay::SortAscending => "sort-ascending",
                 },
             )?;
-            xml_out.attr_esc("table:base-cell-address", &valid.base_cell().to_string())?;
+            xml_out.attr_esc("table:base-cell-address", &valid.base_cell())?;
 
             if let Some(err) = valid.err() {
                 if err.text().is_some() {
@@ -1198,10 +1211,10 @@ fn write_content_validations<W: Write + Seek>(
                 } else {
                     xml_out.empty("table:error-message")?;
                 }
-                xml_out.attr("table:display", err.display().to_string())?;
-                xml_out.attr("table:message-type", err.msg_type().to_string())?;
+                xml_out.attr("table:display", &err.display())?;
+                xml_out.attr("table:message-type", &err.msg_type())?;
                 if let Some(title) = err.title() {
-                    xml_out.attr("table:title", title)?;
+                    xml_out.attr_esc("table:title", title)?;
                 }
                 if let Some(text) = err.text() {
                     write_xmltag(text, xml_out)?;
@@ -1216,9 +1229,9 @@ fn write_content_validations<W: Write + Seek>(
                 } else {
                     xml_out.empty("table:help-message")?;
                 }
-                xml_out.attr("table:display", err.display().to_string())?;
+                xml_out.attr("table:display", &err.display())?;
                 if let Some(title) = err.title() {
-                    xml_out.attr("table:title", title)?;
+                    xml_out.attr_esc("table:title", title)?;
                 }
                 if let Some(text) = err.text() {
                     write_xmltag(text, xml_out)?;
@@ -1259,18 +1272,18 @@ fn write_sheet<W: Write + Seek>(
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table")?;
-    xml_out.attr_esc("table:name", &*sheet.name)?;
+    xml_out.attr_esc("table:name", &sheet.name)?;
     if let Some(style) = &sheet.style {
-        xml_out.attr_esc("table:style-name", style.as_str())?;
+        xml_out.attr_esc("table:style-name", style)?;
     }
     if let Some(print_ranges) = &sheet.print_ranges {
-        xml_out.attr_esc("table:print-ranges", &cellranges_string(print_ranges))?;
+        xml_out.attr_esc("table:print-ranges", &format_cellranges(print_ranges))?;
     }
     if !sheet.print() {
-        xml_out.attr("table:print", "false")?;
+        xml_out.attr_str("table:print", "false")?;
     }
     if !sheet.display() {
-        xml_out.attr("table:display", "false")?;
+        xml_out.attr_str("table:display", "false")?;
     }
 
     let max_cell = sheet.used_grid_size();
@@ -1418,22 +1431,19 @@ fn write_empty_cells<W: Write + Seek>(
     // split between hidden and regular cells.
     if hidden_cols >= forward_dc {
         xml_out.empty("covered-table-cell")?;
-        let repeat = (forward_dc - 1).to_string();
-        xml_out.attr("table:number-columns-repeated", repeat.as_str())?;
+        xml_out.attr("table:number-columns-repeated", &(forward_dc - 1))?;
 
         forward_dc = 0;
     } else if hidden_cols > 0 {
         xml_out.empty("covered-table-cell")?;
-        let repeat = hidden_cols.to_string();
-        xml_out.attr("table:number-columns-repeated", repeat.as_str())?;
+        xml_out.attr("table:number-columns-repeated", &hidden_cols)?;
 
         forward_dc -= hidden_cols;
     }
 
     if forward_dc > 0 {
         xml_out.empty("table:table-cell")?;
-        let repeat = (forward_dc - 1).to_string();
-        xml_out.attr("table:number-columns-repeated", repeat.as_str())?;
+        xml_out.attr("table:number-columns-repeated", &(forward_dc - 1))?;
     }
 
     Ok(())
@@ -1455,27 +1465,23 @@ fn write_start_current_row<W: Write + Seek>(
     xml_out.elem("table:table-row")?;
     if let Some(row_header) = sheet.row_header.get(&cur_row) {
         if row_header.repeat > 1 {
-            xml_out.attr_esc("table:number-rows-repeated", &row_header.repeat.to_string())?;
+            xml_out.attr_esc("table:number-rows-repeated", &row_header.repeat)?;
         }
         if let Some(rowstyle) = row_header.style() {
-            xml_out.attr_esc("table:style-name", rowstyle.as_str())?;
+            xml_out.attr_esc("table:style-name", rowstyle)?;
         }
         if let Some(cellstyle) = row_header.cellstyle() {
-            xml_out.attr_esc("table:default-cell-style-name", cellstyle.as_str())?;
+            xml_out.attr_esc("table:default-cell-style-name", cellstyle)?;
         }
         if row_header.visible() != Visibility::Visible {
-            xml_out.attr_esc(
-                "table:visibility",
-                row_header.visible().to_string().as_str(),
-            )?;
+            xml_out.attr_esc("table:visibility", &row_header.visible())?;
         }
     }
 
     // Might not be the first column in this row.
     if backward_dc > 0 {
-        let backward_dc = backward_dc.to_string();
         xml_out.empty("table:table-cell")?;
-        xml_out.attr("table:number-columns-repeated", backward_dc.as_str())?;
+        xml_out.attr_esc("table:number-columns-repeated", &backward_dc)?;
     }
 
     Ok(())
@@ -1588,26 +1594,22 @@ fn write_empty_row<W: Write + Seek>(
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table-row")?;
-    xml_out.attr("table:number-rows-repeated", &empty_count.to_string())?;
+    xml_out.attr("table:number-rows-repeated", &empty_count)?;
     if let Some(row_header) = sheet.row_header.get(&cur_row) {
         if let Some(rowstyle) = row_header.style() {
-            xml_out.attr_esc("table:style-name", rowstyle.as_str())?;
+            xml_out.attr_esc("table:style-name", rowstyle)?;
         }
         if let Some(cellstyle) = row_header.cellstyle() {
-            xml_out.attr_esc("table:default-cell-style-name", cellstyle.as_str())?;
+            xml_out.attr_esc("table:default-cell-style-name", cellstyle)?;
         }
         if row_header.visible() != Visibility::Visible {
-            xml_out.attr_esc(
-                "table:visibility",
-                row_header.visible().to_string().as_str(),
-            )?;
+            xml_out.attr_esc("table:visibility", &row_header.visible())?;
         }
     }
 
     // We fill the empty spaces completely up to max columns.
-    let max_cell_col = max_cell.1.to_string();
     xml_out.empty("table:table-cell")?;
-    xml_out.attr("table:number-columns-repeated", max_cell_col.as_str())?;
+    xml_out.attr("table:number-columns-repeated", &max_cell.1)?;
 
     xml_out.end_elem("table:table-row")?;
 
@@ -1624,7 +1626,7 @@ fn write_xmltag<W: Write + Seek>(
         xml_out.elem(x.name())?;
     }
     for (k, v) in x.attrmap().iter() {
-        xml_out.attr_esc(k.as_ref(), v.as_str())?;
+        xml_out.attr_esc(k.as_ref(), v)?;
     }
 
     for c in x.content() {
@@ -1662,16 +1664,13 @@ fn write_table_columns<W: Write + Seek>(
         xml_out.empty("table:table-column")?;
         if let Some(col_header) = sheet.col_header.get(&c) {
             if let Some(style) = col_header.style() {
-                xml_out.attr_esc("table:style-name", style.as_str())?;
+                xml_out.attr_esc("table:style-name", style)?;
             }
             if let Some(cellstyle) = col_header.cellstyle() {
-                xml_out.attr_esc("table:default-cell-style-name", cellstyle.as_str())?;
+                xml_out.attr_esc("table:default-cell-style-name", cellstyle)?;
             }
             if col_header.visible() != Visibility::Visible {
-                xml_out.attr_esc(
-                    "table:visibility",
-                    col_header.visible().to_string().as_str(),
-                )?;
+                xml_out.attr_esc("table:visibility", &col_header.visible())?;
             }
         }
 
@@ -1705,36 +1704,30 @@ fn write_cell<W: Write + Seek>(
     }
 
     if let Some(formula) = cell.formula {
-        xml_out.attr_esc("table:formula", formula.as_str())?;
+        xml_out.attr_esc("table:formula", formula)?;
     }
 
     // Direct style oder value based default style.
     if let Some(style) = cell.style {
-        xml_out.attr_esc("table:style-name", style.as_str())?;
+        xml_out.attr_esc("table:style-name", style)?;
     } else if let Some(value) = cell.value {
         if let Some(style) = book.def_style(value.value_type()) {
-            xml_out.attr_esc("table:style-name", style.as_str())?;
+            xml_out.attr_esc("table:style-name", style)?;
         }
     }
 
     // Content validation
     if let Some(validation_name) = cell.validation_name {
-        xml_out.attr("table:content-validation-name", validation_name.as_str())?;
+        xml_out.attr_esc("table:content-validation-name", validation_name)?;
     }
 
     // Spans
     if let Some(span) = cell.span {
         if span.row_span > 1 {
-            xml_out.attr_esc(
-                "table:number-rows-spanned",
-                span.row_span.to_string().as_str(),
-            )?;
+            xml_out.attr_esc("table:number-rows-spanned", &span.row_span)?;
         }
         if span.col_span > 1 {
-            xml_out.attr_esc(
-                "table:number-columns-spanned",
-                span.col_span.to_string().as_str(),
-            )?;
+            xml_out.attr_esc("table:number-columns-spanned", &span.col_span)?;
         }
     }
 
@@ -1751,70 +1744,62 @@ fn write_cell<W: Write + Seek>(
     match cell.value {
         None | Some(Value::Empty) => {}
         Some(Value::Text(s)) => {
-            xml_out.attr("office:value-type", "string")?;
+            xml_out.attr_str("office:value-type", "string")?;
             for l in s.split('\n') {
-                xml_out.elem("text:p")?;
-                xml_out.text_esc(l)?;
-                xml_out.end_elem("text:p")?;
+                xml_out.elem_text_esc("text:p", l)?;
             }
         }
         Some(Value::TextXml(t)) => {
-            xml_out.attr("office:value-type", "string")?;
+            xml_out.attr_str("office:value-type", "string")?;
             for tt in t.iter() {
                 write_xmltag(tt, xml_out)?;
             }
         }
         Some(Value::DateTime(d)) => {
-            xml_out.attr("office:value-type", "date")?;
-            let value = d.format(DATETIME_FORMAT).to_string();
-            xml_out.attr("office:date-value", value.as_str())?;
+            xml_out.attr_str("office:value-type", "date")?;
+            let value = d.format(DATETIME_FORMAT);
+            xml_out.attr("office:date-value", &value)?;
             xml_out.elem("text:p")?;
-            xml_out.text_esc(value)?;
+            xml_out.text(&value)?;
             xml_out.end_elem("text:p")?;
         }
         Some(Value::TimeDuration(d)) => {
-            xml_out.attr("office:value-type", "time")?;
-
-            let mut value = String::new();
-            format_duration(*d, &mut value);
-            xml_out.attr("office:time-value", value.as_str())?;
-
+            xml_out.attr_str("office:value-type", "time")?;
+            let value = format_duration2(*d);
+            xml_out.attr("office:time-value", &value)?;
             xml_out.elem("text:p")?;
-            xml_out.text(value)?;
+            xml_out.text(&value)?;
             xml_out.end_elem("text:p")?;
         }
         Some(Value::Boolean(b)) => {
-            xml_out.attr("office:value-type", "boolean")?;
-            xml_out.attr("office:boolean-value", if *b { "true" } else { "false" })?;
+            xml_out.attr_str("office:value-type", "boolean")?;
+            xml_out.attr_str("office:boolean-value", if *b { "true" } else { "false" })?;
             xml_out.elem("text:p")?;
-            xml_out.text(if *b { "true" } else { "false" })?;
+            xml_out.text_str(if *b { "true" } else { "false" })?;
             xml_out.end_elem("text:p")?;
         }
         Some(Value::Currency(v, c)) => {
-            xml_out.attr("office:value-type", "currency")?;
+            xml_out.attr_str("office:value-type", "currency")?;
             xml_out.attr_esc("office:currency", c)?;
-            let value = v.to_string();
-            xml_out.attr("office:value", value.as_str())?;
+            xml_out.attr("office:value", v)?;
             xml_out.elem("text:p")?;
-            xml_out.text(c)?;
-            xml_out.text(" ")?;
-            xml_out.text(value)?;
+            xml_out.text_esc(c)?;
+            xml_out.text_str(" ")?;
+            xml_out.text(v)?;
             xml_out.end_elem("text:p")?;
         }
         Some(Value::Number(v)) => {
-            xml_out.attr("office:value-type", "float")?;
-            let value = v.to_string();
-            xml_out.attr("office:value", value.as_str())?;
+            xml_out.attr_str("office:value-type", "float")?;
+            xml_out.attr("office:value", v)?;
             xml_out.elem("text:p")?;
-            xml_out.text(value)?;
+            xml_out.text(v)?;
             xml_out.end_elem("text:p")?;
         }
         Some(Value::Percentage(v)) => {
-            xml_out.attr("office:value-type", "percentage")?;
-            let value = v.to_string();
-            xml_out.attr("office:value", value.as_str())?;
+            xml_out.attr_str("office:value-type", "percentage")?;
+            xml_out.attr("office:value", v)?;
             xml_out.elem("text:p")?;
-            xml_out.text(value)?;
+            xml_out.text(v)?;
             xml_out.end_elem("text:p")?;
         }
     }
@@ -1827,18 +1812,6 @@ fn write_cell<W: Write + Seek>(
     Ok(())
 }
 
-fn format_duration(d: Duration, buf: &mut String) {
-    buf.push_str("PT");
-    buf.push_str(&d.num_hours().to_string());
-    buf.push_str("H");
-    buf.push_str(&(d.num_minutes() % 60).to_string());
-    buf.push_str("M");
-    buf.push_str(&(d.num_seconds() % 60).to_string());
-    buf.push_str(".");
-    buf.push_str(&(d.num_milliseconds() % 1000).to_string());
-    buf.push_str("S");
-}
-
 fn write_font_decl<W: Write + Seek>(
     fonts: &HashMap<String, FontFaceDecl>,
     origin: StyleOrigin,
@@ -1846,9 +1819,9 @@ fn write_font_decl<W: Write + Seek>(
 ) -> Result<(), OdsError> {
     for font in fonts.values().filter(|s| s.origin() == origin) {
         xml_out.empty("style:font-face")?;
-        xml_out.attr_esc("style:name", font.name().as_str())?;
+        xml_out.attr_esc("style:name", font.name())?;
         for (a, v) in font.attrmap().iter() {
-            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
     Ok(())
@@ -1918,13 +1891,13 @@ fn write_tablestyle<W: Write + Seek>(
         xml_out.elem("style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
-    xml_out.attr("style:family", "table")?;
+    xml_out.attr_str("style:family", "table")?;
     for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
             _ => {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                xml_out.attr_esc(a.as_ref(), v)?;
             }
         }
     }
@@ -1932,7 +1905,7 @@ fn write_tablestyle<W: Write + Seek>(
     if !style.tablestyle().is_empty() {
         xml_out.empty("style:table-properties")?;
         for (a, v) in style.tablestyle().iter() {
-            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
     if style.styleuse() == StyleUse::Default {
@@ -1954,13 +1927,13 @@ fn write_rowstyle<W: Write + Seek>(
         xml_out.elem("style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
-    xml_out.attr("style:family", "table-row")?;
+    xml_out.attr_str("style:family", "table-row")?;
     for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
             _ => {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                xml_out.attr_esc(a.as_ref(), v)?;
             }
         }
     }
@@ -1968,7 +1941,7 @@ fn write_rowstyle<W: Write + Seek>(
     if !style.rowstyle().is_empty() {
         xml_out.empty("style:table-row-properties")?;
         for (a, v) in style.rowstyle().iter() {
-            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
     if style.styleuse() == StyleUse::Default {
@@ -1990,13 +1963,13 @@ fn write_colstyle<W: Write + Seek>(
         xml_out.elem("style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
-    xml_out.attr("style:family", "table-column")?;
+    xml_out.attr_str("style:family", "table-column")?;
     for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
             _ => {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                xml_out.attr_esc(a.as_ref(), v)?;
             }
         }
     }
@@ -2004,7 +1977,7 @@ fn write_colstyle<W: Write + Seek>(
     if !style.colstyle().is_empty() {
         xml_out.empty("style:table-column-properties")?;
         for (a, v) in style.colstyle().iter() {
-            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
     if style.styleuse() == StyleUse::Default {
@@ -2026,13 +1999,13 @@ fn write_cellstyle<W: Write + Seek>(
         xml_out.elem("style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
-    xml_out.attr("style:family", "table-cell")?;
+    xml_out.attr_str("style:family", "table-cell")?;
     for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
             _ => {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                xml_out.attr_esc(a.as_ref(), v)?;
             }
         }
     }
@@ -2040,19 +2013,19 @@ fn write_cellstyle<W: Write + Seek>(
     if !style.cellstyle().is_empty() {
         xml_out.empty("style:table-cell-properties")?;
         for (a, v) in style.cellstyle().iter() {
-            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
     if !&style.paragraphstyle().is_empty() {
         xml_out.empty("style:paragraph-properties")?;
         for (a, v) in style.paragraphstyle().iter() {
-            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
     if !style.textstyle().is_empty() {
         xml_out.empty("style:text-properties")?;
         for (a, v) in style.textstyle().iter() {
-            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
     if let Some(stylemaps) = style.stylemaps() {
@@ -2061,7 +2034,7 @@ fn write_cellstyle<W: Write + Seek>(
             xml_out.attr_esc("style:condition", sm.condition())?;
             xml_out.attr_esc("style:apply-style-name", sm.applied_style())?;
             if let Some(r) = sm.base_cell() {
-                xml_out.attr_esc("style:base-cell-address", r.to_string())?;
+                xml_out.attr_esc("style:base-cell-address", r)?;
             }
         }
     }
@@ -2084,13 +2057,13 @@ fn write_paragraphstyle<W: Write + Seek>(
         xml_out.elem("style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
-    xml_out.attr("style:family", "paragraph")?;
+    xml_out.attr_str("style:family", "paragraph")?;
     for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
             _ => {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                xml_out.attr_esc(a.as_ref(), v)?;
             }
         }
     }
@@ -2099,19 +2072,19 @@ fn write_paragraphstyle<W: Write + Seek>(
         if style.tabstops().is_none() {
             xml_out.empty("style:paragraph-properties")?;
             for (a, v) in style.paragraphstyle().iter() {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                xml_out.attr_esc(a.as_ref(), v)?;
             }
         } else {
             xml_out.elem("style:paragraph-properties")?;
             for (a, v) in style.paragraphstyle().iter() {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                xml_out.attr_esc(a.as_ref(), v)?;
             }
             xml_out.elem("style:tab-stops")?;
             if let Some(tabstops) = style.tabstops() {
                 for ts in tabstops {
                     xml_out.empty("style:tab-stop")?;
                     for (a, v) in ts.attrmap().iter() {
-                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                        xml_out.attr_esc(a.as_ref(), v)?;
                     }
                 }
             }
@@ -2122,7 +2095,7 @@ fn write_paragraphstyle<W: Write + Seek>(
     if !style.textstyle().is_empty() {
         xml_out.empty("style:text-properties")?;
         for (a, v) in style.textstyle().iter() {
-            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
     if style.styleuse() == StyleUse::Default {
@@ -2144,13 +2117,13 @@ fn write_textstyle<W: Write + Seek>(
         xml_out.elem("style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
-    xml_out.attr("style:family", "text")?;
+    xml_out.attr_str("style:family", "text")?;
     for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
             _ => {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                xml_out.attr_esc(a.as_ref(), v)?;
             }
         }
     }
@@ -2158,7 +2131,7 @@ fn write_textstyle<W: Write + Seek>(
     if !style.textstyle().is_empty() {
         xml_out.empty("style:text-properties")?;
         for (a, v) in style.textstyle().iter() {
-            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
     if style.styleuse() == StyleUse::Default {
@@ -2180,13 +2153,13 @@ fn write_graphicstyle<W: Write + Seek>(
         xml_out.elem("style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
-    xml_out.attr("style:family", "graphic")?;
+    xml_out.attr_str("style:family", "graphic")?;
     for (a, v) in style.attrmap().iter() {
         match a.as_ref() {
             "style:name" => {}
             "style:family" => {}
             _ => {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                xml_out.attr_esc(a.as_ref(), v)?;
             }
         }
     }
@@ -2194,7 +2167,7 @@ fn write_graphicstyle<W: Write + Seek>(
     if !style.graphicstyle().is_empty() {
         xml_out.empty("style:graphic-properties")?;
         for (a, v) in style.graphicstyle().iter() {
-            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
 
@@ -2230,15 +2203,15 @@ fn write_valuestyles<W: Write + Seek, T: ValueFormatTrait>(
         };
 
         xml_out.elem(tag)?;
-        xml_out.attr_esc("style:name", value_format.name().as_str())?;
+        xml_out.attr_esc("style:name", value_format.name())?;
         for (a, v) in value_format.attrmap().iter() {
-            xml_out.attr_esc(a.as_ref(), v.as_str())?;
+            xml_out.attr_esc(a.as_ref(), v)?;
         }
 
         if !value_format.textstyle().is_empty() {
             xml_out.empty("style:text-properties")?;
             for (a, v) in value_format.textstyle().iter() {
-                xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                xml_out.attr_esc(a.as_ref(), v)?;
             }
         }
 
@@ -2271,7 +2244,7 @@ fn write_valuestyles<W: Write + Seek, T: ValueFormatTrait>(
             {
                 xml_out.elem(part_tag)?;
                 for (a, v) in part.attrmap().iter() {
-                    xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                    xml_out.attr_esc(a.as_ref(), v)?;
                 }
                 if let Some(content) = part.content() {
                     xml_out.text_esc(content)?;
@@ -2281,12 +2254,12 @@ fn write_valuestyles<W: Write + Seek, T: ValueFormatTrait>(
                 if let Some(embedded_text) = part.content() {
                     xml_out.elem(part_tag)?;
                     for (a, v) in part.attrmap().iter() {
-                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                        xml_out.attr_esc(a.as_ref(), v)?;
                     }
 
                     // embedded text
                     xml_out.elem("number:embedded-text")?;
-                    xml_out.attr_esc("number:position", part.position().to_string())?;
+                    xml_out.attr_esc("number:position", &part.position())?;
                     xml_out.text_esc(embedded_text)?;
                     xml_out.end_elem("number:embedded-text")?;
 
@@ -2294,13 +2267,13 @@ fn write_valuestyles<W: Write + Seek, T: ValueFormatTrait>(
                 } else {
                     xml_out.empty(part_tag)?;
                     for (a, v) in part.attrmap().iter() {
-                        xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                        xml_out.attr_esc(a.as_ref(), v)?;
                     }
                 }
             } else {
                 xml_out.empty(part_tag)?;
                 for (a, v) in part.attrmap().iter() {
-                    xml_out.attr_esc(a.as_ref(), v.as_str())?;
+                    xml_out.attr_esc(a.as_ref(), v)?;
                 }
             }
         }
@@ -2333,7 +2306,7 @@ fn write_pagestyles<W: Write + Seek>(
         if !style.style().is_empty() {
             xml_out.empty("style:page-layout-properties")?;
             for (k, v) in style.style().iter() {
-                xml_out.attr(k.as_ref(), v.as_str())?;
+                xml_out.attr_esc(k.as_ref(), v)?;
             }
         }
 
@@ -2341,7 +2314,7 @@ fn write_pagestyles<W: Write + Seek>(
         xml_out.empty("style:header-footer-properties")?;
         if !style.headerstyle().style().is_empty() {
             for (k, v) in style.headerstyle().style().iter() {
-                xml_out.attr(k.as_ref(), v.as_str())?;
+                xml_out.attr_esc(k.as_ref(), v)?;
             }
         }
         xml_out.end_elem("style:header-style")?;
@@ -2350,7 +2323,7 @@ fn write_pagestyles<W: Write + Seek>(
         xml_out.empty("style:header-footer-properties")?;
         if !style.footerstyle().style().is_empty() {
             for (k, v) in style.footerstyle().style().iter() {
-                xml_out.attr(k.as_ref(), v.as_str())?;
+                xml_out.attr_esc(k.as_ref(), v)?;
             }
         }
         xml_out.end_elem("style:footer-style")?;
@@ -2367,12 +2340,12 @@ fn write_masterpage<W: Write + Seek>(
 ) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:master-page")?;
-        xml_out.attr("style:name", style.name())?;
-        xml_out.attr("style:page-layout-name", style.pagestyle())?;
+        xml_out.attr_esc("style:name", style.name())?;
+        xml_out.attr_esc("style:page-layout-name", style.pagestyle())?;
 
         xml_out.elem("style:header")?;
         if !style.header().display() {
-            xml_out.attr("style:display", "false")?;
+            xml_out.attr_str("style:display", "false")?;
         }
         write_regions(style.header(), xml_out)?;
         xml_out.end_elem("style:header")?;
@@ -2380,7 +2353,7 @@ fn write_masterpage<W: Write + Seek>(
         if !style.header_first().is_empty() {
             xml_out.elem("style:header_first")?;
             if !style.header_first().display() {
-                xml_out.attr("style:display", "false")?;
+                xml_out.attr_str("style:display", "false")?;
             }
             write_regions(style.header_first(), xml_out)?;
             xml_out.end_elem("style:header_first")?;
@@ -2388,14 +2361,14 @@ fn write_masterpage<W: Write + Seek>(
 
         xml_out.elem("style:header_left")?;
         if !style.header_left().display() || style.header_left().is_empty() {
-            xml_out.attr("style:display", "false")?;
+            xml_out.attr_str("style:display", "false")?;
         }
         write_regions(style.header_left(), xml_out)?;
         xml_out.end_elem("style:header_left")?;
 
         xml_out.elem("style:footer")?;
         if !style.footer().display() {
-            xml_out.attr("style:display", "false")?;
+            xml_out.attr_str("style:display", "false")?;
         }
         write_regions(style.footer(), xml_out)?;
         xml_out.end_elem("style:footer")?;
@@ -2403,7 +2376,7 @@ fn write_masterpage<W: Write + Seek>(
         if !style.footer_first().is_empty() {
             xml_out.elem("style:footer_first")?;
             if !style.footer_first().display() {
-                xml_out.attr("style:display", "false")?;
+                xml_out.attr_str("style:display", "false")?;
             }
             write_regions(style.footer_first(), xml_out)?;
             xml_out.end_elem("style:footer_first")?;
@@ -2411,7 +2384,7 @@ fn write_masterpage<W: Write + Seek>(
 
         xml_out.elem("style:footer_left")?;
         if !style.footer_left().display() || style.footer_left().is_empty() {
-            xml_out.attr("style:display", "false")?;
+            xml_out.attr_str("style:display", "false")?;
         }
         write_regions(style.footer_left(), xml_out)?;
         xml_out.end_elem("style:footer_left")?;
