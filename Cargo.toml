@@ -1,6 +1,6 @@
 [package]
 name = "spreadsheet-ods"
-version = "0.16.1"
+version = "0.17.0"
 authors = ["thomasscharler <thscharler@gmail.com>"]
 edition = "2021"
 description = "Read and write ODS files"

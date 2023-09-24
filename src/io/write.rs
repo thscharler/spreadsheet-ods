@@ -101,7 +101,7 @@ fn sync(book: &mut WorkBook) -> Result<(), OdsError> {
     let d =
         NaiveDateTime::from_timestamp_opt(s.as_secs() as i64, 0).expect("valid timestamp for now");
 
-    book.metadata.generator = "spreadsheet-ods 0.16.0".to_string();
+    book.metadata.generator = "spreadsheet-ods 0.17.0".to_string();
     if book.metadata.creation_date.is_none() {
         book.metadata.creation_date = Some(d);
     }
