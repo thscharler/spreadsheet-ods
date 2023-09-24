@@ -1,3 +1,8 @@
+# 0.17.0
+
+- Allow access to meta.xml data.
+- Allow access to manifest.xml.
+
 # 0.16.0
 
 - New ValueStyleMap for use in ValueFormat*. 

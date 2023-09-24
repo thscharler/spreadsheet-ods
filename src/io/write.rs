@@ -4,7 +4,7 @@ use std::io;
 use std::io::{Cursor, Seek, Write};
 use std::path::Path;
 
-use chrono::NaiveDateTime;
+use chrono::{Duration, NaiveDateTime};
 use zip::write::FileOptions;
 
 use crate::config::{ConfigItem, ConfigItemType, ConfigValue};
@@ -26,6 +26,8 @@ use crate::{
 
 type OdsWriter<W> = ZipOut<W>;
 type XmlOdsWriter<'a, W> = XmlWriter<ZipWrite<'a, W>>;
+
+const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 
 /// Writes the ODS file into a supplied buffer.
 pub fn write_ods_buf_uncompressed(book: &mut WorkBook, buf: Vec<u8>) -> Result<Vec<u8>, OdsError> {
@@ -66,12 +68,13 @@ fn write_ods_impl<W: Write + Seek>(
 ) -> Result<W, OdsError> {
     sanity_checks(book)?;
 
-    store_derived(book)?;
+    sync(book)?;
 
     create_manifest(book)?;
 
     write_mimetype(&mut zip_writer)?;
     write_manifest(book, &mut zip_writer)?;
+    write_metadata(book, &mut zip_writer)?;
     write_settings(book, &mut zip_writer)?;
     write_ods_styles(book, &mut zip_writer)?;
     write_ods_content(book, &mut zip_writer)?;
@@ -87,9 +90,30 @@ fn sanity_checks(book: &mut WorkBook) -> Result<(), OdsError> {
     Ok(())
 }
 
+/// Syncs book.config back to the tree structure.
+/// Syncs row-heights and col-widths back to the corresponding styles.
 #[allow(clippy::collapsible_else_if)]
 #[allow(clippy::collapsible_if)]
-fn store_derived(book: &mut WorkBook) -> Result<(), OdsError> {
+fn sync(book: &mut WorkBook) -> Result<(), OdsError> {
+    // Manifest
+    let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
+    let d =
+        NaiveDateTime::from_timestamp_opt(s.as_secs() as i64, 0).expect("valid timestamp for now");
+
+    book.metadata.generator = "spreadsheet-ods 0.16.0".to_string();
+    if book.metadata.creation_date.is_none() {
+        book.metadata.creation_date = Some(d);
+    }
+    book.metadata.date = Some(d);
+    book.metadata.editing_cycles += 1;
+    book.metadata.document_statistics.table_count = book.sheets.len() as u32;
+    let mut cell_count = 0;
+    for sheet in book.iter_sheets() {
+        cell_count += sheet.data.len() as u32;
+    }
+    book.metadata.document_statistics.cell_count = cell_count;
+
+    // Config
     let mut config = book.config.detach(0);
 
     let bc = config.create_path(&[
@@ -207,7 +231,7 @@ fn create_manifest(book: &mut WorkBook) -> Result<(), OdsError> {
         book.add_manifest(Manifest::new("styles.xml", "text/xml"));
     }
     if !book.manifest.contains_key("meta.xml") {
-        book.add_manifest(create_meta(book)?);
+        book.add_manifest(Manifest::new("meta.xml", "text/xml"));
     }
     if !book.manifest.contains_key("content.xml") {
         book.add_manifest(Manifest::new("content.xml", "text/xml"));
@@ -227,7 +251,7 @@ fn write_extra<W: Write + Seek>(
     for manifest in book.manifest.values() {
         if !matches!(
             manifest.full_path.as_str(),
-            "/" | "settings.xml" | "styles.xml" | "content.xml"
+            "/" | "settings.xml" | "styles.xml" | "content.xml" | "meta.xml"
         ) {
             if manifest.is_dir() {
                 zip_writer.add_directory(&manifest.full_path, FileOptions::default())?;
@@ -289,6 +313,136 @@ fn write_manifest<W: Write + Seek>(
     Ok(())
 }
 
+fn write_metadata<W: Write + Seek>(
+    book: &WorkBook,
+    zip_out: &mut OdsWriter<W>,
+) -> Result<(), OdsError> {
+    let w = zip_out.start_file("meta.xml", FileOptions::default())?;
+
+    let mut xml_out = XmlWriter::new(w);
+
+    xml_out.dtd("UTF-8")?;
+
+    xml_out.elem("office:document-meta")?;
+    xml_out.attr(
+        "xmlns:meta",
+        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+    )?;
+    xml_out.attr(
+        "xmlns:office",
+        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+    )?;
+    xml_out.attr("office:version", book.version())?;
+
+    xml_out.elem("office:meta")?;
+
+    xml_out.elem_text("meta:generator", &book.metadata.generator)?;
+    xml_out.opt_elem_text_esc("dc:title", &book.metadata.title)?;
+    xml_out.opt_elem_text_esc("dc:description", &book.metadata.description)?;
+    xml_out.opt_elem_text_esc("dc:subject", &book.metadata.subject)?;
+    xml_out.opt_elem_text_esc("dc:language", &book.metadata.language)?;
+    xml_out.opt_elem_text_esc("meta:keyword", &book.metadata.keyword)?;
+    xml_out.opt_elem_text_esc("meta:initial-creator", &book.metadata.initial_creator)?;
+    xml_out.opt_elem_text_esc("meta:creator", &book.metadata.creator)?;
+    xml_out.opt_elem_text(
+        "meta:editing-cycles",
+        &book.metadata.editing_cycles.to_string(),
+    )?;
+
+    let mut value = String::new();
+    format_duration(book.metadata.editing_duration, &mut value);
+    xml_out.opt_elem_text("meta:editing-duration", value)?;
+
+    xml_out.opt_elem_text_esc("meta:printed-by", &book.metadata.printed_by)?;
+    if let Some(v) = book.metadata.creation_date {
+        xml_out.elem_text("meta:creation-date", &v.format(DATETIME_FORMAT).to_string())?;
+    }
+    if let Some(v) = book.metadata.date {
+        xml_out.elem_text("meta:date", &v.format(DATETIME_FORMAT).to_string())?;
+    }
+    if let Some(v) = book.metadata.print_date {
+        xml_out.elem_text("meta:print_date", &v.format(DATETIME_FORMAT).to_string())?;
+    }
+
+    if !book.metadata.template.is_empty() {
+        xml_out.empty("meta:template")?;
+        if let Some(v) = book.metadata.template.date {
+            xml_out.attr("meta:date", &v.format(DATETIME_FORMAT).to_string())?;
+        }
+        if let Some(v) = book.metadata.template.actuate {
+            xml_out.attr("xlink:actuate", v.to_string())?;
+        }
+        if let Some(v) = &book.metadata.template.href {
+            xml_out.attr_esc("xlink:href", v)?;
+        }
+        if let Some(v) = &book.metadata.template.title {
+            xml_out.attr_esc("xlink:title", v)?;
+        }
+        if let Some(v) = book.metadata.template.link_type {
+            xml_out.attr("xlink:type", v.to_string())?;
+        }
+    }
+
+    if !book.metadata.auto_reload.is_empty() {
+        xml_out.empty("meta:auto_reload")?;
+        if let Some(v) = book.metadata.auto_reload.delay {
+            let mut value = String::new();
+            format_duration(v, &mut value);
+            xml_out.attr("meta:delay", value)?;
+        }
+        if let Some(v) = book.metadata.auto_reload.actuate {
+            xml_out.attr("xlink:actuate", v.to_string())?;
+        }
+        if let Some(v) = &book.metadata.auto_reload.href {
+            xml_out.attr_esc("xlink:href", v)?;
+        }
+        if let Some(v) = &book.metadata.auto_reload.show {
+            xml_out.attr("xlink:show", v.to_string())?;
+        }
+        if let Some(v) = book.metadata.auto_reload.link_type {
+            xml_out.attr("xlink:type", v.to_string())?;
+        }
+    }
+
+    if !book.metadata.hyperlink_behaviour.is_empty() {
+        xml_out.empty("meta:hyperlink-behaviour")?;
+        if let Some(v) = &book.metadata.hyperlink_behaviour.target_frame_name {
+            xml_out.attr_esc("office:target-frame-name", v.to_string())?;
+        }
+        if let Some(v) = &book.metadata.hyperlink_behaviour.show {
+            xml_out.attr("xlink:show", v.to_string())?;
+        }
+    }
+
+    xml_out.empty("meta:document-statistics")?;
+    xml_out.attr(
+        "meta:table-count",
+        book.metadata.document_statistics.table_count.to_string(),
+    )?;
+    xml_out.attr(
+        "meta:cell-count",
+        book.metadata.document_statistics.cell_count.to_string(),
+    )?;
+    xml_out.attr(
+        "meta:object-count",
+        book.metadata.document_statistics.object_count.to_string(),
+    )?;
+    xml_out.attr(
+        "meta:ole-object-count",
+        book.metadata
+            .document_statistics
+            .ole_object_count
+            .to_string(),
+    )?;
+
+    xml_out.end_elem("office:meta")?;
+    xml_out.end_elem("office:document-meta")?;
+
+    xml_out.close()?;
+
+    Ok(())
+}
+
 fn create_manifest_rdf() -> Result<Manifest, OdsError> {
     let mut buf = Vec::new();
     let mut xml_out = XmlWriter::new(&mut buf);
@@ -329,42 +483,6 @@ fn create_manifest_rdf() -> Result<Manifest, OdsError> {
         "application/rdf+xml",
         buf,
     ))
-}
-
-fn create_meta(book: &WorkBook) -> Result<Manifest, OdsError> {
-    let mut buf = Vec::new();
-    let mut xml_out = XmlWriter::new(&mut buf);
-
-    xml_out.dtd("UTF-8")?;
-    xml_out.elem("office:document-meta")?;
-    xml_out.attr(
-        "xmlns:meta",
-        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
-    )?;
-    xml_out.attr(
-        "xmlns:office",
-        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-    )?;
-    xml_out.attr("office:version", book.version().clone())?;
-    xml_out.elem("office:meta")?;
-    xml_out.elem_text("meta:generator", "spreadsheet-ods 0.16.0")?;
-    let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
-    let d = NaiveDateTime::from_timestamp_opt(s.as_secs() as i64, 0);
-    if let Some(d) = d {
-        xml_out.elem_text(
-            "meta:creation-date",
-            &d.format("%Y-%m-%dT%H:%M:%S%.f").to_string(),
-        )?;
-    }
-    xml_out.elem_text("meta:editing-duration", "P0D")?;
-    xml_out.elem_text("meta:editing-cycles", "1")?;
-    // xml_out.elem_text_esc("meta:initial-creator", &username::get_user_name().unwrap())?;
-    // TODO: allow to set this data.
-    xml_out.end_elem("office:meta")?;
-    xml_out.end_elem("office:document-meta")?;
-    xml_out.close()?;
-
-    Ok(Manifest::with_buf("meta.xml", "text/xml", buf))
 }
 
 fn write_settings<W: Write + Seek>(
@@ -564,7 +682,7 @@ fn write_config_item<W: Write + Seek>(
         }
         ConfigValue::DateTime(v) => {
             xml_out.attr("config:type", "datetime")?;
-            xml_out.text(&v.format("%Y-%m-%dT%H:%M:%S%.f").to_string())?;
+            xml_out.text(&v.format(DATETIME_FORMAT).to_string())?;
         }
         ConfigValue::Double(v) => {
             xml_out.attr("config:type", "double")?;
@@ -1648,7 +1766,7 @@ fn write_cell<W: Write + Seek>(
         }
         Some(Value::DateTime(d)) => {
             xml_out.attr("office:value-type", "date")?;
-            let value = d.format("%Y-%m-%dT%H:%M:%S%.f").to_string();
+            let value = d.format(DATETIME_FORMAT).to_string();
             xml_out.attr("office:date-value", value.as_str())?;
             xml_out.elem("text:p")?;
             xml_out.text_esc(value)?;
@@ -1657,16 +1775,8 @@ fn write_cell<W: Write + Seek>(
         Some(Value::TimeDuration(d)) => {
             xml_out.attr("office:value-type", "time")?;
 
-            let mut value = String::from("PT");
-            value.push_str(&d.num_hours().to_string());
-            value.push_str("H");
-            value.push_str(&(d.num_minutes() % 60).to_string());
-            value.push_str("M");
-            value.push_str(&(d.num_seconds() % 60).to_string());
-            value.push_str(".");
-            value.push_str(&(d.num_milliseconds() % 1000).to_string());
-            value.push_str("S");
-
+            let mut value = String::new();
+            format_duration(*d, &mut value);
             xml_out.attr("office:time-value", value.as_str())?;
 
             xml_out.elem("text:p")?;
@@ -1715,6 +1825,18 @@ fn write_cell<W: Write + Seek>(
     }
 
     Ok(())
+}
+
+fn format_duration(d: Duration, buf: &mut String) {
+    buf.push_str("PT");
+    buf.push_str(&d.num_hours().to_string());
+    buf.push_str("H");
+    buf.push_str(&(d.num_minutes() % 60).to_string());
+    buf.push_str("M");
+    buf.push_str(&(d.num_seconds() % 60).to_string());
+    buf.push_str(".");
+    buf.push_str(&(d.num_milliseconds() % 1000).to_string());
+    buf.push_str("S");
 }
 
 fn write_font_decl<W: Write + Seek>(

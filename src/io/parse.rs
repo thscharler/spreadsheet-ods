@@ -4,9 +4,10 @@
 //! For many cases this omits the transformation to a &str
 
 use crate::error::AsStatic;
+use crate::xlink::{XLinkActuate, XLinkShow, XLinkType};
 use crate::{OdsError, Visibility};
-use chrono::Duration;
-use chrono::NaiveDateTime;
+use chrono::{Duration, NaiveDate};
+use chrono::{NaiveDateTime, NaiveTime};
 use kparse::prelude::*;
 use kparse::{TokenizerError, TokenizerResult};
 use nom::character::complete::digit1;
@@ -26,6 +27,8 @@ pub(crate) enum RCode {
 
     Integer,
     DateTime,
+    Date,
+    Time,
     Bool,
 }
 
@@ -38,6 +41,8 @@ impl AsStatic<str> for RCode {
             RCode::Integer => "Integer",
             RCode::DateTime => "DateTime",
             RCode::Bool => "Bool",
+            RCode::Date => "Date",
+            RCode::Time => "Time",
         }
     }
 }
@@ -67,6 +72,47 @@ pub(crate) fn parse_visibility(input: KSpan<'_>) -> Result<Visibility, OdsError>
             "Unknown value for table:visibility {}",
             from_utf8(input)?
         ))),
+    }
+}
+
+/// Parse XLinkActuate enum
+pub(crate) fn parse_xlink_actuate(input: KSpan<'_>) -> Result<XLinkActuate, OdsError> {
+    match input {
+        b"onLoad" => Ok(XLinkActuate::OnLoad),
+        b"onRequest" => Ok(XLinkActuate::OnRequest),
+        _ => Err(OdsError::Parse(
+            "invalid xlink:actuate",
+            Some(from_utf8(input)?.to_string()),
+        )),
+    }
+}
+
+/// Parse XLinkShow enum
+pub(crate) fn parse_xlink_show(input: KSpan<'_>) -> Result<XLinkShow, OdsError> {
+    match input {
+        b"new" => Ok(XLinkShow::New),
+        b"replace" => Ok(XLinkShow::Replace),
+        _ => Err(OdsError::Parse(
+            "invalid xlink:show",
+            Some(from_utf8(input)?.to_string()),
+        )),
+    }
+}
+
+/// Parse XLinkType enum
+pub(crate) fn parse_xlink_type(input: KSpan<'_>) -> Result<XLinkType, OdsError> {
+    match input {
+        b"simple" => Ok(XLinkType::Simple),
+        b"extended" => Ok(XLinkType::Extended),
+        b"locator" => Ok(XLinkType::Locator),
+        b"arc" => Ok(XLinkType::Arc),
+        b"resource" => Ok(XLinkType::Resource),
+        b"title" => Ok(XLinkType::Title),
+        b"none" => Ok(XLinkType::None),
+        _ => Err(OdsError::Parse(
+            "invalid xlink:type",
+            Some(from_utf8(input)?.to_string()),
+        )),
     }
 }
 
@@ -108,6 +154,16 @@ pub(crate) fn parse_f64(input: KSpan<'_>) -> Result<f64, OdsError> {
 /// Parse a XML Schema datetime.
 pub(crate) fn parse_datetime(input: KSpan<'_>) -> Result<NaiveDateTime, OdsError> {
     Ok(token_datetime(input)?)
+}
+
+/// Parse a XML Schema date.
+pub(crate) fn parse_date(input: KSpan<'_>) -> Result<NaiveDate, OdsError> {
+    Ok(token_date(input)?)
+}
+
+/// Parse a XML Schema time.
+pub(crate) fn parse_time(input: KSpan<'_>) -> Result<NaiveTime, OdsError> {
+    Ok(token_time(input)?)
 }
 
 /// Parse a XML Schema time duration.
@@ -275,28 +331,97 @@ fn token_datetime(input: KSpan<'_>) -> KTokenResult<'_, NaiveDateTime> {
 }
 
 #[inline(always)]
+fn token_time(input: KSpan<'_>) -> KTokenResult<'_, NaiveTime> {
+    let (_, (hour, _, minute, _, second, nanos)) = terminated(
+        tuple((
+            token_datepart,
+            byte(b':'),
+            token_datepart,
+            byte(b':'),
+            token_datepart,
+            opt(tuple((byte(b'.'), token_nano))),
+        )),
+        eof,
+    )(input)?;
+
+    let mut p = chrono::format::Parsed::new();
+    p.hour_div_12 = Some((hour / 12) as u32);
+    p.hour_mod_12 = Some((hour % 12) as u32);
+    p.minute = Some(minute as u32);
+    p.second = Some(second as u32);
+    if let Some((_, nanos)) = nanos {
+        p.nanosecond = Some(nanos as u32);
+    }
+    match p.to_naive_time() {
+        Ok(v) => Ok(v),
+        Err(_) => Err(nom::Err::Error(KTokenizerError::new(RCode::Time, input))),
+    }
+}
+
+#[inline(always)]
+fn token_date(input: KSpan<'_>) -> KTokenResult<'_, NaiveDate> {
+    let (_, (minus, year, _, month, _, day)) = terminated(
+        tuple((
+            opt(byte(b'-')),
+            token_datepart,
+            byte(b'-'),
+            token_datepart,
+            byte(b'-'),
+            token_datepart,
+        )),
+        eof,
+    )(input)?;
+
+    let sign = match minus {
+        Some(_) => -1,
+        None => 1,
+    };
+
+    let mut p = chrono::format::Parsed::new();
+    p.year = Some((sign * year) as i32);
+    p.month = Some(month as u32);
+    p.day = Some(day as u32);
+
+    match p.to_naive_date() {
+        Ok(v) => Ok(v),
+        Err(_) => Err(nom::Err::Error(KTokenizerError::new(RCode::Date, input))),
+    }
+}
+
+#[inline(always)]
 fn token_duration(input: KSpan<'_>) -> KTokenResult<'_, Duration> {
-    let (_, (_, day, _, hour, minute, (second, nanos))) = all_consuming(tuple((
+    let (_, (_, day, time)) = all_consuming(tuple((
         byte(b'P'),
         // these do not occur?
         //opt(terminated(token_datepart, byte(b'Y'))),
         //opt(terminated(token_datepart, byte(b'M'))),
         opt(terminated(token_datepart, byte(b'D'))),
-        byte(b'T'),
-        terminated(token_datepart, byte(b'H')),
-        terminated(token_datepart, byte(b'M')),
-        terminated(
-            pair(token_datepart, opt(preceded(byte(b'.'), token_nano))),
-            byte(b'S'),
-        ),
+        opt(tuple((
+            byte(b'T'),
+            opt(terminated(token_datepart, byte(b'H'))),
+            opt(terminated(token_datepart, byte(b'M'))),
+            terminated(
+                pair(token_datepart, opt(preceded(byte(b'.'), token_nano))),
+                byte(b'S'),
+            ),
+        ))),
     )))(input)?;
 
-    let mut result = Duration::seconds(hour * 3600 + minute * 60 + second);
+    let mut result = Duration::seconds(0);
     if let Some(day) = day {
         result = result + Duration::days(day);
     }
-    if let Some(nanos) = nanos {
-        result = result + Duration::nanoseconds(nanos);
+    if let Some((_, hour, minute, (second, nanos))) = time {
+        if let Some(hour) = hour {
+            result = result + Duration::hours(hour);
+        }
+        if let Some(minute) = minute {
+            result = result + Duration::minutes(minute);
+        }
+        result = result + Duration::seconds(second);
+        if let Some(nanos) = nanos {
+            result = result + Duration::nanoseconds(nanos);
+        }
     }
 
     Ok(result)
