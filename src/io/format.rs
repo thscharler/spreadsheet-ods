@@ -21,7 +21,7 @@ pub(crate) fn format_duration2(v: Duration) -> impl Display {
     Tmp(v)
 }
 
-pub(crate) fn format_validation_condition<'a>(v: &'a Validation) -> impl Display + 'a {
+pub(crate) fn format_validation_condition(v: &Validation) -> impl Display + '_ {
     struct Tmp<'f>(&'f Validation);
 
     impl<'f> Display for Tmp<'f> {

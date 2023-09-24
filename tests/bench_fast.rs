@@ -103,8 +103,8 @@ fn test_b0() -> Result<(), OdsError> {
         ROWS as u64 * COLS as u64,
         create_wb(ROWS, COLS),
     )?;
-    timingr("write_wb", CELLS * 1, || {
-        for i in 0..1 {
+    timingr("write_wb", CELLS * 30, || {
+        for i in 0..30 {
             let buf = black_box(write_ods_buf(&mut wb, Vec::new())?);
         }
         Ok::<(), OdsError>(())

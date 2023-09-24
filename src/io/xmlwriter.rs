@@ -256,11 +256,10 @@ impl<W: Write> XmlWriter<W> {
 
     /// Escape text
     fn escape<T: Display + ?Sized>(&mut self, text: &T) -> io::Result<()> {
-        #[inline(never)]
         fn escape_impl(text: &[u8], tmp2: &mut Vec<u8>) {
             tmp2.clear();
             for c in text {
-                let _ = match c {
+                match c {
                     b'"' => {
                         let _ = write!(tmp2, "&quot;");
                     }
@@ -294,11 +293,10 @@ impl<W: Write> XmlWriter<W> {
 
     /// Escape identifiers
     fn escape_name<T: Display + ?Sized>(&mut self, text: &T) -> io::Result<()> {
-        #[inline(never)]
         fn escape_impl(text: &[u8], tmp2: &mut Vec<u8>) {
             tmp2.clear();
             for c in text {
-                let _ = match c {
+                match c {
                     b'"' => {
                         let _ = write!(tmp2, "&quot;");
                     }

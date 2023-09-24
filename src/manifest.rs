@@ -54,6 +54,6 @@ impl Manifest {
 
     /// Name ends with "/"
     pub fn is_dir(&self) -> bool {
-        self.full_path.ends_with("/")
+        self.full_path.ends_with('/')
     }
 }

@@ -1136,7 +1136,7 @@ pub fn parse_cellranges(buf: &str) -> Result<Option<Vec<CellRange>>, OdsError> {
     }
 }
 
-pub(crate) fn format_cellranges<'a>(v: &'a [CellRange]) -> impl Display + 'a {
+pub(crate) fn format_cellranges(v: &[CellRange]) -> impl Display + '_ {
     struct Tmp<'f>(&'f [CellRange]);
 
     impl<'f> Display for Tmp<'f> {
