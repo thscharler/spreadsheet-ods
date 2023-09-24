@@ -89,7 +89,7 @@ struct DummyRowHeader {
 #[test]
 fn test_b0() -> Result<(), OdsError> {
     const ROWS: u32 = 100;
-    const COLS: u32 = 40;
+    const COLS: u32 = 400;
     const CELLS: u64 = ROWS as u64 * COLS as u64;
 
     // println!("sizes {}", size_of::<Value>());
@@ -100,7 +100,14 @@ fn test_b0() -> Result<(), OdsError> {
         ROWS as u64 * COLS as u64,
         create_wb(ROWS, COLS),
     )?;
-    timingr("write_wb", CELLS, write_wb(&mut wb))?;
+    for i in 0..100 {
+        timingr("write_wb", CELLS * 100, || {
+            for i in 0..100 {
+                let buf = write_ods_buf(&mut wb, Vec::new())?;
+            }
+            Ok::<(), OdsError>(())
+        })?;
+    }
 
     Ok(())
 }
