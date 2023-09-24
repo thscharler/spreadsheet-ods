@@ -342,12 +342,11 @@ fn read_content(
                 xml_tag.name().as_ref() == b"text:sequence-decls" ||
                 xml_tag.name().as_ref() == b"text:user-field-decls" ||
                 xml_tag.name().as_ref() == b"text:dde-connection-decls" ||
-                // xml_tag.name().as_ref() == b"text:alphabetical-index-auto-mark-file" ||
-                xml_tag.name().as_ref() == b"table:calculation-settings" ||
+                xml_tag.name().as_ref() == b"table:calculation-settings" || //*
                 xml_tag.name().as_ref() == b"table:label-ranges" ||
                 /* epilogue */
-                xml_tag.name().as_ref() == b"table:named-expressions" ||
-                xml_tag.name().as_ref() == b"table:database-ranges" ||
+                xml_tag.name().as_ref() == b"table:named-expressions" || //*
+                xml_tag.name().as_ref() == b"table:database-ranges" || //*
                 xml_tag.name().as_ref() == b"table:data-pilot-tables" ||
                 xml_tag.name().as_ref() == b"table:consolidation" ||
                 xml_tag.name().as_ref() == b"table:dde-links" => {
@@ -362,7 +361,6 @@ fn read_content(
                 xml_tag.name().as_ref() == b"text:sequence-decls" ||
                 xml_tag.name().as_ref() == b"text:user-field-decls" ||
                 xml_tag.name().as_ref() == b"text:dde-connection-decls" ||
-                // xml_tag.name().as_ref() == b"text:alphabetical-index-auto-mark-file" ||
                 xml_tag.name().as_ref() == b"table:calculation-settings" ||
                 xml_tag.name().as_ref() == b"table:label-ranges" ||
                 /* epilogue */

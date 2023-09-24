@@ -105,8 +105,12 @@ fn sync(book: &mut WorkBook) -> Result<(), OdsError> {
     if book.metadata.creation_date.is_none() {
         book.metadata.creation_date = Some(d);
     }
-    book.metadata.date = Some(d);
-    book.metadata.editing_cycles += 1;
+    if book.metadata.date.is_none() {
+        book.metadata.date = Some(d);
+    }
+    if book.metadata.editing_cycles == 0 {
+        book.metadata.editing_cycles = 1;
+    }
     book.metadata.document_statistics.table_count = book.sheets.len() as u32;
     let mut cell_count = 0;
     for sheet in book.iter_sheets() {

@@ -2,6 +2,7 @@
 
 - Allow access to meta.xml data.
 - Allow access to manifest.xml.
+- Rewrote the XMLWriter to cause less allocations. Mixed results, but nicer API.
 
 # 0.16.1
 
