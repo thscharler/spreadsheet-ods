@@ -1,7 +1,10 @@
 use icu_locid::locale;
+use std::hint::black_box;
 use std::time::Instant;
 
-use spreadsheet_ods::{write_ods_buf, Length, OdsError, Sheet, Visibility, WorkBook};
+use spreadsheet_ods::{
+    write_ods_buf, write_ods_buf_uncompressed, Length, OdsError, Sheet, Visibility, WorkBook,
+};
 
 pub fn timingr<E, R>(
     name: &str,
@@ -63,7 +66,7 @@ fn create_wb(rows: u32, cols: u32) -> impl FnMut() -> Result<WorkBook, OdsError>
 
 fn write_wb<'a>(wb: &'a mut WorkBook) -> impl FnMut() -> Result<(), OdsError> + 'a {
     move || {
-        let buf = write_ods_buf(wb, Vec::new())?;
+        let buf = write_ods_buf_uncompressed(wb, Vec::new())?;
         println!("len {}", buf.len());
         Ok(())
     }
@@ -102,7 +105,7 @@ fn test_b0() -> Result<(), OdsError> {
     )?;
     timingr("write_wb", CELLS * 100, || {
         for i in 0..100 {
-            let buf = write_ods_buf(&mut wb, Vec::new())?;
+            let buf = black_box(write_ods_buf(&mut wb, Vec::new())?);
         }
         Ok::<(), OdsError>(())
     })?;
