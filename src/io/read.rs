@@ -16,11 +16,16 @@ use crate::ds::detach::Detach;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType, ValueFormatTrait, ValueStyleMap};
 use crate::io::parse::{
-    parse_bool, parse_currency, parse_datetime, parse_duration, parse_f64, parse_i16, parse_i32,
-    parse_i64, parse_u32, parse_visibility,
+    parse_bool, parse_currency, parse_date, parse_datetime, parse_duration, parse_f64, parse_i16,
+    parse_i32, parse_i64, parse_time, parse_u32, parse_visibility, parse_xlink_actuate,
+    parse_xlink_show, parse_xlink_type,
 };
 use crate::io::{DUMP_UNUSED, DUMP_XML};
 use crate::manifest::Manifest;
+use crate::metadata::{
+    MetaAutoReload, MetaDocumentStatistics, MetaHyperlinkBehaviour, MetaTemplate, MetaUserDefined,
+    MetaValue,
+};
 use crate::refs::{parse_cellranges, parse_cellref};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
@@ -71,6 +76,11 @@ fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, Ods
         read_settings(&mut bufstack, &mut book, &mut z)?;
     } else {
         book.config = default_settings();
+    }
+    if let Ok(mut z) = zip.by_name("meta.xml") {
+        read_metadata(&mut bufstack, &mut book, &mut z)?;
+    } else {
+        book.metadata = Default::default();
     }
     read_manifest(&mut bufstack, &mut book, &mut zip)?;
 
@@ -133,7 +143,7 @@ fn read_manifest<R: Read + Seek>(
     for manifest in book.manifest.values_mut() {
         if !matches!(
             manifest.full_path.as_str(),
-            "/" | "settings.xml" | "styles.xml" | "content.xml"
+            "/" | "settings.xml" | "styles.xml" | "content.xml" | "meta.xml"
         ) && !manifest.is_dir()
         {
             let mut ze = zip.by_name(manifest.full_path.as_str())?;
@@ -2693,6 +2703,360 @@ pub(crate) fn default_settings() -> Detach<Config> {
     dc
 }
 
+fn read_metadata(
+    bs: &mut BufStack,
+    book: &mut WorkBook,
+    zip_file: &mut ZipFile<'_>,
+) -> Result<(), OdsError> {
+    let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
+
+    let mut buf = bs.get_buf();
+
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        if DUMP_XML {
+            println!("read_metadata {:?}", evt);
+        }
+
+        match evt {
+            Event::Decl(_) => {}
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {
+                // noop
+            }
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {
+                // noop
+            }
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"dc:creator" => {
+                book.metadata.creator = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(from_utf8(v)?.to_string()),
+                    String::new,
+                )?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:printed-by" => {
+                book.metadata.printed_by = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(from_utf8(v)?.to_string()),
+                    String::new,
+                )?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:creation-date" => {
+                book.metadata.creation_date = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(Some(parse_datetime(v)?)),
+                    || None,
+                )?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:date" => {
+                book.metadata.date = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(Some(parse_datetime(v)?)),
+                    || None,
+                )?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:print-date" => {
+                book.metadata.print_date = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(Some(parse_datetime(v)?)),
+                    || None,
+                )?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"dc:language" => {
+                book.metadata.language = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(from_utf8(v)?.to_string()),
+                    String::new,
+                )?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:editing-cycles" => {
+                book.metadata.editing_cycles =
+                    read_metadata_value(bs, &xml_tag, &mut xml, parse_u32, || 0)?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:editing-duration" => {
+                book.metadata.editing_duration =
+                    read_metadata_value(bs, &xml_tag, &mut xml, parse_duration, || {
+                        Duration::seconds(0)
+                    })?;
+            }
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:template" => {
+                book.metadata.template = read_metadata_template(&xml_tag)?;
+            }
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"meta:template" => {}
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:auto-reload" => {
+                book.metadata.auto_reload = read_metadata_auto_reload(&xml_tag)?;
+            }
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"meta:auto-reload" => {}
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:hyperlink-behaviour" => {
+                book.metadata.hyperlink_behaviour = read_metadata_hyperlink_behaviour(&xml_tag)?;
+            }
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"meta:hyperlink-behaviour" => {}
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:document-statistic" => {
+                book.metadata.document_statistics = read_metadata_document_statistics(&xml_tag)?;
+            }
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"meta:document-statistic" => {}
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:user-defined" => {
+                book.metadata
+                    .user_defined
+                    .push(read_metadata_user_defined(bs, &xml_tag, &mut xml)?);
+            }
+
+            Event::Empty(_) => {}
+
+            Event::Text(_) => {}
+
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_metadata", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(())
+}
+
+fn read_metadata_template(tag: &BytesStart<'_>) -> Result<MetaTemplate, OdsError> {
+    let mut template = MetaTemplate::default();
+
+    for attr in tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"meta:date" => {
+                dbg!(&attr);
+                template.date = Some(parse_datetime(attr.unescape_value()?.as_bytes())?);
+            }
+            attr if attr.key.as_ref() == b"xlink:actuate" => {
+                template.actuate = Some(parse_xlink_actuate(attr.unescape_value()?.as_bytes())?);
+            }
+            attr if attr.key.as_ref() == b"xlink:href" => {
+                template.href = Some(attr.unescape_value()?.to_string())
+            }
+            attr if attr.key.as_ref() == b"xlink:title" => {
+                template.title = Some(attr.unescape_value()?.to_string())
+            }
+            attr if attr.key.as_ref() == b"xlink:type" => {
+                template.link_type = Some(parse_xlink_type(attr.unescape_value()?.as_bytes())?);
+            }
+            attr => {
+                dump_unused("read_metadata_template", tag.name().as_ref(), &attr)?;
+            }
+        }
+    }
+
+    Ok(template)
+}
+
+fn read_metadata_auto_reload(tag: &BytesStart<'_>) -> Result<MetaAutoReload, OdsError> {
+    let mut auto_reload = MetaAutoReload::default();
+
+    for attr in tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"meta:delay" => {
+                auto_reload.delay = Some(parse_duration(attr.unescape_value()?.as_bytes())?);
+            }
+            attr if attr.key.as_ref() == b"xlink:actuate" => {
+                auto_reload.actuate = Some(parse_xlink_actuate(attr.unescape_value()?.as_bytes())?);
+            }
+            attr if attr.key.as_ref() == b"xlink:href" => {
+                auto_reload.href = Some(attr.unescape_value()?.to_string())
+            }
+            attr if attr.key.as_ref() == b"xlink:show" => {
+                auto_reload.show = Some(parse_xlink_show(attr.unescape_value()?.as_bytes())?);
+            }
+            attr if attr.key.as_ref() == b"xlink:type" => {
+                auto_reload.link_type = Some(parse_xlink_type(attr.unescape_value()?.as_bytes())?);
+            }
+            attr => {
+                dump_unused("read_metadata_auto_reload", tag.name().as_ref(), &attr)?;
+            }
+        }
+    }
+
+    Ok(auto_reload)
+}
+
+fn read_metadata_hyperlink_behaviour(
+    tag: &BytesStart<'_>,
+) -> Result<MetaHyperlinkBehaviour, OdsError> {
+    let mut hyperlink_behaviour = MetaHyperlinkBehaviour::default();
+
+    for attr in tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"office:targetframe-name" => {
+                hyperlink_behaviour.target_frame_name = Some(attr.unescape_value()?.to_string());
+            }
+            attr if attr.key.as_ref() == b"xlink:show" => {
+                hyperlink_behaviour.show =
+                    Some(parse_xlink_show(attr.unescape_value()?.as_bytes())?);
+            }
+            attr => {
+                dump_unused(
+                    "read_metadata_hyperlink_behaviour",
+                    tag.name().as_ref(),
+                    &attr,
+                )?;
+            }
+        }
+    }
+
+    Ok(hyperlink_behaviour)
+}
+
+fn read_metadata_document_statistics(
+    tag: &BytesStart<'_>,
+) -> Result<MetaDocumentStatistics, OdsError> {
+    let mut document_statistics = MetaDocumentStatistics::default();
+
+    for attr in tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"meta:cell-count" => {
+                document_statistics.cell_count = parse_u32(attr.unescape_value()?.as_bytes())?;
+            }
+            attr if attr.key.as_ref() == b"meta:object-count" => {
+                document_statistics.object_count = parse_u32(attr.unescape_value()?.as_bytes())?;
+            }
+            attr if attr.key.as_ref() == b"meta:ole-object-count" => {
+                document_statistics.ole_object_count =
+                    parse_u32(attr.unescape_value()?.as_bytes())?;
+            }
+            attr if attr.key.as_ref() == b"meta:table-count" => {
+                document_statistics.table_count = parse_u32(attr.unescape_value()?.as_bytes())?;
+            }
+            attr => {
+                dump_unused(
+                    "read_metadata_document_statistics",
+                    tag.name().as_ref(),
+                    &attr,
+                )?;
+            }
+        }
+    }
+
+    Ok(document_statistics)
+}
+
+fn read_metadata_user_defined(
+    bs: &mut BufStack,
+    tag: &BytesStart<'_>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+) -> Result<MetaUserDefined, OdsError> {
+    let mut user_defined = MetaUserDefined::default();
+    let mut value_type = None;
+    for attr in tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"meta:name" => {
+                user_defined.name = attr.unescape_value()?.to_string();
+            }
+            attr if attr.key.as_ref() == b"meta:value-type" => {
+                value_type = Some(match attr.unescape_value()?.as_ref() {
+                    "boolean" => "boolean",
+                    "date" => "date",
+                    "float" => "float",
+                    "time" => "time",
+                    _ => "string",
+                });
+            }
+            attr => {
+                dump_unused("read_meta_user_defined", tag.name().as_ref(), &attr)?;
+            }
+        }
+    }
+
+    let mut buf = bs.get_buf();
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        if DUMP_XML {
+            println!("read_meta_user_defined {:?}", evt);
+        }
+
+        match evt {
+            Event::End(xml_tag) if xml_tag.name() == tag.name() => {
+                break;
+            }
+            Event::Text(v) => {
+                user_defined.value = match value_type {
+                    Some("boolean") => MetaValue::Boolean(parse_bool(v.unescape()?.as_bytes())?),
+                    Some("date") => MetaValue::Date(parse_date(v.unescape()?.as_bytes())?),
+                    Some("float") => MetaValue::Float(parse_f64(v.unescape()?.as_bytes())?),
+                    Some("time") => MetaValue::Time(parse_time(v.unescape()?.as_bytes())?),
+                    _ => MetaValue::String(v.unescape()?.to_string()),
+                };
+            }
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_meta_user_defined", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(user_defined)
+}
+
+// Parse a metadata value.
+fn read_metadata_value<T>(
+    bs: &mut BufStack,
+    tag: &BytesStart<'_>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    parse: fn(&[u8]) -> Result<T, OdsError>,
+    default: fn() -> T,
+) -> Result<T, OdsError> {
+    let mut buf = bs.get_buf();
+    let mut value = None;
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        if DUMP_XML {
+            println!("read_metadata_value {:?}", evt);
+        }
+
+        match evt {
+            Event::End(xml_tag) if xml_tag.name() == tag.name() => {
+                break;
+            }
+            Event::Text(v) => {
+                value = Some(parse(v.unescape()?.as_bytes())?);
+            }
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_metadata_value", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(value.unwrap_or(default()))
+}
+
 fn read_settings(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -3407,6 +3771,7 @@ fn read_text_or_tag(
     Ok(cellcontent)
 }
 
+#[inline(always)]
 fn dump_unused(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsError> {
     if DUMP_UNUSED {
         let tag = from_utf8(tag)?;
@@ -3417,6 +3782,7 @@ fn dump_unused(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsEr
     Ok(())
 }
 
+#[inline(always)]
 fn dump_unused2(func: &str, evt: &Event<'_>) -> Result<(), OdsError> {
     if DUMP_UNUSED {
         println!("unused attr: {} ({:?})", func, evt);

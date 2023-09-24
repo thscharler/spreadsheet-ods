@@ -1,7 +1,10 @@
+use std::collections::HashMap;
 use std::mem::size_of;
 
 use chrono::{Duration, NaiveDateTime};
 
+use spreadsheet_ods::metadata::Metadata;
+use spreadsheet_ods::style::TableStyle;
 use spreadsheet_ods::text::TextTag;
 use spreadsheet_ods::{Sheet, Value, WorkBook};
 
@@ -9,6 +12,7 @@ use spreadsheet_ods::{Sheet, Value, WorkBook};
 pub fn sizes() {
     println!("WorkBook {}", size_of::<WorkBook>());
     println!("Sheet {}", size_of::<Sheet>());
+    println!("Metadata {}", size_of::<Metadata>());
 
     println!("(ucell,ucell) {}", size_of::<(u32, u32)>());
 
@@ -21,6 +25,10 @@ pub fn sizes() {
     println!("[u8; 3] {}", size_of::<[u8; 3]>());
     println!("String {}", size_of::<String>());
     println!("Vec<TextTag> {}", size_of::<Vec<TextTag>>());
+    println!(
+        "HashMap<String, TableStyle> {}",
+        size_of::<HashMap<String, TableStyle>>()
+    );
     println!("NaiveDateTime {}", size_of::<NaiveDateTime>());
     println!("Duration {}", size_of::<Duration>());
 }

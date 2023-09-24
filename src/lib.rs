@@ -203,6 +203,7 @@ use crate::ds::detach::Detached;
 use crate::format::ValueFormatTrait;
 use crate::io::read::default_settings;
 use crate::manifest::Manifest;
+use crate::metadata::Metadata;
 use crate::style::{
     ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
     PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle,
@@ -249,10 +250,12 @@ pub mod error;
 pub mod format;
 pub mod formula;
 pub mod manifest;
+pub mod metadata;
 pub mod refs;
 pub mod style;
 pub mod text;
 pub mod validation;
+pub mod xlink;
 pub mod xmltree;
 
 /// Book is the main structure for the Spreadsheet.
@@ -308,6 +311,9 @@ pub struct WorkBook {
 
     /// All extra files contained in the zip manifest are copied here.
     manifest: HashMap<String, Manifest>,
+
+    /// Metadata
+    metadata: Metadata,
 
     /// other stuff ...
     extra: Vec<XmlTag>,
@@ -441,6 +447,7 @@ impl WorkBook {
             workbook_config: Default::default(),
             extra: vec![],
             manifest: Default::default(),
+            metadata: Default::default(),
         }
     }
 
@@ -1171,6 +1178,16 @@ impl WorkBook {
     /// Returns the manifest entry for the path
     pub fn manifest_mut(&mut self, path: &str) -> Option<&mut Manifest> {
         self.manifest.get_mut(path)
+    }
+
+    /// Gives access to meta-data.
+    pub fn metadata(&self) -> &Metadata {
+        &self.metadata
+    }
+
+    /// Gives access to meta-data.
+    pub fn metadata_mut(&mut self) -> &mut Metadata {
+        &mut self.metadata
     }
 }
 

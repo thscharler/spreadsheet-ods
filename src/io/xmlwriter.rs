@@ -125,6 +125,52 @@ impl<W: Write> XmlWriter<W> {
         Ok(())
     }
 
+    /// Write an element with inlined text (not escaped)
+    pub(crate) fn opt_elem_text<S: AsRef<str>>(&mut self, name: &str, text: S) -> io::Result<()> {
+        if !text.as_ref().is_empty() {
+            self.close_elem()?;
+
+            self.buf.push('<');
+            self.buf.push_str(name);
+            self.buf.push('>');
+
+            self.buf.push_str(text.as_ref());
+
+            self.buf.push('<');
+            self.buf.push('/');
+            self.buf.push_str(name);
+            self.buf.push('>');
+        }
+
+        Ok(())
+    }
+
+    /// Write an optional element with inlined text (escaped).
+    /// If text.is_empty() the element is not written at all.
+    #[allow(dead_code)]
+    pub(crate) fn opt_elem_text_esc<S: AsRef<str>>(
+        &mut self,
+        name: &str,
+        text: S,
+    ) -> io::Result<()> {
+        if !text.as_ref().is_empty() {
+            self.close_elem()?;
+
+            self.buf.push('<');
+            self.buf.push_str(name);
+            self.buf.push('>');
+
+            self.escape(text.as_ref(), false);
+
+            self.buf.push('<');
+            self.buf.push('/');
+            self.buf.push_str(name);
+            self.buf.push('>');
+        }
+
+        Ok(())
+    }
+
     /// Write an element with inlined text (escaped)
     #[allow(dead_code)]
     pub(crate) fn elem_text_esc<S: AsRef<str>>(&mut self, name: &str, text: S) -> io::Result<()> {
