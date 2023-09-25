@@ -209,7 +209,7 @@ impl XmlTag {
         }
     }
 
-    /// Converts the content into a [Vec<XmlTag>]. Any occurring text content
+    /// Converts the content into a `Vec<XmlTag>`. Any occurring text content
     /// is an error.
     pub fn into_vec(self) -> Result<Vec<XmlTag>, OdsError> {
         let mut content = Vec::new();

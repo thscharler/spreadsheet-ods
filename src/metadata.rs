@@ -8,7 +8,7 @@ use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 pub struct Metadata {
     /// The <meta:generator> element contains a string that identifies the OpenDocument producer
     /// that was used to create or last modify the document. This string should match the definition for
-    /// user-agents in the HTTP protocol as specified in section 14.43 of [RFC2616]. The generator string
+    /// user-agents in the HTTP protocol as specified in section 14.43 of RFC2616. The generator string
     /// should allow OpenDocument consumers to distinguish between all released versions of a
     /// producer.
     /// Note: Release versions of a producer could be distinguished based on build
