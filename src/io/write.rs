@@ -1496,6 +1496,8 @@ fn write_start_current_row<W: Write + Seek>(
                 xml_out.attr_str("table:display", "false")?;
             }
         }
+        // extra: if the group would start within our repeat range, it's started
+        //        at the current row instead.
         if row_group.from() > cur_row && row_group.from() < cur_row + cur_row_repeat {
             *row_group_count += 1;
             xml_out.elem("table:table-row-group")?;

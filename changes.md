@@ -4,10 +4,13 @@ NEW
 
 - Allow access to meta.xml data.
 - Allow access to manifest.xml.
+- Add support for row and column groupings.
 
 CHANGED
 
 - Rewrote the XMLWriter to cause less allocations. Mixed results, but nicer API.
+- Removed support for header-rows/header-columns. This is only used for Writer
+  not for Spreadsheet.
 
 # 0.16.1
 
