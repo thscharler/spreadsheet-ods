@@ -157,6 +157,16 @@ impl<W: Write> XmlWriter<W> {
         Ok(())
     }
 
+    #[allow(dead_code)]
+    pub(crate) fn comment(&mut self, comment: &str) -> io::Result<()> {
+        self.close_elem()?;
+
+        self.buf.push_str("<!--");
+        self.buf.push_str(comment);
+        self.buf.push_str("-->");
+        Ok(())
+    }
+
     /// Begin an elem, make sure name contains only allowed chars
     pub(crate) fn elem(&mut self, name: &str) -> io::Result<()> {
         self.close_elem()?;

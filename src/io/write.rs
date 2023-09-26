@@ -1290,8 +1290,6 @@ fn write_sheet<W: Write + Seek>(
         xml_out.attr_str("table:display", "false")?;
     }
 
-    let max_cell = sheet.used_grid_size();
-
     for tag in &sheet.extra {
         if tag.name() == "table:title"
             || tag.name() == "table:desc"
@@ -1305,6 +1303,8 @@ fn write_sheet<W: Write + Seek>(
         }
     }
 
+    let max_cell = sheet.used_grid_size();
+
     write_table_columns(sheet, max_cell, xml_out)?;
 
     // list of current spans
@@ -1312,61 +1312,84 @@ fn write_sheet<W: Write + Seek>(
 
     // table-row + table-cell
     let mut first_cell = true;
-    let mut last_r: u32 = 0;
-    let mut last_r_repeat: u32 = 1;
-    let mut last_c: u32 = 0;
+    let mut prev_row: u32 = 0;
+    let mut prev_row_repeat: u32 = 1;
+    let mut prev_col: u32 = 0;
+    let mut row_group_count = 0;
 
     let mut it = sheet.into_iter();
     while let Some(((cur_row, cur_col), cell)) = it.next() {
+        // Row repeat count.
+        let cur_row_repeat = if let Some(row_header) = sheet.row_header.get(&cur_row) {
+            row_header.repeat
+        } else {
+            1
+        };
+
         // There may be a lot of gaps of any kind in our data.
         // In the XML format there is no cell identification, every gap
         // must be filled with empty rows/columns. For this we need some
         // calculations.
 
         // For the repeat-counter we need to look forward.
-        let (next_r, next_c, is_last_cell) = if let Some((next_r, next_c)) = it.peek_cell() {
-            (next_r, next_c, false)
+        let (next_row, next_col, is_last_cell) = //_
+            if let Some((next_row, next_col)) = it.peek_cell()
+        {
+            (next_row, next_col, false)
         } else {
             (max_cell.0, max_cell.1, true)
         };
 
         // Looking forward row-wise.
-        let forward_dr = next_r - cur_row;
-
+        let forward_delta_row = next_row - cur_row;
         // Column deltas are only relevant in the same row, but we need to
         // fill up to max used columns.
-        let forward_dc = if forward_dr >= 1 {
+        let forward_delta_col = if forward_delta_row >= 1 {
             max_cell.1 - cur_col
         } else {
-            next_c - cur_col
+            next_col - cur_col
         };
 
         // Looking backward row-wise.
-        let backward_dr = cur_row - last_r;
+        let backward_delta_row = cur_row - prev_row;
         // When a row changes our delta is from zero to cur_col.
-        let backward_dc = if backward_dr >= 1 {
+        let backward_delta_col = if backward_delta_row >= 1 {
             cur_col
         } else {
-            cur_col - last_c
+            cur_col - prev_col
         };
 
         // After the first cell there is always an open row tag that
         // needs to be closed.
-        if backward_dr > 0 && !first_cell {
-            write_end_last_row(sheet, cur_row, backward_dr, xml_out)?;
+        if backward_delta_row > 0 && !first_cell {
+            write_end_prev_row(
+                sheet,
+                prev_row,
+                prev_row_repeat,
+                &mut row_group_count,
+                xml_out,
+            )?;
         }
 
         // Any empty rows before this one?
-        if backward_dr > 0 {
-            // If the last row had a repeat counter the distance is reduced.
-            // We should not add any extra empty rows.
-            if last_r_repeat - 1 < backward_dr {
+        if backward_delta_row > 0 {
+            // The repeat counter for the empty rows before is reduced by the last
+            // real repeat.
+            let mut synth_row_repeat = backward_delta_row as i32 - prev_row_repeat as i32;
+            // At the very beginning last row is 0. But nothing has been written for it.
+            // To account for this we add one repeat.
+            if first_cell {
+                synth_row_repeat += 1;
+            }
+            let synth_row = cur_row as i32 - synth_row_repeat;
+
+            if synth_row_repeat > 0 {
                 write_empty_rows_before(
                     sheet,
-                    cur_row,
-                    first_cell,
-                    backward_dr - last_r_repeat + 1,
+                    synth_row as u32,
+                    synth_row_repeat as u32,
                     max_cell,
+                    &mut row_group_count,
                     xml_out,
                 )?;
             }
@@ -1374,8 +1397,15 @@ fn write_sheet<W: Write + Seek>(
 
         // Start a new row if there is a delta or we are at the start.
         // Fills in any blank cells before the current cell.
-        if backward_dr > 0 || first_cell {
-            write_start_current_row(sheet, cur_row, backward_dc, xml_out)?;
+        if backward_delta_row > 0 || first_cell {
+            write_start_current_row(
+                sheet,
+                cur_row,
+                cur_row_repeat,
+                backward_delta_col,
+                &mut row_group_count,
+                xml_out,
+            )?;
         }
 
         // Remove no longer usefull cell-spans.
@@ -1388,14 +1418,14 @@ fn write_sheet<W: Write + Seek>(
         write_cell(book, &cell, is_hidden, xml_out)?;
 
         // There may be some blank cells until the next one, but only one less the forward.
-        if forward_dc > 1 {
-            write_empty_cells(forward_dc, hidden_cols, xml_out)?;
+        if forward_delta_col > 1 {
+            write_empty_cells(forward_delta_col, hidden_cols, xml_out)?;
         }
 
         // The last cell we will write? We can close the last row here,
         // where we have all the data.
         if is_last_cell {
-            write_end_current_row(sheet, cur_row, xml_out)?;
+            write_end_last_row(&mut row_group_count, xml_out)?;
         }
 
         // maybe span. only if visible, that nicely eliminates all
@@ -1407,13 +1437,9 @@ fn write_sheet<W: Write + Seek>(
         }
 
         first_cell = false;
-        last_r = cur_row;
-        last_r_repeat = if let Some(row_header) = sheet.row_header.get(&cur_row) {
-            row_header.repeat
-        } else {
-            1
-        };
-        last_c = cur_col;
+        prev_row = cur_row;
+        prev_row_repeat = cur_row_repeat;
+        prev_col = cur_col;
     }
 
     xml_out.end_elem("table:table")?;
@@ -1428,26 +1454,26 @@ fn write_sheet<W: Write + Seek>(
 }
 
 fn write_empty_cells<W: Write + Seek>(
-    mut forward_dc: u32,
+    mut forward_delta_col: u32,
     hidden_cols: u32,
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     // split between hidden and regular cells.
-    if hidden_cols >= forward_dc {
+    if hidden_cols >= forward_delta_col {
         xml_out.empty("covered-table-cell")?;
-        xml_out.attr("table:number-columns-repeated", &(forward_dc - 1))?;
+        xml_out.attr("table:number-columns-repeated", &(forward_delta_col - 1))?;
 
-        forward_dc = 0;
+        forward_delta_col = 0;
     } else if hidden_cols > 0 {
         xml_out.empty("covered-table-cell")?;
         xml_out.attr("table:number-columns-repeated", &hidden_cols)?;
 
-        forward_dc -= hidden_cols;
+        forward_delta_col -= hidden_cols;
     }
 
-    if forward_dc > 0 {
+    if forward_delta_col > 0 {
         xml_out.empty("table:table-cell")?;
-        xml_out.attr("table:number-columns-repeated", &(forward_dc - 1))?;
+        xml_out.attr("table:number-columns-repeated", &(forward_delta_col - 1))?;
     }
 
     Ok(())
@@ -1456,16 +1482,30 @@ fn write_empty_cells<W: Write + Seek>(
 fn write_start_current_row<W: Write + Seek>(
     sheet: &Sheet,
     cur_row: u32,
-    backward_dc: u32,
+    cur_row_repeat: u32,
+    backward_delta_col: u32,
+    row_group_count: &mut u32,
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
-    // Start of headers
-    if let Some(header_rows) = &sheet.header_rows {
-        if header_rows.row() == cur_row {
-            xml_out.elem("table:table-header-rows")?;
+    // groups
+    for row_group in &sheet.group_rows {
+        if row_group.from() == cur_row {
+            *row_group_count += 1;
+            xml_out.elem("table:table-row-group")?;
+            if !row_group.display() {
+                xml_out.attr_str("table:display", "false")?;
+            }
+        }
+        if row_group.from() > cur_row && row_group.from() < cur_row + cur_row_repeat {
+            *row_group_count += 1;
+            xml_out.elem("table:table-row-group")?;
+            if !row_group.display() {
+                xml_out.attr_str("table:display", "false")?;
+            }
         }
     }
 
+    // row
     xml_out.elem("table:table-row")?;
     if let Some(row_header) = sheet.row_header.get(&cur_row) {
         if row_header.repeat > 1 {
@@ -1483,45 +1523,51 @@ fn write_start_current_row<W: Write + Seek>(
     }
 
     // Might not be the first column in this row.
-    if backward_dc > 0 {
+    if backward_delta_col > 0 {
         xml_out.empty("table:table-cell")?;
-        xml_out.attr_esc("table:number-columns-repeated", &backward_dc)?;
+        xml_out.attr_esc("table:number-columns-repeated", &backward_delta_col)?;
+    }
+
+    Ok(())
+}
+
+fn write_end_prev_row<W: Write + Seek>(
+    sheet: &Sheet,
+    last_r: u32,
+    last_r_repeat: u32,
+    row_group_count: &mut u32,
+    xml_out: &mut XmlOdsWriter<'_, W>,
+) -> Result<(), OdsError> {
+    // row
+    xml_out.end_elem("table:table-row")?;
+
+    // groups
+    for row_group in &sheet.group_rows {
+        if row_group.to() == last_r {
+            *row_group_count -= 1;
+            xml_out.end_elem("table:table-row-group")?;
+        }
+        // the group end is somewhere inside the repeated range.
+        if row_group.to() > last_r && row_group.to() < last_r + last_r_repeat {
+            *row_group_count -= 1;
+            xml_out.end_elem("table:table-row-group")?;
+        }
     }
 
     Ok(())
 }
 
 fn write_end_last_row<W: Write + Seek>(
-    sheet: &Sheet,
-    cur_row: u32,
-    backward_dr: u32,
+    row_group_count: &mut u32,
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
+    // row
     xml_out.end_elem("table:table-row")?;
 
-    // This row was the end of the header.
-    if let Some(header_rows) = &sheet.header_rows {
-        let last_row = cur_row - backward_dr;
-        if header_rows.to_row() == last_row {
-            xml_out.end_elem("table:table-header-rows")?;
-        }
-    }
-
-    Ok(())
-}
-
-fn write_end_current_row<W: Write + Seek>(
-    sheet: &Sheet,
-    cur_row: u32,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
-    xml_out.end_elem("table:table-row")?;
-
-    // This row was the end of the header.
-    if let Some(header_rows) = &sheet.header_rows {
-        if header_rows.to_row() == cur_row {
-            xml_out.end_elem("table:table-header-rows")?;
-        }
+    // close all groups
+    while *row_group_count > 0 {
+        *row_group_count -= 1;
+        xml_out.end_elem("table:table-row-group")?;
     }
 
     Ok(())
@@ -1529,62 +1575,36 @@ fn write_end_current_row<W: Write + Seek>(
 
 fn write_empty_rows_before<W: Write + Seek>(
     sheet: &Sheet,
-    cur_row: u32,
-    first_cell: bool,
-    mut backward_dr: u32,
+    last_row: u32,
+    last_row_repeat: u32,
     max_cell: (u32, u32),
+    row_group_count: &mut u32,
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
-    // Empty rows in between are 1 less than the delta, except at the very start.
-    #[allow(clippy::bool_to_int_with_if)]
-    let mut corr = if first_cell { 0u32 } else { 1u32 };
-
-    // Only deltas greater 1 are relevant.
-    // Or if this is the very start.
-    if backward_dr > 1 || first_cell && backward_dr > 0 {
-        // split up the empty rows, if there is some header stuff.
-        if let Some(header_rows) = &sheet.header_rows {
-            // What was the last_row? Was there a header start since?
-            let last_row = cur_row - backward_dr;
-            if header_rows.row() < cur_row && header_rows.row() > last_row {
-                write_empty_row(
-                    sheet,
-                    last_row,
-                    header_rows.row() - last_row - corr,
-                    max_cell,
-                    xml_out,
-                )?;
-                xml_out.elem("table:table-header-rows")?;
-                // Don't write the empty line for the first header-row, we can
-                // collapse it with the rest. corr suits fine for this.
-                corr = 0;
-                // We correct the empty line count.
-                backward_dr = cur_row - header_rows.row();
+    // Are there any row groups? Then we don't use repeat but write everything out.
+    if !sheet.group_rows.is_empty() {
+        for r in last_row..last_row + last_row_repeat {
+            // groups
+            for row_group in &sheet.group_rows {
+                if row_group.to() == r {
+                    *row_group_count -= 1;
+                    xml_out.end_elem("table:table-row-group")?;
+                }
             }
-
-            // What was the last row here? Was there a header end since?
-            let last_row = cur_row - backward_dr;
-            if header_rows.to_row() < cur_row && header_rows.to_row() > cur_row - backward_dr {
-                // Empty lines, including the current line that marks
-                // the end of the header.
-                write_empty_row(
-                    sheet,
-                    last_row,
-                    header_rows.to_row() - last_row - corr + 1,
-                    max_cell,
-                    xml_out,
-                )?;
-                xml_out.end_elem("table:table-header-rows")?;
-                // Correction for table start is no longer needed.
-                corr = 1;
-                // We correct the empty line count.
-                backward_dr = cur_row - header_rows.to_row();
+            for row_group in &sheet.group_rows {
+                if row_group.from() == r {
+                    *row_group_count += 1;
+                    xml_out.elem("table:table-row-group")?;
+                    if !row_group.display() {
+                        xml_out.attr_str("table:display", "false")?;
+                    }
+                }
             }
+            // row
+            write_empty_row(sheet, r, 1, max_cell, xml_out)?;
         }
-
-        // Write out the empty lines.
-        let last_row = cur_row - backward_dr;
-        write_empty_row(sheet, last_row, backward_dr - corr, max_cell, xml_out)?;
+    } else {
+        write_empty_row(sheet, last_row, last_row_repeat, max_cell, xml_out)?;
     }
 
     Ok(())
@@ -1593,12 +1613,12 @@ fn write_empty_rows_before<W: Write + Seek>(
 fn write_empty_row<W: Write + Seek>(
     sheet: &Sheet,
     cur_row: u32,
-    empty_count: u32,
+    row_repeat: u32,
     max_cell: (u32, u32),
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table-row")?;
-    xml_out.attr("table:number-rows-repeated", &empty_count)?;
+    xml_out.attr("table:number-rows-repeated", &row_repeat)?;
     if let Some(row_header) = sheet.row_header.get(&cur_row) {
         if let Some(rowstyle) = row_header.style() {
             xml_out.attr_esc("table:style-name", rowstyle)?;
@@ -1658,10 +1678,12 @@ fn write_table_columns<W: Write + Seek>(
 ) -> Result<(), OdsError> {
     // table:table-column
     for c in 0..max_cell.1 {
-        // markup header columns
-        if let Some(header_cols) = &sheet.header_cols {
-            if header_cols.col() == c {
-                xml_out.elem("table:table-header-columns")?;
+        for col_group in &sheet.group_cols {
+            if c == col_group.from() {
+                xml_out.elem("table:table-column-group")?;
+                if !col_group.display() {
+                    xml_out.attr_str("table:display", "false")?;
+                }
             }
         }
 
@@ -1678,10 +1700,9 @@ fn write_table_columns<W: Write + Seek>(
             }
         }
 
-        // markup header columns
-        if let Some(header_cols) = &sheet.header_cols {
-            if header_cols.to_col() == c {
-                xml_out.end_elem("table:table-header-columns")?;
+        for col_group in &sheet.group_cols {
+            if c == col_group.to() {
+                xml_out.end_elem("table:table-column-group")?;
             }
         }
     }

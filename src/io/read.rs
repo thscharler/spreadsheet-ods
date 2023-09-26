@@ -15,6 +15,7 @@ use crate::ds::bufstack::BufStack;
 use crate::ds::detach::Detach;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType, ValueFormatTrait, ValueStyleMap};
+use crate::grouped::{ColGroup, RowGroup};
 use crate::io::parse::{
     parse_bool, parse_currency, parse_date, parse_datetime, parse_duration, parse_f64, parse_i16,
     parse_i32, parse_i64, parse_time, parse_u32, parse_visibility, parse_xlink_actuate,
@@ -37,9 +38,9 @@ use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
 use crate::xmltree::XmlTag;
 use crate::{
-    CellData, CellStyle, ColRange, Length, RowRange, Sheet, SplitMode, Value, ValueFormatBoolean,
-    ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage,
-    ValueFormatText, ValueFormatTimeDuration, ValueType, Visibility, WorkBook,
+    CellData, CellStyle, Length, Sheet, SplitMode, Value, ValueFormatBoolean, ValueFormatCurrency,
+    ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage, ValueFormatText,
+    ValueFormatTimeDuration, ValueType, Visibility, WorkBook,
 };
 use quick_xml::events::attributes::Attribute;
 use std::borrow::Cow;
@@ -410,8 +411,8 @@ fn read_table(
     let mut row_cellstyle: Option<String> = None;
     let mut row_visible: Visibility = Default::default();
 
-    let mut col_range_from = 0;
-    let mut row_range_from = 0;
+    let mut col_group = Vec::new();
+    let mut row_group = Vec::new();
 
     let mut buf = bs.get_buf();
     loop {
@@ -468,13 +469,25 @@ fn read_table(
                 xml_tag.name().as_ref() == b"calcext:conditional-formats" => {}
 
             Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-header-columns" => {
-                col_range_from = table_col;
+            if xml_tag.name().as_ref() == b"table:table-column-group" => {
+                let v = read_table_column_group_attr(table_col, &xml_tag)?;
+                col_group.push(v);
+            }
+            Event::End(xml_tag)
+            if xml_tag.name().as_ref() == b"table:table-column-group" => {
+                if let Some(mut v) = col_group.pop() {
+                    v.set_to(table_col - 1);
+                    sheet.group_cols.push(v);
+                }
             }
 
+            Event::Start(xml_tag)
+            if xml_tag.name().as_ref() == b"table:table-columns" => {
+                // noop
+            }
             Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-header-columns" => {
-                sheet.header_cols = Some(ColRange::new(col_range_from, table_col - 1));
+            if xml_tag.name().as_ref() == b"table:table-columns" => {
+                // noop
             }
 
             Event::Empty(xml_tag)
@@ -483,13 +496,25 @@ fn read_table(
             }
 
             Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-header-rows" => {
-                row_range_from = row;
+            if xml_tag.name().as_ref() == b"table:table-row-group" => {
+                let v = read_table_row_group_attr(row, &xml_tag)?;
+                row_group.push(v);
+            }
+            Event::End(xml_tag)
+            if xml_tag.name().as_ref() == b"table:table-row-group" => {
+                if let Some(mut v) = row_group.pop() {
+                    v.set_to(row-1);
+                    sheet.group_rows.push(v);
+                } // todo: ignore?
             }
 
+            Event::Start(xml_tag)
+            if xml_tag.name().as_ref() == b"table:table-rows" => {
+                // noop
+            }
             Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-header-rows" => {
-                sheet.header_rows = Some(RowRange::new(row_range_from, row - 1));
+            if xml_tag.name().as_ref() == b"table:table-rows" => {
+                // noop
             }
 
             Event::Start(xml_tag)
@@ -605,6 +630,49 @@ fn read_table_row_attr(
     }
 
     Ok((row_repeat, rowstyle, row_cellstyle, row_visible))
+}
+
+// Reads the table:table-column-group attributes.
+fn read_table_column_group_attr(
+    table_col: u32,
+    xml_tag: &BytesStart<'_>,
+) -> Result<ColGroup, OdsError> {
+    let mut display = false;
+
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"table:display" => {
+                display = parse_bool(&attr.value)?;
+            }
+            attr => {
+                dump_unused(
+                    "read_table_column_group_attr",
+                    xml_tag.name().as_ref(),
+                    &attr,
+                )?;
+            }
+        }
+    }
+
+    Ok(ColGroup::new(table_col, 0, display))
+}
+
+// Reads the table:table-row-group attributes.
+fn read_table_row_group_attr(row: u32, xml_tag: &BytesStart<'_>) -> Result<RowGroup, OdsError> {
+    let mut display = false;
+
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"table:display" => {
+                display = parse_bool(&attr.value)?;
+            }
+            attr => {
+                dump_unused("read_table_row_group_attr", xml_tag.name().as_ref(), &attr)?;
+            }
+        }
+    }
+
+    Ok(RowGroup::new(row, 0, display))
 }
 
 // Reads the table-column attributes. Creates as many copies as indicated.
@@ -2021,8 +2089,8 @@ fn read_style_style(
                     }
                 };
             }
-            attr => {
-                dump_unused("read_style_style", xml_tag.name().as_ref(), &attr)?;
+            _ => {
+                // not read here
             }
         }
     }
@@ -2251,6 +2319,7 @@ fn read_cellstyle(
                     // b"style:graphic-properties" => copy_attr(style.graphic_mut(), xml, xml_tag)?,
                     b"style:map" => style.push_stylemap(read_stylemap(xml_tag)?),
 
+                    // todo: tab-stops
                     // b"style:tab-stops" => (),
                     // b"style:tab-stop" => {
                     //     let mut ts = TabStop::new();
@@ -3783,7 +3852,16 @@ fn dump_unused(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsEr
 #[inline(always)]
 fn dump_unused2(func: &str, evt: &Event<'_>) -> Result<(), OdsError> {
     if DUMP_UNUSED {
-        println!("unused attr: {} ({:?})", func, evt);
+        match evt {
+            Event::Text(text) => {
+                if !text.unescape()?.trim().is_empty() {
+                    println!("unused text: {} ({:?})", func, evt);
+                }
+            }
+            _ => {
+                println!("unused event: {} ({:?})", func, evt);
+            }
+        }
     }
     Ok(())
 }

@@ -1,6 +1,6 @@
 use spreadsheet_ods::{
-    cm, currency, percent, read_ods, write_ods, CellRange, ColRange, Length, OdsError, RowRange,
-    Sheet, Value, ValueType, WorkBook,
+    cm, currency, percent, read_ods, write_ods, CellRange, Length, OdsError, Sheet, Value,
+    ValueType, WorkBook,
 };
 
 #[test]
@@ -134,51 +134,6 @@ fn test_span() -> Result<(), OdsError> {
 }
 
 #[test]
-fn test_header() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new_empty();
-
-    let mut sh = Sheet::new("1");
-    for i in 0..10 {
-        for j in 0..10 {
-            sh.set_value(i, j, i + j);
-        }
-    }
-    sh.set_header_cols(0, 2);
-    sh.set_header_rows(0, 2);
-    wb.push_sheet(sh);
-
-    let mut sh = Sheet::new("1");
-    sh.set_value(0, 0, 0);
-    sh.set_value(9, 0, 0);
-    sh.set_header_rows(2, 3);
-    wb.push_sheet(sh);
-
-    let mut sh = Sheet::new("1");
-    sh.set_value(0, 0, 0);
-    sh.set_value(9, 0, 0);
-    sh.set_header_rows(0, 3);
-    wb.push_sheet(sh);
-
-    let mut sh = Sheet::new("1");
-    sh.set_value(0, 0, 0);
-    sh.set_value(9, 0, 0);
-    sh.set_header_rows(2, 9);
-    wb.push_sheet(sh);
-
-    write_ods(&mut wb, "test_out/test_header0.ods")?;
-
-    let wb = read_ods("test_out/test_header0.ods")?;
-
-    assert_eq!(wb.sheet(0).header_rows().clone(), Some(RowRange::new(0, 2)));
-    assert_eq!(wb.sheet(0).header_cols().clone(), Some(ColRange::new(0, 2)));
-    assert_eq!(wb.sheet(1).header_rows().clone(), Some(RowRange::new(2, 3)));
-    assert_eq!(wb.sheet(2).header_rows().clone(), Some(RowRange::new(0, 3)));
-    assert_eq!(wb.sheet(3).header_rows().clone(), Some(RowRange::new(2, 9)));
-
-    Ok(())
-}
-
-#[test]
 fn test_print_range() -> Result<(), OdsError> {
     let mut wb = WorkBook::new_empty();
 
@@ -188,8 +143,6 @@ fn test_print_range() -> Result<(), OdsError> {
             sh.set_value(i, j, i * j);
         }
     }
-    sh.set_header_cols(0, 0);
-    sh.set_header_rows(0, 0);
     sh.add_print_range(CellRange::local(1, 1, 9, 9));
     sh.add_print_range(CellRange::local(11, 11, 19, 19));
     wb.push_sheet(sh);
@@ -198,9 +151,6 @@ fn test_print_range() -> Result<(), OdsError> {
 
     let wb = read_ods("test_out/test_print_range.ods")?;
     let sh = wb.sheet(0);
-
-    assert_eq!(wb.sheet(0).header_rows().clone(), Some(RowRange::new(0, 0)));
-    assert_eq!(wb.sheet(0).header_cols().clone(), Some(ColRange::new(0, 0)));
 
     let r = sh.print_ranges().unwrap();
     assert_eq!(r[0], CellRange::local(1, 1, 9, 9));

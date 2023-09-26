@@ -201,6 +201,7 @@ use crate::defaultstyles::{DefaultFormat, DefaultStyle};
 use crate::ds::detach::Detach;
 use crate::ds::detach::Detached;
 use crate::format::ValueFormatTrait;
+use crate::grouped::{ColGroup, RowGroup};
 use crate::io::read::default_settings;
 use crate::manifest::Manifest;
 use crate::metadata::Metadata;
@@ -249,6 +250,7 @@ pub mod defaultstyles;
 pub mod error;
 pub mod format;
 pub mod formula;
+pub mod grouped;
 pub mod manifest;
 pub mod metadata;
 pub mod refs;
@@ -1384,9 +1386,10 @@ pub struct Sheet {
     display: bool,
     print: bool,
 
-    header_rows: Option<RowRange>,
-    header_cols: Option<ColRange>,
     print_ranges: Option<Vec<CellRange>>,
+
+    group_rows: Vec<RowGroup>,
+    group_cols: Vec<ColGroup>,
 
     sheet_config: SheetConfig,
 
@@ -1503,11 +1506,11 @@ impl fmt::Debug for Sheet {
         for (k, v) in &self.row_header {
             writeln!(f, "{:?} {:?}", k, v)?;
         }
-        if let Some(header_rows) = &self.header_rows {
-            writeln!(f, "header rows {:?}", header_rows)?;
+        for v in &self.group_cols {
+            writeln!(f, "group cols {:?}", v)?;
         }
-        if let Some(header_cols) = &self.header_cols {
-            writeln!(f, "header cols {:?}", header_cols)?;
+        for v in &self.group_rows {
+            writeln!(f, "group rows {:?}", v)?;
         }
         for xtr in &self.extra {
             writeln!(f, "extras {:?}", xtr)?;
@@ -1538,9 +1541,9 @@ impl Sheet {
             data: BTreeMap::new(),
             col_header: Default::default(),
             style: None,
-            header_rows: None,
-            header_cols: None,
             print_ranges: None,
+            group_rows: Default::default(),
+            group_cols: Default::default(),
             sheet_config: Default::default(),
             extra: vec![],
             row_header: Default::default(),
@@ -1559,9 +1562,9 @@ impl Sheet {
             row_header: self.row_header.clone(),
             display: self.display,
             print: self.print,
-            header_rows: self.header_rows.clone(),
-            header_cols: self.header_cols.clone(),
             print_ranges: self.print_ranges.clone(),
+            group_rows: self.group_rows.clone(),
+            group_cols: self.group_cols.clone(),
             sheet_config: Default::default(),
             extra: self.extra.clone(),
         }
@@ -2033,36 +2036,6 @@ impl Sheet {
         }
     }
 
-    /// Defines a range of rows as header rows.
-    pub fn set_header_rows(&mut self, row_start: u32, row_end: u32) {
-        self.header_rows = Some(RowRange::new(row_start, row_end));
-    }
-
-    /// Clears the header-rows definition.
-    pub fn clear_header_rows(&mut self) {
-        self.header_rows = None;
-    }
-
-    /// Returns the header rows.
-    pub fn header_rows(&self) -> &Option<RowRange> {
-        &self.header_rows
-    }
-
-    /// Defines a range of columns as header columns.
-    pub fn set_header_cols(&mut self, col_start: u32, col_end: u32) {
-        self.header_cols = Some(ColRange::new(col_start, col_end));
-    }
-
-    /// Clears the header-columns definition.
-    pub fn clear_header_cols(&mut self) {
-        self.header_cols = None;
-    }
-
-    /// Returns the header columns.
-    pub fn header_cols(&self) -> &Option<ColRange> {
-        &self.header_cols
-    }
-
     /// Print ranges.
     pub fn add_print_range(&mut self, range: CellRange) {
         self.print_ranges.get_or_insert_with(Vec::new).push(range);
@@ -2108,6 +2081,87 @@ impl Sheet {
     pub fn split_vertical(&mut self, col: u32) {
         self.config_mut().vert_split_mode = SplitMode::Split;
         self.config_mut().vert_split_pos = col;
+    }
+
+    /// Add a column group.
+    ///
+    /// Panic
+    ///
+    /// Column groups can be contained within another, but they can't overlap.
+    pub fn add_col_group(&mut self, grp: ColGroup) {
+        for v in &self.group_cols {
+            assert!(grp.contains(v) || v.contains(&grp) || grp.disjunct(v));
+        }
+        self.group_cols.push(grp);
+    }
+
+    /// Remove a column group.
+    pub fn remove_col_group(&mut self, grp: ColGroup) {
+        if let Some(idx) = self.group_cols.iter().position(|v| *v == grp) {
+            self.group_cols.remove(idx);
+        }
+    }
+
+    /// Count of column groups.
+    pub fn col_group_count(&self) -> usize {
+        return self.group_cols.len();
+    }
+
+    /// Returns the nth column group.
+    pub fn col_group(&self, idx: usize) -> Option<&ColGroup> {
+        return self.group_cols.get(idx);
+    }
+
+    /// Returns the nth column group.
+    pub fn col_group_mut(&mut self, idx: usize) -> Option<&mut ColGroup> {
+        return self.group_cols.get_mut(idx);
+    }
+
+    /// Iterate the column groups.
+    pub fn col_group_iter(&self) -> impl Iterator<Item = &ColGroup> {
+        self.group_cols.iter()
+    }
+
+    /// Add a row group.
+    ///
+    /// Panic
+    ///
+    /// Row groups can be contained within another, but they can't overlap.
+    pub fn add_row_group(&mut self, grp: RowGroup) {
+        for v in &self.group_rows {
+            assert!(grp.contains(v) || v.contains(&grp) || grp.disjunct(v));
+        }
+        self.group_rows.push(grp);
+    }
+
+    /// Remove a row group.
+    pub fn remove_row_group(&mut self, grp: RowGroup) {
+        if let Some(idx) = self.group_rows.iter().position(|v| *v == grp) {
+            self.group_rows.remove(idx);
+        }
+    }
+
+    /// Change the expansion/collapse of a row group.
+    pub fn collapse_row_group(&mut self, grp: RowGroup, collapse: bool) {}
+
+    /// Count of row groups.
+    pub fn row_group_count(&self) -> usize {
+        return self.group_rows.len();
+    }
+
+    /// Returns the nth row group.
+    pub fn row_group(&self, idx: usize) -> Option<&RowGroup> {
+        return self.group_rows.get(idx);
+    }
+
+    /// Returns the nth row group.
+    pub fn row_group_mut(&mut self, idx: usize) -> Option<&mut RowGroup> {
+        return self.group_rows.get_mut(idx);
+    }
+
+    /// Iterate row groups.
+    pub fn row_group_iter(&self) -> impl Iterator<Item = &RowGroup> {
+        self.group_rows.iter()
     }
 }
 
