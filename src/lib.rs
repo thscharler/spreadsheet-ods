@@ -2086,7 +2086,9 @@ impl Sheet {
     /// Panic
     ///
     /// Column groups can be contained within another, but they can't overlap.
+    /// From must be less than or equal to.
     pub fn add_col_group(&mut self, from: u32, to: u32) {
+        assert!(from <= to);
         let grp = Grouped::new(from, to, true);
         for v in &self.group_cols {
             assert!(grp.contains(v) || v.contains(&grp) || grp.disjunct(v));
@@ -2156,7 +2158,9 @@ impl Sheet {
     /// Panic
     ///
     /// Row groups can be contained within another, but they can't overlap.
+    /// From must be less than or equal to.
     pub fn add_row_group(&mut self, from: u32, to: u32) {
+        assert!(from <= to);
         let grp = Grouped::new(from, to, true);
         for v in &self.group_rows {
             assert!(grp.contains(v) || v.contains(&grp) || grp.disjunct(v));

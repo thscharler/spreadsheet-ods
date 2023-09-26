@@ -74,16 +74,12 @@ fn test_write_group2() -> Result<(), OdsError> {
     sh.add_col_group(9, 9);
     sh.add_col_group(40, 45);
 
-    dbg!(&sh);
-
     wb.push_sheet(sh);
 
     write_ods(&mut wb, "test_out/colgroup2.ods")?;
 
     let wb = read_ods("test_out/colgroup2.ods")?;
     let sh = wb.sheet(0);
-
-    dbg!(sh);
 
     let v = sh.col_group_iter().cloned().collect::<Vec<_>>();
     assert!(v.contains(&Grouped::new(1, 4, true)));
@@ -96,4 +92,34 @@ fn test_write_group2() -> Result<(), OdsError> {
     assert!(v.contains(&Grouped::new(9, 9, true)));
 
     Ok(())
+}
+
+#[test]
+#[should_panic]
+fn test_write_group3() {
+    let mut sh = Sheet::new("Sheet1");
+    sh.add_col_group(4, 1);
+}
+
+#[test]
+#[should_panic]
+fn test_write_group4() {
+    let mut sh = Sheet::new("Sheet1");
+    sh.add_row_group(4, 1);
+}
+
+#[test]
+#[should_panic]
+fn test_write_group5() {
+    let mut sh = Sheet::new("Sheet1");
+    sh.add_col_group(1, 4);
+    sh.add_col_group(2, 5);
+}
+
+#[test]
+#[should_panic]
+fn test_write_group6() {
+    let mut sh = Sheet::new("Sheet1");
+    sh.add_row_group(1, 4);
+    sh.add_row_group(2, 5);
 }

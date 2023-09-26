@@ -98,8 +98,7 @@ fn sanity_checks(book: &mut WorkBook) -> Result<(), OdsError> {
 fn sync(book: &mut WorkBook) -> Result<(), OdsError> {
     // Manifest
     let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
-    let d =
-        NaiveDateTime::from_timestamp_opt(s.as_secs() as i64, 0).expect("valid timestamp for now");
+    let d = NaiveDateTime::from_timestamp_opt(s.as_secs() as i64, 0).expect("valid timestamp");
 
     book.metadata.generator = "spreadsheet-ods 0.17.0".to_string();
     if book.metadata.creation_date.is_none() {
