@@ -1678,10 +1678,10 @@ fn write_table_columns<W: Write + Seek>(
 ) -> Result<(), OdsError> {
     // table:table-column
     for c in 0..max_cell.1 {
-        for col_group in &sheet.group_cols {
-            if c == col_group.from() {
+        for grp in &sheet.group_cols {
+            if c == grp.from() {
                 xml_out.elem("table:table-column-group")?;
-                if !col_group.display() {
+                if !grp.display() {
                     xml_out.attr_str("table:display", "false")?;
                 }
             }

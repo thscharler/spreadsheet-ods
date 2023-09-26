@@ -201,7 +201,6 @@ use crate::defaultstyles::{DefaultFormat, DefaultStyle};
 use crate::ds::detach::Detach;
 use crate::ds::detach::Detached;
 use crate::format::ValueFormatTrait;
-use crate::grouped::{ColGroup, RowGroup};
 use crate::io::read::default_settings;
 use crate::manifest::Manifest;
 use crate::metadata::Metadata;
@@ -250,7 +249,6 @@ pub mod defaultstyles;
 pub mod error;
 pub mod format;
 pub mod formula;
-pub mod grouped;
 pub mod manifest;
 pub mod metadata;
 pub mod refs;
@@ -1388,8 +1386,8 @@ pub struct Sheet {
 
     print_ranges: Option<Vec<CellRange>>,
 
-    group_rows: Vec<RowGroup>,
-    group_cols: Vec<ColGroup>,
+    group_rows: Vec<Grouped>,
+    group_cols: Vec<Grouped>,
 
     sheet_config: SheetConfig,
 
@@ -2088,7 +2086,8 @@ impl Sheet {
     /// Panic
     ///
     /// Column groups can be contained within another, but they can't overlap.
-    pub fn add_col_group(&mut self, grp: ColGroup) {
+    pub fn add_col_group(&mut self, from: u32, to: u32) {
+        let grp = Grouped::new(from, to, true);
         for v in &self.group_cols {
             assert!(grp.contains(v) || v.contains(&grp) || grp.disjunct(v));
         }
@@ -2096,10 +2095,40 @@ impl Sheet {
     }
 
     /// Remove a column group.
-    pub fn remove_col_group(&mut self, grp: ColGroup) {
-        if let Some(idx) = self.group_cols.iter().position(|v| *v == grp) {
+    pub fn remove_col_group(&mut self, from: u32, to: u32) {
+        if let Some(idx) = self
+            .group_cols
+            .iter()
+            .position(|v| v.from == from && v.to == to)
+        {
             self.group_cols.remove(idx);
         }
+    }
+
+    /// Change the expansion/collapse of a col group.
+    ///
+    /// Does nothing if no such group exists.
+    pub fn set_col_group_displayed(&mut self, from: u32, to: u32, display: bool) {
+        if let Some(idx) = self
+            .group_cols
+            .iter()
+            .position(|v| v.from == from && v.to == to)
+        {
+            self.group_cols[idx].display = display;
+
+            for r in from..=to {
+                self.set_col_visible(
+                    r,
+                    if display {
+                        Visibility::Visible
+                    } else {
+                        Visibility::Collapsed
+                    },
+                );
+            }
+        }
+
+        dbg!(&self.group_cols);
     }
 
     /// Count of column groups.
@@ -2108,17 +2137,17 @@ impl Sheet {
     }
 
     /// Returns the nth column group.
-    pub fn col_group(&self, idx: usize) -> Option<&ColGroup> {
+    pub fn col_group(&self, idx: usize) -> Option<&Grouped> {
         return self.group_cols.get(idx);
     }
 
     /// Returns the nth column group.
-    pub fn col_group_mut(&mut self, idx: usize) -> Option<&mut ColGroup> {
+    pub fn col_group_mut(&mut self, idx: usize) -> Option<&mut Grouped> {
         return self.group_cols.get_mut(idx);
     }
 
     /// Iterate the column groups.
-    pub fn col_group_iter(&self) -> impl Iterator<Item = &ColGroup> {
+    pub fn col_group_iter(&self) -> impl Iterator<Item = &Grouped> {
         self.group_cols.iter()
     }
 
@@ -2127,7 +2156,8 @@ impl Sheet {
     /// Panic
     ///
     /// Row groups can be contained within another, but they can't overlap.
-    pub fn add_row_group(&mut self, grp: RowGroup) {
+    pub fn add_row_group(&mut self, from: u32, to: u32) {
+        let grp = Grouped::new(from, to, true);
         for v in &self.group_rows {
             assert!(grp.contains(v) || v.contains(&grp) || grp.disjunct(v));
         }
@@ -2135,14 +2165,39 @@ impl Sheet {
     }
 
     /// Remove a row group.
-    pub fn remove_row_group(&mut self, grp: RowGroup) {
-        if let Some(idx) = self.group_rows.iter().position(|v| *v == grp) {
+    pub fn remove_row_group(&mut self, from: u32, to: u32) {
+        if let Some(idx) = self
+            .group_rows
+            .iter()
+            .position(|v| v.from == from && v.to == to)
+        {
             self.group_rows.remove(idx);
         }
     }
 
     /// Change the expansion/collapse of a row group.
-    pub fn collapse_row_group(&mut self, grp: RowGroup, collapse: bool) {}
+    ///
+    /// Does nothing if no such group exists.
+    pub fn set_row_group_displayed(&mut self, from: u32, to: u32, display: bool) {
+        if let Some(idx) = self
+            .group_rows
+            .iter()
+            .position(|v| v.from == from && v.to == to)
+        {
+            self.group_rows[idx].display = display;
+
+            for r in from..=to {
+                self.set_row_visible(
+                    r,
+                    if display {
+                        Visibility::Visible
+                    } else {
+                        Visibility::Collapsed
+                    },
+                );
+            }
+        }
+    }
 
     /// Count of row groups.
     pub fn row_group_count(&self) -> usize {
@@ -2150,18 +2205,75 @@ impl Sheet {
     }
 
     /// Returns the nth row group.
-    pub fn row_group(&self, idx: usize) -> Option<&RowGroup> {
+    pub fn row_group(&self, idx: usize) -> Option<&Grouped> {
         return self.group_rows.get(idx);
     }
 
-    /// Returns the nth row group.
-    pub fn row_group_mut(&mut self, idx: usize) -> Option<&mut RowGroup> {
-        return self.group_rows.get_mut(idx);
+    /// Iterate row groups.
+    pub fn row_group_iter(&self) -> impl Iterator<Item = &Grouped> {
+        self.group_rows.iter()
+    }
+}
+
+/// Describes a row/column group.
+#[derive(Debug, PartialEq, Clone)]
+pub struct Grouped {
+    /// Inclusive from row/col.
+    pub from: u32,
+    /// Inclusive to row/col.
+    pub to: u32,
+    /// Visible/Collapsed state.
+    pub display: bool,
+}
+
+impl Grouped {
+    /// New group.
+    pub fn new(from: u32, to: u32, display: bool) -> Self {
+        Self { from, to, display }
     }
 
-    /// Iterate row groups.
-    pub fn row_group_iter(&self) -> impl Iterator<Item = &RowGroup> {
-        self.group_rows.iter()
+    /// Inclusive start.
+    pub fn from(&self) -> u32 {
+        self.from
+    }
+
+    /// Inclusive start.
+    pub fn set_from(&mut self, from: u32) {
+        self.from = from;
+    }
+
+    /// Inclusive end.
+    pub fn to(&self) -> u32 {
+        self.to
+    }
+
+    /// Inclusive end.
+    pub fn set_to(&mut self, to: u32) {
+        self.to = to
+    }
+
+    /// Group is displayed?
+    pub fn display(&self) -> bool {
+        self.display
+    }
+
+    /// Change the display state for the group.
+    ///
+    /// Note: Changing this does not change the visibility of the rows/columns.
+    /// Use Sheet::set_display_col_group() and Sheet::set_display_row_group() to make
+    /// all necessary changes.
+    pub fn set_display(&mut self, display: bool) {
+        self.display = display;
+    }
+
+    /// Contains the other group.
+    pub fn contains(&self, other: &Grouped) -> bool {
+        self.from <= other.from && self.to >= other.to
+    }
+
+    /// The two groups are disjunct.
+    pub fn disjunct(&self, other: &Grouped) -> bool {
+        self.from < other.from && self.to < other.from || self.from > other.to && self.to > other.to
     }
 }
 

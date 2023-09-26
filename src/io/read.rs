@@ -15,7 +15,6 @@ use crate::ds::bufstack::BufStack;
 use crate::ds::detach::Detach;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType, ValueFormatTrait, ValueStyleMap};
-use crate::grouped::{ColGroup, RowGroup};
 use crate::io::parse::{
     parse_bool, parse_currency, parse_date, parse_datetime, parse_duration, parse_f64, parse_i16,
     parse_i32, parse_i64, parse_time, parse_u32, parse_visibility, parse_xlink_actuate,
@@ -38,9 +37,9 @@ use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
 use crate::xmltree::XmlTag;
 use crate::{
-    CellData, CellStyle, Length, Sheet, SplitMode, Value, ValueFormatBoolean, ValueFormatCurrency,
-    ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage, ValueFormatText,
-    ValueFormatTimeDuration, ValueType, Visibility, WorkBook,
+    CellData, CellStyle, Grouped, Length, Sheet, SplitMode, Value, ValueFormatBoolean,
+    ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage,
+    ValueFormatText, ValueFormatTimeDuration, ValueType, Visibility, WorkBook,
 };
 use quick_xml::events::attributes::Attribute;
 use std::borrow::Cow;
@@ -636,8 +635,8 @@ fn read_table_row_attr(
 fn read_table_column_group_attr(
     table_col: u32,
     xml_tag: &BytesStart<'_>,
-) -> Result<ColGroup, OdsError> {
-    let mut display = false;
+) -> Result<Grouped, OdsError> {
+    let mut display = true;
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -654,12 +653,16 @@ fn read_table_column_group_attr(
         }
     }
 
-    Ok(ColGroup::new(table_col, 0, display))
+    Ok(Grouped {
+        from: table_col,
+        to: 0,
+        display,
+    })
 }
 
 // Reads the table:table-row-group attributes.
-fn read_table_row_group_attr(row: u32, xml_tag: &BytesStart<'_>) -> Result<RowGroup, OdsError> {
-    let mut display = false;
+fn read_table_row_group_attr(row: u32, xml_tag: &BytesStart<'_>) -> Result<Grouped, OdsError> {
+    let mut display = true;
 
     for attr in xml_tag.attributes().with_checks(false) {
         match attr? {
@@ -672,7 +675,11 @@ fn read_table_row_group_attr(row: u32, xml_tag: &BytesStart<'_>) -> Result<RowGr
         }
     }
 
-    Ok(RowGroup::new(row, 0, display))
+    Ok(Grouped {
+        from: row,
+        to: 0,
+        display,
+    })
 }
 
 // Reads the table-column attributes. Creates as many copies as indicated.

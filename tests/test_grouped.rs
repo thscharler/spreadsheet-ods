@@ -1,5 +1,4 @@
-use spreadsheet_ods::grouped::{ColGroup, RowGroup};
-use spreadsheet_ods::{read_ods, write_ods, OdsError, Sheet, WorkBook};
+use spreadsheet_ods::{read_ods, write_ods, Grouped, OdsError, Sheet, WorkBook};
 
 #[test]
 fn test_write_group1() -> Result<(), OdsError> {
@@ -17,16 +16,16 @@ fn test_write_group1() -> Result<(), OdsError> {
     sh.set_value(8, 0, 1);
     sh.set_value(9, 0, 1);
 
-    sh.add_row_group(RowGroup::new(1, 4, true));
-    sh.add_row_group(RowGroup::new(1, 2, true));
-    sh.add_row_group(RowGroup::new(1, 3, true));
-    sh.add_row_group(RowGroup::new(4, 4, true));
-    //sh.add_row_group(RowGroup::new(4, 5, true));
-    sh.add_row_group(RowGroup::new(6, 9, false));
-    sh.add_row_group(RowGroup::new(7, 9, true));
-    sh.add_row_group(RowGroup::new(8, 9, true));
-    sh.add_row_group(RowGroup::new(9, 9, true));
-    sh.add_row_group(RowGroup::new(40, 45, true));
+    sh.add_row_group(1, 4);
+    sh.add_row_group(1, 2);
+    sh.add_row_group(1, 3);
+    sh.add_row_group(4, 4);
+    sh.add_row_group(6, 9);
+    sh.set_row_group_displayed(6, 9, false);
+    sh.add_row_group(7, 9);
+    sh.add_row_group(8, 9);
+    sh.add_row_group(9, 9);
+    sh.add_row_group(40, 45);
 
     wb.push_sheet(sh);
 
@@ -36,14 +35,14 @@ fn test_write_group1() -> Result<(), OdsError> {
     let sh = wb.sheet(0);
 
     let v = sh.row_group_iter().cloned().collect::<Vec<_>>();
-    assert!(v.contains(&RowGroup::new(1, 4, true)));
-    assert!(v.contains(&RowGroup::new(1, 2, true)));
-    assert!(v.contains(&RowGroup::new(1, 3, true)));
-    assert!(v.contains(&RowGroup::new(4, 4, true)));
-    assert!(v.contains(&RowGroup::new(6, 9, false)));
-    assert!(v.contains(&RowGroup::new(7, 9, true)));
-    assert!(v.contains(&RowGroup::new(8, 9, true)));
-    assert!(v.contains(&RowGroup::new(9, 9, true)));
+    assert!(v.contains(&Grouped::new(1, 4, true)));
+    assert!(v.contains(&Grouped::new(1, 2, true)));
+    assert!(v.contains(&Grouped::new(1, 3, true)));
+    assert!(v.contains(&Grouped::new(4, 4, true)));
+    assert!(v.contains(&Grouped::new(6, 9, false)));
+    assert!(v.contains(&Grouped::new(7, 9, true)));
+    assert!(v.contains(&Grouped::new(8, 9, true)));
+    assert!(v.contains(&Grouped::new(9, 9, true)));
 
     Ok(())
 }
@@ -64,16 +63,18 @@ fn test_write_group2() -> Result<(), OdsError> {
     sh.set_value(8, 8, 1);
     sh.set_value(9, 9, 1);
 
-    sh.add_col_group(ColGroup::new(1, 4, true));
-    sh.add_col_group(ColGroup::new(1, 2, true));
-    sh.add_col_group(ColGroup::new(1, 3, true));
-    sh.add_col_group(ColGroup::new(4, 4, true));
-    //sh.add_col_group(ColGroup::new(4, 5, true));
-    sh.add_col_group(ColGroup::new(6, 9, false));
-    sh.add_col_group(ColGroup::new(7, 9, true));
-    sh.add_col_group(ColGroup::new(8, 9, true));
-    sh.add_col_group(ColGroup::new(9, 9, true));
-    sh.add_col_group(ColGroup::new(40, 45, true));
+    sh.add_col_group(1, 4);
+    sh.add_col_group(1, 2);
+    sh.add_col_group(1, 3);
+    sh.add_col_group(4, 4);
+    sh.add_col_group(6, 9);
+    sh.set_col_group_displayed(6, 9, false);
+    sh.add_col_group(7, 9);
+    sh.add_col_group(8, 9);
+    sh.add_col_group(9, 9);
+    sh.add_col_group(40, 45);
+
+    dbg!(&sh);
 
     wb.push_sheet(sh);
 
@@ -85,14 +86,14 @@ fn test_write_group2() -> Result<(), OdsError> {
     dbg!(sh);
 
     let v = sh.col_group_iter().cloned().collect::<Vec<_>>();
-    assert!(v.contains(&ColGroup::new(1, 4, true)));
-    assert!(v.contains(&ColGroup::new(1, 2, true)));
-    assert!(v.contains(&ColGroup::new(1, 3, true)));
-    assert!(v.contains(&ColGroup::new(4, 4, true)));
-    assert!(v.contains(&ColGroup::new(6, 9, false)));
-    assert!(v.contains(&ColGroup::new(7, 9, true)));
-    assert!(v.contains(&ColGroup::new(8, 9, true)));
-    assert!(v.contains(&ColGroup::new(9, 9, true)));
+    assert!(v.contains(&Grouped::new(1, 4, true)));
+    assert!(v.contains(&Grouped::new(1, 2, true)));
+    assert!(v.contains(&Grouped::new(1, 3, true)));
+    assert!(v.contains(&Grouped::new(4, 4, true)));
+    assert!(v.contains(&Grouped::new(6, 9, false)));
+    assert!(v.contains(&Grouped::new(7, 9, true)));
+    assert!(v.contains(&Grouped::new(8, 9, true)));
+    assert!(v.contains(&Grouped::new(9, 9, true)));
 
     Ok(())
 }
