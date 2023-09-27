@@ -31,7 +31,7 @@ use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
     ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle, ParagraphStyle,
-    RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
+    RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
@@ -2088,6 +2088,9 @@ fn read_style_style(
                     b"text" => read_textstyle(
                         bs, book, origin, styleuse, end_tag, xml, xml_tag, empty_tag,
                     )?,
+                    b"ruby" => read_rubystyle(
+                        bs, book, origin, styleuse, end_tag, xml, xml_tag, empty_tag,
+                    )?,
                     value => {
                         return Err(OdsError::Ods(format!(
                             "style:family unknown {} ",
@@ -2484,6 +2487,65 @@ fn read_textstyle(
                 Event::Eof => break,
                 _ => {
                     dump_unused2("read_textstyle", &evt)?;
+                }
+            }
+        }
+        bs.push(buf);
+    }
+
+    Ok(())
+}
+
+// style:style tag
+#[allow(clippy::collapsible_else_if)]
+#[allow(clippy::too_many_arguments)]
+fn read_rubystyle(
+    bs: &mut BufStack,
+    book: &mut WorkBook,
+    origin: StyleOrigin,
+    styleuse: StyleUse,
+    end_tag: &[u8],
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+    xml_tag: &BytesStart<'_>,
+    empty_tag: bool,
+) -> Result<(), OdsError> {
+    let mut style = RubyStyle::new_empty();
+    style.set_origin(origin);
+    style.set_styleuse(styleuse);
+    let name = proc_style_attr(style.attrmap_mut(), xml_tag)?;
+    style.set_name(name);
+
+    // In case of an empty xml-tag we are done here.
+    if empty_tag {
+        book.add_rubystyle(style);
+    } else {
+        let mut buf = bs.get_buf();
+        loop {
+            let evt = xml.read_event_into(&mut buf)?;
+            if DUMP_XML {
+                println!(" read_rubystyle {:?}", evt);
+            }
+            match evt {
+                Event::Start(ref xml_tag) | Event::Empty(ref xml_tag) => {
+                    match xml_tag.name().as_ref() {
+                        b"style:ruby-properties" => copy_attr2(style.rubystyle_mut(), xml_tag)?,
+                        _ => {
+                            dump_unused2("read_rubystyle", &evt)?;
+                        }
+                    }
+                }
+                Event::Text(_) => (),
+                Event::End(ref e) => {
+                    if e.name().as_ref() == end_tag {
+                        book.add_rubystyle(style);
+                        break;
+                    } else {
+                        dump_unused2("read_rubystyle", &evt)?;
+                    }
+                }
+                Event::Eof => break,
+                _ => {
+                    dump_unused2("read_rubystyle", &evt)?;
                 }
             }
         }

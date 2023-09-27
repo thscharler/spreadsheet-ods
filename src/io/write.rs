@@ -17,7 +17,7 @@ use crate::manifest::Manifest;
 use crate::refs::{format_cellranges, CellRange};
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
-    ParagraphStyle, RowStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
+    ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
@@ -1889,6 +1889,11 @@ fn write_styles<W: Write + Seek>(
             write_textstyle(style, xml_out)?;
         }
     }
+    for style in book.rubystyles.values() {
+        if style.origin() == origin && style.styleuse() == styleuse {
+            write_rubystyle(style, xml_out)?;
+        }
+    }
     for style in book.graphicstyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
             write_graphicstyle(style, xml_out)?;
@@ -2157,6 +2162,42 @@ fn write_textstyle<W: Write + Seek>(
     if !style.textstyle().is_empty() {
         xml_out.empty("style:text-properties")?;
         for (a, v) in style.textstyle().iter() {
+            xml_out.attr_esc(a.as_ref(), v)?;
+        }
+    }
+    if style.styleuse() == StyleUse::Default {
+        xml_out.end_elem("style:default-style")?;
+    } else {
+        xml_out.end_elem("style:style")?;
+    }
+
+    Ok(())
+}
+
+fn write_rubystyle<W: Write + Seek>(
+    style: &RubyStyle,
+    xml_out: &mut XmlOdsWriter<'_, W>,
+) -> Result<(), OdsError> {
+    if style.styleuse() == StyleUse::Default {
+        xml_out.elem("style:default-style")?;
+    } else {
+        xml_out.elem("style:style")?;
+        xml_out.attr_esc("style:name", style.name())?;
+    }
+    xml_out.attr_str("style:family", "ruby")?;
+    for (a, v) in style.attrmap().iter() {
+        match a.as_ref() {
+            "style:name" => {}
+            "style:family" => {}
+            _ => {
+                xml_out.attr_esc(a.as_ref(), v)?;
+            }
+        }
+    }
+
+    if !style.rubystyle().is_empty() {
+        xml_out.empty("style:ruby-properties")?;
+        for (a, v) in style.rubystyle().iter() {
             xml_out.attr_esc(a.as_ref(), v)?;
         }
     }

@@ -11,6 +11,9 @@ CHANGED
 - Rewrote the XMLWriter to cause less allocations. Mixed results, but nicer API.
 - Removed support for header-rows/header-columns. This is only used for Writer
   not for Spreadsheet.
+- Datetime values can have a trailing "Z".
+- Basic support for ruby-styles.
+- Add missing iterators for WorkBook content.
 
 # 0.16.1
 

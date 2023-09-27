@@ -102,6 +102,7 @@ pub use masterpage::*;
 pub use pagestyle::*;
 pub use paragraphstyle::*;
 pub use rowstyle::*;
+pub use ruby::*;
 pub use tablestyle::*;
 pub use textstyle::*;
 
@@ -117,6 +118,7 @@ mod masterpage;
 mod pagestyle;
 mod paragraphstyle;
 mod rowstyle;
+mod ruby;
 mod tablestyle;
 mod textstyle;
 

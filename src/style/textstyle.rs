@@ -24,6 +24,7 @@ pub struct TextStyle {
     name: String,
     /// General attributes
     attr: AttrMap2,
+    /// Specific attributes
     textstyle: AttrMap2,
 }
 

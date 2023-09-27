@@ -277,7 +277,7 @@ fn token_nano(input: KSpan<'_>) -> KTokenizerResult<'_, i64> {
 
 #[inline(always)]
 fn token_datetime(input: KSpan<'_>) -> KTokenResult<'_, NaiveDateTime> {
-    let (_, (minus, year, _, month, _, day, time)) = terminated(
+    let (_, (minus, year, _, month, _, day, time, _)) = terminated(
         tuple((
             opt(byte(b'-')),
             token_datepart,
@@ -294,6 +294,7 @@ fn token_datetime(input: KSpan<'_>) -> KTokenResult<'_, NaiveDateTime> {
                 token_datepart,
                 opt(tuple((byte(b'.'), token_nano))),
             ))),
+            opt(byte(b'Z')),
         )),
         eof,
     )(input)?;

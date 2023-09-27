@@ -206,8 +206,8 @@ use crate::manifest::Manifest;
 use crate::metadata::Metadata;
 use crate::style::{
     ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
-    PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, TableStyle,
-    TableStyleRef, TextStyle, TextStyleRef,
+    PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, RubyStyle,
+    RubyStyleRef, TableStyle, TableStyleRef, TextStyle, TextStyleRef,
 };
 use crate::text::TextTag;
 use crate::validation::{Validation, ValidationRef};
@@ -280,6 +280,7 @@ pub struct WorkBook {
     cellstyles: HashMap<String, CellStyle>,
     paragraphstyles: HashMap<String, ParagraphStyle>,
     textstyles: HashMap<String, TextStyle>,
+    rubystyles: HashMap<String, RubyStyle>,
     graphicstyles: HashMap<String, GraphicStyle>,
 
     /// Value-styles are actual formatting instructions for various datatypes.
@@ -343,6 +344,12 @@ impl fmt::Debug for WorkBook {
         for s in self.paragraphstyles.values() {
             writeln!(f, "{:?}", s)?;
         }
+        for s in self.textstyles.values() {
+            writeln!(f, "{:?}", s)?;
+        }
+        for s in self.rubystyles.values() {
+            writeln!(f, "{:?}", s)?;
+        }
         for s in self.graphicstyles.values() {
             writeln!(f, "{:?}", s)?;
         }
@@ -379,11 +386,13 @@ impl fmt::Debug for WorkBook {
         for s in self.validations.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for xtr in &self.extra {
-            writeln!(f, "extras {:?}", xtr)?;
-        }
+        writeln!(f, "{:?}", &self.workbook_config)?;
         for v in self.manifest.values() {
             writeln!(f, "extras {:?}", v)?;
+        }
+        writeln!(f, "{:?}", &self.metadata)?;
+        for xtr in &self.extra {
+            writeln!(f, "extras {:?}", xtr)?;
         }
         Ok(())
     }
@@ -431,6 +440,7 @@ impl WorkBook {
             cellstyles: Default::default(),
             paragraphstyles: Default::default(),
             textstyles: Default::default(),
+            rubystyles: Default::default(),
             graphicstyles: Default::default(),
             formats_boolean: Default::default(),
             formats_number: Default::default(),
@@ -647,6 +657,11 @@ impl WorkBook {
         self.fonts.remove(name)
     }
 
+    /// Iterates the fonts.
+    pub fn iter_fonts(&self) -> impl Iterator<Item = &FontFaceDecl> {
+        self.fonts.values()
+    }
+
     /// Returns the FontDecl.
     pub fn font(&self, name: &str) -> Option<&FontFaceDecl> {
         self.fonts.get(name)
@@ -671,6 +686,11 @@ impl WorkBook {
     /// Removes a style.
     pub fn remove_tablestyle(&mut self, name: &str) -> Option<TableStyle> {
         self.tablestyles.remove(name)
+    }
+
+    /// Iterates the table-styles.
+    pub fn iter_table_styles(&self) -> impl Iterator<Item = &TableStyle> {
+        self.tablestyles.values()
     }
 
     /// Returns the style.
@@ -761,6 +781,11 @@ impl WorkBook {
         self.cellstyles.remove(name)
     }
 
+    /// Returns iterator over styles.
+    pub fn iter_cellstyles(&self) -> impl Iterator<Item = &CellStyle> {
+        self.cellstyles.values()
+    }
+
     /// Returns the style.
     pub fn cellstyle(&self, name: &str) -> Option<&CellStyle> {
         self.cellstyles.get(name)
@@ -769,11 +794,6 @@ impl WorkBook {
     /// Returns the mutable style.
     pub fn cellstyle_mut(&mut self, name: &str) -> Option<&mut CellStyle> {
         self.cellstyles.get_mut(name)
-    }
-
-    /// Returns iterator over styles.
-    pub fn iter_cellstyles(&self) -> impl Iterator<Item = &CellStyle> {
-        self.cellstyles.values()
     }
 
     /// Adds a style.
@@ -794,6 +814,11 @@ impl WorkBook {
     /// Removes a style.
     pub fn remove_paragraphstyle(&mut self, name: &str) -> Option<ParagraphStyle> {
         self.paragraphstyles.remove(name)
+    }
+
+    /// Returns iterator over styles.
+    pub fn iter_paragraphstyles(&self) -> impl Iterator<Item = &ParagraphStyle> {
+        self.paragraphstyles.values()
     }
 
     /// Returns the style.
@@ -822,6 +847,11 @@ impl WorkBook {
         self.textstyles.remove(name)
     }
 
+    /// Returns iterator over styles.
+    pub fn iter_textstyles(&self) -> impl Iterator<Item = &TextStyle> {
+        self.textstyles.values()
+    }
+
     /// Returns the style.
     pub fn textstyle(&self, name: &str) -> Option<&TextStyle> {
         self.textstyles.get(name)
@@ -830,6 +860,37 @@ impl WorkBook {
     /// Returns the mutable style.
     pub fn textstyle_mut(&mut self, name: &str) -> Option<&mut TextStyle> {
         self.textstyles.get_mut(name)
+    }
+
+    /// Adds a style.
+    /// Unnamed styles will be assigned an automatic name.
+    pub fn add_rubystyle(&mut self, mut style: RubyStyle) -> RubyStyleRef {
+        if style.name().is_empty() {
+            style.set_name(auto_style_name(&mut self.autonum, "ruby", &self.rubystyles));
+        }
+        let sref = style.style_ref();
+        self.rubystyles.insert(style.name().to_string(), style);
+        sref
+    }
+
+    /// Removes a style.
+    pub fn remove_rubystyle(&mut self, name: &str) -> Option<RubyStyle> {
+        self.rubystyles.remove(name)
+    }
+
+    /// Returns iterator over styles.
+    pub fn iter_rubystyles(&self) -> impl Iterator<Item = &RubyStyle> {
+        self.rubystyles.values()
+    }
+
+    /// Returns the style.
+    pub fn rubystyle(&self, name: &str) -> Option<&RubyStyle> {
+        self.rubystyles.get(name)
+    }
+
+    /// Returns the mutable style.
+    pub fn rubystyle_mut(&mut self, name: &str) -> Option<&mut RubyStyle> {
+        self.rubystyles.get_mut(name)
     }
 
     /// Adds a style.
@@ -850,6 +911,11 @@ impl WorkBook {
     /// Removes a style.
     pub fn remove_graphicstyle(&mut self, name: &str) -> Option<GraphicStyle> {
         self.graphicstyles.remove(name)
+    }
+
+    /// Returns iterator over styles.
+    pub fn iter_graphicstyles(&self) -> impl Iterator<Item = &GraphicStyle> {
+        self.graphicstyles.values()
     }
 
     /// Returns the style.
@@ -881,6 +947,11 @@ impl WorkBook {
         self.formats_boolean.remove(name)
     }
 
+    /// Returns iterator over formats.
+    pub fn iter_boolean_formats(&self) -> impl Iterator<Item = &ValueFormatBoolean> {
+        self.formats_boolean.values()
+    }
+
     /// Returns the format.
     pub fn boolean_format(&self, name: &str) -> Option<&ValueFormatBoolean> {
         self.formats_boolean.get(name)
@@ -908,6 +979,11 @@ impl WorkBook {
     /// Removes the format.
     pub fn remove_number_format(&mut self, name: &str) -> Option<ValueFormatNumber> {
         self.formats_number.remove(name)
+    }
+
+    /// Returns iterator over formats.
+    pub fn iter_number_formats(&self) -> impl Iterator<Item = &ValueFormatNumber> {
+        self.formats_number.values()
     }
 
     /// Returns the format.
@@ -944,6 +1020,11 @@ impl WorkBook {
         self.formats_percentage.remove(name)
     }
 
+    /// Returns iterator over formats.
+    pub fn iter_percentage_formats(&self) -> impl Iterator<Item = &ValueFormatPercentage> {
+        self.formats_percentage.values()
+    }
+
     /// Returns the format.
     pub fn percentage_format(&self, name: &str) -> Option<&ValueFormatPercentage> {
         self.formats_percentage.get(name)
@@ -971,6 +1052,11 @@ impl WorkBook {
     /// Removes the format.
     pub fn remove_currency_format(&mut self, name: &str) -> Option<ValueFormatCurrency> {
         self.formats_currency.remove(name)
+    }
+
+    /// Returns iterator over formats.
+    pub fn iter_currency_formats(&self) -> impl Iterator<Item = &ValueFormatCurrency> {
+        self.formats_currency.values()
     }
 
     /// Returns the format.
@@ -1001,6 +1087,11 @@ impl WorkBook {
         self.formats_text.remove(name)
     }
 
+    /// Returns iterator over formats.
+    pub fn iter_text_formats(&self) -> impl Iterator<Item = &ValueFormatText> {
+        self.formats_text.values()
+    }
+
     /// Returns the format.
     pub fn text_format(&self, name: &str) -> Option<&ValueFormatText> {
         self.formats_text.get(name)
@@ -1028,6 +1119,11 @@ impl WorkBook {
     /// Removes the format.
     pub fn remove_datetime_format(&mut self, name: &str) -> Option<ValueFormatDateTime> {
         self.formats_datetime.remove(name)
+    }
+
+    /// Returns iterator over formats.
+    pub fn iter_datetime_formats(&self) -> impl Iterator<Item = &ValueFormatDateTime> {
+        self.formats_datetime.values()
     }
 
     /// Returns the format.
@@ -1067,6 +1163,11 @@ impl WorkBook {
         self.formats_timeduration.remove(name)
     }
 
+    /// Returns iterator over formats.
+    pub fn iter_timeduration_formats(&self) -> impl Iterator<Item = &ValueFormatTimeDuration> {
+        self.formats_timeduration.values()
+    }
+
     /// Returns the format.
     pub fn timeduration_format(&self, name: &str) -> Option<&ValueFormatTimeDuration> {
         self.formats_timeduration.get(name)
@@ -1091,6 +1192,11 @@ impl WorkBook {
     /// Removes the PageStyle.
     pub fn remove_pagestyle(&mut self, name: &str) -> Option<PageStyle> {
         self.pagestyles.remove(name)
+    }
+
+    /// Returns iterator over formats.
+    pub fn iter_pagestyles(&self) -> impl Iterator<Item = &PageStyle> {
+        self.pagestyles.values()
     }
 
     /// Returns the PageStyle.
@@ -1119,6 +1225,11 @@ impl WorkBook {
         self.masterpages.remove(name)
     }
 
+    /// Returns iterator over formats.
+    pub fn iter_masterpages(&self) -> impl Iterator<Item = &MasterPage> {
+        self.masterpages.values()
+    }
+
     /// Returns the MasterPage.
     pub fn masterpage(&self, name: &str) -> Option<&MasterPage> {
         self.masterpages.get(name)
@@ -1143,6 +1254,11 @@ impl WorkBook {
     /// Removes a Validation.
     pub fn remove_validation(&mut self, name: &str) -> Option<Validation> {
         self.validations.remove(name)
+    }
+
+    /// Returns iterator over formats.
+    pub fn iter_validations(&self) -> impl Iterator<Item = &Validation> {
+        self.validations.values()
     }
 
     /// Returns the Validation.
@@ -2129,8 +2245,6 @@ impl Sheet {
                 );
             }
         }
-
-        dbg!(&self.group_cols);
     }
 
     /// Count of column groups.
