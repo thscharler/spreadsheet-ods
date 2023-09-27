@@ -16,9 +16,9 @@ use crate::ds::detach::Detach;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType, ValueFormatTrait, ValueStyleMap};
 use crate::io::parse::{
-    parse_bool, parse_currency, parse_date, parse_datetime, parse_duration, parse_f64, parse_i16,
-    parse_i32, parse_i64, parse_time, parse_u32, parse_visibility, parse_xlink_actuate,
-    parse_xlink_show, parse_xlink_type,
+    parse_bool, parse_currency, parse_datetime, parse_duration, parse_f64, parse_i16, parse_i32,
+    parse_i64, parse_u32, parse_visibility, parse_xlink_actuate, parse_xlink_show,
+    parse_xlink_type,
 };
 use crate::io::{DUMP_UNUSED, DUMP_XML};
 use crate::manifest::Manifest;
@@ -2857,13 +2857,66 @@ fn read_metadata(
         match evt {
             Event::Decl(_) => {}
 
-            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {
-                // noop
-            }
-            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {
-                // noop
-            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:document-meta" => {}
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-meta" => {}
 
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {}
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {}
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:generator" => {
+                book.metadata.generator = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(from_utf8(v)?.to_string()),
+                    String::new,
+                )?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"dc:title" => {
+                book.metadata.title = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(from_utf8(v)?.to_string()),
+                    String::new,
+                )?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"dc:description" => {
+                book.metadata.description = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(from_utf8(v)?.to_string()),
+                    String::new,
+                )?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"dc:subject" => {
+                book.metadata.subject = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(from_utf8(v)?.to_string()),
+                    String::new,
+                )?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:keyword" => {
+                book.metadata.keyword = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(from_utf8(v)?.to_string()),
+                    String::new,
+                )?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:initial-creator" => {
+                book.metadata.initial_creator = read_metadata_value(
+                    bs,
+                    &xml_tag,
+                    &mut xml,
+                    |v| Ok(from_utf8(v)?.to_string()),
+                    String::new,
+                )?;
+            }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"dc:creator" => {
                 book.metadata.creator = read_metadata_value(
                     bs,
@@ -2891,7 +2944,7 @@ fn read_metadata(
                     || None,
                 )?;
             }
-            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:date" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"dc:date" => {
                 book.metadata.date = read_metadata_value(
                     bs,
                     &xml_tag,
@@ -3134,9 +3187,11 @@ fn read_metadata_user_defined(
             Event::Text(v) => {
                 user_defined.value = match value_type {
                     Some("boolean") => MetaValue::Boolean(parse_bool(v.unescape()?.as_bytes())?),
-                    Some("date") => MetaValue::Date(parse_date(v.unescape()?.as_bytes())?),
+                    Some("date") => MetaValue::Datetime(parse_datetime(v.unescape()?.as_bytes())?),
                     Some("float") => MetaValue::Float(parse_f64(v.unescape()?.as_bytes())?),
-                    Some("time") => MetaValue::Time(parse_time(v.unescape()?.as_bytes())?),
+                    Some("time") => {
+                        MetaValue::TimeDuration(parse_duration(v.unescape()?.as_bytes())?)
+                    }
                     _ => MetaValue::String(v.unescape()?.to_string()),
                 };
             }

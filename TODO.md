@@ -1,4 +1,12 @@
-Draft for 1.0
+
+# Some todo
+
+- text.rs: add ruby tag
+
+
+
+
+# Draft for 1.0
 
 For what it's worth, I declare this version 1.0.
 

@@ -14,6 +14,7 @@ use crate::io::format::{format_duration2, format_validation_condition};
 use crate::io::xmlwriter::XmlWriter;
 use crate::io::zip_out::{ZipOut, ZipWrite};
 use crate::manifest::Manifest;
+use crate::metadata::MetaValue;
 use crate::refs::{format_cellranges, CellRange};
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
@@ -347,14 +348,8 @@ fn write_metadata<W: Write + Seek>(
     if !book.metadata.description.is_empty() {
         xml_out.elem_text_esc("dc:description", &book.metadata.description)?;
     }
-    if !book.metadata.description.is_empty() {
-        xml_out.elem_text_esc("dc:description", &book.metadata.description)?;
-    }
     if !book.metadata.subject.is_empty() {
         xml_out.elem_text_esc("dc:subject", &book.metadata.subject)?;
-    }
-    if !book.metadata.language.is_empty() {
-        xml_out.elem_text_esc("dc:language", &book.metadata.language)?;
     }
     if !book.metadata.keyword.is_empty() {
         xml_out.elem_text_esc("meta:keyword", &book.metadata.keyword)?;
@@ -364,15 +359,6 @@ fn write_metadata<W: Write + Seek>(
     }
     if !book.metadata.creator.is_empty() {
         xml_out.elem_text_esc("meta:creator", &book.metadata.creator)?;
-    }
-    if book.metadata.editing_cycles > 0 {
-        xml_out.elem_text("meta:editing-cycles", &book.metadata.editing_cycles)?;
-    }
-    if book.metadata.editing_duration.num_seconds() > 0 {
-        xml_out.elem_text(
-            "meta:editing-duration",
-            &format_duration2(book.metadata.editing_duration),
-        )?;
     }
     if !book.metadata.printed_by.is_empty() {
         xml_out.elem_text_esc("meta:printed-by", &book.metadata.printed_by)?;
@@ -385,6 +371,18 @@ fn write_metadata<W: Write + Seek>(
     }
     if let Some(v) = book.metadata.print_date {
         xml_out.elem_text("meta:print_date", &v.format(DATETIME_FORMAT))?;
+    }
+    if !book.metadata.language.is_empty() {
+        xml_out.elem_text_esc("dc:language", &book.metadata.language)?;
+    }
+    if book.metadata.editing_cycles > 0 {
+        xml_out.elem_text("meta:editing-cycles", &book.metadata.editing_cycles)?;
+    }
+    if book.metadata.editing_duration.num_seconds() > 0 {
+        xml_out.elem_text(
+            "meta:editing-duration",
+            &format_duration2(book.metadata.editing_duration),
+        )?;
     }
 
     if !book.metadata.template.is_empty() {
@@ -452,6 +450,31 @@ fn write_metadata<W: Write + Seek>(
         "meta:ole-object-count",
         &book.metadata.document_statistics.ole_object_count,
     )?;
+
+    for userdef in &book.metadata.user_defined {
+        xml_out.elem("meta:user-defined")?;
+        xml_out.attr("meta:name", &userdef.name)?;
+        if !matches!(userdef.value, MetaValue::String(_)) {
+            xml_out.attr_str(
+                "meta:value-type",
+                match &userdef.value {
+                    MetaValue::Boolean(_) => "boolean",
+                    MetaValue::Datetime(_) => "date",
+                    MetaValue::Float(_) => "float",
+                    MetaValue::TimeDuration(_) => "time",
+                    MetaValue::String(_) => unreachable!(),
+                },
+            )?;
+        }
+        match &userdef.value {
+            MetaValue::Boolean(v) => xml_out.text_str(if *v { "true" } else { "false" })?,
+            MetaValue::Datetime(v) => xml_out.text(&v.format(DATETIME_FORMAT))?,
+            MetaValue::Float(v) => xml_out.text(&v)?,
+            MetaValue::TimeDuration(v) => xml_out.text(&format_duration2(*v))?,
+            MetaValue::String(v) => xml_out.text_esc(v)?,
+        }
+        xml_out.end_elem("meta:user-defined")?;
+    }
 
     xml_out.end_elem("office:meta")?;
     xml_out.end_elem("office:document-meta")?;

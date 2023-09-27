@@ -1,7 +1,7 @@
 //! Document metadata.
 
 use crate::xlink::{XLinkActuate, XLinkShow, XLinkType};
-use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{Duration, NaiveDateTime};
 
 /// Metadata
 #[derive(Debug, Clone)]
@@ -213,11 +213,11 @@ pub enum MetaValue {
     ///
     Boolean(bool),
     ///
-    Date(NaiveDate),
+    Datetime(NaiveDateTime),
     ///
     Float(f64),
     ///
-    Time(NaiveTime),
+    TimeDuration(Duration),
     ///
     String(String),
 }
