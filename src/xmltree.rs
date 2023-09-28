@@ -113,11 +113,6 @@ impl XmlTag {
         self.content.is_empty()
     }
 
-    /// Gets an attribute
-    pub fn get_attr<'a, S: Into<&'a str>>(&self, name: S) -> Option<&String> {
-        self.attr.attr(name.into())
-    }
-
     pub(crate) fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
@@ -131,6 +126,11 @@ impl XmlTag {
         self.attr.set_attr(name.into(), value.into());
     }
 
+    /// Gets an attribute
+    pub fn get_attr<'a, S: Into<&'a str>>(&self, name: S) -> Option<&String> {
+        self.attr.attr(name.into())
+    }
+
     /// Adds more attributes.
     pub fn add_attr_slice(&mut self, attr: &[(&str, String)]) {
         self.attr.add_all(attr);
@@ -139,21 +139,6 @@ impl XmlTag {
     /// Add an element.
     pub fn add_tag<T: Into<XmlTag>>(&mut self, tag: T) {
         self.content.push(XmlContent::Tag(tag.into()));
-    }
-
-    /// Retrieves the first tag, if any.
-    pub fn pop_tag(&mut self) -> Option<XmlTag> {
-        match self.content.get(0) {
-            None => None,
-            Some(XmlContent::Tag(_)) => {
-                if let XmlContent::Tag(tag) = self.content.pop().unwrap() {
-                    Some(tag)
-                } else {
-                    unreachable!()
-                }
-            }
-            Some(XmlContent::Text(_)) => None,
-        }
     }
 
     /// Add text.
@@ -224,6 +209,12 @@ impl XmlTag {
         }
 
         Ok(content)
+    }
+
+    /// Converts the content into a `Vec<XmlTag>`. Any occurring text content
+    /// is ok.
+    pub fn into_mixed_vec(self) -> Vec<XmlContent> {
+        self.content
     }
 }
 

@@ -23,7 +23,8 @@ use crate::style::{
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{
-    CellContentRef, Length, Sheet, Value, ValueFormatTrait, ValueType, Visibility, WorkBook,
+    CellContentRef, EventListener, Length, Script, Sheet, Value, ValueFormatTrait, ValueType,
+    Visibility, WorkBook,
 };
 
 type OdsWriter<W> = ZipOut<W>;
@@ -1103,7 +1104,10 @@ fn write_ods_content<W: Write + Seek>(
 
     xml_out.attr_esc("office:version", book.version())?;
 
-    xml_out.empty("office:scripts")?;
+    xml_out.elem("office:scripts")?;
+    write_scripts(&book.scripts, &mut xml_out)?;
+    write_event_listeners(&book.event_listener, &mut xml_out)?;
+    xml_out.end_elem("office:scripts")?;
 
     xml_out.elem("office:font-face-decls")?;
     write_font_decl(&book.fonts, StyleOrigin::Content, &mut xml_out)?;
@@ -1664,6 +1668,21 @@ fn write_empty_row<W: Write + Seek>(
     Ok(())
 }
 
+fn write_xmlcontent<W: Write + Seek>(
+    x: &XmlContent,
+    xml_out: &mut XmlOdsWriter<'_, W>,
+) -> Result<(), OdsError> {
+    match x {
+        XmlContent::Text(t) => {
+            xml_out.text_esc(t)?;
+        }
+        XmlContent::Tag(t) => {
+            write_xmltag(t, xml_out)?;
+        }
+    }
+    Ok(())
+}
+
 fn write_xmltag<W: Write + Seek>(
     x: &XmlTag,
     xml_out: &mut XmlOdsWriter<'_, W>,
@@ -1856,6 +1875,41 @@ fn write_cell<W: Write + Seek>(
     match cell.value {
         None | Some(Value::Empty) => {}
         _ => xml_out.end_elem(tag)?,
+    }
+
+    Ok(())
+}
+
+fn write_scripts<W: Write + Seek>(
+    scripts: &Vec<Script>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
+) -> Result<(), OdsError> {
+    for script in scripts {
+        xml_out.elem("office:script")?;
+        xml_out.attr_esc("script:language", &script.script_lang)?;
+
+        for content in &script.script {
+            write_xmlcontent(content, xml_out)?;
+        }
+
+        xml_out.end_elem("/office:script")?;
+    }
+
+    Ok(())
+}
+
+fn write_event_listeners<W: Write + Seek>(
+    events: &HashMap<String, EventListener>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
+) -> Result<(), OdsError> {
+    for event in events.values() {
+        xml_out.empty("script:event-listener")?;
+        xml_out.attr_esc("script:event-name", &event.event_name)?;
+        xml_out.attr_esc("script:language", &event.script_lang)?;
+        xml_out.attr_esc("script:macro-name", &event.macro_name)?;
+        xml_out.attr_esc("xlink:actuate", &event.actuate)?;
+        xml_out.attr_esc("xlink:href", &event.href)?;
+        xml_out.attr_esc("xlink:type", &event.link_type)?;
     }
 
     Ok(())

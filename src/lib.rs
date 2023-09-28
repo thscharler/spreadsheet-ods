@@ -211,7 +211,8 @@ use crate::style::{
 };
 use crate::text::TextTag;
 use crate::validation::{Validation, ValidationRef};
-use crate::xmltree::XmlTag;
+use crate::xlink::{XLinkActuate, XLinkType};
+use crate::xmltree::{XmlContent, XmlTag};
 use chrono::{Duration, NaiveTime};
 use chrono::{NaiveDate, NaiveDateTime};
 use icu_locid::Locale;
@@ -272,6 +273,10 @@ pub struct WorkBook {
 
     /// Auto-Styles. Maps the prefix to a number.
     autonum: HashMap<String, u32>,
+
+    /// Scripts
+    scripts: Vec<Script>,
+    event_listener: HashMap<String, EventListener>,
 
     /// Styles hold the style:style elements.
     tablestyles: HashMap<String, TableStyle>,
@@ -434,6 +439,8 @@ impl WorkBook {
             version: "1.3".to_string(),
             fonts: Default::default(),
             autonum: Default::default(),
+            scripts: Default::default(),
+            event_listener: Default::default(),
             tablestyles: Default::default(),
             rowstyles: Default::default(),
             colstyles: Default::default(),
@@ -634,6 +641,51 @@ impl WorkBook {
     /// Panics if the sheet was detached.
     pub fn remove_sheet(&mut self, n: usize) -> Sheet {
         self.sheets.remove(n).take()
+    }
+
+    /// Scripts.
+    pub fn add_script(&mut self, v: Script) {
+        self.scripts.push(v);
+    }
+
+    /// Scripts.
+    pub fn iter_scripts(&self) -> impl Iterator<Item = &Script> {
+        self.scripts.iter()
+    }
+
+    /// Scripts
+    pub fn scripts(&self) -> &Vec<Script> {
+        &self.scripts
+    }
+
+    /// Scripts
+    pub fn scripts_mut(&mut self) -> &mut Vec<Script> {
+        &mut self.scripts
+    }
+
+    /// Event-Listener
+    pub fn add_event_listener(&mut self, e: EventListener) {
+        self.event_listener.insert(e.event_name.clone(), e);
+    }
+
+    /// Event-Listener
+    pub fn remove_event_listener(&mut self, event_name: &str) -> Option<EventListener> {
+        self.event_listener.remove(event_name)
+    }
+
+    /// Event-Listener
+    pub fn iter_event_listeners(&self) -> impl Iterator<Item = &EventListener> {
+        self.event_listener.values()
+    }
+
+    /// Event-Listener
+    pub fn event_listener(&self, event_name: &str) -> Option<&EventListener> {
+        self.event_listener.get(event_name)
+    }
+
+    /// Event-Listener
+    pub fn event_listener_mut(&mut self, event_name: &str) -> Option<&mut EventListener> {
+        self.event_listener.get_mut(event_name)
     }
 
     /// Adds a default-style for all new values.
@@ -1347,6 +1399,141 @@ impl Display for Visibility {
             Visibility::Visible => write!(f, "visible"),
             Visibility::Collapsed => write!(f, "collapse"),
             Visibility::Filtered => write!(f, "filter"),
+        }
+    }
+}
+
+/// Script.
+#[derive(Debug, Default, Clone)]
+pub struct Script {
+    script_lang: String,
+    script: Vec<XmlContent>,
+}
+
+impl Script {
+    /// Script
+    pub fn new() -> Self {
+        Self {
+            script_lang: "".to_string(),
+            script: Default::default(),
+        }
+    }
+
+    /// Script language
+    pub fn script_lang(&self) -> &str {
+        &self.script_lang
+    }
+
+    /// Script language
+    pub fn set_script_lang(&mut self, script_lang: String) {
+        self.script_lang = script_lang
+    }
+
+    /// Script
+    pub fn script(&self) -> &Vec<XmlContent> {
+        &self.script
+    }
+
+    /// Script
+    pub fn set_script(&mut self, script: Vec<XmlContent>) {
+        self.script = script
+    }
+}
+
+/// Event-Listener.
+#[derive(Debug, Clone)]
+pub struct EventListener {
+    event_name: String,
+    script_lang: String,
+    macro_name: String,
+    actuate: XLinkActuate,
+    href: String,
+    link_type: XLinkType,
+}
+
+impl EventListener {
+    /// EventListener
+    pub fn new() -> Self {
+        Self {
+            event_name: Default::default(),
+            script_lang: Default::default(),
+            macro_name: Default::default(),
+            actuate: XLinkActuate::OnLoad,
+            href: Default::default(),
+            link_type: Default::default(),
+        }
+    }
+
+    /// Name
+    pub fn event_name(&self) -> &str {
+        &self.event_name
+    }
+
+    /// Name
+    pub fn set_event_name(&mut self, name: String) {
+        self.event_name = name;
+    }
+
+    /// Script language
+    pub fn script_lang(&self) -> &str {
+        &self.script_lang
+    }
+
+    /// Script language
+    pub fn set_script_lang(&mut self, lang: String) {
+        self.script_lang = lang
+    }
+
+    /// Macro name
+    pub fn macro_name(&self) -> &str {
+        &self.macro_name
+    }
+
+    /// Macro name
+    pub fn set_macro_name(&mut self, name: String) {
+        self.macro_name = name
+    }
+
+    /// Actuate
+    pub fn actuate(&self) -> XLinkActuate {
+        self.actuate
+    }
+
+    /// Actuate
+    pub fn set_actuate(&mut self, actuate: XLinkActuate) {
+        self.actuate = actuate;
+    }
+
+    /// HRef
+    pub fn href(&self) -> &str {
+        &self.href
+    }
+
+    /// HRef
+    pub fn set_href(&mut self, href: String) {
+        self.href = href;
+    }
+
+    /// Link type
+    pub fn link_type(&self) -> XLinkType {
+        self.link_type
+    }
+
+    /// Link type
+    pub fn set_link_type(&mut self, link_type: XLinkType) {
+        self.link_type = link_type
+    }
+}
+
+impl Default for EventListener {
+    fn default() -> Self {
+        Self {
+            event_name: Default::default(),
+            script_lang: Default::default(),
+            macro_name: Default::default(),
+            actuate: XLinkActuate::OnRequest,
+            href: Default::default(),
+            link_type: Default::default(),
         }
     }
 }

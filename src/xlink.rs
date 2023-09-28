@@ -39,9 +39,10 @@ impl Display for XLinkShow {
 }
 
 /// See §3.2 of XLink.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum XLinkType {
     ///
+    #[default]
     Simple,
     ///
     Extended,

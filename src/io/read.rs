@@ -37,9 +37,10 @@ use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
 use crate::xmltree::XmlTag;
 use crate::{
-    CellData, CellStyle, Grouped, Length, Sheet, SplitMode, Value, ValueFormatBoolean,
-    ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage,
-    ValueFormatText, ValueFormatTimeDuration, ValueType, Visibility, WorkBook,
+    CellData, CellStyle, EventListener, Grouped, Length, Script, Sheet, SplitMode, Value,
+    ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
+    ValueFormatPercentage, ValueFormatText, ValueFormatTimeDuration, ValueType, Visibility,
+    WorkBook,
 };
 use quick_xml::events::attributes::Attribute;
 use std::borrow::Cow;
@@ -309,6 +310,10 @@ fn read_content(
             if xml_tag.name().as_ref() == b"office:document-content" => {
                 // noop
             }
+
+            Event::Start(xml_tag)
+            if xml_tag.name().as_ref() == b"office:scripts" =>
+                read_scripts(bs, book, &mut xml)?,
 
             Event::Start(xml_tag)
             if xml_tag.name().as_ref() == b"office:font-face-decls" =>
@@ -1088,6 +1093,98 @@ fn read_empty_table_cell(
     }
 
     Ok(col)
+}
+
+fn read_scripts(
+    bs: &mut BufStack,
+    book: &mut WorkBook,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+) -> Result<(), OdsError> {
+    let mut buf = bs.get_buf();
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        if DUMP_XML {
+            println!("read_scripts {:?}", evt);
+        }
+        match evt {
+            Event::Start(ref xml_tag) | Event::Empty(ref xml_tag)
+                if xml_tag.name().as_ref() == b"office:scripts" => {}
+            Event::End(ref xml_tag) if xml_tag.name().as_ref() == b"office:scripts" => {}
+
+            Event::Start(ref xml_tag) | Event::Empty(ref xml_tag)
+                if xml_tag.name().as_ref() == b"office:script" =>
+            {
+                book.scripts.push(read_script(bs, xml_tag, xml)?);
+            }
+
+            Event::Start(ref xml_tag) if xml_tag.name().as_ref() == b"office:event-listeners" => {}
+            Event::End(ref xml_tag) if xml_tag.name().as_ref() == b"office:event-listeners" => {}
+
+            Event::Start(ref xml_tag) | Event::Empty(ref xml_tag)
+                if xml_tag.name().as_ref() == b"script:event-listener" =>
+            {
+                let evt = read_event_listener(xml_tag)?;
+                book.add_event_listener(evt);
+            }
+            Event::End(ref xml_tag) if xml_tag.name().as_ref() == b"script:event-listener" => {}
+
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_scripts", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(())
+}
+
+fn read_script(
+    bs: &mut BufStack,
+    xml_tag: &BytesStart<'_>,
+    xml: &mut quick_xml::Reader<BufReader<&mut ZipFile<'_>>>,
+) -> Result<Script, OdsError> {
+    let v = read_xml(bs, b"office:script", xml, xml_tag, false)?;
+    let script: Script = Script {
+        script_lang: v.get_attr("script:language").cloned().unwrap_or_default(),
+        script: v.into_mixed_vec(),
+    };
+    Ok(script)
+}
+
+// reads the page-layout tag
+fn read_event_listener(xml_tag: &BytesStart<'_>) -> Result<EventListener, OdsError> {
+    let mut evt = EventListener::new();
+    for attr in xml_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"script:event-name" => {
+                evt.event_name = attr.unescape_value()?.to_string();
+            }
+            attr if attr.key.as_ref() == b"script:language" => {
+                evt.script_lang = attr.unescape_value()?.to_string();
+            }
+            attr if attr.key.as_ref() == b"script:macro-name" => {
+                evt.macro_name = attr.unescape_value()?.to_string();
+            }
+            attr if attr.key.as_ref() == b"xlink:actuate" => {
+                evt.actuate = parse_xlink_actuate(&attr.unescape_value()?.as_bytes())?;
+            }
+            attr if attr.key.as_ref() == b"xlink:href" => {
+                evt.href = attr.unescape_value()?.to_string();
+            }
+            attr if attr.key.as_ref() == b"xlink:type" => {
+                evt.link_type = parse_xlink_type(&attr.unescape_value()?.as_bytes())?;
+            }
+            attr => {
+                dump_unused("read_event_listener", xml_tag.name().as_ref(), &attr)?;
+            }
+        }
+    }
+    Ok(evt)
 }
 
 // reads a font-face
