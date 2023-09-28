@@ -64,6 +64,7 @@ fn create_wb(rows: u32, cols: u32) -> impl FnMut() -> Result<WorkBook, OdsError>
     }
 }
 
+#[allow(dead_code)]
 fn write_wb<'a>(wb: &'a mut WorkBook) -> impl FnMut() -> Result<(), OdsError> + 'a {
     move || {
         let buf = write_ods_buf_uncompressed(wb, Vec::new())?;
@@ -104,8 +105,8 @@ fn test_b0() -> Result<(), OdsError> {
         create_wb(ROWS, COLS),
     )?;
     timingr("write_wb", CELLS * 30, || {
-        for i in 0..30 {
-            let buf = black_box(write_ods_buf(&mut wb, Vec::new())?);
+        for _ in 0..30 {
+            let _buf = black_box(write_ods_buf(&mut wb, Vec::new())?);
         }
         Ok::<(), OdsError>(())
     })?;

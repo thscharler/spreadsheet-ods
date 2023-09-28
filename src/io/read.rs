@@ -485,13 +485,19 @@ fn read_table(
                 }
             }
 
+            // skip
+            Event::Start(xml_tag)
+            if xml_tag.name().as_ref() == b"table:table-header-rows" => {
+            }
+            Event::End(xml_tag)
+            if xml_tag.name().as_ref() == b"table:table-header-rows" => {
+            }
+
             Event::Start(xml_tag)
             if xml_tag.name().as_ref() == b"table:table-columns" => {
-                // noop
             }
             Event::End(xml_tag)
             if xml_tag.name().as_ref() == b"table:table-columns" => {
-                // noop
             }
 
             Event::Empty(xml_tag)
@@ -990,7 +996,7 @@ fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError>
                 if let Some(c) = tc.val_currency {
                     cell.value = Value::Currency(v, c);
                 } else {
-                    return Err(OdsError::Parse("no currency value", None));
+                    cell.value = Value::Currency(v, "".to_string());
                 }
             } else {
                 return Err(OdsError::Parse("no float value", None));
@@ -3461,6 +3467,7 @@ fn read_config_item_set(
             println!(" read_office_item_set {:?}", evt);
         }
         match evt {
+            Event::Empty(ref xml_tag) if xml_tag.name().as_ref() == b"config:config-item" => {}
             Event::Start(ref xml_tag) if xml_tag.name().as_ref() == b"config:config-item" => {
                 let (name, val) = read_config_item(bs, xml_tag, xml)?;
                 config_set.insert(name, val);

@@ -5,6 +5,7 @@ NEW
 - Allow access to meta.xml data.
 - Allow access to manifest.xml.
 - Add support for row and column groupings.
+- Add basic support for scripts and event-listeners.
 
 CHANGED
 
@@ -14,6 +15,8 @@ CHANGED
 - Datetime values can have a trailing "Z".
 - Basic support for ruby-styles.
 - Add missing iterators for WorkBook content.
+- Currency values without currency symbol don't produce an error.
+- Empty config-items are ignored.
 
 # 0.16.1
 
