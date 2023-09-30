@@ -4,7 +4,6 @@ use std::io;
 use std::io::{Cursor, Seek, Write};
 use std::path::Path;
 
-use chrono::NaiveDateTime;
 use zip::write::FileOptions;
 
 use crate::config::{ConfigItem, ConfigItemType, ConfigValue};
@@ -72,13 +71,25 @@ fn write_ods_impl<W: Write + Seek>(
 
     create_manifest(book)?;
 
-    write_mimetype(&mut zip_writer)?;
-    write_manifest(book, &mut zip_writer)?;
-    write_metadata(book, &mut zip_writer)?;
-    write_settings(book, &mut zip_writer)?;
-    write_ods_styles(book, &mut zip_writer)?;
-    write_ods_content(book, &mut zip_writer)?;
-    write_extra(book, &mut zip_writer)?;
+    write_ods_mimetype(&mut zip_writer)?;
+
+    zip_writer.add_directory("META-INF", FileOptions::default())?;
+    let out = zip_writer.start_file("META-INF/manifest.xml", FileOptions::default())?;
+    write_ods_manifest(book, &mut XmlWriter::new(out))?;
+
+    let out = zip_writer.start_file("meta.xml", FileOptions::default())?;
+    write_ods_metadata(book, &mut XmlWriter::new(out))?;
+
+    let out = zip_writer.start_file("settings.xml", FileOptions::default())?;
+    write_ods_settings(book, &mut XmlWriter::new(out))?;
+
+    let out = zip_writer.start_file("styles.xml", FileOptions::default())?;
+    write_ods_styles(book, &mut XmlWriter::new(out))?;
+
+    let out = zip_writer.start_file("content.xml", FileOptions::default())?;
+    write_ods_content(book, &mut XmlWriter::new(out))?;
+
+    write_ods_extra(book, &mut zip_writer)?;
 
     Ok(zip_writer.zip()?)
 }
@@ -277,27 +288,19 @@ fn create_manifest_rdf() -> Result<Manifest, OdsError> {
     ))
 }
 
-fn write_mimetype<W: Write + Seek>(zip_out: &mut OdsWriter<W>) -> Result<(), io::Error> {
-    let mut w = zip_out.start_file(
+fn write_ods_mimetype<W: Write + Seek>(zip_writer: &mut OdsWriter<W>) -> Result<(), io::Error> {
+    let mut out = zip_writer.start_file(
         "mimetype",
         FileOptions::default().compression_method(zip::CompressionMethod::Stored),
     )?;
-
-    let mime = "application/vnd.oasis.opendocument.spreadsheet";
-    w.write_all(mime.as_bytes())?;
-
+    out.write_all("application/vnd.oasis.opendocument.spreadsheet".as_bytes())?;
     Ok(())
 }
 
-fn write_manifest<W: Write + Seek>(
+fn write_ods_manifest<W: Write + Seek>(
     book: &WorkBook,
-    zip_out: &mut OdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
-    zip_out.add_directory("META-INF", FileOptions::default())?;
-    let w = zip_out.start_file("META-INF/manifest.xml", FileOptions::default())?;
-
-    let mut xml_out = XmlWriter::new(w);
-
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("manifest:manifest")?;
@@ -323,14 +326,10 @@ fn write_manifest<W: Write + Seek>(
     Ok(())
 }
 
-fn write_metadata<W: Write + Seek>(
+fn write_ods_metadata<W: Write + Seek>(
     book: &WorkBook,
-    zip_out: &mut OdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
-    let w = zip_out.start_file("meta.xml", FileOptions::default())?;
-
-    let mut xml_out = XmlWriter::new(w);
-
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-meta")?;
@@ -489,14 +488,10 @@ fn write_metadata<W: Write + Seek>(
     Ok(())
 }
 
-fn write_settings<W: Write + Seek>(
+fn write_ods_settings<W: Write + Seek>(
     book: &WorkBook,
-    zip_out: &mut OdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
-    let w = zip_out.start_file("settings.xml", FileOptions::default())?;
-
-    let mut xml_out = XmlWriter::new(w);
-
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-settings")?;
@@ -517,7 +512,7 @@ fn write_settings<W: Write + Seek>(
             ConfigItem::Value(_) => {
                 panic!("office-settings must not contain config-item");
             }
-            ConfigItem::Set(_) => write_config_item_set(name, item, &mut xml_out)?,
+            ConfigItem::Set(_) => write_config_item_set(name, item, xml_out)?,
             ConfigItem::Vec(_) => {
                 panic!("office-settings must not contain config-item-map-index")
             }
@@ -719,12 +714,8 @@ fn write_config_item<W: Write + Seek>(
 
 fn write_ods_styles<W: Write + Seek>(
     book: &WorkBook,
-    zip_out: &mut OdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
-    let w = zip_out.start_file("styles.xml", FileOptions::default())?;
-
-    let mut xml_out = XmlWriter::new(w);
-
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-styles")?;
@@ -813,148 +804,148 @@ fn write_ods_styles<W: Write + Seek>(
     xml_out.attr_esc("office:version", book.version())?;
 
     xml_out.elem("office:font-face-decls")?;
-    write_font_decl(&book.fonts, StyleOrigin::Styles, &mut xml_out)?;
+    write_font_decl(&book.fonts, StyleOrigin::Styles, xml_out)?;
     xml_out.end_elem("office:font-face-decls")?;
 
     xml_out.elem("office:styles")?;
-    write_styles(book, StyleOrigin::Styles, StyleUse::Default, &mut xml_out)?;
-    write_styles(book, StyleOrigin::Styles, StyleUse::Named, &mut xml_out)?;
+    write_styles(book, StyleOrigin::Styles, StyleUse::Default, xml_out)?;
+    write_styles(book, StyleOrigin::Styles, StyleUse::Named, xml_out)?;
     write_valuestyles(
         &book.formats_boolean,
         StyleOrigin::Styles,
         StyleUse::Named,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_currency,
         StyleOrigin::Styles,
         StyleUse::Named,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_datetime,
         StyleOrigin::Styles,
         StyleUse::Named,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_number,
         StyleOrigin::Styles,
         StyleUse::Named,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_percentage,
         StyleOrigin::Styles,
         StyleUse::Named,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_text,
         StyleOrigin::Styles,
         StyleUse::Named,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_timeduration,
         StyleOrigin::Styles,
         StyleUse::Named,
-        &mut xml_out,
+        xml_out,
     )?;
 
     write_valuestyles(
         &book.formats_boolean,
         StyleOrigin::Styles,
         StyleUse::Default,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_currency,
         StyleOrigin::Styles,
         StyleUse::Default,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_datetime,
         StyleOrigin::Styles,
         StyleUse::Default,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_number,
         StyleOrigin::Styles,
         StyleUse::Default,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_percentage,
         StyleOrigin::Styles,
         StyleUse::Default,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_text,
         StyleOrigin::Styles,
         StyleUse::Default,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_timeduration,
         StyleOrigin::Styles,
         StyleUse::Default,
-        &mut xml_out,
+        xml_out,
     )?;
     xml_out.end_elem("office:styles")?;
 
     xml_out.elem("office:automatic-styles")?;
-    write_pagestyles(&book.pagestyles, &mut xml_out)?;
-    write_styles(book, StyleOrigin::Styles, StyleUse::Automatic, &mut xml_out)?;
+    write_pagestyles(&book.pagestyles, xml_out)?;
+    write_styles(book, StyleOrigin::Styles, StyleUse::Automatic, xml_out)?;
     write_valuestyles(
         &book.formats_boolean,
         StyleOrigin::Styles,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_currency,
         StyleOrigin::Styles,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_datetime,
         StyleOrigin::Styles,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_number,
         StyleOrigin::Styles,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_percentage,
         StyleOrigin::Styles,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_text,
         StyleOrigin::Styles,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_timeduration,
         StyleOrigin::Styles,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     xml_out.end_elem("office:automatic-styles")?;
 
     xml_out.elem("office:master-styles")?;
-    write_masterpage(&book.masterpages, &mut xml_out)?;
+    write_masterpage(&book.masterpages, xml_out)?;
     xml_out.end_elem("office:master-styles")?;
 
     xml_out.end_elem("office:document-styles")?;
@@ -966,11 +957,8 @@ fn write_ods_styles<W: Write + Seek>(
 
 fn write_ods_content<W: Write + Seek>(
     book: &WorkBook,
-    zip_out: &mut OdsWriter<W>,
+    xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
-    let w = zip_out.start_file("content.xml", FileOptions::default())?;
-    let mut xml_out = XmlWriter::new(w);
-
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-content")?;
@@ -1067,62 +1055,57 @@ fn write_ods_content<W: Write + Seek>(
     xml_out.attr_esc("office:version", book.version())?;
 
     xml_out.elem("office:scripts")?;
-    write_scripts(&book.scripts, &mut xml_out)?;
-    write_event_listeners(&book.event_listener, &mut xml_out)?;
+    write_scripts(&book.scripts, xml_out)?;
+    write_event_listeners(&book.event_listener, xml_out)?;
     xml_out.end_elem("office:scripts")?;
 
     xml_out.elem("office:font-face-decls")?;
-    write_font_decl(&book.fonts, StyleOrigin::Content, &mut xml_out)?;
+    write_font_decl(&book.fonts, StyleOrigin::Content, xml_out)?;
     xml_out.end_elem("office:font-face-decls")?;
 
     xml_out.elem("office:automatic-styles")?;
-    write_styles(
-        book,
-        StyleOrigin::Content,
-        StyleUse::Automatic,
-        &mut xml_out,
-    )?;
+    write_styles(book, StyleOrigin::Content, StyleUse::Automatic, xml_out)?;
     write_valuestyles(
         &book.formats_boolean,
         StyleOrigin::Content,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_currency,
         StyleOrigin::Content,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_datetime,
         StyleOrigin::Content,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_number,
         StyleOrigin::Content,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_percentage,
         StyleOrigin::Content,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_text,
         StyleOrigin::Content,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     write_valuestyles(
         &book.formats_timeduration,
         StyleOrigin::Content,
         StyleUse::Automatic,
-        &mut xml_out,
+        xml_out,
     )?;
     xml_out.end_elem("office:automatic-styles")?;
 
@@ -1141,14 +1124,14 @@ fn write_ods_content<W: Write + Seek>(
             tag.name() == "table:calculation-settings" ||
             tag.name() == "table:label-ranges"
         {
-            write_xmltag(tag, &mut xml_out)?;
+            write_xmltag(tag, xml_out)?;
         }
     }
 
-    write_content_validations(book, &mut xml_out)?;
+    write_content_validations(book, xml_out)?;
 
     for sheet in &book.sheets {
-        write_sheet(book, sheet, &mut xml_out)?;
+        write_sheet(book, sheet, xml_out)?;
     }
 
     // extra tags. pass through only
@@ -1159,7 +1142,7 @@ fn write_ods_content<W: Write + Seek>(
             || tag.name() == "table:consolidation"
             || tag.name() == "table:dde-links"
         {
-            write_xmltag(tag, &mut xml_out)?;
+            write_xmltag(tag, xml_out)?;
         }
     }
 
@@ -2528,7 +2511,7 @@ fn write_xmltag<W: Write + Seek>(
 }
 
 // All extra entries from the manifest.
-fn write_extra<W: Write + Seek>(
+fn write_ods_extra<W: Write + Seek>(
     book: &WorkBook,
     zip_writer: &mut OdsWriter<W>,
 ) -> Result<(), OdsError> {
