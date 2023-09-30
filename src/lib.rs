@@ -261,12 +261,10 @@ pub mod xmltree;
 
 // Use the IndexMap for debugging, makes diffing much easier.
 // Otherwise the std::HashMap is good.
-
-// use indexmap::IndexMap;
-// pub(crate) type HashMap<K, V> = IndexMap<K, V>;
-// pub(crate) type HashMapIter<'a, K, V> = indexmap::map::Iter<'a, K, V>;
-pub(crate) type HashMap<K, V> = std::collections::HashMap<K, V>;
-pub(crate) type HashMapIter<'a, K, V> = std::collections::hash_map::Iter<'a, K, V>;
+pub(crate) type HashMap<K, V> = indexmap::IndexMap<K, V>;
+pub(crate) type HashMapIter<'a, K, V> = indexmap::map::Iter<'a, K, V>;
+// pub(crate) type HashMap<K, V> = std::collections::HashMap<K, V>;
+// pub(crate) type HashMapIter<'a, K, V> = std::collections::hash_map::Iter<'a, K, V>;
 
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
@@ -323,6 +321,8 @@ pub struct WorkBook {
     config: Detach<Config>,
     /// User modifiable config.
     workbook_config: WorkBookConfig,
+    /// Keeps all the namespaces.
+    xmlns: HashMap<String, NamespaceMap>,
 
     /// All extra files contained in the zip manifest are copied here.
     manifest: HashMap<String, Manifest>,
@@ -474,6 +474,7 @@ impl WorkBook {
             extra: vec![],
             manifest: Default::default(),
             metadata: Default::default(),
+            xmlns: Default::default(),
         }
     }
 
@@ -1365,6 +1366,31 @@ impl WorkBook {
     /// Gives access to meta-data.
     pub fn metadata_mut(&mut self) -> &mut Metadata {
         &mut self.metadata
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct NamespaceMap {
+    map: HashMap<Cow<'static, str>, Cow<'static, str>>,
+}
+
+impl NamespaceMap {
+    pub(crate) fn new() -> Self {
+        Self {
+            map: Default::default(),
+        }
+    }
+
+    pub(crate) fn insert(&mut self, k: String, v: String) {
+        self.map.insert(Cow::Owned(k), Cow::Owned(v));
+    }
+
+    pub(crate) fn insert_str(&mut self, k: &'static str, v: &'static str) {
+        self.map.insert(Cow::Borrowed(k), Cow::Borrowed(v));
+    }
+
+    pub(crate) fn entries(&self) -> impl Iterator<Item = (&Cow<'static, str>, &Cow<'static, str>)> {
+        self.map.iter()
     }
 }
 

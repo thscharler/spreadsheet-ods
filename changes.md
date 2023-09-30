@@ -6,6 +6,7 @@ NEW
 - Allow access to manifest.xml.
 - Add support for row and column groupings.
 - Add basic support for scripts and event-listeners.
+- Namespaces are now copied too.
 
 CHANGED
 
@@ -17,6 +18,7 @@ CHANGED
 - Add missing iterators for WorkBook content.
 - Currency values without currency symbol don't produce an error.
 - Empty config-items are ignored.
+- Cleanup of read/write functionality. Mostly to get a more unified style.
 
 # 0.16.1
 

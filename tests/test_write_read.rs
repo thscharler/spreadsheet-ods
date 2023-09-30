@@ -60,6 +60,14 @@ pub fn timingn<E>(name: &str, mut fun: impl FnMut()) -> Result<(), E> {
 }
 
 #[test]
+fn read_rw_orders() -> Result<(), OdsError> {
+    let mut wb = read_ods("tests/orders.ods")?;
+    write_ods(&mut wb, "test_out/orders.ods")?;
+    let mut wb = read_ods("test_out/orders.ods")?;
+    Ok(())
+}
+
+#[test]
 fn read_orders() -> Result<(), OdsError> {
     let mut wb = read_ods("tests/orders.ods")?;
 

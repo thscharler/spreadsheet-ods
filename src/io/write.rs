@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fs::File;
 use std::io;
 use std::io::{Cursor, Seek, Write};
@@ -20,11 +21,11 @@ use crate::style::{
 };
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
-use crate::HashMap;
 use crate::{
     CellContentRef, EventListener, Length, Script, Sheet, Value, ValueFormatTrait, ValueType,
     Visibility, WorkBook,
 };
+use crate::{HashMap, NamespaceMap};
 
 type OdsWriter<W> = ZipOut<W>;
 type XmlOdsWriter<'a, W> = XmlWriter<ZipWrite<'a, W>>;
@@ -207,6 +208,9 @@ fn sync(book: &mut WorkBook) -> Result<(), OdsError> {
             ("ScriptConfiguration", ConfigItemType::Map),
             (sheet.name().as_str(), ConfigItemType::Entry),
         ]);
+        // maybe this is not accurate. there seem to be cases where the codename
+        // is not the same as the table name, but I can't find any uses of the
+        // codename anywhere.
         bc.insert("CodeName", sheet.name().as_str().to_string());
 
         book.attach_sheet(sheet);
@@ -326,21 +330,46 @@ fn write_ods_manifest<W: Write + Seek>(
     Ok(())
 }
 
+fn write_xmlns<W: Write + Seek>(
+    xmlns: &NamespaceMap,
+    xml_out: &mut XmlOdsWriter<'_, W>,
+) -> Result<(), OdsError> {
+    for (k, v) in xmlns.entries() {
+        match k {
+            Cow::Borrowed(k) => {
+                xml_out.attr(k, v.as_ref())?;
+            }
+            Cow::Owned(k) => {
+                xml_out.attr_esc(k, v.as_ref())?;
+            }
+        }
+    }
+    Ok(())
+}
+
 fn write_ods_metadata<W: Write + Seek>(
     book: &WorkBook,
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
+    let xmlns = if let Some(xmlns) = book.xmlns.get("meta.xml") {
+        Cow::Borrowed(xmlns)
+    } else {
+        let mut xmlns = NamespaceMap::new();
+        xmlns.insert_str(
+            "xmlns:meta",
+            "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:office",
+            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        );
+        Cow::Owned(xmlns)
+    };
+
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-meta")?;
-    xml_out.attr_str(
-        "xmlns:meta",
-        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:office",
-        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-    )?;
+    write_xmlns(&xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
 
     xml_out.elem("office:meta")?;
@@ -371,10 +400,10 @@ fn write_ods_metadata<W: Write + Seek>(
         xml_out.elem_text("meta:creation-date", &v.format(DATETIME_FORMAT))?;
     }
     if let Some(v) = book.metadata.date {
-        xml_out.elem_text("meta:date", &v.format(DATETIME_FORMAT))?;
+        xml_out.elem_text("dc:date", &v.format(DATETIME_FORMAT))?;
     }
     if let Some(v) = book.metadata.print_date {
-        xml_out.elem_text("meta:print_date", &v.format(DATETIME_FORMAT))?;
+        xml_out.elem_text("meta:print-date", &v.format(DATETIME_FORMAT))?;
     }
     if !book.metadata.language.is_empty() {
         xml_out.elem_text_esc("dc:language", &book.metadata.language)?;
@@ -437,7 +466,7 @@ fn write_ods_metadata<W: Write + Seek>(
         }
     }
 
-    xml_out.empty("meta:document-statistics")?;
+    xml_out.empty("meta:document-statistic")?;
     xml_out.attr(
         "meta:table-count",
         &book.metadata.document_statistics.table_count,
@@ -492,18 +521,26 @@ fn write_ods_settings<W: Write + Seek>(
     book: &WorkBook,
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
+    let xmlns = if let Some(xmlns) = book.xmlns.get("settings.xml") {
+        Cow::Borrowed(xmlns)
+    } else {
+        let mut xmlns = NamespaceMap::new();
+        xmlns.insert_str(
+            "xmlns:office",
+            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        );
+        xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
+        xmlns.insert_str(
+            "xmlns:config",
+            "urn:oasis:names:tc:opendocument:xmlns:config:1.0",
+        );
+        Cow::Owned(xmlns)
+    };
+
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-settings")?;
-    xml_out.attr_str(
-        "xmlns:office",
-        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-    )?;
-    xml_out.attr_str("xmlns:ooo", "http://openoffice.org/2004/office")?;
-    xml_out.attr_str(
-        "xmlns:config",
-        "urn:oasis:names:tc:opendocument:xmlns:config:1.0",
-    )?;
+    write_xmlns(&xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
     xml_out.elem("office:settings")?;
 
@@ -716,91 +753,99 @@ fn write_ods_styles<W: Write + Seek>(
     book: &WorkBook,
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
+    let xmlns = if let Some(xmlns) = book.xmlns.get("styles.xml") {
+        Cow::Borrowed(xmlns)
+    } else {
+        let mut xmlns = NamespaceMap::new();
+        xmlns.insert_str(
+            "xmlns:meta",
+            "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:office",
+            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:fo",
+            "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
+        );
+        xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
+        xmlns.insert_str("xmlns:xlink", "http://www.w3.org/1999/xlink");
+        xmlns.insert_str("xmlns:dc", "http://purl.org/dc/elements/1.1/");
+        xmlns.insert_str(
+            "xmlns:style",
+            "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:text",
+            "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:dr3d",
+            "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:svg",
+            "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:chart",
+            "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
+        );
+        xmlns.insert_str("xmlns:rpt", "http://openoffice.org/2005/report");
+        xmlns.insert_str(
+            "xmlns:table",
+            "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:number",
+            "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
+        );
+        xmlns.insert_str("xmlns:ooow", "http://openoffice.org/2004/writer");
+        xmlns.insert_str("xmlns:oooc", "http://openoffice.org/2004/calc");
+        xmlns.insert_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2");
+        xmlns.insert_str("xmlns:tableooo", "http://openoffice.org/2009/table");
+        xmlns.insert_str(
+            "xmlns:calcext",
+            "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
+        );
+        xmlns.insert_str("xmlns:drawooo", "http://openoffice.org/2010/draw");
+        xmlns.insert_str(
+            "xmlns:draw",
+            "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:loext",
+            "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:field",
+            "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
+        );
+        xmlns.insert_str("xmlns:math", "http://www.w3.org/1998/Math/MathML");
+        xmlns.insert_str(
+            "xmlns:form",
+            "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:script",
+            "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
+        );
+        xmlns.insert_str("xmlns:dom", "http://www.w3.org/2001/xml-events");
+        xmlns.insert_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml");
+        xmlns.insert_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#");
+        xmlns.insert_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/");
+        xmlns.insert_str(
+            "xmlns:presentation",
+            "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
+        );
+        Cow::Owned(xmlns)
+    };
+
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-styles")?;
-    xml_out.attr_str(
-        "xmlns:meta",
-        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:office",
-        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:fo",
-        "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
-    )?;
-    xml_out.attr_str("xmlns:ooo", "http://openoffice.org/2004/office")?;
-    xml_out.attr_str("xmlns:xlink", "http://www.w3.org/1999/xlink")?;
-    xml_out.attr_str("xmlns:dc", "http://purl.org/dc/elements/1.1/")?;
-    xml_out.attr_str(
-        "xmlns:style",
-        "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:text",
-        "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:dr3d",
-        "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:svg",
-        "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:chart",
-        "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
-    )?;
-    xml_out.attr_str("xmlns:rpt", "http://openoffice.org/2005/report")?;
-    xml_out.attr_str(
-        "xmlns:table",
-        "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:number",
-        "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
-    )?;
-    xml_out.attr_str("xmlns:ooow", "http://openoffice.org/2004/writer")?;
-    xml_out.attr_str("xmlns:oooc", "http://openoffice.org/2004/calc")?;
-    xml_out.attr_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
-    xml_out.attr_str("xmlns:tableooo", "http://openoffice.org/2009/table")?;
-    xml_out.attr_str(
-        "xmlns:calcext",
-        "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
-    )?;
-    xml_out.attr_str("xmlns:drawooo", "http://openoffice.org/2010/draw")?;
-    xml_out.attr_str(
-        "xmlns:draw",
-        "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:loext",
-        "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:field",
-        "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
-    )?;
-    xml_out.attr_str("xmlns:math", "http://www.w3.org/1998/Math/MathML")?;
-    xml_out.attr_str(
-        "xmlns:form",
-        "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:script",
-        "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
-    )?;
-    xml_out.attr_str("xmlns:dom", "http://www.w3.org/2001/xml-events")?;
-    xml_out.attr_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml")?;
-    xml_out.attr_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#")?;
-    xml_out.attr_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/")?;
-    xml_out.attr_str(
-        "xmlns:presentation",
-        "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
-    )?;
+    write_xmlns(&xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
 
     xml_out.elem("office:font-face-decls")?;
@@ -810,138 +855,14 @@ fn write_ods_styles<W: Write + Seek>(
     xml_out.elem("office:styles")?;
     write_styles(book, StyleOrigin::Styles, StyleUse::Default, xml_out)?;
     write_styles(book, StyleOrigin::Styles, StyleUse::Named, xml_out)?;
-    write_valuestyles(
-        &book.formats_boolean,
-        StyleOrigin::Styles,
-        StyleUse::Named,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_currency,
-        StyleOrigin::Styles,
-        StyleUse::Named,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_datetime,
-        StyleOrigin::Styles,
-        StyleUse::Named,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_number,
-        StyleOrigin::Styles,
-        StyleUse::Named,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_percentage,
-        StyleOrigin::Styles,
-        StyleUse::Named,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_text,
-        StyleOrigin::Styles,
-        StyleUse::Named,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_timeduration,
-        StyleOrigin::Styles,
-        StyleUse::Named,
-        xml_out,
-    )?;
-
-    write_valuestyles(
-        &book.formats_boolean,
-        StyleOrigin::Styles,
-        StyleUse::Default,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_currency,
-        StyleOrigin::Styles,
-        StyleUse::Default,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_datetime,
-        StyleOrigin::Styles,
-        StyleUse::Default,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_number,
-        StyleOrigin::Styles,
-        StyleUse::Default,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_percentage,
-        StyleOrigin::Styles,
-        StyleUse::Default,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_text,
-        StyleOrigin::Styles,
-        StyleUse::Default,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_timeduration,
-        StyleOrigin::Styles,
-        StyleUse::Default,
-        xml_out,
-    )?;
+    write_valuestyles(&book, StyleOrigin::Styles, StyleUse::Named, xml_out)?;
+    write_valuestyles(&book, StyleOrigin::Styles, StyleUse::Default, xml_out)?;
     xml_out.end_elem("office:styles")?;
 
     xml_out.elem("office:automatic-styles")?;
     write_pagestyles(&book.pagestyles, xml_out)?;
     write_styles(book, StyleOrigin::Styles, StyleUse::Automatic, xml_out)?;
-    write_valuestyles(
-        &book.formats_boolean,
-        StyleOrigin::Styles,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_currency,
-        StyleOrigin::Styles,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_datetime,
-        StyleOrigin::Styles,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_number,
-        StyleOrigin::Styles,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_percentage,
-        StyleOrigin::Styles,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_text,
-        StyleOrigin::Styles,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_timeduration,
-        StyleOrigin::Styles,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
+    write_valuestyles(&book, StyleOrigin::Styles, StyleUse::Automatic, xml_out)?;
     xml_out.end_elem("office:automatic-styles")?;
 
     xml_out.elem("office:master-styles")?;
@@ -959,99 +880,106 @@ fn write_ods_content<W: Write + Seek>(
     book: &WorkBook,
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
+    let xmlns = if let Some(xmlns) = book.xmlns.get("content.xml") {
+        Cow::Borrowed(xmlns)
+    } else {
+        let mut xmlns = NamespaceMap::new();
+        xmlns.insert_str(
+            "xmlns:meta",
+            "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:office",
+            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:fo",
+            "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
+        );
+        xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
+        xmlns.insert_str("xmlns:xlink", "http://www.w3.org/1999/xlink");
+        xmlns.insert_str("xmlns:dc", "http://purl.org/dc/elements/1.1/");
+        xmlns.insert_str(
+            "xmlns:style",
+            "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:text",
+            "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:draw",
+            "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:dr3d",
+            "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:svg",
+            "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:chart",
+            "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
+        );
+        xmlns.insert_str("xmlns:rpt", "http://openoffice.org/2005/report");
+        xmlns.insert_str(
+            "xmlns:table",
+            "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:number",
+            "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
+        );
+        xmlns.insert_str("xmlns:ooow", "http://openoffice.org/2004/writer");
+        xmlns.insert_str("xmlns:oooc", "http://openoffice.org/2004/calc");
+        xmlns.insert_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2");
+        xmlns.insert_str("xmlns:tableooo", "http://openoffice.org/2009/table");
+        xmlns.insert_str(
+            "xmlns:calcext",
+            "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
+        );
+        xmlns.insert_str("xmlns:drawooo", "http://openoffice.org/2010/draw");
+        xmlns.insert_str(
+            "xmlns:loext",
+            "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:field",
+            "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
+        );
+        xmlns.insert_str("xmlns:math", "http://www.w3.org/1998/Math/MathML");
+        xmlns.insert_str(
+            "xmlns:form",
+            "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:script",
+            "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
+        );
+        xmlns.insert_str("xmlns:dom", "http://www.w3.org/2001/xml-events");
+        xmlns.insert_str("xmlns:xforms", "http://www.w3.org/2002/xforms");
+        xmlns.insert_str("xmlns:xsd", "http://www.w3.org/2001/XMLSchema");
+        xmlns.insert_str("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+        xmlns.insert_str(
+            "xmlns:formx",
+            "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0",
+        );
+        xmlns.insert_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml");
+        xmlns.insert_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#");
+        xmlns.insert_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/");
+        xmlns.insert_str(
+            "xmlns:presentation",
+            "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
+        );
+        Cow::Owned(xmlns)
+    };
+
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-content")?;
-    xml_out.attr_str(
-        "xmlns:meta",
-        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:office",
-        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:fo",
-        "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
-    )?;
-    xml_out.attr_str("xmlns:ooo", "http://openoffice.org/2004/office")?;
-    xml_out.attr_str("xmlns:xlink", "http://www.w3.org/1999/xlink")?;
-    xml_out.attr_str("xmlns:dc", "http://purl.org/dc/elements/1.1/")?;
-    xml_out.attr_str(
-        "xmlns:style",
-        "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:text",
-        "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:draw",
-        "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:dr3d",
-        "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:svg",
-        "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:chart",
-        "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
-    )?;
-    xml_out.attr_str("xmlns:rpt", "http://openoffice.org/2005/report")?;
-    xml_out.attr_str(
-        "xmlns:table",
-        "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:number",
-        "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
-    )?;
-    xml_out.attr_str("xmlns:ooow", "http://openoffice.org/2004/writer")?;
-    xml_out.attr_str("xmlns:oooc", "http://openoffice.org/2004/calc")?;
-    xml_out.attr_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2")?;
-    xml_out.attr_str("xmlns:tableooo", "http://openoffice.org/2009/table")?;
-    xml_out.attr_str(
-        "xmlns:calcext",
-        "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
-    )?;
-    xml_out.attr_str("xmlns:drawooo", "http://openoffice.org/2010/draw")?;
-    xml_out.attr_str(
-        "xmlns:loext",
-        "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:field",
-        "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
-    )?;
-    xml_out.attr_str("xmlns:math", "http://www.w3.org/1998/Math/MathML")?;
-    xml_out.attr_str(
-        "xmlns:form",
-        "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
-    )?;
-    xml_out.attr_str(
-        "xmlns:script",
-        "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
-    )?;
-    xml_out.attr_str("xmlns:dom", "http://www.w3.org/2001/xml-events")?;
-    xml_out.attr_str("xmlns:xforms", "http://www.w3.org/2002/xforms")?;
-    xml_out.attr_str("xmlns:xsd", "http://www.w3.org/2001/XMLSchema")?;
-    xml_out.attr_str("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")?;
-    xml_out.attr_str(
-        "xmlns:formx",
-        "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0",
-    )?;
-    xml_out.attr_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml")?;
-    xml_out.attr_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#")?;
-    xml_out.attr_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/")?;
-    xml_out.attr_str(
-        "xmlns:presentation",
-        "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
-    )?;
-
+    write_xmlns(&xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
 
     xml_out.elem("office:scripts")?;
@@ -1065,48 +993,7 @@ fn write_ods_content<W: Write + Seek>(
 
     xml_out.elem("office:automatic-styles")?;
     write_styles(book, StyleOrigin::Content, StyleUse::Automatic, xml_out)?;
-    write_valuestyles(
-        &book.formats_boolean,
-        StyleOrigin::Content,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_currency,
-        StyleOrigin::Content,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_datetime,
-        StyleOrigin::Content,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_number,
-        StyleOrigin::Content,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_percentage,
-        StyleOrigin::Content,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_text,
-        StyleOrigin::Content,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
-    write_valuestyles(
-        &book.formats_timeduration,
-        StyleOrigin::Content,
-        StyleUse::Automatic,
-        xml_out,
-    )?;
+    write_valuestyles(&book, StyleOrigin::Content, StyleUse::Automatic, xml_out)?;
     xml_out.end_elem("office:automatic-styles")?;
 
     xml_out.elem("office:body")?;
@@ -1835,9 +1722,9 @@ fn write_styles<W: Write + Seek>(
     styleuse: StyleUse,
     xml_out: &mut XmlOdsWriter<'_, W>,
 ) -> Result<(), OdsError> {
-    for style in book.tablestyles.values() {
+    for style in book.colstyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
-            write_tablestyle(style, xml_out)?;
+            write_colstyle(style, xml_out)?;
         }
     }
     for style in book.rowstyles.values() {
@@ -1845,9 +1732,9 @@ fn write_styles<W: Write + Seek>(
             write_rowstyle(style, xml_out)?;
         }
     }
-    for style in book.colstyles.values() {
+    for style in book.tablestyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
-            write_colstyle(style, xml_out)?;
+            write_tablestyle(style, xml_out)?;
         }
     }
     for style in book.cellstyles.values() {
@@ -2223,7 +2110,23 @@ fn write_graphicstyle<W: Write + Seek>(
     Ok(())
 }
 
-fn write_valuestyles<W: Write + Seek, T: ValueFormatTrait>(
+fn write_valuestyles<W: Write + Seek>(
+    book: &WorkBook,
+    origin: StyleOrigin,
+    style_use: StyleUse,
+    xml_out: &mut XmlOdsWriter<'_, W>,
+) -> Result<(), OdsError> {
+    write_valuestyle(&book.formats_boolean, origin, style_use, xml_out)?;
+    write_valuestyle(&book.formats_currency, origin, style_use, xml_out)?;
+    write_valuestyle(&book.formats_datetime, origin, style_use, xml_out)?;
+    write_valuestyle(&book.formats_number, origin, style_use, xml_out)?;
+    write_valuestyle(&book.formats_percentage, origin, style_use, xml_out)?;
+    write_valuestyle(&book.formats_text, origin, style_use, xml_out)?;
+    write_valuestyle(&book.formats_timeduration, origin, style_use, xml_out)?;
+    Ok(())
+}
+
+fn write_valuestyle<W: Write + Seek, T: ValueFormatTrait>(
     value_formats: &HashMap<String, T>,
     origin: StyleOrigin,
     styleuse: StyleUse,

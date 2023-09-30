@@ -37,8 +37,8 @@ use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
 use crate::xmltree::XmlTag;
 use crate::{
-    CellData, CellStyle, EventListener, Grouped, Length, Script, Sheet, SplitMode, Value,
-    ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
+    CellData, CellStyle, EventListener, Grouped, Length, NamespaceMap, Script, Sheet, SplitMode,
+    Value, ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
     ValueFormatPercentage, ValueFormatText, ValueFormatTimeDuration, ValueType, Visibility,
     WorkBook,
 };
@@ -70,13 +70,13 @@ fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, Ods
     let mut book = WorkBook::new_empty();
     let mut bufstack = BufStack::new();
 
-    {
-        let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip.by_name("content.xml")?));
-        read_ods_content(&mut bufstack, &mut book, &mut xml)?;
-    }
-    {
-        let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip.by_name("styles.xml")?));
-        read_ods_styles(&mut bufstack, &mut book, &mut xml)?;
+    read_ods_manifest(&mut bufstack, &mut book, &mut zip)?;
+
+    if let Ok(z) = zip.by_name("meta.xml") {
+        let mut xml = quick_xml::Reader::from_reader(BufReader::new(z));
+        read_ods_metadata(&mut bufstack, &mut book, &mut xml)?;
+    } else {
+        book.metadata = Default::default();
     }
 
     if let Ok(z) = zip.by_name("settings.xml") {
@@ -86,14 +86,15 @@ fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, Ods
         book.config = default_settings();
     }
 
-    if let Ok(z) = zip.by_name("meta.xml") {
-        let mut xml = quick_xml::Reader::from_reader(BufReader::new(z));
-        read_ods_metadata(&mut bufstack, &mut book, &mut xml)?;
-    } else {
-        book.metadata = Default::default();
+    {
+        let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip.by_name("styles.xml")?));
+        read_ods_styles(&mut bufstack, &mut book, &mut xml)?;
     }
 
-    read_ods_manifest(&mut bufstack, &mut book, &mut zip)?;
+    {
+        let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip.by_name("content.xml")?));
+        read_ods_content(&mut bufstack, &mut book, &mut xml)?;
+    }
 
     // We do some data duplication here, to make everything easier to use.
     calc_derived(&mut book)?;
@@ -253,6 +254,18 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
             if let Some(ConfigValue::Short(n)) = cc.get_value_rec(&["ActiveSplitRange"]) {
                 sheet.config_mut().active_split_range = *n;
             }
+            if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["PositionLeft"]) {
+                sheet.config_mut().position_left = *n as u32;
+            }
+            if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["PositionRight"]) {
+                sheet.config_mut().position_right = *n as u32;
+            }
+            if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["PositionTop"]) {
+                sheet.config_mut().position_top = *n as u32;
+            }
+            if let Some(ConfigValue::Int(n)) = cc.get_value_rec(&["PositionBottom"]) {
+                sheet.config_mut().position_bottom = *n as u32;
+            }
             if let Some(ConfigValue::Short(n)) = cc.get_value_rec(&["ZoomType"]) {
                 sheet.config_mut().zoom_type = *n;
             }
@@ -287,30 +300,25 @@ fn read_ods_content(
             Event::Decl(_) => {}
 
             Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"office:spreadsheet" => { }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"office:spreadsheet" => { }
-
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"office:body" => { }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"office:body" => { }
-
-            Event::Start(xml_tag)
             if xml_tag.name().as_ref() == b"office:document-content" => {
-                for attr in xml_tag.attributes().with_checks(false) {
-                    match attr? {
-                        attr if attr.key.as_ref() == b"office:version" => {
-                            book.set_version(attr.unescape_value()?.to_string());
-                        }
-                        _ => {
-                            // noop
-                        }
-                    }
+                let (version, xmlns) = read_namespaces_and_version(xml_tag)?;
+                if let Some(version) = version {
+                    book.set_version(version);
                 }
+                book.xmlns.insert("content.xml".to_string(), xmlns);
             }
             Event::End(xml_tag)
             if xml_tag.name().as_ref() == b"office:document-content" => { }
+
+            Event::Start(xml_tag)
+            if xml_tag.name().as_ref() == b"office:spreadsheet" => { }
+            Event::End(xml_tag)
+            if xml_tag.name().as_ref() == b"office:spreadsheet" => { }
+
+            Event::Start(xml_tag)
+            if xml_tag.name().as_ref() == b"office:body" => { }
+            Event::End(xml_tag)
+            if xml_tag.name().as_ref() == b"office:body" => { }
 
             Event::Start(xml_tag)
             if xml_tag.name().as_ref() == b"office:scripts" =>
@@ -391,6 +399,34 @@ fn read_ods_content(
     bs.push(buf);
 
     Ok(())
+}
+
+fn read_namespaces_and_version(
+    super_tag: &BytesStart<'_>,
+) -> Result<(Option<String>, NamespaceMap), OdsError> {
+    let mut version = None;
+    let mut xmlns = NamespaceMap::new();
+
+    for attr in super_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"office:version" => {
+                version = Some(attr.unescape_value()?.to_string());
+            }
+            attr if attr.key.as_ref().starts_with(b"xmlns:") => {
+                let k = from_utf8(attr.key.as_ref())?.to_string();
+                let v = attr.unescape_value()?.to_string();
+                xmlns.insert(k, v);
+            }
+            attr => {
+                dump_unused(
+                    "read_namespaces_and_version",
+                    super_tag.name().as_ref(),
+                    &attr,
+                )?;
+            }
+        }
+    }
+    Ok((version, xmlns))
 }
 
 // Reads the table.
@@ -2753,7 +2789,8 @@ fn read_ods_styles(
             Event::Decl(_) => {}
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:document-styles" => {
-                // noop
+                let (_, xmlns) = read_namespaces_and_version(xml_tag)?;
+                book.xmlns.insert("styles.xml".to_string(), xmlns);
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-styles" => {
                 // noop
@@ -2897,7 +2934,10 @@ fn read_ods_metadata(
         match &evt {
             Event::Decl(_) => {}
 
-            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:document-meta" => {}
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:document-meta" => {
+                let (_, xmlns) = read_namespaces_and_version(xml_tag)?;
+                book.xmlns.insert("meta.xml".to_string(), xmlns);
+            }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-meta" => {}
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {}
@@ -3302,7 +3342,8 @@ fn read_ods_settings(
             Event::Decl(_) => {}
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:document-settings" => {
-                // noop
+                let (_, xmlns) = read_namespaces_and_version(xml_tag)?;
+                book.xmlns.insert("settings.xml".to_string(), xmlns);
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-settings" => {
                 // noop

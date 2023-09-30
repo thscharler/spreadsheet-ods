@@ -35,6 +35,7 @@ icu_locid = "1.0"
 lazy_static = "1.4"
 unicode-ident = "1.0"
 kparse = "3.0.4"
+indexmap = "2.0"
 
 [dependencies.quick-xml]
 version = "0.28.0"
