@@ -52,9 +52,6 @@ pub fn write_ods_to<T: Write + Seek>(book: &mut WorkBook, ods: T) -> Result<(), 
 }
 
 /// Writes the ODS file.
-///
-/// All the parts are written to a temp directory and then zipped together.
-///
 pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(), OdsError> {
     let zip_writer = ZipOut::<File>::new_file(ods_path.as_ref())?;
     write_ods_impl(book, zip_writer)?;
@@ -86,6 +83,7 @@ fn write_ods_impl<W: Write + Seek>(
     Ok(zip_writer.zip()?)
 }
 
+/// Sanity checks.
 fn sanity_checks(book: &mut WorkBook) -> Result<(), OdsError> {
     if book.sheets.is_empty() {
         return Err(OdsError::Ods("Workbook contains no sheets.".to_string()));
@@ -93,25 +91,13 @@ fn sanity_checks(book: &mut WorkBook) -> Result<(), OdsError> {
     Ok(())
 }
 
-/// Syncs book.config back to the tree structure.
-/// Syncs row-heights and col-widths back to the corresponding styles.
+/// - Syncs book.config back to the config tree structure.
+/// - Syncs row-heights and col-widths back to the corresponding styles.
 #[allow(clippy::collapsible_else_if)]
 #[allow(clippy::collapsible_if)]
 fn sync(book: &mut WorkBook) -> Result<(), OdsError> {
     // Manifest
-    let s = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
-    let d = NaiveDateTime::from_timestamp_opt(s.as_secs() as i64, 0).expect("valid timestamp");
-
     book.metadata.generator = "spreadsheet-ods 0.17.0".to_string();
-    if book.metadata.creation_date.is_none() {
-        book.metadata.creation_date = Some(d);
-    }
-    if book.metadata.date.is_none() {
-        book.metadata.date = Some(d);
-    }
-    if book.metadata.editing_cycles == 0 {
-        book.metadata.editing_cycles = 1;
-    }
     book.metadata.document_statistics.table_count = book.sheets.len() as u32;
     let mut cell_count = 0;
     for sheet in book.iter_sheets() {
@@ -249,28 +235,46 @@ fn create_manifest(book: &mut WorkBook) -> Result<(), OdsError> {
     Ok(())
 }
 
-// All extra entries from the manifest.
-fn write_extra<W: Write + Seek>(
-    book: &WorkBook,
-    zip_writer: &mut OdsWriter<W>,
-) -> Result<(), OdsError> {
-    for manifest in book.manifest.values() {
-        if !matches!(
-            manifest.full_path.as_str(),
-            "/" | "settings.xml" | "styles.xml" | "content.xml" | "meta.xml"
-        ) {
-            if manifest.is_dir() {
-                zip_writer.add_directory(&manifest.full_path, FileOptions::default())?;
-            } else {
-                let mut wr = zip_writer.start_file(&manifest.full_path, FileOptions::default())?;
-                if let Some(buf) = &manifest.buffer {
-                    wr.write_all(buf.as_slice())?;
-                }
-            }
-        }
-    }
+fn create_manifest_rdf() -> Result<Manifest, OdsError> {
+    let mut buf = Vec::new();
+    let mut xml_out = XmlWriter::new(&mut buf);
 
-    Ok(())
+    xml_out.dtd("UTF-8")?;
+    xml_out.elem("rdf:RDF")?;
+    xml_out.attr_str("xmlns:rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")?;
+    xml_out.elem("rdf:Description")?;
+    xml_out.attr_str("rdf:about", "content.xml")?;
+    xml_out.empty("rdf:type")?;
+    xml_out.attr_str(
+        "rdf:resource",
+        "http://docs.oasis-open.org/ns/office/1.2/meta/odf#ContentFile",
+    )?;
+    xml_out.end_elem("rdf:Description")?;
+    xml_out.elem("rdf:Description")?;
+    xml_out.attr_str("rdf:about", "")?;
+    xml_out.empty("ns0:hasPart")?;
+    xml_out.attr_str(
+        "xmlns:ns0",
+        "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#",
+    )?;
+    xml_out.attr_str("rdf:resource", "content.xml")?;
+    xml_out.end_elem("rdf:Description")?;
+    xml_out.elem("rdf:Description")?;
+    xml_out.attr_str("rdf:about", "")?;
+    xml_out.empty("rdf:type")?;
+    xml_out.attr_str(
+        "rdf:resource",
+        "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#Document",
+    )?;
+    xml_out.end_elem("rdf:Description")?;
+    xml_out.end_elem("rdf:RDF")?;
+    xml_out.close()?;
+
+    Ok(Manifest::with_buf(
+        "manifest.rdf",
+        "application/rdf+xml",
+        buf,
+    ))
 }
 
 fn write_mimetype<W: Write + Seek>(zip_out: &mut OdsWriter<W>) -> Result<(), io::Error> {
@@ -483,48 +487,6 @@ fn write_metadata<W: Write + Seek>(
     xml_out.close()?;
 
     Ok(())
-}
-
-fn create_manifest_rdf() -> Result<Manifest, OdsError> {
-    let mut buf = Vec::new();
-    let mut xml_out = XmlWriter::new(&mut buf);
-
-    xml_out.dtd("UTF-8")?;
-    xml_out.elem("rdf:RDF")?;
-    xml_out.attr_str("xmlns:rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")?;
-    xml_out.elem("rdf:Description")?;
-    xml_out.attr_str("rdf:about", "content.xml")?;
-    xml_out.empty("rdf:type")?;
-    xml_out.attr_str(
-        "rdf:resource",
-        "http://docs.oasis-open.org/ns/office/1.2/meta/odf#ContentFile",
-    )?;
-    xml_out.end_elem("rdf:Description")?;
-    xml_out.elem("rdf:Description")?;
-    xml_out.attr_str("rdf:about", "")?;
-    xml_out.empty("ns0:hasPart")?;
-    xml_out.attr_str(
-        "xmlns:ns0",
-        "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#",
-    )?;
-    xml_out.attr_str("rdf:resource", "content.xml")?;
-    xml_out.end_elem("rdf:Description")?;
-    xml_out.elem("rdf:Description")?;
-    xml_out.attr_str("rdf:about", "")?;
-    xml_out.empty("rdf:type")?;
-    xml_out.attr_str(
-        "rdf:resource",
-        "http://docs.oasis-open.org/ns/office/1.2/meta/pkg#Document",
-    )?;
-    xml_out.end_elem("rdf:Description")?;
-    xml_out.end_elem("rdf:RDF")?;
-    xml_out.close()?;
-
-    Ok(Manifest::with_buf(
-        "manifest.rdf",
-        "application/rdf+xml",
-        buf,
-    ))
 }
 
 fn write_settings<W: Write + Seek>(
@@ -1289,7 +1251,7 @@ fn check_hidden(ranges: &[CellRange], row: u32, col: u32) -> (bool, u32) {
 }
 
 /// Removes any outlived Ranges from the vector.
-pub(crate) fn remove_outlooped(ranges: &mut Vec<CellRange>, row: u32, col: u32) {
+fn remove_outlooped(ranges: &mut Vec<CellRange>, row: u32, col: u32) {
     *ranges = ranges
         .drain(..)
         .filter(|s| !s.out_looped(row, col))
@@ -1664,52 +1626,6 @@ fn write_empty_row<W: Write + Seek>(
     xml_out.attr("table:number-columns-repeated", &max_cell.1)?;
 
     xml_out.end_elem("table:table-row")?;
-
-    Ok(())
-}
-
-fn write_xmlcontent<W: Write + Seek>(
-    x: &XmlContent,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
-    match x {
-        XmlContent::Text(t) => {
-            xml_out.text_esc(t)?;
-        }
-        XmlContent::Tag(t) => {
-            write_xmltag(t, xml_out)?;
-        }
-    }
-    Ok(())
-}
-
-fn write_xmltag<W: Write + Seek>(
-    x: &XmlTag,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
-    if x.is_empty() {
-        xml_out.empty(x.name())?;
-    } else {
-        xml_out.elem(x.name())?;
-    }
-    for (k, v) in x.attrmap().iter() {
-        xml_out.attr_esc(k.as_ref(), v)?;
-    }
-
-    for c in x.content() {
-        match c {
-            XmlContent::Text(t) => {
-                xml_out.text_esc(t)?;
-            }
-            XmlContent::Tag(t) => {
-                write_xmltag(t, xml_out)?;
-            }
-        }
-    }
-
-    if !x.is_empty() {
-        xml_out.end_elem(x.name())?;
-    }
 
     Ok(())
 }
@@ -2560,6 +2476,76 @@ fn write_regions<W: Write + Seek>(
     }
     for content in hf.content() {
         write_xmltag(content, xml_out)?;
+    }
+
+    Ok(())
+}
+
+fn write_xmlcontent<W: Write + Seek>(
+    x: &XmlContent,
+    xml_out: &mut XmlOdsWriter<'_, W>,
+) -> Result<(), OdsError> {
+    match x {
+        XmlContent::Text(t) => {
+            xml_out.text_esc(t)?;
+        }
+        XmlContent::Tag(t) => {
+            write_xmltag(t, xml_out)?;
+        }
+    }
+    Ok(())
+}
+
+fn write_xmltag<W: Write + Seek>(
+    x: &XmlTag,
+    xml_out: &mut XmlOdsWriter<'_, W>,
+) -> Result<(), OdsError> {
+    if x.is_empty() {
+        xml_out.empty(x.name())?;
+    } else {
+        xml_out.elem(x.name())?;
+    }
+    for (k, v) in x.attrmap().iter() {
+        xml_out.attr_esc(k.as_ref(), v)?;
+    }
+
+    for c in x.content() {
+        match c {
+            XmlContent::Text(t) => {
+                xml_out.text_esc(t)?;
+            }
+            XmlContent::Tag(t) => {
+                write_xmltag(t, xml_out)?;
+            }
+        }
+    }
+
+    if !x.is_empty() {
+        xml_out.end_elem(x.name())?;
+    }
+
+    Ok(())
+}
+
+// All extra entries from the manifest.
+fn write_extra<W: Write + Seek>(
+    book: &WorkBook,
+    zip_writer: &mut OdsWriter<W>,
+) -> Result<(), OdsError> {
+    for manifest in book.manifest.values() {
+        if !matches!(
+            manifest.full_path.as_str(),
+            "/" | "settings.xml" | "styles.xml" | "content.xml" | "meta.xml"
+        ) {
+            if manifest.is_dir() {
+                zip_writer.add_directory(&manifest.full_path, FileOptions::default())?;
+            } else {
+                let mut wr = zip_writer.start_file(&manifest.full_path, FileOptions::default())?;
+                if let Some(buf) = &manifest.buffer {
+                    wr.write_all(buf.as_slice())?;
+                }
+            }
+        }
     }
 
     Ok(())
