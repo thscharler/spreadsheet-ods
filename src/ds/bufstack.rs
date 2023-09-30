@@ -11,7 +11,7 @@ impl BufStack {
         }
     }
 
-    pub(crate) fn get_buf(&mut self) -> Vec<u8> {
+    pub(crate) fn pop(&mut self) -> Vec<u8> {
         self.n += 1;
         self.buf.pop().unwrap_or_default()
     }
