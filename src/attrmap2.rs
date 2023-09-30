@@ -4,7 +4,7 @@
 //! related families of attributes.
 //!
 
-use std::collections::{hash_map, HashMap};
+use crate::{HashMap, HashMapIter};
 use string_cache::DefaultAtom;
 
 /// Container type for attributes.
@@ -83,7 +83,7 @@ impl AttrMap2 {
 /// Iterator for an AttrMap.
 #[derive(Debug)]
 pub struct AttrMapIter<'a> {
-    it: Option<hash_map::Iter<'a, DefaultAtom, String>>,
+    it: Option<HashMapIter<'a, DefaultAtom, String>>,
 }
 
 impl<'a> From<&'a AttrMap2> for AttrMapIter<'a> {

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::{Cursor, Seek, Write};
@@ -21,6 +20,7 @@ use crate::style::{
 };
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
+use crate::HashMap;
 use crate::{
     CellContentRef, EventListener, Length, Script, Sheet, Value, ValueFormatTrait, ValueType,
     Visibility, WorkBook,

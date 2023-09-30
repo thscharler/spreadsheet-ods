@@ -4,7 +4,7 @@
 /// This is only used internally and is mapped to WorkBookConfig and
 /// SheetConfig which are more accessible.
 ///
-use std::collections::HashMap;
+use crate::HashMap;
 
 use chrono::NaiveDateTime;
 

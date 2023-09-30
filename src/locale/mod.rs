@@ -7,13 +7,13 @@ mod de_at;
 #[cfg(feature = "locale_en_US")]
 mod en_us;
 
+use crate::HashMap;
 use crate::{
     ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
     ValueFormatPercentage, ValueFormatTimeDuration,
 };
 use icu_locid::Locale;
 use lazy_static::lazy_static;
-use std::collections::HashMap;
 
 /// Defines functions that generate the standard formats for various
 /// value types.

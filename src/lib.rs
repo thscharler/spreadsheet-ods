@@ -221,7 +221,7 @@ use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 #[cfg(feature = "use_decimal")]
 use rust_decimal::Decimal;
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -258,6 +258,15 @@ pub mod text;
 pub mod validation;
 pub mod xlink;
 pub mod xmltree;
+
+// Use the IndexMap for debugging, makes diffing much easier.
+// Otherwise the std::HashMap is good.
+
+// use indexmap::IndexMap;
+// pub(crate) type HashMap<K, V> = IndexMap<K, V>;
+// pub(crate) type HashMapIter<'a, K, V> = indexmap::map::Iter<'a, K, V>;
+pub(crate) type HashMap<K, V> = std::collections::HashMap<K, V>;
+pub(crate) type HashMapIter<'a, K, V> = std::collections::hash_map::Iter<'a, K, V>;
 
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
