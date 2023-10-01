@@ -148,11 +148,12 @@ fn read_fods_content(
                 read_office_body(bs, book, xml)?;
             }
 
+            Event::Decl(_) => {}
             Event::Eof => {
                 break;
             }
             _ => {
-                dump_unused2("read_metadata", &evt)?;
+                dump_unused2("read_fods_content", &evt)?;
             }
         }
     }
@@ -415,6 +416,7 @@ fn read_ods_content(
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-content" => {}
 
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"office:scripts" => {}
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:scripts" => {
                 read_scripts(bs, book, xml)?
             }
@@ -464,7 +466,9 @@ fn read_office_body(
         }
         match &evt {
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:body" => {}
-            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:body" => {}
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:body" => {
+                break;
+            }
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:spreadsheet" => {}
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:spreadsheet" => {}
@@ -496,7 +500,8 @@ fn read_office_body(
                     || xml_tag.name().as_ref() == b"table:data-pilot-tables"
                     || xml_tag.name().as_ref() == b"table:database-ranges"
                     || xml_tag.name().as_ref() == b"table:dde-links"
-                    || xml_tag.name().as_ref() == b"table:named-expressions" =>
+                    || xml_tag.name().as_ref() == b"table:named-expressions"
+                    || xml_tag.name().as_ref() == b"calcext:conditional-formats" =>
             {
                 let v = read_xml(bs, xml_tag, empty_tag, xml)?;
                 book.extra.push(v);
@@ -549,6 +554,14 @@ fn read_namespaces_and_version(
                 let k = from_utf8(attr.key.as_ref())?.to_string();
                 let v = attr.unescape_value()?.to_string();
                 xmlns.insert(k, v);
+            }
+            attr if attr.key.as_ref() == b"office:mimetype" => {
+                if attr.unescape_value()? != "application/vnd.oasis.opendocument.spreadsheet" {
+                    return Err(OdsError::Parse(
+                        "invalid content-type",
+                        Some(attr.unescape_value()?.to_string()),
+                    ));
+                }
             }
             attr => {
                 dump_unused(
@@ -1749,30 +1762,28 @@ fn read_master_page(
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"style:header" => {
                 masterpage.set_header(read_headerfooter(bs, xml_tag, xml)?);
             }
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"style:header-first" => {}
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"style:header-first" => {
                 masterpage.set_header_first(read_headerfooter(bs, xml_tag, xml)?);
             }
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"style:header-left" => {}
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"style:header-left" => {
                 masterpage.set_header_left(read_headerfooter(bs, xml_tag, xml)?);
             }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"style:footer" => {
                 masterpage.set_footer(read_headerfooter(bs, xml_tag, xml)?);
             }
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"style:footer-first" => {}
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"style:footer-first" => {
                 masterpage.set_footer_first(read_headerfooter(bs, xml_tag, xml)?);
             }
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"style:footer-left" => {}
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"style:footer-left" => {
                 masterpage.set_footer_left(read_headerfooter(bs, xml_tag, xml)?);
             }
 
-            Event::Empty(_) => {
-                // empty header/footer tags can be skipped.
-            }
-            Event::Text(_) => (),
-            Event::End(end_tag) => {
-                if end_tag.name().as_ref() == b"style:master-page" {
-                    break;
-                }
+            Event::End(end_tag) if end_tag.name().as_ref() == b"style:master-page" => {
+                break;
             }
             Event::Eof => break,
             _ => {
@@ -2815,6 +2826,26 @@ fn read_graphicstyle(
                 {
                     copy_attr2(style.graphicstyle_mut(), xml_tag)?;
                 }
+
+                Event::Start(xml_tag) | Event::Empty(xml_tag)
+                    if xml_tag.name().as_ref() == b"style:paragraph-properties" =>
+                {
+                    // todo:
+                }
+                Event::End(xml_tag) if xml_tag.name().as_ref() == b"style:paragraph-properties" => {
+                    // todo:
+                }
+                Event::Start(xml_tag) | Event::Empty(xml_tag)
+                    if xml_tag.name().as_ref() == b"style:text-properties" =>
+                {
+                    // todo:
+                }
+                Event::Start(xml_tag) | Event::Empty(xml_tag)
+                    if xml_tag.name().as_ref() == b"style:tab-stops" =>
+                {
+                    // todo:
+                }
+
                 Event::End(end_tag) if end_tag.name() == super_tag.name() => {
                     book.add_graphicstyle(style);
                     break;
@@ -3075,6 +3106,7 @@ fn read_ods_metadata(
                 read_office_meta(bs, book, xml)?;
             }
 
+            Event::Decl(_) => {}
             Event::Eof => {
                 break;
             }
@@ -3798,20 +3830,24 @@ fn read_config_item_map_entry(
             println!(" read_config_item_map_entry {:?}", evt);
         }
         match &evt {
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"config:config-item" => {}
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"config:config-item" => {
                 let (name, val) = read_config_item(bs, xml_tag, xml)?;
                 config_set.insert(name, ConfigItem::from(val));
             }
+
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"config:config-item-set" => {
                 let (name, val) = read_config_item_set(bs, xml_tag, xml)?;
                 config_set.insert(name, val);
             }
+
             Event::Start(xml_tag)
                 if xml_tag.name().as_ref() == b"config:config-item-map-indexed" =>
             {
                 let (name, val) = read_config_item_map_indexed(bs, xml_tag, xml)?;
                 config_set.insert(name, val);
             }
+
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"config:config-item-map-named" => {
                 let (name, val) = read_config_item_map_named(bs, xml_tag, xml)?;
                 config_set.insert(name, val);
@@ -3819,6 +3855,7 @@ fn read_config_item_map_entry(
             Event::End(e) if e.name().as_ref() == b"config:config-item-map-entry" => {
                 break;
             }
+
             Event::Eof => break,
             _ => {
                 dump_unused2("read_config_item_map_entry", &evt)?;
@@ -4201,7 +4238,7 @@ fn dump_unused(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsEr
         let tag = from_utf8(tag)?;
         let key = from_utf8(attr.key.as_ref())?;
         let value = from_utf8(attr.value.as_ref())?;
-        println!("unused attr: {} {} ({}:{})", func, tag, key, value);
+        println!("unused attr: {} '{}' ({}:{})", func, tag, key, value);
     }
     Ok(())
 }

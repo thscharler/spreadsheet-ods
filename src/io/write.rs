@@ -1218,6 +1218,7 @@ fn write_office_body(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<
             || tag.name() == "table:database-ranges"
             || tag.name() == "table:dde-links"
             || tag.name() == "table:named-expressions"
+            || tag.name() == "calcext:conditional-formats"
         {
             write_xmltag(tag, xml_out)?;
         }
@@ -2518,20 +2519,20 @@ fn write_masterpage(
         xml_out.end_elem("style:header")?;
 
         if !style.header_first().is_empty() {
-            xml_out.elem("style:header_first")?;
+            xml_out.elem("style:header-first")?;
             if !style.header_first().display() {
                 xml_out.attr_str("style:display", "false")?;
             }
             write_regions(style.header_first(), xml_out)?;
-            xml_out.end_elem("style:header_first")?;
+            xml_out.end_elem("style:header-first")?;
         }
 
-        xml_out.elem("style:header_left")?;
+        xml_out.elem("style:header-left")?;
         if !style.header_left().display() || style.header_left().is_empty() {
             xml_out.attr_str("style:display", "false")?;
         }
         write_regions(style.header_left(), xml_out)?;
-        xml_out.end_elem("style:header_left")?;
+        xml_out.end_elem("style:header-left")?;
 
         xml_out.elem("style:footer")?;
         if !style.footer().display() {
@@ -2541,20 +2542,20 @@ fn write_masterpage(
         xml_out.end_elem("style:footer")?;
 
         if !style.footer_first().is_empty() {
-            xml_out.elem("style:footer_first")?;
+            xml_out.elem("style:footer-first")?;
             if !style.footer_first().display() {
                 xml_out.attr_str("style:display", "false")?;
             }
             write_regions(style.footer_first(), xml_out)?;
-            xml_out.end_elem("style:footer_first")?;
+            xml_out.end_elem("style:footer-first")?;
         }
 
-        xml_out.elem("style:footer_left")?;
+        xml_out.elem("style:footer-left")?;
         if !style.footer_left().display() || style.footer_left().is_empty() {
             xml_out.attr_str("style:display", "false")?;
         }
         write_regions(style.footer_left(), xml_out)?;
-        xml_out.end_elem("style:footer_left")?;
+        xml_out.end_elem("style:footer-left")?;
 
         xml_out.end_elem("style:master-page")?;
     }
