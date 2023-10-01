@@ -86,7 +86,7 @@ fn test_samples() -> Result<(), OdsError> {
 
 #[test]
 fn test_sample() -> Result<(), OdsError> {
-    let sample = "martinique_logementssociauxvides_1erjanvier2020_sup_6.ods";
+    let sample = "12_322_20220607112222.ods";
     let path = Path::new("..\\spreadsheet-ods-samples\\");
 
     let mut dur = Duration::new(0, 0);
