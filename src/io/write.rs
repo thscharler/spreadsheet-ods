@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::fs::File;
 use std::io;
-use std::io::{Cursor, Seek, Write};
+use std::io::{BufWriter, Cursor, Seek, Write};
 use std::path::Path;
 
 use zip::write::FileOptions;
@@ -11,7 +11,7 @@ use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::format::{format_duration2, format_validation_condition};
 use crate::io::xmlwriter::XmlWriter;
-use crate::io::zip_out::{ZipOut, ZipWrite};
+use crate::io::zip_out::ZipOut;
 use crate::manifest::Manifest;
 use crate::metadata::MetaValue;
 use crate::refs::{format_cellranges, CellRange};
@@ -27,8 +27,7 @@ use crate::{
 };
 use crate::{HashMap, NamespaceMap};
 
-type OdsWriter<W> = ZipOut<W>;
-type XmlOdsWriter<'a, W> = XmlWriter<ZipWrite<'a, W>>;
+type OdsXmlWriter<'a> = XmlWriter<BufWriter<Box<dyn Write + 'a>>>;
 
 const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 
@@ -58,13 +57,173 @@ pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(),
     Ok(())
 }
 
+/// Writes the FODS file into a supplied buffer.
+pub fn write_fods_buf(book: &mut WorkBook, mut write: Vec<u8>) -> Result<Vec<u8>, OdsError> {
+    write_fods_impl(book, Box::new(&mut write))?;
+    Ok(write)
+}
+
+/// Writes the FODS file to the given Write.
+pub fn write_fods_to<T: Write + Seek>(book: &mut WorkBook, write: T) -> Result<(), OdsError> {
+    write_fods_impl(book, Box::new(write))?;
+    Ok(())
+}
+
+/// Writes the FODS file.
+pub fn write_fods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(), OdsError> {
+    let write = File::create(ods_path)?;
+    write_fods_impl(book, Box::new(write))?;
+    Ok(())
+}
+
+/// Writes the ODS file.
+///
+/// All the parts are written to a temp directory and then zipped together.
+///
+fn write_fods_impl(book: &mut WorkBook, writer: Box<dyn Write + '_>) -> Result<(), OdsError> {
+    sanity_checks(book)?;
+    sync(book)?;
+
+    write_fods_content(book, &mut XmlWriter::new(BufWriter::new(writer)))?;
+
+    Ok(())
+}
+
+fn write_fods_content(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let xmlns = if let Some(xmlns) = book.xmlns.get("meta.xml") {
+        Cow::Borrowed(xmlns)
+    } else {
+        let mut xmlns = NamespaceMap::new();
+        xmlns.insert_str(
+            "xmlns:office",
+            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        );
+        xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
+        xmlns.insert_str(
+            "xmlns:fo",
+            "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
+        );
+        xmlns.insert_str("xmlns:xlink", "http://www.w3.org/1999/xlink");
+        xmlns.insert_str(
+            "xmlns:config",
+            "urn:oasis:names:tc:opendocument:xmlns:config:1.0",
+        );
+        xmlns.insert_str("xmlns:dc", "http://purl.org/dc/elements/1.1/");
+        xmlns.insert_str(
+            "xmlns:meta",
+            "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:style",
+            "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:text",
+            "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        );
+        xmlns.insert_str("xmlns:rpt", "http://openoffice.org/2005/report");
+        xmlns.insert_str(
+            "xmlns:draw",
+            "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:dr3d",
+            "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:svg",
+            "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:chart",
+            "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:table",
+            "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:number",
+            "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
+        );
+        xmlns.insert_str("xmlns:ooow", "http://openoffice.org/2004/writer");
+        xmlns.insert_str("xmlns:oooc", "http://openoffice.org/2004/calc");
+        xmlns.insert_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2");
+        xmlns.insert_str("xmlns:xforms", "http://www.w3.org/2002/xforms");
+        xmlns.insert_str("xmlns:tableooo", "http://openoffice.org/2009/table");
+        xmlns.insert_str(
+            "xmlns:calcext",
+            "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
+        );
+        xmlns.insert_str("xmlns:drawooo", "http://openoffice.org/2010/draw");
+        xmlns.insert_str(
+            "xmlns:loext",
+            "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:field",
+            "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
+        );
+        xmlns.insert_str("xmlns:math", "http://www.w3.org/1998/Math/MathML");
+        xmlns.insert_str(
+            "xmlns:form",
+            "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:script",
+            "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
+        );
+        xmlns.insert_str(
+            "xmlns:formx",
+            "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0",
+        );
+        xmlns.insert_str("xmlns:dom", "http://www.w3.org/2001/xml-events");
+        xmlns.insert_str("xmlns:xsd", "http://www.w3.org/2001/XMLSchema");
+        xmlns.insert_str("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+        xmlns.insert_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml");
+        xmlns.insert_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#");
+        xmlns.insert_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/");
+        xmlns.insert_str(
+            "xmlns:presentation",
+            "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
+        );
+
+        Cow::Owned(xmlns)
+    };
+
+    xml_out.dtd("UTF-8")?;
+
+    xml_out.elem("office:document")?;
+    write_xmlns(&xmlns, xml_out)?;
+    xml_out.attr_esc("office:version", book.version())?;
+    xml_out.attr_esc(
+        "office:mimetype",
+        "application/vnd.oasis.opendocument.spreadsheet",
+    )?;
+
+    write_office_meta(book, xml_out)?;
+    write_office_settings(book, xml_out)?;
+    write_office_scripts(book, xml_out)?;
+    write_office_font_face_decls(book, StyleOrigin::Content, xml_out)?;
+    write_office_styles(book, StyleOrigin::Content, xml_out)?;
+    write_office_automatic_styles(book, StyleOrigin::Content, xml_out)?;
+    write_office_master_styles(book, xml_out)?;
+    write_office_body(book, xml_out)?;
+
+    xml_out.end_elem("office:document")?;
+
+    xml_out.close()?;
+
+    Ok(())
+}
+
 /// Writes the ODS file.
 ///
 /// All the parts are written to a temp directory and then zipped together.
 ///
 fn write_ods_impl<W: Write + Seek>(
     book: &mut WorkBook,
-    mut zip_writer: OdsWriter<W>,
+    mut zip_writer: ZipOut<W>,
 ) -> Result<W, OdsError> {
     sanity_checks(book)?;
 
@@ -76,19 +235,24 @@ fn write_ods_impl<W: Write + Seek>(
 
     zip_writer.add_directory("META-INF", FileOptions::default())?;
     let out = zip_writer.start_file("META-INF/manifest.xml", FileOptions::default())?;
-    write_ods_manifest(book, &mut XmlWriter::new(out))?;
+    let write: Box<dyn Write> = Box::new(out);
+    write_ods_manifest(book, &mut XmlWriter::new(BufWriter::new(write)))?;
 
     let out = zip_writer.start_file("meta.xml", FileOptions::default())?;
-    write_ods_metadata(book, &mut XmlWriter::new(out))?;
+    let write: Box<dyn Write> = Box::new(out);
+    write_ods_metadata(book, &mut XmlWriter::new(BufWriter::new(write)))?;
 
     let out = zip_writer.start_file("settings.xml", FileOptions::default())?;
-    write_ods_settings(book, &mut XmlWriter::new(out))?;
+    let write: Box<dyn Write> = Box::new(out);
+    write_ods_settings(book, &mut XmlWriter::new(BufWriter::new(write)))?;
 
     let out = zip_writer.start_file("styles.xml", FileOptions::default())?;
-    write_ods_styles(book, &mut XmlWriter::new(out))?;
+    let write: Box<dyn Write> = Box::new(out);
+    write_ods_styles(book, &mut XmlWriter::new(BufWriter::new(write)))?;
 
     let out = zip_writer.start_file("content.xml", FileOptions::default())?;
-    write_ods_content(book, &mut XmlWriter::new(out))?;
+    let write: Box<dyn Write> = Box::new(out);
+    write_ods_content(book, &mut XmlWriter::new(BufWriter::new(write)))?;
 
     write_ods_extra(book, &mut zip_writer)?;
 
@@ -292,7 +456,7 @@ fn create_manifest_rdf() -> Result<Manifest, OdsError> {
     ))
 }
 
-fn write_ods_mimetype<W: Write + Seek>(zip_writer: &mut OdsWriter<W>) -> Result<(), io::Error> {
+fn write_ods_mimetype<W: Write + Seek>(zip_writer: &mut ZipOut<W>) -> Result<(), io::Error> {
     let mut out = zip_writer.start_file(
         "mimetype",
         FileOptions::default().compression_method(zip::CompressionMethod::Stored),
@@ -301,10 +465,7 @@ fn write_ods_mimetype<W: Write + Seek>(zip_writer: &mut OdsWriter<W>) -> Result<
     Ok(())
 }
 
-fn write_ods_manifest<W: Write + Seek>(
-    book: &WorkBook,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_ods_manifest(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("manifest:manifest")?;
@@ -330,10 +491,7 @@ fn write_ods_manifest<W: Write + Seek>(
     Ok(())
 }
 
-fn write_xmlns<W: Write + Seek>(
-    xmlns: &NamespaceMap,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_xmlns(xmlns: &NamespaceMap, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     for (k, v) in xmlns.entries() {
         match k {
             Cow::Borrowed(k) => {
@@ -347,10 +505,7 @@ fn write_xmlns<W: Write + Seek>(
     Ok(())
 }
 
-fn write_ods_metadata<W: Write + Seek>(
-    book: &WorkBook,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_ods_metadata(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     let xmlns = if let Some(xmlns) = book.xmlns.get("meta.xml") {
         Cow::Borrowed(xmlns)
     } else {
@@ -372,6 +527,16 @@ fn write_ods_metadata<W: Write + Seek>(
     write_xmlns(&xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
 
+    write_office_meta(book, xml_out)?;
+
+    xml_out.end_elem("office:document-meta")?;
+
+    xml_out.close()?;
+
+    Ok(())
+}
+
+fn write_office_meta(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     xml_out.elem("office:meta")?;
 
     xml_out.elem_text("meta:generator", &book.metadata.generator)?;
@@ -510,17 +675,10 @@ fn write_ods_metadata<W: Write + Seek>(
     }
 
     xml_out.end_elem("office:meta")?;
-    xml_out.end_elem("office:document-meta")?;
-
-    xml_out.close()?;
-
     Ok(())
 }
 
-fn write_ods_settings<W: Write + Seek>(
-    book: &WorkBook,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_ods_settings(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     let xmlns = if let Some(xmlns) = book.xmlns.get("settings.xml") {
         Cow::Borrowed(xmlns)
     } else {
@@ -552,10 +710,7 @@ fn write_ods_settings<W: Write + Seek>(
     Ok(())
 }
 
-fn write_office_settings<W: Write + Seek>(
-    book: &WorkBook,
-    xml_out: &mut XmlOdsWriter<W>,
-) -> Result<(), OdsError> {
+fn write_office_settings(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     xml_out.elem("office:settings")?;
 
     for (name, item) in book.config.iter() {
@@ -580,10 +735,10 @@ fn write_office_settings<W: Write + Seek>(
     Ok(())
 }
 
-fn write_config_item_set<W: Write + Seek>(
+fn write_config_item_set(
     name: &str,
     set: &ConfigItem,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-set")?;
     xml_out.attr_esc("config:name", name)?;
@@ -605,10 +760,10 @@ fn write_config_item_set<W: Write + Seek>(
     Ok(())
 }
 
-fn write_config_item_map_indexed<W: Write + Seek>(
+fn write_config_item_map_indexed(
     name: &str,
     vec: &ConfigItem,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-indexed")?;
     xml_out.attr_esc("config:name", name)?;
@@ -642,10 +797,10 @@ fn write_config_item_map_indexed<W: Write + Seek>(
     Ok(())
 }
 
-fn write_config_item_map_named<W: Write + Seek>(
+fn write_config_item_map_named(
     name: &str,
     map: &ConfigItem,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-named")?;
     xml_out.attr_esc("config:name", name)?;
@@ -671,10 +826,10 @@ fn write_config_item_map_named<W: Write + Seek>(
     Ok(())
 }
 
-fn write_config_item_map_entry<W: Write + Seek>(
+fn write_config_item_map_entry(
     name: Option<&String>,
     map_entry: &ConfigItem,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     xml_out.elem("config:config-item-map-entry")?;
     if let Some(name) = name {
@@ -698,10 +853,10 @@ fn write_config_item_map_entry<W: Write + Seek>(
     Ok(())
 }
 
-fn write_config_item<W: Write + Seek>(
+fn write_config_item(
     name: &str,
     value: &ConfigValue,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     let is_empty = match value {
         ConfigValue::Base64Binary(t) => t.is_empty(),
@@ -759,10 +914,7 @@ fn write_config_item<W: Write + Seek>(
     Ok(())
 }
 
-fn write_ods_styles<W: Write + Seek>(
-    book: &WorkBook,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_ods_styles(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     let xmlns = if let Some(xmlns) = book.xmlns.get("styles.xml") {
         Cow::Borrowed(xmlns)
     } else {
@@ -870,10 +1022,7 @@ fn write_ods_styles<W: Write + Seek>(
     Ok(())
 }
 
-fn write_ods_content<W: Write + Seek>(
-    book: &WorkBook,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_ods_content(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     let xmlns = if let Some(xmlns) = book.xmlns.get("content.xml") {
         Cow::Borrowed(xmlns)
     } else {
@@ -989,10 +1138,7 @@ fn write_ods_content<W: Write + Seek>(
     Ok(())
 }
 
-fn write_office_body<W: Write + Seek>(
-    book: &WorkBook,
-    xml_out: &mut XmlOdsWriter<W>,
-) -> Result<(), OdsError> {
+fn write_office_body(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     xml_out.elem("office:body")?;
     xml_out.elem("office:spreadsheet")?;
 
@@ -1034,10 +1180,7 @@ fn write_office_body<W: Write + Seek>(
     Ok(())
 }
 
-fn write_office_scripts<W: Write + Seek>(
-    book: &WorkBook,
-    xml_out: &mut XmlOdsWriter<W>,
-) -> Result<(), OdsError> {
+fn write_office_scripts(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     xml_out.elem("office:scripts")?;
     write_scripts(&book.scripts, xml_out)?;
     write_event_listeners(&book.event_listener, xml_out)?;
@@ -1045,9 +1188,9 @@ fn write_office_scripts<W: Write + Seek>(
     Ok(())
 }
 
-fn write_content_validations<W: Write + Seek>(
+fn write_content_validations(
     book: &WorkBook,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     if !book.validations.is_empty() {
         xml_out.elem("table:content-validations")?;
@@ -1131,10 +1274,10 @@ fn remove_outlooped(ranges: &mut Vec<CellRange>, row: u32, col: u32) {
         .collect();
 }
 
-fn write_sheet<W: Write + Seek>(
+fn write_sheet(
     book: &WorkBook,
     sheet: &Sheet,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table")?;
     xml_out.attr_esc("table:name", &sheet.name)?;
@@ -1314,10 +1457,10 @@ fn write_sheet<W: Write + Seek>(
     Ok(())
 }
 
-fn write_empty_cells<W: Write + Seek>(
+fn write_empty_cells(
     mut forward_delta_col: u32,
     hidden_cols: u32,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     // split between hidden and regular cells.
     if hidden_cols >= forward_delta_col {
@@ -1340,13 +1483,13 @@ fn write_empty_cells<W: Write + Seek>(
     Ok(())
 }
 
-fn write_start_current_row<W: Write + Seek>(
+fn write_start_current_row(
     sheet: &Sheet,
     cur_row: u32,
     cur_row_repeat: u32,
     backward_delta_col: u32,
     row_group_count: &mut u32,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     // groups
     for row_group in &sheet.group_rows {
@@ -1394,12 +1537,12 @@ fn write_start_current_row<W: Write + Seek>(
     Ok(())
 }
 
-fn write_end_prev_row<W: Write + Seek>(
+fn write_end_prev_row(
     sheet: &Sheet,
     last_r: u32,
     last_r_repeat: u32,
     row_group_count: &mut u32,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     // row
     xml_out.end_elem("table:table-row")?;
@@ -1420,9 +1563,9 @@ fn write_end_prev_row<W: Write + Seek>(
     Ok(())
 }
 
-fn write_end_last_row<W: Write + Seek>(
+fn write_end_last_row(
     row_group_count: &mut u32,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     // row
     xml_out.end_elem("table:table-row")?;
@@ -1436,13 +1579,13 @@ fn write_end_last_row<W: Write + Seek>(
     Ok(())
 }
 
-fn write_empty_rows_before<W: Write + Seek>(
+fn write_empty_rows_before(
     sheet: &Sheet,
     last_row: u32,
     last_row_repeat: u32,
     max_cell: (u32, u32),
     row_group_count: &mut u32,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     // Are there any row groups? Then we don't use repeat but write everything out.
     if !sheet.group_rows.is_empty() {
@@ -1473,12 +1616,12 @@ fn write_empty_rows_before<W: Write + Seek>(
     Ok(())
 }
 
-fn write_empty_row<W: Write + Seek>(
+fn write_empty_row(
     sheet: &Sheet,
     cur_row: u32,
     row_repeat: u32,
     max_cell: (u32, u32),
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table-row")?;
     xml_out.attr("table:number-rows-repeated", &row_repeat)?;
@@ -1503,10 +1646,10 @@ fn write_empty_row<W: Write + Seek>(
     Ok(())
 }
 
-fn write_table_columns<W: Write + Seek>(
+fn write_table_columns(
     sheet: &Sheet,
     max_cell: (u32, u32),
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     // table:table-column
     for c in 0..max_cell.1 {
@@ -1543,11 +1686,11 @@ fn write_table_columns<W: Write + Seek>(
 }
 
 #[allow(clippy::single_char_add_str)]
-fn write_cell<W: Write + Seek>(
+fn write_cell(
     book: &WorkBook,
     cell: &CellContentRef<'_>,
     is_hidden: bool,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     let tag = if is_hidden {
         "table:covered-table-cell"
@@ -1669,10 +1812,7 @@ fn write_cell<W: Write + Seek>(
     Ok(())
 }
 
-fn write_scripts<W: Write + Seek>(
-    scripts: &Vec<Script>,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_scripts(scripts: &Vec<Script>, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     for script in scripts {
         xml_out.elem("office:script")?;
         xml_out.attr_esc("script:language", &script.script_lang)?;
@@ -1687,9 +1827,9 @@ fn write_scripts<W: Write + Seek>(
     Ok(())
 }
 
-fn write_event_listeners<W: Write + Seek>(
+fn write_event_listeners(
     events: &HashMap<String, EventListener>,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     for event in events.values() {
         xml_out.empty("script:event-listener")?;
@@ -1704,10 +1844,10 @@ fn write_event_listeners<W: Write + Seek>(
     Ok(())
 }
 
-fn write_office_font_face_decls<W: Write + Seek>(
+fn write_office_font_face_decls(
     book: &WorkBook,
     origin: StyleOrigin,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     xml_out.elem("office:font-face-decls")?;
     write_style_font_face(&book.fonts, origin, xml_out)?;
@@ -1715,10 +1855,10 @@ fn write_office_font_face_decls<W: Write + Seek>(
     Ok(())
 }
 
-fn write_style_font_face<W: Write + Seek>(
+fn write_style_font_face(
     fonts: &HashMap<String, FontFaceDecl>,
     origin: StyleOrigin,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     for font in fonts.values().filter(|s| s.origin() == origin) {
         xml_out.empty("style:font-face")?;
@@ -1730,10 +1870,10 @@ fn write_style_font_face<W: Write + Seek>(
     Ok(())
 }
 
-fn write_office_styles<W: Write + Seek>(
+fn write_office_styles(
     book: &WorkBook,
     origin: StyleOrigin,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     xml_out.elem("office:styles")?;
     write_styles(book, origin, StyleUse::Default, xml_out)?;
@@ -1744,10 +1884,10 @@ fn write_office_styles<W: Write + Seek>(
     Ok(())
 }
 
-fn write_office_automatic_styles<W: Write + Seek>(
+fn write_office_automatic_styles(
     book: &WorkBook,
     origin: StyleOrigin,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     xml_out.elem("office:automatic-styles")?;
     write_pagestyles(&book.pagestyles, xml_out)?;
@@ -1757,9 +1897,9 @@ fn write_office_automatic_styles<W: Write + Seek>(
     Ok(())
 }
 
-fn write_office_master_styles<W: Write + Seek>(
+fn write_office_master_styles(
     book: &WorkBook,
-    xml_out: &mut XmlOdsWriter<W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     xml_out.elem("office:master-styles")?;
     write_masterpage(&book.masterpages, xml_out)?;
@@ -1767,11 +1907,11 @@ fn write_office_master_styles<W: Write + Seek>(
     Ok(())
 }
 
-fn write_styles<W: Write + Seek>(
+fn write_styles(
     book: &WorkBook,
     origin: StyleOrigin,
     styleuse: StyleUse,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     for style in book.colstyles.values() {
         if style.origin() == origin && style.styleuse() == styleuse {
@@ -1826,10 +1966,7 @@ fn write_styles<W: Write + Seek>(
     Ok(())
 }
 
-fn write_tablestyle<W: Write + Seek>(
-    style: &TableStyle,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_tablestyle(style: &TableStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1862,10 +1999,7 @@ fn write_tablestyle<W: Write + Seek>(
     Ok(())
 }
 
-fn write_rowstyle<W: Write + Seek>(
-    style: &RowStyle,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_rowstyle(style: &RowStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1898,10 +2032,7 @@ fn write_rowstyle<W: Write + Seek>(
     Ok(())
 }
 
-fn write_colstyle<W: Write + Seek>(
-    style: &ColStyle,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_colstyle(style: &ColStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1934,10 +2065,7 @@ fn write_colstyle<W: Write + Seek>(
     Ok(())
 }
 
-fn write_cellstyle<W: Write + Seek>(
-    style: &CellStyle,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_cellstyle(style: &CellStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -1992,9 +2120,9 @@ fn write_cellstyle<W: Write + Seek>(
     Ok(())
 }
 
-fn write_paragraphstyle<W: Write + Seek>(
+fn write_paragraphstyle(
     style: &ParagraphStyle,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
@@ -2052,10 +2180,7 @@ fn write_paragraphstyle<W: Write + Seek>(
     Ok(())
 }
 
-fn write_textstyle<W: Write + Seek>(
-    style: &TextStyle,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_textstyle(style: &TextStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -2088,10 +2213,7 @@ fn write_textstyle<W: Write + Seek>(
     Ok(())
 }
 
-fn write_rubystyle<W: Write + Seek>(
-    style: &RubyStyle,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_rubystyle(style: &RubyStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
     } else {
@@ -2124,9 +2246,9 @@ fn write_rubystyle<W: Write + Seek>(
     Ok(())
 }
 
-fn write_graphicstyle<W: Write + Seek>(
+fn write_graphicstyle(
     style: &GraphicStyle,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     if style.styleuse() == StyleUse::Default {
         xml_out.elem("style:default-style")?;
@@ -2161,11 +2283,11 @@ fn write_graphicstyle<W: Write + Seek>(
     Ok(())
 }
 
-fn write_valuestyles<W: Write + Seek>(
+fn write_valuestyles(
     book: &WorkBook,
     origin: StyleOrigin,
     style_use: StyleUse,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     write_valuestyle(&book.formats_boolean, origin, style_use, xml_out)?;
     write_valuestyle(&book.formats_currency, origin, style_use, xml_out)?;
@@ -2177,11 +2299,11 @@ fn write_valuestyles<W: Write + Seek>(
     Ok(())
 }
 
-fn write_valuestyle<W: Write + Seek, T: ValueFormatTrait>(
+fn write_valuestyle<T: ValueFormatTrait>(
     value_formats: &HashMap<String, T>,
     origin: StyleOrigin,
     styleuse: StyleUse,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     for value_format in value_formats
         .values()
@@ -2289,9 +2411,9 @@ fn write_valuestyle<W: Write + Seek, T: ValueFormatTrait>(
     Ok(())
 }
 
-fn write_pagestyles<W: Write + Seek>(
+fn write_pagestyles(
     styles: &HashMap<String, PageStyle>,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:page-layout")?;
@@ -2331,9 +2453,9 @@ fn write_pagestyles<W: Write + Seek>(
     Ok(())
 }
 
-fn write_masterpage<W: Write + Seek>(
+fn write_masterpage(
     styles: &HashMap<String, MasterPage>,
-    xml_out: &mut XmlOdsWriter<'_, W>,
+    xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     for style in styles.values() {
         xml_out.elem("style:master-page")?;
@@ -2392,10 +2514,7 @@ fn write_masterpage<W: Write + Seek>(
     Ok(())
 }
 
-fn write_regions<W: Write + Seek>(
-    hf: &HeaderFooter,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_regions(hf: &HeaderFooter, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     for left in hf.left() {
         xml_out.elem("style:region-left")?;
         write_xmltag(left, xml_out)?;
@@ -2418,10 +2537,7 @@ fn write_regions<W: Write + Seek>(
     Ok(())
 }
 
-fn write_xmlcontent<W: Write + Seek>(
-    x: &XmlContent,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_xmlcontent(x: &XmlContent, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     match x {
         XmlContent::Text(t) => {
             xml_out.text_esc(t)?;
@@ -2433,10 +2549,7 @@ fn write_xmlcontent<W: Write + Seek>(
     Ok(())
 }
 
-fn write_xmltag<W: Write + Seek>(
-    x: &XmlTag,
-    xml_out: &mut XmlOdsWriter<'_, W>,
-) -> Result<(), OdsError> {
+fn write_xmltag(x: &XmlTag, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
     if x.is_empty() {
         xml_out.empty(x.name())?;
     } else {
@@ -2467,7 +2580,7 @@ fn write_xmltag<W: Write + Seek>(
 // All extra entries from the manifest.
 fn write_ods_extra<W: Write + Seek>(
     book: &WorkBook,
-    zip_writer: &mut OdsWriter<W>,
+    zip_writer: &mut ZipOut<W>,
 ) -> Result<(), OdsError> {
     for manifest in book.manifest.values() {
         if !matches!(

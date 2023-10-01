@@ -189,8 +189,13 @@ pub use crate::format::{
     ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
     ValueFormatPercentage, ValueFormatRef, ValueFormatText, ValueFormatTimeDuration,
 };
-pub use crate::io::read::{read_ods, read_ods_buf, read_ods_from};
-pub use crate::io::write::{write_ods, write_ods_buf, write_ods_buf_uncompressed, write_ods_to};
+pub use crate::io::read::{
+    read_fods, read_fods_buf, read_fods_from, read_ods, read_ods_buf, read_ods_from,
+};
+pub use crate::io::write::{
+    write_fods, write_fods_buf, write_fods_to, write_ods, write_ods_buf,
+    write_ods_buf_uncompressed, write_ods_to,
+};
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
