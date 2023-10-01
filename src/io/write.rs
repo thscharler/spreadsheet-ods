@@ -84,112 +84,164 @@ fn write_fods_impl(book: &mut WorkBook, writer: Box<dyn Write + '_>) -> Result<(
     sanity_checks(book)?;
     sync(book)?;
 
-    write_fods_content(book, &mut XmlWriter::new(BufWriter::new(writer)))?;
+    convert(book)?;
+
+    let mut xml_out = XmlWriter::new(BufWriter::new(writer)).line_break(true);
+    write_fods_content(book, &mut xml_out)?;
 
     Ok(())
 }
 
-fn write_fods_content(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
-    let xmlns = if let Some(xmlns) = book.xmlns.get("meta.xml") {
-        Cow::Borrowed(xmlns)
-    } else {
-        let mut xmlns = NamespaceMap::new();
-        xmlns.insert_str(
-            "xmlns:office",
-            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-        );
-        xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
-        xmlns.insert_str(
-            "xmlns:fo",
-            "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
-        );
-        xmlns.insert_str("xmlns:xlink", "http://www.w3.org/1999/xlink");
-        xmlns.insert_str(
-            "xmlns:config",
-            "urn:oasis:names:tc:opendocument:xmlns:config:1.0",
-        );
-        xmlns.insert_str("xmlns:dc", "http://purl.org/dc/elements/1.1/");
-        xmlns.insert_str(
-            "xmlns:meta",
-            "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:style",
-            "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:text",
-            "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
-        );
-        xmlns.insert_str("xmlns:rpt", "http://openoffice.org/2005/report");
-        xmlns.insert_str(
-            "xmlns:draw",
-            "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:dr3d",
-            "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:svg",
-            "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:chart",
-            "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:table",
-            "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:number",
-            "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
-        );
-        xmlns.insert_str("xmlns:ooow", "http://openoffice.org/2004/writer");
-        xmlns.insert_str("xmlns:oooc", "http://openoffice.org/2004/calc");
-        xmlns.insert_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2");
-        xmlns.insert_str("xmlns:xforms", "http://www.w3.org/2002/xforms");
-        xmlns.insert_str("xmlns:tableooo", "http://openoffice.org/2009/table");
-        xmlns.insert_str(
-            "xmlns:calcext",
-            "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
-        );
-        xmlns.insert_str("xmlns:drawooo", "http://openoffice.org/2010/draw");
-        xmlns.insert_str(
-            "xmlns:loext",
-            "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:field",
-            "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
-        );
-        xmlns.insert_str("xmlns:math", "http://www.w3.org/1998/Math/MathML");
-        xmlns.insert_str(
-            "xmlns:form",
-            "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:script",
-            "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:formx",
-            "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0",
-        );
-        xmlns.insert_str("xmlns:dom", "http://www.w3.org/2001/xml-events");
-        xmlns.insert_str("xmlns:xsd", "http://www.w3.org/2001/XMLSchema");
-        xmlns.insert_str("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-        xmlns.insert_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml");
-        xmlns.insert_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#");
-        xmlns.insert_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/");
-        xmlns.insert_str(
-            "xmlns:presentation",
-            "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
-        );
+fn convert(book: &mut WorkBook) -> Result<(), OdsError> {
+    for v in book.tablestyles.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.rowstyles.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.colstyles.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.cellstyles.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.paragraphstyles.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.textstyles.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.rubystyles.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.graphicstyles.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
 
-        Cow::Owned(xmlns)
-    };
+    for v in book.formats_boolean.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.formats_number.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.formats_percentage.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.formats_currency.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.formats_text.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.formats_datetime.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+    for v in book.formats_timeduration.values_mut() {
+        v.set_origin(StyleOrigin::Content);
+    }
+
+    Ok(())
+}
+
+fn write_fods_content(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let xmlns = book
+        .xmlns
+        .entry("meta.xml".into())
+        .or_insert_with(NamespaceMap::new);
+
+    xmlns.insert_str(
+        "xmlns:office",
+        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+    );
+    xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
+    xmlns.insert_str(
+        "xmlns:fo",
+        "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
+    );
+    xmlns.insert_str("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    xmlns.insert_str(
+        "xmlns:config",
+        "urn:oasis:names:tc:opendocument:xmlns:config:1.0",
+    );
+    xmlns.insert_str("xmlns:dc", "http://purl.org/dc/elements/1.1/");
+    xmlns.insert_str(
+        "xmlns:meta",
+        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:style",
+        "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:text",
+        "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+    );
+    xmlns.insert_str("xmlns:rpt", "http://openoffice.org/2005/report");
+    xmlns.insert_str(
+        "xmlns:draw",
+        "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:dr3d",
+        "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:svg",
+        "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:chart",
+        "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:table",
+        "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:number",
+        "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
+    );
+    xmlns.insert_str("xmlns:ooow", "http://openoffice.org/2004/writer");
+    xmlns.insert_str("xmlns:oooc", "http://openoffice.org/2004/calc");
+    xmlns.insert_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2");
+    xmlns.insert_str("xmlns:xforms", "http://www.w3.org/2002/xforms");
+    xmlns.insert_str("xmlns:tableooo", "http://openoffice.org/2009/table");
+    xmlns.insert_str(
+        "xmlns:calcext",
+        "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
+    );
+    xmlns.insert_str("xmlns:drawooo", "http://openoffice.org/2010/draw");
+    xmlns.insert_str(
+        "xmlns:loext",
+        "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:field",
+        "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
+    );
+    xmlns.insert_str("xmlns:math", "http://www.w3.org/1998/Math/MathML");
+    xmlns.insert_str(
+        "xmlns:form",
+        "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:script",
+        "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:formx",
+        "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0",
+    );
+    xmlns.insert_str("xmlns:dom", "http://www.w3.org/2001/xml-events");
+    xmlns.insert_str("xmlns:xsd", "http://www.w3.org/2001/XMLSchema");
+    xmlns.insert_str("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+    xmlns.insert_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml");
+    xmlns.insert_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#");
+    xmlns.insert_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/");
+    xmlns.insert_str(
+        "xmlns:presentation",
+        "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
+    );
 
     xml_out.dtd("UTF-8")?;
 
@@ -505,21 +557,20 @@ fn write_xmlns(xmlns: &NamespaceMap, xml_out: &mut OdsXmlWriter<'_>) -> Result<(
     Ok(())
 }
 
-fn write_ods_metadata(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
-    let xmlns = if let Some(xmlns) = book.xmlns.get("meta.xml") {
-        Cow::Borrowed(xmlns)
-    } else {
-        let mut xmlns = NamespaceMap::new();
-        xmlns.insert_str(
-            "xmlns:meta",
-            "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:office",
-            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-        );
-        Cow::Owned(xmlns)
-    };
+fn write_ods_metadata(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let xmlns = book
+        .xmlns
+        .entry("meta.xml".into())
+        .or_insert_with(NamespaceMap::new);
+
+    xmlns.insert_str(
+        "xmlns:meta",
+        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:office",
+        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+    );
 
     xml_out.dtd("UTF-8")?;
 
@@ -678,22 +729,21 @@ fn write_office_meta(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<
     Ok(())
 }
 
-fn write_ods_settings(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
-    let xmlns = if let Some(xmlns) = book.xmlns.get("settings.xml") {
-        Cow::Borrowed(xmlns)
-    } else {
-        let mut xmlns = NamespaceMap::new();
-        xmlns.insert_str(
-            "xmlns:office",
-            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-        );
-        xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
-        xmlns.insert_str(
-            "xmlns:config",
-            "urn:oasis:names:tc:opendocument:xmlns:config:1.0",
-        );
-        Cow::Owned(xmlns)
-    };
+fn write_ods_settings(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let xmlns = book
+        .xmlns
+        .entry("settings.xml".into())
+        .or_insert_with(NamespaceMap::new);
+
+    xmlns.insert_str(
+        "xmlns:office",
+        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+    );
+    xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
+    xmlns.insert_str(
+        "xmlns:config",
+        "urn:oasis:names:tc:opendocument:xmlns:config:1.0",
+    );
 
     xml_out.dtd("UTF-8")?;
 
@@ -914,95 +964,94 @@ fn write_config_item(
     Ok(())
 }
 
-fn write_ods_styles(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
-    let xmlns = if let Some(xmlns) = book.xmlns.get("styles.xml") {
-        Cow::Borrowed(xmlns)
-    } else {
-        let mut xmlns = NamespaceMap::new();
-        xmlns.insert_str(
-            "xmlns:meta",
-            "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:office",
-            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:fo",
-            "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
-        );
-        xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
-        xmlns.insert_str("xmlns:xlink", "http://www.w3.org/1999/xlink");
-        xmlns.insert_str("xmlns:dc", "http://purl.org/dc/elements/1.1/");
-        xmlns.insert_str(
-            "xmlns:style",
-            "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:text",
-            "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:dr3d",
-            "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:svg",
-            "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:chart",
-            "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
-        );
-        xmlns.insert_str("xmlns:rpt", "http://openoffice.org/2005/report");
-        xmlns.insert_str(
-            "xmlns:table",
-            "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:number",
-            "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
-        );
-        xmlns.insert_str("xmlns:ooow", "http://openoffice.org/2004/writer");
-        xmlns.insert_str("xmlns:oooc", "http://openoffice.org/2004/calc");
-        xmlns.insert_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2");
-        xmlns.insert_str("xmlns:tableooo", "http://openoffice.org/2009/table");
-        xmlns.insert_str(
-            "xmlns:calcext",
-            "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
-        );
-        xmlns.insert_str("xmlns:drawooo", "http://openoffice.org/2010/draw");
-        xmlns.insert_str(
-            "xmlns:draw",
-            "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:loext",
-            "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:field",
-            "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
-        );
-        xmlns.insert_str("xmlns:math", "http://www.w3.org/1998/Math/MathML");
-        xmlns.insert_str(
-            "xmlns:form",
-            "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:script",
-            "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
-        );
-        xmlns.insert_str("xmlns:dom", "http://www.w3.org/2001/xml-events");
-        xmlns.insert_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml");
-        xmlns.insert_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#");
-        xmlns.insert_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/");
-        xmlns.insert_str(
-            "xmlns:presentation",
-            "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
-        );
-        Cow::Owned(xmlns)
-    };
+fn write_ods_styles(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let xmlns = book
+        .xmlns
+        .entry("styles.xml".into())
+        .or_insert_with(NamespaceMap::new);
+
+    xmlns.insert_str(
+        "xmlns:meta",
+        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:office",
+        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:fo",
+        "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
+    );
+    xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
+    xmlns.insert_str("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    xmlns.insert_str("xmlns:dc", "http://purl.org/dc/elements/1.1/");
+    xmlns.insert_str(
+        "xmlns:style",
+        "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:text",
+        "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:dr3d",
+        "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:svg",
+        "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:chart",
+        "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
+    );
+    xmlns.insert_str("xmlns:rpt", "http://openoffice.org/2005/report");
+    xmlns.insert_str(
+        "xmlns:table",
+        "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:number",
+        "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
+    );
+    xmlns.insert_str("xmlns:ooow", "http://openoffice.org/2004/writer");
+    xmlns.insert_str("xmlns:oooc", "http://openoffice.org/2004/calc");
+    xmlns.insert_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2");
+    xmlns.insert_str("xmlns:tableooo", "http://openoffice.org/2009/table");
+    xmlns.insert_str(
+        "xmlns:calcext",
+        "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
+    );
+    xmlns.insert_str("xmlns:drawooo", "http://openoffice.org/2010/draw");
+    xmlns.insert_str(
+        "xmlns:draw",
+        "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:loext",
+        "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:field",
+        "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
+    );
+    xmlns.insert_str("xmlns:math", "http://www.w3.org/1998/Math/MathML");
+    xmlns.insert_str(
+        "xmlns:form",
+        "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:script",
+        "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
+    );
+    xmlns.insert_str("xmlns:dom", "http://www.w3.org/2001/xml-events");
+    xmlns.insert_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml");
+    xmlns.insert_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#");
+    xmlns.insert_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/");
+    xmlns.insert_str(
+        "xmlns:presentation",
+        "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
+    );
 
     xml_out.dtd("UTF-8")?;
 
@@ -1022,102 +1071,101 @@ fn write_ods_styles(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(
     Ok(())
 }
 
-fn write_ods_content(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
-    let xmlns = if let Some(xmlns) = book.xmlns.get("content.xml") {
-        Cow::Borrowed(xmlns)
-    } else {
-        let mut xmlns = NamespaceMap::new();
-        xmlns.insert_str(
-            "xmlns:meta",
-            "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:office",
-            "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:fo",
-            "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
-        );
-        xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
-        xmlns.insert_str("xmlns:xlink", "http://www.w3.org/1999/xlink");
-        xmlns.insert_str("xmlns:dc", "http://purl.org/dc/elements/1.1/");
-        xmlns.insert_str(
-            "xmlns:style",
-            "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:text",
-            "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:draw",
-            "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:dr3d",
-            "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:svg",
-            "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:chart",
-            "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
-        );
-        xmlns.insert_str("xmlns:rpt", "http://openoffice.org/2005/report");
-        xmlns.insert_str(
-            "xmlns:table",
-            "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:number",
-            "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
-        );
-        xmlns.insert_str("xmlns:ooow", "http://openoffice.org/2004/writer");
-        xmlns.insert_str("xmlns:oooc", "http://openoffice.org/2004/calc");
-        xmlns.insert_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2");
-        xmlns.insert_str("xmlns:tableooo", "http://openoffice.org/2009/table");
-        xmlns.insert_str(
-            "xmlns:calcext",
-            "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
-        );
-        xmlns.insert_str("xmlns:drawooo", "http://openoffice.org/2010/draw");
-        xmlns.insert_str(
-            "xmlns:loext",
-            "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:field",
-            "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
-        );
-        xmlns.insert_str("xmlns:math", "http://www.w3.org/1998/Math/MathML");
-        xmlns.insert_str(
-            "xmlns:form",
-            "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
-        );
-        xmlns.insert_str(
-            "xmlns:script",
-            "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
-        );
-        xmlns.insert_str("xmlns:dom", "http://www.w3.org/2001/xml-events");
-        xmlns.insert_str("xmlns:xforms", "http://www.w3.org/2002/xforms");
-        xmlns.insert_str("xmlns:xsd", "http://www.w3.org/2001/XMLSchema");
-        xmlns.insert_str("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-        xmlns.insert_str(
-            "xmlns:formx",
-            "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0",
-        );
-        xmlns.insert_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml");
-        xmlns.insert_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#");
-        xmlns.insert_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/");
-        xmlns.insert_str(
-            "xmlns:presentation",
-            "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
-        );
-        Cow::Owned(xmlns)
-    };
+fn write_ods_content(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let xmlns = book
+        .xmlns
+        .entry("content.xml".into())
+        .or_insert_with(NamespaceMap::new);
+
+    xmlns.insert_str(
+        "xmlns:meta",
+        "urn:oasis:names:tc:opendocument:xmlns:meta:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:office",
+        "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:fo",
+        "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0",
+    );
+    xmlns.insert_str("xmlns:ooo", "http://openoffice.org/2004/office");
+    xmlns.insert_str("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    xmlns.insert_str("xmlns:dc", "http://purl.org/dc/elements/1.1/");
+    xmlns.insert_str(
+        "xmlns:style",
+        "urn:oasis:names:tc:opendocument:xmlns:style:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:text",
+        "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:draw",
+        "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:dr3d",
+        "urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:svg",
+        "urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:chart",
+        "urn:oasis:names:tc:opendocument:xmlns:chart:1.0",
+    );
+    xmlns.insert_str("xmlns:rpt", "http://openoffice.org/2005/report");
+    xmlns.insert_str(
+        "xmlns:table",
+        "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:number",
+        "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0",
+    );
+    xmlns.insert_str("xmlns:ooow", "http://openoffice.org/2004/writer");
+    xmlns.insert_str("xmlns:oooc", "http://openoffice.org/2004/calc");
+    xmlns.insert_str("xmlns:of", "urn:oasis:names:tc:opendocument:xmlns:of:1.2");
+    xmlns.insert_str("xmlns:tableooo", "http://openoffice.org/2009/table");
+    xmlns.insert_str(
+        "xmlns:calcext",
+        "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
+    );
+    xmlns.insert_str("xmlns:drawooo", "http://openoffice.org/2010/draw");
+    xmlns.insert_str(
+        "xmlns:loext",
+        "urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:field",
+        "urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0",
+    );
+    xmlns.insert_str("xmlns:math", "http://www.w3.org/1998/Math/MathML");
+    xmlns.insert_str(
+        "xmlns:form",
+        "urn:oasis:names:tc:opendocument:xmlns:form:1.0",
+    );
+    xmlns.insert_str(
+        "xmlns:script",
+        "urn:oasis:names:tc:opendocument:xmlns:script:1.0",
+    );
+    xmlns.insert_str("xmlns:dom", "http://www.w3.org/2001/xml-events");
+    xmlns.insert_str("xmlns:xforms", "http://www.w3.org/2002/xforms");
+    xmlns.insert_str("xmlns:xsd", "http://www.w3.org/2001/XMLSchema");
+    xmlns.insert_str("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+    xmlns.insert_str(
+        "xmlns:formx",
+        "urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0",
+    );
+    xmlns.insert_str("xmlns:xhtml", "http://www.w3.org/1999/xhtml");
+    xmlns.insert_str("xmlns:grddl", "http://www.w3.org/2003/g/data-view#");
+    xmlns.insert_str("xmlns:css3t", "http://www.w3.org/TR/css3-text/");
+    xmlns.insert_str(
+        "xmlns:presentation",
+        "urn:oasis:names:tc:opendocument:xmlns:presentation:1.0",
+    );
 
     xml_out.dtd("UTF-8")?;
 

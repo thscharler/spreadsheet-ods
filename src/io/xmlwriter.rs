@@ -73,6 +73,7 @@ pub(crate) struct XmlWriter<W: Write> {
     buf: String,
     stack: Stack,
     open: Open,
+    line_break: bool,
 
     // short time temp space
     tmp: Vec<u8>,
@@ -97,9 +98,15 @@ impl<W: Write> XmlWriter<W> {
             buf: Default::default(),
             writer: Box::new(writer),
             open: Open::None,
+            line_break: false,
             tmp: Default::default(),
             tmp2: Default::default(),
         }
+    }
+
+    pub(crate) fn line_break(mut self, line_break: bool) -> Self {
+        self.line_break = line_break;
+        self
     }
 
     /// Write the DTD. You have to take care of the encoding
@@ -108,6 +115,9 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push_str("<?xml version=\"1.0\" encoding=\"");
         self.buf.push_str(encoding);
         self.buf.push_str("\" ?>\n");
+        if self.line_break {
+            self.buf.push_str("\n");
+        }
 
         Ok(())
     }
@@ -130,6 +140,9 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push('/');
         self.buf.push_str(name);
         self.buf.push('>');
+        if self.line_break {
+            self.buf.push_str("\n");
+        }
 
         Ok(())
     }
@@ -153,6 +166,9 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push('/');
         self.buf.push_str(name);
         self.buf.push('>');
+        if self.line_break {
+            self.buf.push_str("\n");
+        }
 
         Ok(())
     }
@@ -164,6 +180,10 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push_str("<!--");
         self.buf.push_str(comment);
         self.buf.push_str("-->");
+        if self.line_break {
+            self.buf.push_str("\n");
+        }
+
         Ok(())
     }
 
@@ -199,6 +219,9 @@ impl<W: Write> XmlWriter<W> {
             Open::Empty => {
                 self.buf.push('/');
                 self.buf.push('>');
+                if self.line_break {
+                    self.buf.push_str("\n");
+                }
             }
         }
         self.open = Open::None;
@@ -387,6 +410,9 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push('/');
         self.buf.push_str(name);
         self.buf.push('>');
+        if self.line_break {
+            self.buf.push_str("\n");
+        }
 
         Ok(())
     }

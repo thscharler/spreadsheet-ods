@@ -202,7 +202,10 @@ impl XmlTag {
         for c in self.content {
             match c {
                 XmlContent::Text(v) => {
-                    return Err(OdsError::Parse("Unexpected literal text ", Some(v)))
+                    if !v.trim().is_empty() {
+                        return Err(OdsError::Parse("Unexpected literal text ", Some(v)));
+                    }
+                    // whitespace is allowable
                 }
                 XmlContent::Tag(v) => content.push(v),
             }
