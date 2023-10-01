@@ -542,6 +542,20 @@ fn write_ods_settings<W: Write + Seek>(
     xml_out.elem("office:document-settings")?;
     write_xmlns(&xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
+
+    write_office_settings(book, xml_out)?;
+
+    xml_out.end_elem("office:document-settings")?;
+
+    xml_out.close()?;
+
+    Ok(())
+}
+
+fn write_office_settings<W: Write + Seek>(
+    book: &WorkBook,
+    xml_out: &mut XmlOdsWriter<W>,
+) -> Result<(), OdsError> {
     xml_out.elem("office:settings")?;
 
     for (name, item) in book.config.iter() {
@@ -563,10 +577,6 @@ fn write_ods_settings<W: Write + Seek>(
     }
 
     xml_out.end_elem("office:settings")?;
-    xml_out.end_elem("office:document-settings")?;
-
-    xml_out.close()?;
-
     Ok(())
 }
 
@@ -848,26 +858,10 @@ fn write_ods_styles<W: Write + Seek>(
     write_xmlns(&xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
 
-    xml_out.elem("office:font-face-decls")?;
-    write_font_decl(&book.fonts, StyleOrigin::Styles, xml_out)?;
-    xml_out.end_elem("office:font-face-decls")?;
-
-    xml_out.elem("office:styles")?;
-    write_styles(book, StyleOrigin::Styles, StyleUse::Default, xml_out)?;
-    write_styles(book, StyleOrigin::Styles, StyleUse::Named, xml_out)?;
-    write_valuestyles(&book, StyleOrigin::Styles, StyleUse::Named, xml_out)?;
-    write_valuestyles(&book, StyleOrigin::Styles, StyleUse::Default, xml_out)?;
-    xml_out.end_elem("office:styles")?;
-
-    xml_out.elem("office:automatic-styles")?;
-    write_pagestyles(&book.pagestyles, xml_out)?;
-    write_styles(book, StyleOrigin::Styles, StyleUse::Automatic, xml_out)?;
-    write_valuestyles(&book, StyleOrigin::Styles, StyleUse::Automatic, xml_out)?;
-    xml_out.end_elem("office:automatic-styles")?;
-
-    xml_out.elem("office:master-styles")?;
-    write_masterpage(&book.masterpages, xml_out)?;
-    xml_out.end_elem("office:master-styles")?;
+    write_office_font_face_decls(book, StyleOrigin::Styles, xml_out)?;
+    write_office_styles(book, StyleOrigin::Styles, xml_out)?;
+    write_office_automatic_styles(book, StyleOrigin::Styles, xml_out)?;
+    write_office_master_styles(book, xml_out)?;
 
     xml_out.end_elem("office:document-styles")?;
 
@@ -982,34 +976,36 @@ fn write_ods_content<W: Write + Seek>(
     write_xmlns(&xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
 
-    xml_out.elem("office:scripts")?;
-    write_scripts(&book.scripts, xml_out)?;
-    write_event_listeners(&book.event_listener, xml_out)?;
-    xml_out.end_elem("office:scripts")?;
+    write_office_scripts(book, xml_out)?;
+    write_office_font_face_decls(book, StyleOrigin::Content, xml_out)?;
+    write_office_automatic_styles(book, StyleOrigin::Content, xml_out)?;
 
-    xml_out.elem("office:font-face-decls")?;
-    write_font_decl(&book.fonts, StyleOrigin::Content, xml_out)?;
-    xml_out.end_elem("office:font-face-decls")?;
+    write_office_body(book, xml_out)?;
 
-    xml_out.elem("office:automatic-styles")?;
-    write_styles(book, StyleOrigin::Content, StyleUse::Automatic, xml_out)?;
-    write_valuestyles(&book, StyleOrigin::Content, StyleUse::Automatic, xml_out)?;
-    xml_out.end_elem("office:automatic-styles")?;
+    xml_out.end_elem("office:document-content")?;
 
+    xml_out.close()?;
+
+    Ok(())
+}
+
+fn write_office_body<W: Write + Seek>(
+    book: &WorkBook,
+    xml_out: &mut XmlOdsWriter<W>,
+) -> Result<(), OdsError> {
     xml_out.elem("office:body")?;
     xml_out.elem("office:spreadsheet")?;
 
     // extra tags. pass through only
     for tag in &book.extra {
-        if tag.name() == "office:scripts" ||
-            tag.name() == "table:tracked-changes" ||
-            tag.name() == "text:variable-decls" ||
-            tag.name() == "text:sequence-decls" ||
-            tag.name() == "text:user-field-decls" ||
-            tag.name() == "text:dde-connection-decls" ||
-            // tag.name() == "text:alphabetical-index-auto-mark-file" ||
-            tag.name() == "table:calculation-settings" ||
-            tag.name() == "table:label-ranges"
+        if tag.name() == "table:calculation-settings"
+            || tag.name() == "table:label-ranges"
+            || tag.name() == "table:tracked-changes"
+            || tag.name() == "text:alphabetical-index-auto-mark-file"
+            || tag.name() == "text:dde-connection-decls"
+            || tag.name() == "text:sequence-decls"
+            || tag.name() == "text:user-field-decls"
+            || tag.name() == "text:variable-decls"
         {
             write_xmltag(tag, xml_out)?;
         }
@@ -1023,11 +1019,11 @@ fn write_ods_content<W: Write + Seek>(
 
     // extra tags. pass through only
     for tag in &book.extra {
-        if tag.name() == "table:named-expressions"
-            || tag.name() == "table:database-ranges"
+        if tag.name() == "table:consolidation"
             || tag.name() == "table:data-pilot-tables"
-            || tag.name() == "table:consolidation"
+            || tag.name() == "table:database-ranges"
             || tag.name() == "table:dde-links"
+            || tag.name() == "table:named-expressions"
         {
             write_xmltag(tag, xml_out)?;
         }
@@ -1035,10 +1031,17 @@ fn write_ods_content<W: Write + Seek>(
 
     xml_out.end_elem("office:spreadsheet")?;
     xml_out.end_elem("office:body")?;
-    xml_out.end_elem("office:document-content")?;
+    Ok(())
+}
 
-    xml_out.close()?;
-
+fn write_office_scripts<W: Write + Seek>(
+    book: &WorkBook,
+    xml_out: &mut XmlOdsWriter<W>,
+) -> Result<(), OdsError> {
+    xml_out.elem("office:scripts")?;
+    write_scripts(&book.scripts, xml_out)?;
+    write_event_listeners(&book.event_listener, xml_out)?;
+    xml_out.end_elem("office:scripts")?;
     Ok(())
 }
 
@@ -1701,7 +1704,18 @@ fn write_event_listeners<W: Write + Seek>(
     Ok(())
 }
 
-fn write_font_decl<W: Write + Seek>(
+fn write_office_font_face_decls<W: Write + Seek>(
+    book: &WorkBook,
+    origin: StyleOrigin,
+    xml_out: &mut XmlOdsWriter<W>,
+) -> Result<(), OdsError> {
+    xml_out.elem("office:font-face-decls")?;
+    write_style_font_face(&book.fonts, origin, xml_out)?;
+    xml_out.end_elem("office:font-face-decls")?;
+    Ok(())
+}
+
+fn write_style_font_face<W: Write + Seek>(
     fonts: &HashMap<String, FontFaceDecl>,
     origin: StyleOrigin,
     xml_out: &mut XmlOdsWriter<'_, W>,
@@ -1713,6 +1727,43 @@ fn write_font_decl<W: Write + Seek>(
             xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
+    Ok(())
+}
+
+fn write_office_styles<W: Write + Seek>(
+    book: &WorkBook,
+    origin: StyleOrigin,
+    xml_out: &mut XmlOdsWriter<W>,
+) -> Result<(), OdsError> {
+    xml_out.elem("office:styles")?;
+    write_styles(book, origin, StyleUse::Default, xml_out)?;
+    write_styles(book, origin, StyleUse::Named, xml_out)?;
+    write_valuestyles(&book, origin, StyleUse::Named, xml_out)?;
+    write_valuestyles(&book, origin, StyleUse::Default, xml_out)?;
+    xml_out.end_elem("office:styles")?;
+    Ok(())
+}
+
+fn write_office_automatic_styles<W: Write + Seek>(
+    book: &WorkBook,
+    origin: StyleOrigin,
+    xml_out: &mut XmlOdsWriter<W>,
+) -> Result<(), OdsError> {
+    xml_out.elem("office:automatic-styles")?;
+    write_pagestyles(&book.pagestyles, xml_out)?;
+    write_styles(book, origin, StyleUse::Automatic, xml_out)?;
+    write_valuestyles(&book, origin, StyleUse::Automatic, xml_out)?;
+    xml_out.end_elem("office:automatic-styles")?;
+    Ok(())
+}
+
+fn write_office_master_styles<W: Write + Seek>(
+    book: &WorkBook,
+    xml_out: &mut XmlOdsWriter<W>,
+) -> Result<(), OdsError> {
+    xml_out.elem("office:master-styles")?;
+    write_masterpage(&book.masterpages, xml_out)?;
+    xml_out.end_elem("office:master-styles")?;
     Ok(())
 }
 
