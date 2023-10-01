@@ -2509,6 +2509,9 @@ fn write_masterpage(
     for style in styles.values() {
         xml_out.elem("style:master-page")?;
         xml_out.attr_esc("style:name", style.name())?;
+        if !style.display_name().is_empty() {
+            xml_out.attr_esc("style:display-name", style.display_name())?;
+        }
         xml_out.attr_esc("style:page-layout-name", style.pagestyle())?;
 
         xml_out.elem("style:header")?;

@@ -1746,6 +1746,9 @@ fn read_master_page(
             attr if attr.key.as_ref() == b"style:page-layout-name" => {
                 masterpage.set_pagestyle(&attr.unescape_value()?.as_ref().into());
             }
+            attr if attr.key.as_ref() == b"style:display-name" => {
+                masterpage.set_display_name(attr.unescape_value()?.as_ref().into());
+            }
             attr => {
                 dump_unused("read_master_page", super_tag.name().as_ref(), &attr)?;
             }
@@ -1759,6 +1762,7 @@ fn read_master_page(
             println!(" read_master_page {:?}", evt);
         }
         match &evt {
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"style:header" => {}
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"style:header" => {
                 masterpage.set_header(read_headerfooter(bs, xml_tag, xml)?);
             }
@@ -1770,6 +1774,7 @@ fn read_master_page(
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"style:header-left" => {
                 masterpage.set_header_left(read_headerfooter(bs, xml_tag, xml)?);
             }
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"style:footer" => {}
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"style:footer" => {
                 masterpage.set_footer(read_headerfooter(bs, xml_tag, xml)?);
             }
@@ -2167,17 +2172,18 @@ fn read_value_format_parts<T: ValueFormatTrait>(
                 valuestyle.push_part(read_part(xml_tag, FormatPartType::TextContent)?);
             }
             Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"style:text" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Day)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"style:map" =>
             {
                 valuestyle.push_stylemap(read_valuestylemap(xml_tag)?);
             }
+
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"loext:text" => {}
             Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:fill-character" =>
+                if xml_tag.name().as_ref() == b"loext:text" => {}
+
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:fill-character"
+                    || xml_tag.name().as_ref() == b"loext:fill-character" =>
             {
                 valuestyle_part = Some(read_part(xml_tag, FormatPartType::FillCharacter)?);
                 if empty_tag {
@@ -2187,12 +2193,16 @@ fn read_value_format_parts<T: ValueFormatTrait>(
                     valuestyle_part = None;
                 }
             }
-            Event::End(e) if e.name().as_ref() == b"number:fill-character" => {
+            Event::End(e)
+                if e.name().as_ref() == b"number:fill-character"
+                    || e.name().as_ref() == b"loext:fill-character" =>
+            {
                 if let Some(part) = valuestyle_part {
                     valuestyle.push_part(part);
                 }
                 valuestyle_part = None;
             }
+
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"number:currency-symbol" =>
             {
@@ -2210,6 +2220,7 @@ fn read_value_format_parts<T: ValueFormatTrait>(
                 }
                 valuestyle_part = None;
             }
+
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"number:text" =>
             {
@@ -2227,6 +2238,7 @@ fn read_value_format_parts<T: ValueFormatTrait>(
                 }
                 valuestyle_part = None;
             }
+
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"style:text-properties" =>
             {

@@ -40,6 +40,7 @@ style_ref!(MasterPageRef);
 #[derive(Clone, Debug, Default)]
 pub struct MasterPage {
     name: String,
+    display_name: String,
     pagestyle: String,
 
     header: HeaderFooter,
@@ -56,6 +57,7 @@ impl MasterPage {
     pub fn new_empty() -> Self {
         Self {
             name: "".to_string(),
+            display_name: "".to_string(),
             pagestyle: "".to_string(),
             header: Default::default(),
             header_first: Default::default(),
@@ -70,6 +72,7 @@ impl MasterPage {
     pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
+            display_name: "".to_string(),
             pagestyle: "".to_string(),
             header: Default::default(),
             header_first: Default::default(),
@@ -93,6 +96,16 @@ impl MasterPage {
     /// Name.
     pub fn name(&self) -> &String {
         &self.name
+    }
+
+    /// Name.
+    pub fn set_display_name(&mut self, display_name: String) {
+        self.display_name = display_name;
+    }
+
+    /// Name.
+    pub fn display_name(&self) -> &String {
+        &self.display_name
     }
 
     /// Reference to a page-style.
