@@ -44,6 +44,7 @@ use crate::{
 use quick_xml::events::attributes::Attribute;
 use std::borrow::Cow;
 use std::str::from_utf8;
+use zip::read::ZipFile;
 
 type XmlReader<'a> = quick_xml::Reader<BufReader<Box<dyn Read + 'a>>>;
 
@@ -75,7 +76,7 @@ pub fn read_fods_buf(buf: &[u8]) -> Result<WorkBook, OdsError> {
 
 /// Reads an FODS-file from a reader
 #[allow(dead_code)]
-pub fn read_fods_from<T: Read + Seek>(read: T) -> Result<WorkBook, OdsError> {
+pub fn read_fods_from<T: Read>(read: T) -> Result<WorkBook, OdsError> {
     read_fods_impl(Box::new(read))
 }
 
@@ -122,9 +123,30 @@ fn read_fods_content(
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document" => {}
 
-            Event::Empty(_) => {}
-
-            Event::Text(_) => {}
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {
+                read_office_meta(bs, book, xml)?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:settings" => {
+                read_office_settings(bs, book, xml)?;
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:scripts" => {
+                read_scripts(bs, book, xml)?
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:font-face-decls" => {
+                read_office_font_face_decls(bs, book, StyleOrigin::Content, xml)?
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:styles" => {
+                read_office_styles(bs, book, StyleOrigin::Content, xml)?
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:automatic-styles" => {
+                read_office_automatic_styles(bs, book, StyleOrigin::Content, xml)?
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:master-styles" => {
+                read_office_master_styles(bs, book, StyleOrigin::Content, xml)?
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:body" => {
+                read_office_body(bs, book, xml)?;
+            }
 
             Event::Eof => {
                 break;
@@ -188,45 +210,7 @@ fn read_ods_manifest<R: Read + Seek>(
     {
         let zip_file = zip.by_name("META-INF/manifest.xml")?;
         let mut xml = quick_xml::Reader::from_reader(BufReader::new(zip_file));
-
-        let mut buf = bs.pop();
-        loop {
-            let evt = xml.read_event_into(&mut buf)?;
-            match &evt {
-                Event::Decl(_) => {}
-
-                Event::Start(xml_tag) if xml_tag.name().as_ref() == b"manifest:manifest" => {}
-                Event::End(xml_tag) if xml_tag.name().as_ref() == b"manifest:manifest" => {}
-
-                Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"manifest:file-entry" => {
-                    let mut manifest = Manifest::default();
-
-                    for attr in xml_tag.attributes().with_checks(false) {
-                        let attr = attr?;
-
-                        if attr.key.as_ref() == b"manifest:full-path" {
-                            manifest.full_path = attr.unescape_value()?.to_string();
-                        } else if attr.key.as_ref() == b"manifest:version" {
-                            manifest.version = Some(attr.unescape_value()?.to_string());
-                        } else if attr.key.as_ref() == b"manifest:media-type" {
-                            manifest.media_type = attr.unescape_value()?.to_string();
-                        }
-                    }
-
-                    book.add_manifest(manifest);
-                }
-
-                Event::Eof => {
-                    break;
-                }
-
-                _ => {
-                    dump_unused2("read_manifest", &evt)?;
-                }
-            }
-            buf.clear();
-        }
-        bs.push(buf);
+        read_manifest_manifest(bs, book, &mut xml)?;
     }
 
     // now the data if needed ...
@@ -243,6 +227,52 @@ fn read_ods_manifest<R: Read + Seek>(
         }
     }
 
+    Ok(())
+}
+
+fn read_manifest_manifest(
+    bs: &mut BufStack,
+    book: &mut WorkBook,
+    xml: &mut quick_xml::Reader<BufReader<ZipFile>>,
+) -> Result<(), OdsError> {
+    let mut buf = bs.pop();
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        match &evt {
+            Event::Decl(_) => {}
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"manifest:manifest" => {}
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"manifest:manifest" => {}
+
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"manifest:file-entry" => {
+                let mut manifest = Manifest::default();
+
+                for attr in xml_tag.attributes().with_checks(false) {
+                    let attr = attr?;
+
+                    if attr.key.as_ref() == b"manifest:full-path" {
+                        manifest.full_path = attr.unescape_value()?.to_string();
+                    } else if attr.key.as_ref() == b"manifest:version" {
+                        manifest.version = Some(attr.unescape_value()?.to_string());
+                    } else if attr.key.as_ref() == b"manifest:media-type" {
+                        manifest.media_type = attr.unescape_value()?.to_string();
+                    }
+                }
+
+                book.add_manifest(manifest);
+            }
+
+            Event::Eof => {
+                break;
+            }
+
+            _ => {
+                dump_unused2("read_manifest", &evt)?;
+            }
+        }
+        buf.clear();
+    }
+    bs.push(buf);
     Ok(())
 }
 
@@ -372,103 +402,129 @@ fn read_ods_content(
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
         if DUMP_XML {
-            println!(" read_content {:?}", evt);
+            println!(" read_ods_content {:?}", evt);
         }
         match &evt {
             Event::Decl(_) => {}
 
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"office:document-content" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:document-content" => {
                 let (version, xmlns) = read_namespaces_and_version(xml_tag)?;
                 if let Some(version) = version {
                     book.set_version(version);
                 }
                 book.xmlns.insert("content.xml".to_string(), xmlns);
             }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"office:document-content" => { }
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-content" => {}
 
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"office:spreadsheet" => { }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"office:spreadsheet" => { }
-
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"office:body" => { }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"office:body" => { }
-
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"office:scripts" =>
-                read_scripts(bs, book, xml)?,
-
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"office:font-face-decls" =>
-                read_fonts(bs, book, StyleOrigin::Content,  xml)?,
-
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"office:styles" =>
-                read_styles_tag(bs, book, StyleOrigin::Content, xml)?,
-
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"office:automatic-styles" =>
-                read_auto_styles(bs, book, StyleOrigin::Content, xml)?,
-
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"office:master-styles" =>
-                read_master_styles(bs, book, StyleOrigin::Content, xml)?,
-
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:content-validations" =>
-                read_validations(bs, book, xml)?,
-
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table" =>
-                read_table(bs, book, xml_tag, xml)?,
-
-            Event::Empty(xml_tag) |
-            Event::Start(xml_tag)
-            if /* prelude */ xml_tag.name().as_ref() == b"office:scripts" ||
-                xml_tag.name().as_ref() == b"table:tracked-changes" ||
-                xml_tag.name().as_ref() == b"text:variable-decls" ||
-                xml_tag.name().as_ref() == b"text:sequence-decls" ||
-                xml_tag.name().as_ref() == b"text:user-field-decls" ||
-                xml_tag.name().as_ref() == b"text:dde-connection-decls" ||
-                xml_tag.name().as_ref() == b"table:calculation-settings" || //*
-                xml_tag.name().as_ref() == b"table:label-ranges" ||
-                /* epilogue */
-                xml_tag.name().as_ref() == b"table:named-expressions" || //*
-                xml_tag.name().as_ref() == b"table:database-ranges" || //*
-                xml_tag.name().as_ref() == b"table:data-pilot-tables" ||
-                xml_tag.name().as_ref() == b"table:consolidation" ||
-                xml_tag.name().as_ref() == b"table:dde-links" => {
-                let v = read_xml(bs, xml_tag, empty_tag, xml)?;
-                book.extra.push(v);
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:scripts" => {
+                read_scripts(bs, book, xml)?
             }
-
-            Event::End(xml_tag)
-            if /* prelude */ xml_tag.name().as_ref() == b"office:scripts" ||
-                xml_tag.name().as_ref() == b"table:tracked-changes" ||
-                xml_tag.name().as_ref() == b"text:variable-decls" ||
-                xml_tag.name().as_ref() == b"text:sequence-decls" ||
-                xml_tag.name().as_ref() == b"text:user-field-decls" ||
-                xml_tag.name().as_ref() == b"text:dde-connection-decls" ||
-                xml_tag.name().as_ref() == b"table:calculation-settings" ||
-                xml_tag.name().as_ref() == b"table:label-ranges" ||
-                /* epilogue */
-                xml_tag.name().as_ref() == b"table:named-expressions" ||
-                xml_tag.name().as_ref() == b"table:database-ranges" ||
-                xml_tag.name().as_ref() == b"table:data-pilot-tables" ||
-                xml_tag.name().as_ref() == b"table:consolidation" ||
-                xml_tag.name().as_ref() == b"table:dde-links" => {
-                // noop
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:font-face-decls" => {
+                read_office_font_face_decls(bs, book, StyleOrigin::Content, xml)?
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:styles" => {
+                read_office_styles(bs, book, StyleOrigin::Content, xml)?
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:automatic-styles" => {
+                read_office_automatic_styles(bs, book, StyleOrigin::Content, xml)?
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:master-styles" => {
+                read_office_master_styles(bs, book, StyleOrigin::Content, xml)?
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:body" => {
+                read_office_body(bs, book, xml)?;
             }
 
             Event::Eof => {
                 break;
             }
             _ => {
-                dump_unused2("read_content", &evt)?;
+                dump_unused2("read_ods_content", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(())
+}
+
+// Reads the content.xml
+fn read_office_body(
+    bs: &mut BufStack,
+    book: &mut WorkBook,
+    xml: &mut XmlReader<'_>,
+) -> Result<(), OdsError> {
+    let mut buf = bs.pop();
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        let empty_tag = matches!(evt, Event::Empty(_));
+        if DUMP_XML {
+            println!("read_office_body {:?}", evt);
+        }
+        match &evt {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:body" => {}
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:body" => {}
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:spreadsheet" => {}
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:spreadsheet" => {}
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:content-validations" => {
+                read_validations(bs, book, xml)?
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table" => {
+                read_table(bs, book, xml_tag, xml)?
+            }
+
+            // from the prelude
+            Event::Empty(xml_tag) | Event::Start(xml_tag)
+                if xml_tag.name().as_ref() == b"table:calculation-settings"
+                    || xml_tag.name().as_ref() == b"table:label-ranges"
+                    || xml_tag.name().as_ref() == b"table:tracked-changes"
+                    || xml_tag.name().as_ref() == b"text:alphabetical-index-auto-mark-file"
+                    || xml_tag.name().as_ref() == b"text:dde-connection-decls"
+                    || xml_tag.name().as_ref() == b"text:sequence-decls"
+                    || xml_tag.name().as_ref() == b"text:user-field-decls"
+                    || xml_tag.name().as_ref() == b"text:variable-decls" =>
+            {
+                let v = read_xml(bs, xml_tag, empty_tag, xml)?;
+                book.extra.push(v);
+            }
+            // from the epilogue
+            Event::Empty(xml_tag) | Event::Start(xml_tag)
+                if xml_tag.name().as_ref() == b"table:consolidation"
+                    || xml_tag.name().as_ref() == b"table:data-pilot-tables"
+                    || xml_tag.name().as_ref() == b"table:database-ranges"
+                    || xml_tag.name().as_ref() == b"table:dde-links"
+                    || xml_tag.name().as_ref() == b"table:named-expressions" =>
+            {
+                let v = read_xml(bs, xml_tag, empty_tag, xml)?;
+                book.extra.push(v);
+            }
+            // from the prelude
+            Event::End(xml_tag)
+                if xml_tag.name().as_ref() == b"table:calculation-settings"
+                    || xml_tag.name().as_ref() == b"table:label-ranges"
+                    || xml_tag.name().as_ref() == b"table:tracked-changes"
+                    || xml_tag.name().as_ref() == b"text:alphabetical-index-auto-mark-file"
+                    || xml_tag.name().as_ref() == b"text:dde-connection-decls"
+                    || xml_tag.name().as_ref() == b"text:sequence-decls"
+                    || xml_tag.name().as_ref() == b"text:user-field-decls"
+                    || xml_tag.name().as_ref() == b"text:variable-decls" => {}
+            // from the epilogue
+            Event::End(xml_tag)
+                if xml_tag.name().as_ref() == b"table:consolidation"
+                    || xml_tag.name().as_ref() == b"table:data-pilot-tables"
+                    || xml_tag.name().as_ref() == b"table:database-ranges"
+                    || xml_tag.name().as_ref() == b"table:dde-links"
+                    || xml_tag.name().as_ref() == b"table:named-expressions" => {}
+
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_office_body", &evt)?;
             }
         }
 
@@ -1304,7 +1360,7 @@ fn read_event_listener(super_tag: &BytesStart<'_>) -> Result<EventListener, OdsE
 }
 
 // reads a font-face
-fn read_fonts(
+fn read_office_font_face_decls(
     bs: &mut BufStack,
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -1625,7 +1681,7 @@ fn read_validation(valid: &mut Validation, super_tag: &BytesStart<'_>) -> Result
 }
 
 // read the master-styles tag
-fn read_master_styles(
+fn read_office_master_styles(
     bs: &mut BufStack,
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -1820,7 +1876,7 @@ fn read_headerfooter(
 }
 
 // reads the office-styles tag
-fn read_styles_tag(
+fn read_office_styles(
     bs: &mut BufStack,
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -1873,7 +1929,7 @@ fn read_styles_tag(
 }
 
 // read the automatic-styles tag
-fn read_auto_styles(
+fn read_office_automatic_styles(
     bs: &mut BufStack,
     book: &mut WorkBook,
     origin: StyleOrigin,
@@ -2875,19 +2931,19 @@ fn read_ods_styles(
             }
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:font-face-decls" => {
-                read_fonts(bs, book, StyleOrigin::Styles, xml)?
+                read_office_font_face_decls(bs, book, StyleOrigin::Styles, xml)?
             }
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:styles" => {
-                read_styles_tag(bs, book, StyleOrigin::Styles, xml)?
+                read_office_styles(bs, book, StyleOrigin::Styles, xml)?
             }
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:automatic-styles" => {
-                read_auto_styles(bs, book, StyleOrigin::Styles, xml)?
+                read_office_automatic_styles(bs, book, StyleOrigin::Styles, xml)?
             }
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:master-styles" => {
-                read_master_styles(bs, book, StyleOrigin::Styles, xml)?
+                read_office_master_styles(bs, book, StyleOrigin::Styles, xml)?
             }
 
             Event::Eof => {
@@ -3006,7 +3062,7 @@ fn read_ods_metadata(
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
-            println!("read_metadata {:?}", evt);
+            println!("read_ods_metadata {:?}", evt);
         }
 
         match &evt {
@@ -3016,8 +3072,42 @@ fn read_ods_metadata(
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-meta" => {}
 
-            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {}
-            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {}
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {
+                read_office_meta(bs, book, xml)?;
+            }
+
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_ods_metadata", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(())
+}
+
+fn read_office_meta(
+    bs: &mut BufStack,
+    book: &mut WorkBook,
+    xml: &mut XmlReader<'_>,
+) -> Result<(), OdsError> {
+    let mut buf = bs.pop();
+
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        if DUMP_XML {
+            println!("read_metadata {:?}", evt);
+        }
+
+        match &evt {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {
+                break;
+            }
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:generator" => {
                 book.metadata.generator = read_metadata_value(
@@ -3421,12 +3511,10 @@ fn read_ods_settings(
                 let (_, xmlns) = read_namespaces_and_version(xml_tag)?;
                 book.xmlns.insert("settings.xml".to_string(), xmlns);
             }
-            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-settings" => {
-                // noop
-            }
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-settings" => {}
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:settings" => {
-                book.config = Detach::new(read_office_settings(bs, xml)?);
+                read_office_settings(bs, book, xml)?;
             }
 
             Event::Eof => {
@@ -3447,9 +3535,9 @@ fn read_ods_settings(
 // read the automatic-styles tag
 fn read_office_settings(
     bs: &mut BufStack,
+    book: &mut WorkBook,
     xml: &mut XmlReader<'_>,
-    // no attributes
-) -> Result<Config, OdsError> {
+) -> Result<(), OdsError> {
     let mut config = Config::new();
 
     let mut buf = bs.pop();
@@ -3463,6 +3551,7 @@ fn read_office_settings(
                 let (name, set) = read_config_item_set(bs, xml_tag, xml)?;
                 config.insert(name, set);
             }
+
             Event::End(e) if e.name().as_ref() == b"office:settings" => {
                 break;
             }
@@ -3476,7 +3565,9 @@ fn read_office_settings(
     }
     bs.push(buf);
 
-    Ok(config)
+    book.config = Detach::new(config);
+
+    Ok(())
 }
 
 // read the automatic-styles tag
