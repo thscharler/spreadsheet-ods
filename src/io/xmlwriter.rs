@@ -116,7 +116,7 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push_str(encoding);
         self.buf.push_str("\" ?>\n");
         if self.line_break {
-            self.buf.push_str("\n");
+            self.buf.push('\n');
         }
 
         Ok(())
@@ -141,7 +141,7 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push_str(name);
         self.buf.push('>');
         if self.line_break {
-            self.buf.push_str("\n");
+            self.buf.push('\n');
         }
 
         Ok(())
@@ -167,7 +167,7 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push_str(name);
         self.buf.push('>');
         if self.line_break {
-            self.buf.push_str("\n");
+            self.buf.push('\n');
         }
 
         Ok(())
@@ -181,7 +181,7 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push_str(comment);
         self.buf.push_str("-->");
         if self.line_break {
-            self.buf.push_str("\n");
+            self.buf.push('\n');
         }
 
         Ok(())
@@ -220,7 +220,7 @@ impl<W: Write> XmlWriter<W> {
                 self.buf.push('/');
                 self.buf.push('>');
                 if self.line_break {
-                    self.buf.push_str("\n");
+                    self.buf.push('\n');
                 }
             }
         }
@@ -411,7 +411,7 @@ impl<W: Write> XmlWriter<W> {
         self.buf.push_str(name);
         self.buf.push('>');
         if self.line_break {
-            self.buf.push_str("\n");
+            self.buf.push('\n');
         }
 
         Ok(())

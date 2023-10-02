@@ -246,7 +246,7 @@ fn write_fods_content(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Re
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document")?;
-    write_xmlns(&xmlns, xml_out)?;
+    write_xmlns(xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
     xml_out.attr_esc(
         "office:mimetype",
@@ -575,7 +575,7 @@ fn write_ods_metadata(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Re
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-meta")?;
-    write_xmlns(&xmlns, xml_out)?;
+    write_xmlns(xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
 
     write_office_meta(book, xml_out)?;
@@ -748,7 +748,7 @@ fn write_ods_settings(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Re
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-settings")?;
-    write_xmlns(&xmlns, xml_out)?;
+    write_xmlns(xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
 
     write_office_settings(book, xml_out)?;
@@ -1056,7 +1056,7 @@ fn write_ods_styles(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Resu
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-styles")?;
-    write_xmlns(&xmlns, xml_out)?;
+    write_xmlns(xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
 
     write_office_font_face_decls(book, StyleOrigin::Styles, xml_out)?;
@@ -1170,7 +1170,7 @@ fn write_ods_content(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Res
     xml_out.dtd("UTF-8")?;
 
     xml_out.elem("office:document-content")?;
-    write_xmlns(&xmlns, xml_out)?;
+    write_xmlns(xmlns, xml_out)?;
     xml_out.attr_esc("office:version", book.version())?;
 
     write_office_scripts(book, xml_out)?;
@@ -1927,8 +1927,8 @@ fn write_office_styles(
     xml_out.elem("office:styles")?;
     write_styles(book, origin, StyleUse::Default, xml_out)?;
     write_styles(book, origin, StyleUse::Named, xml_out)?;
-    write_valuestyles(&book, origin, StyleUse::Named, xml_out)?;
-    write_valuestyles(&book, origin, StyleUse::Default, xml_out)?;
+    write_valuestyles(book, origin, StyleUse::Named, xml_out)?;
+    write_valuestyles(book, origin, StyleUse::Default, xml_out)?;
     xml_out.end_elem("office:styles")?;
     Ok(())
 }
@@ -1941,7 +1941,7 @@ fn write_office_automatic_styles(
     xml_out.elem("office:automatic-styles")?;
     write_pagestyles(&book.pagestyles, xml_out)?;
     write_styles(book, origin, StyleUse::Automatic, xml_out)?;
-    write_valuestyles(&book, origin, StyleUse::Automatic, xml_out)?;
+    write_valuestyles(book, origin, StyleUse::Automatic, xml_out)?;
     xml_out.end_elem("office:automatic-styles")?;
     Ok(())
 }

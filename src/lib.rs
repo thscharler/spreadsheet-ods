@@ -2476,7 +2476,7 @@ impl Sheet {
 
     /// Count of column groups.
     pub fn col_group_count(&self) -> usize {
-        return self.group_cols.len();
+        self.group_cols.len()
     }
 
     /// Returns the nth column group.
@@ -2546,7 +2546,7 @@ impl Sheet {
 
     /// Count of row groups.
     pub fn row_group_count(&self) -> usize {
-        return self.group_rows.len();
+        self.group_rows.len()
     }
 
     /// Returns the nth row group.

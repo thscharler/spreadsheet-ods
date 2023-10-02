@@ -1355,13 +1355,13 @@ fn read_event_listener(super_tag: &BytesStart<'_>) -> Result<EventListener, OdsE
                 evt.macro_name = attr.unescape_value()?.to_string();
             }
             attr if attr.key.as_ref() == b"xlink:actuate" => {
-                evt.actuate = parse_xlink_actuate(&attr.unescape_value()?.as_bytes())?;
+                evt.actuate = parse_xlink_actuate(attr.unescape_value()?.as_bytes())?;
             }
             attr if attr.key.as_ref() == b"xlink:href" => {
                 evt.href = attr.unescape_value()?.to_string();
             }
             attr if attr.key.as_ref() == b"xlink:type" => {
-                evt.link_type = parse_xlink_type(&attr.unescape_value()?.as_bytes())?;
+                evt.link_type = parse_xlink_type(attr.unescape_value()?.as_bytes())?;
             }
             attr => {
                 dump_unused("read_event_listener", super_tag.name().as_ref(), &attr)?;
@@ -4036,7 +4036,7 @@ fn read_xml(
             match &evt {
                 Event::Start(xmlbytes) => {
                     let mut tag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
-                    copy_attr2(tag.attrmap_mut(), &xmlbytes)?;
+                    copy_attr2(tag.attrmap_mut(), xmlbytes)?;
                     stack.push(tag);
                 }
 
@@ -4055,7 +4055,7 @@ fn read_xml(
 
                 Event::Empty(xmlbytes) => {
                     let mut emptytag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
-                    copy_attr2(emptytag.attrmap_mut(), &xmlbytes)?;
+                    copy_attr2(emptytag.attrmap_mut(), xmlbytes)?;
 
                     if let Some(parent) = stack.last_mut() {
                         parent.add_tag(emptytag);
@@ -4165,7 +4165,7 @@ fn read_text_or_tag(
 
                     // Set the new tag.
                     let mut new_tag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
-                    copy_attr2(new_tag.attrmap_mut(), &xmlbytes)?;
+                    copy_attr2(new_tag.attrmap_mut(), xmlbytes)?;
                     cellcontent = TextContent2::Xml(new_tag)
                 }
                 Event::End(xmlbytes) => {
@@ -4220,7 +4220,7 @@ fn read_text_or_tag(
                         // Create the tag and append it immediately to the parent.
                         let mut emptytag =
                             XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
-                        copy_attr2(emptytag.attrmap_mut(), &xmlbytes)?;
+                        copy_attr2(emptytag.attrmap_mut(), xmlbytes)?;
                         parent.add_tag(emptytag);
 
                         cellcontent = TextContent2::Xml(parent);
