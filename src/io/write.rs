@@ -325,7 +325,7 @@ fn sanity_checks(book: &mut WorkBook) -> Result<(), OdsError> {
 #[allow(clippy::collapsible_if)]
 fn sync(book: &mut WorkBook) -> Result<(), OdsError> {
     // Manifest
-    book.metadata.generator = "spreadsheet-ods 0.17.0".to_string();
+    book.metadata.generator = "spreadsheet-ods 0.18.0".to_string();
     book.metadata.document_statistics.table_count = book.sheets.len() as u32;
     let mut cell_count = 0;
     for sheet in book.iter_sheets() {

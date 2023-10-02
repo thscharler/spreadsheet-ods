@@ -1,24 +1,33 @@
-# 0.17.0
+# 0.18.0
 
-NEW
+NEW 
 
-- Allow access to meta.xml data.
-- Allow access to manifest.xml.
+- Read/Write Flat-ODS (.fods) files.
+  - read/write functions duplicated for fods-files.
 - Add support for row and column groupings.
 - Add basic support for scripts and event-listeners.
 - Namespaces are now copied too.
 
 CHANGED
 
-- Rewrote the XMLWriter to cause less allocations. Mixed results, but nicer API.
-- Removed support for header-rows/header-columns. This is only used for Writer
-  not for Spreadsheet.
+- Removed support for header-rows/header-columns. This is only used for Writer not for Spreadsheet.
 - Datetime values can have a trailing "Z".
 - Basic support for ruby-styles.
 - Add missing iterators for WorkBook content.
 - Currency values without currency symbol don't produce an error.
 - Empty config-items are ignored.
 - Cleanup of read/write functionality. Mostly to get a more unified style.
+
+# 0.17.0
+
+NEW
+
+- Allow access to meta.xml data.
+- Allow access to manifest.xml.
+
+CHANGED
+
+- Rewrote the XMLWriter to cause less allocations. Mixed results, but nicer API.
 
 # 0.16.1
 
