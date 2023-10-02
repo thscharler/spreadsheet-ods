@@ -1,7 +1,7 @@
 use crate::attrmap2::AttrMap2;
 use crate::color::Rgb;
 use crate::style::units::{
-    Length, Margin, PageBreak, PageNumber, RelativeWidth, TableAlign, TableBorderModel, TextKeep,
+    Length, Margin, PageBreak, PageNumber, RelativeScale, TableAlign, TableBorderModel, TextKeep,
     WritingMode,
 };
 use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};

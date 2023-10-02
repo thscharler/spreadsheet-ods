@@ -101,3 +101,13 @@ macro_rules! style_ref {
         }
     };
 }
+
+macro_rules! xml_id {
+    ($acc:ident) => {
+        /// The table:end-y attribute specifies the y-coordinate of the end position of a shape relative to
+        /// the top-left edge of a cell. The size attributes of the shape are ignored.
+        pub fn set_xml_id<S: Into<String>>(&mut self, id: S) {
+            self.$acc.set_attr("xml_id", id.into());
+        }
+    };
+}

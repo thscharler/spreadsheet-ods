@@ -203,6 +203,7 @@ pub use color;
 
 use crate::config::Config;
 use crate::defaultstyles::{DefaultFormat, DefaultStyle};
+use crate::draw::Annotation;
 use crate::ds::detach::Detach;
 use crate::ds::detach::Detached;
 use crate::format::ValueFormatTrait;
@@ -234,7 +235,19 @@ use std::iter::FusedIterator;
 use std::ops::RangeBounds;
 
 #[macro_use]
-mod attr_macro;
+mod macro_attr_draw;
+#[macro_use]
+mod macro_attr_style;
+#[macro_use]
+mod macro_attr_fo;
+#[macro_use]
+mod macro_attr_svg;
+#[macro_use]
+mod macro_attr_text;
+#[macro_use]
+mod macro_attr_number;
+#[macro_use]
+mod macro_attr_table;
 #[macro_use]
 mod unit_macro;
 #[macro_use]
@@ -252,6 +265,7 @@ mod locale;
 
 pub mod condition;
 pub mod defaultstyles;
+pub mod draw;
 pub mod error;
 pub mod format;
 pub mod formula;
@@ -2792,6 +2806,17 @@ struct CellData {
     validation_name: Option<String>,
     // Row/Column span.
     span: CellSpan,
+}
+
+struct CellDataExt {
+    // Content validation name.
+    validation_name: Option<String>,
+    // Row/Column span.
+    span: CellSpan,
+    // Matrix span.
+    matrix_span: CellSpan,
+    // Annotation
+    annotation: Option<Annotation>,
 }
 
 impl CellData {

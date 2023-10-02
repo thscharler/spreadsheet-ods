@@ -1338,18 +1338,18 @@ impl Display for PunctuationWrap {
 /// The style:rel-width attribute has the data type percent 18.3.23.
 #[derive(Debug, Clone, PartialEq)]
 #[allow(missing_docs)]
-pub enum RelativeWidth {
+pub enum RelativeScale {
     Scale,
     ScaleMin,
     Percent(Percent),
 }
 
-impl Display for RelativeWidth {
+impl Display for RelativeScale {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            RelativeWidth::Scale => write!(f, "scale"),
-            RelativeWidth::ScaleMin => write!(f, "scale-min"),
-            RelativeWidth::Percent(v) => write!(f, "{}", v),
+            RelativeScale::Scale => write!(f, "scale"),
+            RelativeScale::ScaleMin => write!(f, "scale-min"),
+            RelativeScale::Percent(v) => write!(f, "{}", v),
         }
     }
 }
