@@ -951,13 +951,7 @@ fn read_table_cell2(
 
     let mut cell_repeat: u32 = 1;
 
-    let mut cell = CellData {
-        value: Default::default(),
-        formula: None,
-        style: None,
-        validation_name: None,
-        span: Default::default(),
-    };
+    let mut cell = CellData::default();
 
     let mut tc = ReadTableCell2 {
         val_type: ValueType::Empty,
@@ -976,13 +970,19 @@ fn read_table_cell2(
                 cell_repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key.as_ref() == b"table:number-rows-spanned" => {
-                cell.span.row_span = parse_u32(&attr.value)?;
+                let row_span = parse_u32(&attr.value)?;
+                if row_span > 1 {
+                    cell.extra_mut().span.row_span = row_span;
+                }
             }
             attr if attr.key.as_ref() == b"table:number-columns-spanned" => {
-                cell.span.col_span = parse_u32(&attr.value)?;
+                let col_span = parse_u32(&attr.value)?;
+                if col_span > 1 {
+                    cell.extra_mut().span.col_span = col_span;
+                }
             }
             attr if attr.key.as_ref() == b"table:content-validation-name" => {
-                cell.validation_name = Some(attr.unescape_value()?.to_string());
+                cell.extra_mut().validation_name = Some(attr.unescape_value()?.to_string());
             }
             attr if attr.key.as_ref() == b"calcext:value-type" => {
                 // not used. office:value-type seems to be good enough.
@@ -1239,22 +1239,35 @@ fn read_empty_table_cell(
                 cell_repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key.as_ref() == b"table:formula" => {
-                cell.get_or_insert_with(CellData::new).formula =
+                cell.get_or_insert_with(CellData::default).formula =
                     Some(attr.unescape_value()?.to_string());
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                cell.get_or_insert_with(CellData::new).style =
+                cell.get_or_insert_with(CellData::default).style =
                     Some(attr.unescape_value()?.to_string());
             }
             attr if attr.key.as_ref() == b"table:number-rows-spanned" => {
-                cell.get_or_insert_with(CellData::new).span.row_span = parse_u32(&attr.value)?;
+                let row_span = parse_u32(&attr.value)?;
+                if row_span > 1 {
+                    cell.get_or_insert_with(CellData::default)
+                        .extra_mut()
+                        .span
+                        .row_span = row_span;
+                }
             }
             attr if attr.key.as_ref() == b"table:number-columns-spanned" => {
-                cell.get_or_insert_with(CellData::new).span.col_span = parse_u32(&attr.value)?;
+                let col_span = parse_u32(&attr.value)?;
+                if col_span > 1 {
+                    cell.get_or_insert_with(CellData::default)
+                        .extra_mut()
+                        .span
+                        .col_span = parse_u32(&attr.value)?;
+                }
             }
             attr if attr.key.as_ref() == b"table:content-validation-name" => {
-                cell.get_or_insert_with(CellData::new).validation_name =
-                    Some(attr.unescape_value()?.to_string());
+                cell.get_or_insert_with(CellData::default)
+                    .extra_mut()
+                    .validation_name = Some(attr.unescape_value()?.to_string());
             }
 
             attr => {

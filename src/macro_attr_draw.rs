@@ -155,7 +155,7 @@ macro_rules! draw_caption_point_x {
     ($acc:ident) => {
         /// The draw:caption-point-x attribute, along with draw:caption-point-y specifies the
         /// position of a point that is captioned. A set of lines is rendered to that point from the caption area.
-        pub fn set_draw_caption_point_x(&mut self, x: u32) {
+        pub fn set_draw_caption_point_x(&mut self, x: Length) {
             self.$acc.set_attr("draw:caption-point-x", x.to_string());
         }
     };
@@ -165,7 +165,7 @@ macro_rules! draw_caption_point_y {
     ($acc:ident) => {
         /// The draw:caption-point-y attribute, along with draw:caption-point-y specifies the
         /// position of a point that is captioned. A set of lines is rendered to that point from the caption area.
-        pub fn set_draw_caption_point_y(&mut self, y: u32) {
+        pub fn set_draw_caption_point_y(&mut self, y: Length) {
             self.$acc.set_attr("draw:caption-point-y", y.to_string());
         }
     };
@@ -181,6 +181,29 @@ macro_rules! draw_copy_of {
         /// without being part of a header or footer.
         pub fn set_draw_copy_of<S: Into<String>>(&mut self, name: S) {
             self.$acc.set_attr("draw:copy-of", name.into());
+        }
+    };
+}
+
+macro_rules! draw_filter_name {
+    ($acc:ident) => {
+        /// The draw:filter-name attribute specifies the implementation-dependent filter name that has
+        /// been used to load an image into the document
+        pub fn set_draw_filter_name<S: Into<String>>(&mut self, name: S) {
+            self.$acc.set_attr("draw:filter-name", name.into());
+        }
+    };
+}
+
+macro_rules! draw_mime_type {
+    ($acc:ident) => {
+        /// The draw:mime-type attribute specifies the MIME type of the media type that a plugin
+        /// processes, or the MIME type of the image given by a <draw:image> element. Valid values for
+        /// this attribute are those defined in accordance with §3.7 of [RFC2616], or registered in accordance
+        /// with [RFC6838].
+        /// Note: Additional information on MIME media types can be found at [MIMETYPES].
+        pub fn set_draw_mime_type<S: Into<String>>(&mut self, name: S) {
+            self.$acc.set_attr("draw:mime-type", name.into());
         }
     };
 }

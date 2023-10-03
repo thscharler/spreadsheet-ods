@@ -68,7 +68,7 @@ macro_rules! table_end_x {
     ($acc:ident) => {
         /// The table:end-x attribute specifies the x-coordinate of the end position of a shape relative to
         /// the top-left edge of a cell. The size attributes of the shape are ignored.
-        pub fn set_table_end_x(&mut self, x: u32) {
+        pub fn set_table_end_x(&mut self, x: Length) {
             self.$acc.set_attr("table:end-x", x.to_string());
         }
     };
@@ -78,7 +78,7 @@ macro_rules! table_end_y {
     ($acc:ident) => {
         /// The table:end-y attribute specifies the y-coordinate of the end position of a shape relative to
         /// the top-left edge of a cell. The size attributes of the shape are ignored.
-        pub fn set_table_end_y(&mut self, y: u32) {
+        pub fn set_table_end_y(&mut self, y: Length) {
             self.$acc.set_attr("table:end-y", y.to_string());
         }
     };

@@ -203,7 +203,7 @@ pub use color;
 
 use crate::config::Config;
 use crate::defaultstyles::{DefaultFormat, DefaultStyle};
-use crate::draw::Annotation;
+use crate::draw::{Annotation, DrawFrame};
 use crate::ds::detach::Detach;
 use crate::ds::detach::Detached;
 use crate::format::ValueFormatTrait;
@@ -249,6 +249,8 @@ mod macro_attr_number;
 #[macro_use]
 mod macro_attr_table;
 #[macro_use]
+mod macro_attr_xlink;
+#[macro_use]
 mod unit_macro;
 #[macro_use]
 mod format_macro;
@@ -280,10 +282,10 @@ pub mod xmltree;
 
 // Use the IndexMap for debugging, makes diffing much easier.
 // Otherwise the std::HashMap is good.
-pub(crate) type HashMap<K, V> = indexmap::IndexMap<K, V>;
-pub(crate) type HashMapIter<'a, K, V> = indexmap::map::Iter<'a, K, V>;
-// pub(crate) type HashMap<K, V> = std::collections::HashMap<K, V>;
-// pub(crate) type HashMapIter<'a, K, V> = std::collections::hash_map::Iter<'a, K, V>;
+// pub(crate) type HashMap<K, V> = indexmap::IndexMap<K, V>;
+// pub(crate) type HashMapIter<'a, K, V> = indexmap::map::Iter<'a, K, V>;
+pub(crate) type HashMap<K, V> = std::collections::HashMap<K, V>;
+pub(crate) type HashMapIter<'a, K, V> = std::collections::hash_map::Iter<'a, K, V>;
 
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
@@ -1801,7 +1803,7 @@ impl<'a> Iterator for CellIter<'a> {
 
         if let Some(k_data) = self.k_data {
             if let Some(v_data) = self.v_data {
-                let r = Some((*k_data, v_data.into()));
+                let r = Some((*k_data, v_data.cell_content_ref()));
                 self.load_next_data();
                 r
             } else {
@@ -1826,7 +1828,7 @@ impl<'a> Iterator for Range<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((k, v)) = self.range.next() {
-            Some((*k, v.into()))
+            Some((*k, v.cell_content_ref()))
         } else {
             None
         }
@@ -1840,7 +1842,7 @@ impl<'a> Iterator for Range<'a> {
 impl DoubleEndedIterator for Range<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if let Some((k, v)) = self.range.next_back() {
-            Some((*k, v.into()))
+            Some((*k, v.cell_content_ref()))
         } else {
             None
         }
@@ -2218,47 +2220,26 @@ impl Sheet {
 
     /// Returns a copy of the cell content.
     pub fn cell(&self, row: u32, col: u32) -> Option<CellContent> {
-        let value = self.data.get(&(row, col));
+        self.data
+            .get(&(row, col))
+            .map(CellData::cloned_cell_content)
+    }
 
-        value.map(|value| CellContent {
-            value: value.value.clone(),
-            style: value.style.clone(),
-            formula: value.formula.clone(),
-            validation_name: value.validation_name.clone(),
-            span: value.span,
-        })
+    /// Returns a copy of the cell content.
+    pub fn cell_ref(&self, row: u32, col: u32) -> Option<CellContentRef<'_>> {
+        self.data.get(&(row, col)).map(CellData::cell_content_ref)
     }
 
     /// Consumes the CellContent and sets the values.
     pub fn add_cell(&mut self, row: u32, col: u32, cell: CellContent) {
-        self.add_cell_data(
-            row,
-            col,
-            CellData {
-                value: cell.value,
-                formula: cell.formula,
-                style: cell.style,
-                validation_name: cell.validation_name,
-                span: cell.span,
-            },
-        );
+        self.add_cell_data(row, col, cell.into_celldata());
     }
 
     /// Removes the cell and returns the values as CellContent.
     pub fn remove_cell(&mut self, row: u32, col: u32) -> Option<CellContent> {
-        let value = self.data.remove(&(row, col));
-
-        if let Some(value) = value {
-            Some(CellContent {
-                value: value.value,
-                style: value.style,
-                formula: value.formula,
-                validation_name: value.validation_name,
-                span: value.span,
-            })
-        } else {
-            None
-        }
+        self.data
+            .remove(&(row, col))
+            .map(CellData::into_cell_content)
     }
 
     /// Add a new cell. Main use is for reading the spreadsheet.
@@ -2274,14 +2255,20 @@ impl Sheet {
         value: V,
         style: &CellStyleRef,
     ) {
-        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
         cell.value = value.into();
         cell.style = Some(style.to_string());
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
     pub fn set_value<V: Into<Value>>(&mut self, row: u32, col: u32, value: V) {
-        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
         cell.value = value.into();
     }
 
@@ -2296,7 +2283,10 @@ impl Sheet {
 
     /// Sets a formula for the specified cell. Creates a new cell if necessary.
     pub fn set_formula<V: Into<String>>(&mut self, row: u32, col: u32, formula: V) {
-        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
         cell.formula = Some(formula.into());
     }
 
@@ -2318,7 +2308,10 @@ impl Sheet {
 
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
     pub fn set_cellstyle(&mut self, row: u32, col: u32, style: &CellStyleRef) {
-        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
         cell.style = Some(style.to_string());
     }
 
@@ -2340,20 +2333,23 @@ impl Sheet {
 
     /// Sets a content-validation for this cell.
     pub fn set_validation(&mut self, row: u32, col: u32, validation: &ValidationRef) {
-        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
-        cell.validation_name = Some(validation.to_string());
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
+        cell.extra_mut().validation_name = Some(validation.to_string());
     }
 
     /// Removes the cell-style.
     pub fn clear_validation(&mut self, row: u32, col: u32) {
         if let Some(cell) = self.data.get_mut(&(row, col)) {
-            cell.validation_name = None;
+            cell.extra_mut().validation_name = None;
         }
     }
 
     /// Returns a content-validation name for this cell.
     pub fn validation(&self, row: u32, col: u32) -> Option<&String> {
-        if let Some(c) = self.data.get(&(row, col)) {
+        if let Some(CellData { extra: Some(c), .. }) = self.data.get(&(row, col)) {
             c.validation_name.as_ref()
         } else {
             None
@@ -2362,13 +2358,16 @@ impl Sheet {
 
     /// Sets the rowspan of the cell. Must be greater than 0.
     pub fn set_row_span(&mut self, row: u32, col: u32, span: u32) {
-        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
-        cell.span.row_span = span;
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
+        cell.extra_mut().span.row_span = span;
     }
 
     /// Rowspan of the cell.
     pub fn row_span(&self, row: u32, col: u32) -> u32 {
-        if let Some(c) = self.data.get(&(row, col)) {
+        if let Some(CellData { extra: Some(c), .. }) = self.data.get(&(row, col)) {
             c.span.row_span
         } else {
             1
@@ -2378,18 +2377,23 @@ impl Sheet {
     /// Sets the colspan of the cell. Must be greater than 0.
     pub fn set_col_span(&mut self, row: u32, col: u32, span: u32) {
         assert!(span > 0);
-        let cell = self.data.entry((row, col)).or_insert_with(CellData::new);
-        cell.span.col_span = span;
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
+        cell.extra_mut().span.col_span = span;
     }
 
     /// Colspan of the cell.
     pub fn col_span(&self, row: u32, col: u32) -> u32 {
-        if let Some(c) = self.data.get(&(row, col)) {
+        if let Some(CellData { extra: Some(c), .. }) = self.data.get(&(row, col)) {
             c.span.col_span
         } else {
             1
         }
     }
+
+    // TODO: rest of cell data
 
     /// Print ranges.
     pub fn add_print_range(&mut self, range: CellRange) {
@@ -2769,6 +2773,11 @@ impl CellSpan {
         }
     }
 
+    /// Is this empty? Defined as row_span==1 and col_span==1.
+    pub fn is_empty(&self) -> bool {
+        self.row_span == 1 && self.col_span == 1
+    }
+
     /// Sets the row span of this cell.
     /// Cells below with values will be lost when writing.
     pub fn set_row_span(&mut self, rows: u32) {
@@ -2802,12 +2811,12 @@ struct CellData {
     formula: Option<String>,
     // Cell style name.
     style: Option<String>,
-    // Content validation name.
-    validation_name: Option<String>,
-    // Row/Column span.
-    span: CellSpan,
+    // Scarcely used extra data.
+    extra: Option<Box<CellDataExt>>,
 }
 
+/// Extra cell data.
+#[derive(Debug, Clone, Default)]
 struct CellDataExt {
     // Content validation name.
     validation_name: Option<String>,
@@ -2817,17 +2826,105 @@ struct CellDataExt {
     matrix_span: CellSpan,
     // Annotation
     annotation: Option<Annotation>,
+    // Draw
+    draw_frames: Vec<DrawFrame>,
 }
 
 impl CellData {
-    /// New, empty.
-    pub(crate) fn new() -> Self {
-        CellData {
-            value: Value::Empty,
-            formula: None,
-            style: None,
-            validation_name: None,
-            span: Default::default(),
+    pub(crate) fn extra_mut(&mut self) -> &mut CellDataExt {
+        if self.extra.is_none() {
+            self.extra = Some(Box::new(CellDataExt::default()));
+        }
+        self.extra.as_mut().expect("celldataext")
+    }
+
+    pub(crate) fn cloned_cell_content(&self) -> CellContent {
+        let (validation_name, span, matrix_span, annotation, draw_frames) =
+            if let Some(extra) = &self.extra {
+                (
+                    extra.validation_name.clone(),
+                    extra.span.clone(),
+                    extra.matrix_span.clone(),
+                    extra.annotation.clone(),
+                    extra.draw_frames.clone(),
+                )
+            } else {
+                (
+                    None,
+                    Default::default(),
+                    Default::default(),
+                    None,
+                    Vec::new(),
+                )
+            };
+
+        CellContent {
+            value: self.value.clone(),
+            style: self.style.clone(),
+            formula: self.formula.clone(),
+            validation_name,
+            span,
+            matrix_span,
+            annotation,
+            draw_frames,
+        }
+    }
+
+    pub(crate) fn into_cell_content(self) -> CellContent {
+        let (validation_name, span, matrix_span, annotation, draw_frames) =
+            if let Some(extra) = self.extra {
+                (
+                    extra.validation_name,
+                    extra.span,
+                    extra.matrix_span,
+                    extra.annotation,
+                    extra.draw_frames,
+                )
+            } else {
+                (
+                    None,
+                    Default::default(),
+                    Default::default(),
+                    None,
+                    Vec::new(),
+                )
+            };
+
+        CellContent {
+            value: self.value,
+            style: self.style,
+            formula: self.formula,
+            validation_name,
+            span,
+            matrix_span,
+            annotation,
+            draw_frames,
+        }
+    }
+
+    pub(crate) fn cell_content_ref(&self) -> CellContentRef<'_> {
+        let (validation_name, span, matrix_span, annotation, draw_frames) =
+            if let Some(extra) = &self.extra {
+                (
+                    extra.validation_name.as_ref(),
+                    Some(&extra.span),
+                    Some(&extra.matrix_span),
+                    extra.annotation.as_ref(),
+                    Some(&extra.draw_frames),
+                )
+            } else {
+                (None, None, None, None, None)
+            };
+
+        CellContentRef {
+            value: &self.value,
+            style: self.style.as_ref(),
+            formula: self.formula.as_ref(),
+            validation_name,
+            span,
+            matrix_span,
+            annotation,
+            draw_frames,
         }
     }
 }
@@ -2837,7 +2934,7 @@ impl CellData {
 #[derive(Debug, Clone, Copy)]
 pub struct CellContentRef<'a> {
     /// Reference to the cell value.
-    pub value: Option<&'a Value>,
+    pub value: &'a Value,
     /// Reference to the stylename.
     pub style: Option<&'a String>,
     /// Reference to the cell formula.
@@ -2846,28 +2943,18 @@ pub struct CellContentRef<'a> {
     pub validation_name: Option<&'a String>,
     /// Reference to the cellspan.
     pub span: Option<&'a CellSpan>,
-}
-
-impl<'a> From<&'a CellData> for CellContentRef<'a> {
-    fn from(cd: &'a CellData) -> Self {
-        CellContentRef {
-            value: Some(&cd.value),
-            style: cd.style.as_ref(),
-            formula: cd.formula.as_ref(),
-            validation_name: cd.validation_name.as_ref(),
-            span: Some(&cd.span),
-        }
-    }
+    /// Reference to a matrix cellspan.
+    pub matrix_span: Option<&'a CellSpan>,
+    /// Reference to an annotation.
+    pub annotation: Option<&'a Annotation>,
+    /// Reference to draw-frames.
+    pub draw_frames: Option<&'a Vec<DrawFrame>>,
 }
 
 impl<'a> CellContentRef<'a> {
     /// Returns the value.
     pub fn value(&self) -> &'a Value {
-        if let Some(value) = self.value {
-            value
-        } else {
-            &Value::Empty
-        }
+        self.value
     }
 
     /// Returns the formula.
@@ -2902,6 +2989,34 @@ impl<'a> CellContentRef<'a> {
             1
         }
     }
+
+    /// Returns the row span for a matrix.
+    pub fn matrix_row_span(&self) -> u32 {
+        if let Some(matrix_span) = self.matrix_span {
+            matrix_span.row_span
+        } else {
+            1
+        }
+    }
+
+    /// Returns the col span for a matrix.
+    pub fn matrix_col_span(&self) -> u32 {
+        if let Some(matrix_span) = self.matrix_span {
+            matrix_span.col_span
+        } else {
+            1
+        }
+    }
+
+    /// Returns the validation name.
+    pub fn annotation(&self) -> Option<&'a Annotation> {
+        self.annotation
+    }
+
+    /// Returns draw frames.
+    pub fn draw_frames(&self) -> Option<&'a Vec<DrawFrame>> {
+        self.draw_frames
+    }
 }
 
 /// A copy of the relevant data for a spreadsheet cell.
@@ -2917,17 +3032,48 @@ pub struct CellContent {
     pub validation_name: Option<String>,
     /// Cellspan.
     pub span: CellSpan,
+    /// Matrix span.
+    pub matrix_span: CellSpan,
+    /// Annotation
+    pub annotation: Option<Annotation>,
+    /// DrawFrames
+    pub draw_frames: Vec<DrawFrame>,
 }
 
 impl CellContent {
     /// Empty.
     pub fn new() -> Self {
-        Self {
-            value: Default::default(),
-            style: None,
-            formula: None,
-            validation_name: None,
-            span: Default::default(),
+        Default::default()
+    }
+
+    ///
+    pub(crate) fn into_celldata(mut self) -> CellData {
+        let extra = self.into_celldata_ext();
+        CellData {
+            value: self.value,
+            formula: self.formula,
+            style: self.style,
+            extra,
+        }
+    }
+
+    /// Move stuff into a CellDataExt.
+    pub(crate) fn into_celldata_ext(&mut self) -> Option<Box<CellDataExt>> {
+        if self.validation_name.is_some()
+            || !self.span.is_empty()
+            || !self.matrix_span.is_empty()
+            || self.annotation.is_some()
+            || !self.draw_frames.is_empty()
+        {
+            Some(Box::new(CellDataExt {
+                validation_name: self.validation_name.take(),
+                span: self.span,
+                matrix_span: self.matrix_span,
+                annotation: self.annotation.take(),
+                draw_frames: std::mem::take(&mut self.draw_frames),
+            }))
+        } else {
+            None
         }
     }
 
@@ -3008,6 +3154,55 @@ impl CellContent {
     /// Returns the col span.
     pub fn col_span(&self) -> u32 {
         self.span.col_span
+    }
+
+    /// Sets the row span of this cell.
+    /// Cells below with values will be lost when writing.
+    pub fn set_matrix_row_span(&mut self, rows: u32) {
+        assert!(rows > 0);
+        self.matrix_span.row_span = rows;
+    }
+
+    /// Returns the row span.
+    pub fn matrix_row_span(&self) -> u32 {
+        self.matrix_span.row_span
+    }
+
+    /// Sets the column span of this cell.
+    /// Cells to the right with values will be lost when writing.
+    pub fn set_matrix_col_span(&mut self, cols: u32) {
+        assert!(cols > 0);
+        self.matrix_span.col_span = cols;
+    }
+
+    /// Returns the col span.
+    pub fn matrix_col_span(&self) -> u32 {
+        self.matrix_span.col_span
+    }
+
+    /// Annotation
+    pub fn set_annotation(&mut self, annotation: Annotation) {
+        self.annotation = Some(annotation);
+    }
+
+    /// Annotation
+    pub fn clear_annotation(&mut self) {
+        self.annotation = None;
+    }
+
+    /// Returns the Annotation
+    pub fn annotation(&self) -> Option<&Annotation> {
+        self.annotation.as_ref()
+    }
+
+    /// Draw Frames
+    pub fn set_draw_frames(&mut self, draw_frames: Vec<DrawFrame>) {
+        self.draw_frames = draw_frames;
+    }
+
+    /// Draw Frames
+    pub fn draw_frames(&self) -> &Vec<DrawFrame> {
+        &self.draw_frames
     }
 }
 

@@ -1748,7 +1748,7 @@ fn write_cell(
     };
 
     match cell.value {
-        None | Some(Value::Empty) => xml_out.empty(tag)?,
+        Value::Empty => xml_out.empty(tag)?,
         _ => xml_out.elem(tag)?,
     }
 
@@ -1759,10 +1759,8 @@ fn write_cell(
     // Direct style oder value based default style.
     if let Some(style) = cell.style {
         xml_out.attr_esc("table:style-name", style)?;
-    } else if let Some(value) = cell.value {
-        if let Some(style) = book.def_style(value.value_type()) {
-            xml_out.attr_esc("table:style-name", style)?;
-        }
+    } else if let Some(style) = book.def_style(cell.value.value_type()) {
+        xml_out.attr_esc("table:style-name", style)?;
     }
 
     // Content validation
@@ -1791,20 +1789,20 @@ fn write_cell(
     // };
 
     match cell.value {
-        None | Some(Value::Empty) => {}
-        Some(Value::Text(s)) => {
+        Value::Empty => {}
+        Value::Text(s) => {
             xml_out.attr_str("office:value-type", "string")?;
             for l in s.split('\n') {
                 xml_out.elem_text_esc("text:p", l)?;
             }
         }
-        Some(Value::TextXml(t)) => {
+        Value::TextXml(t) => {
             xml_out.attr_str("office:value-type", "string")?;
             for tt in t.iter() {
                 write_xmltag(tt, xml_out)?;
             }
         }
-        Some(Value::DateTime(d)) => {
+        Value::DateTime(d) => {
             xml_out.attr_str("office:value-type", "date")?;
             let value = d.format(DATETIME_FORMAT);
             xml_out.attr("office:date-value", &value)?;
@@ -1812,7 +1810,7 @@ fn write_cell(
             xml_out.text(&value)?;
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::TimeDuration(d)) => {
+        Value::TimeDuration(d) => {
             xml_out.attr_str("office:value-type", "time")?;
             let value = format_duration2(*d);
             xml_out.attr("office:time-value", &value)?;
@@ -1820,14 +1818,14 @@ fn write_cell(
             xml_out.text(&value)?;
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Boolean(b)) => {
+        Value::Boolean(b) => {
             xml_out.attr_str("office:value-type", "boolean")?;
             xml_out.attr_str("office:boolean-value", if *b { "true" } else { "false" })?;
             xml_out.elem("text:p")?;
             xml_out.text_str(if *b { "true" } else { "false" })?;
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Currency(v, c)) => {
+        Value::Currency(v, c) => {
             xml_out.attr_str("office:value-type", "currency")?;
             xml_out.attr_esc("office:currency", c)?;
             xml_out.attr("office:value", v)?;
@@ -1837,14 +1835,14 @@ fn write_cell(
             xml_out.text(v)?;
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Number(v)) => {
+        Value::Number(v) => {
             xml_out.attr_str("office:value-type", "float")?;
             xml_out.attr("office:value", v)?;
             xml_out.elem("text:p")?;
             xml_out.text(v)?;
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Percentage(v)) => {
+        Value::Percentage(v) => {
             xml_out.attr_str("office:value-type", "percentage")?;
             xml_out.attr("office:value", v)?;
             xml_out.elem("text:p")?;
@@ -1854,7 +1852,7 @@ fn write_cell(
     }
 
     match cell.value {
-        None | Some(Value::Empty) => {}
+        Value::Empty => {}
         _ => xml_out.end_elem(tag)?,
     }
 

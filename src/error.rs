@@ -27,6 +27,7 @@ pub enum OdsError {
     ParseFloat(std::num::ParseFloatError),
     Chrono(chrono::format::ParseError),
     SystemTime(std::time::SystemTimeError),
+    Base64(base64::DecodeError),
 }
 
 impl Display for OdsError {
@@ -44,6 +45,7 @@ impl Display for OdsError {
             OdsError::Chrono(e) => write!(f, "Chrono {}", e)?,
             OdsError::SystemTime(e) => write!(f, "SystemTime {}", e)?,
             OdsError::Utf8(e) => write!(f, "UTF8 {}", e)?,
+            OdsError::Base64(e) => write!(f, "Base64 {}", e)?,
         }
 
         Ok(())
@@ -65,6 +67,7 @@ impl Error for OdsError {
             OdsError::Chrono(e) => Some(e),
             OdsError::SystemTime(e) => Some(e),
             OdsError::Utf8(e) => Some(e),
+            OdsError::Base64(e) => Some(e),
         }
     }
 }
@@ -126,6 +129,12 @@ impl From<std::time::SystemTimeError> for OdsError {
 impl From<std::str::Utf8Error> for OdsError {
     fn from(err: std::str::Utf8Error) -> OdsError {
         OdsError::Utf8(err)
+    }
+}
+
+impl From<base64::DecodeError> for OdsError {
+    fn from(err: base64::DecodeError) -> OdsError {
+        OdsError::Base64(err)
     }
 }
 
