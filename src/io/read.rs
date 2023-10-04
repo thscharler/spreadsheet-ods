@@ -607,11 +607,10 @@ fn read_table(
             println!(" read_table {:?}", evt);
         }
         match &evt {
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table" => {
                 // TODO: Maybe find a better fix for the repeat error.
                 // Reset the repeat count for the last two rows to one if it exceeds
-                // some arbitrary limit. 
+                // some arbitrary limit.
                 let mut it = sheet.row_header.iter_mut().rev();
                 if let Some((_row, last)) = it.next() {
                     if last.repeat > 1000 {
@@ -626,106 +625,106 @@ fn read_table(
                 break;
             }
 
-            Event::Start(xml_tag) |
-            Event::Empty(xml_tag)
-            if /* prelude */ xml_tag.name().as_ref() == b"table:title" ||
-                xml_tag.name().as_ref() == b"table:desc" ||
-                xml_tag.name().as_ref() == b"table:table-source" ||
-                xml_tag.name().as_ref() == b"office:dde-source" ||
-                xml_tag.name().as_ref() == b"table:scenario" ||
-                xml_tag.name().as_ref() == b"office:forms" ||
-                xml_tag.name().as_ref() == b"table:shapes" ||
-                /* epilogue */
-                xml_tag.name().as_ref() == b"table:named-expressions" ||
-                xml_tag.name().as_ref() == b"calcext:conditional-formats" => {
+            // Prelude
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"table:title"
+                    || xml_tag.name().as_ref() == b"table:desc"
+                    || xml_tag.name().as_ref() == b"table:table-source"
+                    || xml_tag.name().as_ref() == b"office:dde-source"
+                    || xml_tag.name().as_ref() == b"table:scenario"
+                    || xml_tag.name().as_ref() == b"office:forms"
+                    || xml_tag.name().as_ref() == b"table:shapes" =>
+            {
                 sheet.extra.push(read_xml(bs, xml_tag, empty_tag, xml)?);
             }
-
             Event::End(xml_tag)
-            if /* prelude */ xml_tag.name().as_ref() == b"table:title" ||
-                xml_tag.name().as_ref() == b"table:desc" ||
-                xml_tag.name().as_ref() == b"table:table-source" ||
-                xml_tag.name().as_ref() == b"office:dde-source" ||
-                xml_tag.name().as_ref() == b"table:scenario" ||
-                xml_tag.name().as_ref() == b"office:forms" ||
-                xml_tag.name().as_ref() == b"table:shapes" ||
-                /* epilogue */
-                xml_tag.name().as_ref() == b"table:named-expressions" ||
-                xml_tag.name().as_ref() == b"calcext:conditional-formats" => {}
+                if xml_tag.name().as_ref() == b"table:title"
+                    || xml_tag.name().as_ref() == b"table:desc"
+                    || xml_tag.name().as_ref() == b"table:table-source"
+                    || xml_tag.name().as_ref() == b"office:dde-source"
+                    || xml_tag.name().as_ref() == b"table:scenario"
+                    || xml_tag.name().as_ref() == b"office:forms"
+                    || xml_tag.name().as_ref() == b"table:shapes" => {}
 
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-column-group" => {
+            // Epilogue
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"table:named-expressions"
+                    || xml_tag.name().as_ref() == b"calcext:conditional-formats" =>
+            {
+                sheet.extra.push(read_xml(bs, xml_tag, empty_tag, xml)?);
+            }
+            Event::End(xml_tag)
+                if xml_tag.name().as_ref() == b"table:named-expressions"
+                    || xml_tag.name().as_ref() == b"calcext:conditional-formats" => {}
+
+            //
+            // Table Column Data
+            //
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-column-group" => {
                 let v = read_table_column_group_attr(table_col, xml_tag)?;
                 col_group.push(v);
             }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-column-group" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-column-group" => {
                 if let Some(mut v) = col_group.pop() {
                     v.set_to(table_col - 1);
                     sheet.group_cols.push(v);
                 }
             }
 
-            // skip
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-header-rows" => {
-            }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-header-rows" => {
+            // ignore for ods
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {}
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {}
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-columns" => {}
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-columns" => {}
+
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"table:table-column" => {
+                table_col = read_table_col_attr(&mut sheet, table_col, xml_tag)?;
             }
 
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-columns" => {
-            }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-columns" => {
-            }
-
-            Event::Empty(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-column" => {
-                table_col = read_table_col_attr(&mut sheet, table_col,  xml_tag)?;
-            }
-
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-row-group" => {
+            //
+            // Table row data
+            //
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-row-group" => {
                 let v = read_table_row_group_attr(row, xml_tag)?;
                 row_group.push(v);
             }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-row-group" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-row-group" => {
                 if let Some(mut v) = row_group.pop() {
-                    v.set_to(row-1);
+                    v.set_to(row - 1);
                     sheet.group_rows.push(v);
                 } // todo: ignore?
             }
 
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-rows" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-rows" => {
                 // noop
             }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-rows" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-rows" => {
                 // noop
             }
 
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-row" => {
-                 row_repeat = read_table_row_attr(&mut sheet, row, xml_tag)?;
+            //
+            // Table cells
+            //
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
+                row_repeat = read_table_row_attr(&mut sheet, row, xml_tag)?;
             }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-row" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
                 row += row_repeat;
                 col = 0;
                 row_repeat = 1;
             }
 
             Event::Empty(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-cell" || xml_tag.name().as_ref() == b"table:covered-table-cell" => {
+                if xml_tag.name().as_ref() == b"table:table-cell"
+                    || xml_tag.name().as_ref() == b"table:covered-table-cell" =>
+            {
                 col = read_empty_table_cell(&mut sheet, row, col, xml_tag)?;
             }
-
             Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-cell" || xml_tag.name().as_ref() == b"table:covered-table-cell" => {
+                if xml_tag.name().as_ref() == b"table:table-cell"
+                    || xml_tag.name().as_ref() == b"table:covered-table-cell" =>
+            {
                 col = read_table_cell2(bs, &mut sheet, row, col, xml_tag, xml)?;
             }
 
@@ -949,9 +948,8 @@ fn read_table_cell2(
     // Current cell tag
     let tag_name = super_tag.name();
 
-    let mut cell_repeat: u32 = 1;
-
     let mut cell = CellData::default();
+    let mut cell_repeat: u32 = 1;
 
     let mut tc = ReadTableCell2 {
         val_type: ValueType::Empty,
@@ -1231,20 +1229,12 @@ fn read_empty_table_cell(
     super_tag: &BytesStart<'_>,
 ) -> Result<u32, OdsError> {
     let mut cell = None;
-    // Default advance is one column.
     let mut cell_repeat = 1;
+
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"table:number-columns-repeated" => {
                 cell_repeat = parse_u32(&attr.value)?;
-            }
-            attr if attr.key.as_ref() == b"table:formula" => {
-                cell.get_or_insert_with(CellData::default).formula =
-                    Some(attr.unescape_value()?.to_string());
-            }
-            attr if attr.key.as_ref() == b"table:style-name" => {
-                cell.get_or_insert_with(CellData::default).style =
-                    Some(attr.unescape_value()?.to_string());
             }
             attr if attr.key.as_ref() == b"table:number-rows-spanned" => {
                 let row_span = parse_u32(&attr.value)?;
@@ -1268,6 +1258,15 @@ fn read_empty_table_cell(
                 cell.get_or_insert_with(CellData::default)
                     .extra_mut()
                     .validation_name = Some(attr.unescape_value()?.to_string());
+            }
+
+            attr if attr.key.as_ref() == b"table:formula" => {
+                cell.get_or_insert_with(CellData::default).formula =
+                    Some(attr.unescape_value()?.to_string());
+            }
+            attr if attr.key.as_ref() == b"table:style-name" => {
+                cell.get_or_insert_with(CellData::default).style =
+                    Some(attr.unescape_value()?.to_string());
             }
 
             attr => {
