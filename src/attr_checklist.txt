@@ -450,3 +450,173 @@ ignore svg:v-ideographic 19.572,
 ignore svg:v-mathematical 19.573,
 ignore svg:widths 19.576
 ignore svg:x-height 19.580.
+
+// office:annotation
+
+ok draw:caption-point-x 19.116,
+ok draw:caption-point-y 19.117,
+ok draw:class-names 19.120,
+ok draw:corner-radius 19.127,
+ok draw:id 19.187,
+ok draw:layer 19.189,
+ok draw:name 19.197,
+ok draw:stylename 19.219,
+ok draw:text-style-name 19.227,
+ok draw:transform 19.228,
+ok draw:z-index 19.231,
+ok office:display 19.378,
+ok office:name 19.380,
+ignore presentation:class-names 19.394,
+ignore presentation:style-name 19.426,
+ok svg:height 19.543,
+ok svg:width 19.575,
+ok svg:x 19.577,
+ok svg:y 19.581,
+ok table:end-cell-address 19.631,
+ok table:end-x 19.636,
+ok table:end-y 19.637,
+ok table:table-background 19.733,
+ignore text:anchor-page-number 19.758,
+ignore text:anchor-type 19.759 and
+ok xml:id 19.920.
+
+child elements:
+
+ok <dc:creator> 4.3.2.7,
+ok <dc:date> 4.3.2.10,
+ignore <meta:creator-initials> 14.4,
+ignore <meta:date-string> 14.3,
+ok <text:list> 5.3.1 and
+ok <text:p> 5.1.3.
+
+// table:table-cell
+
+child elements:
+
+ignore <draw:a> 10.4.12,
+ignore <draw:caption> 10.3.11,
+ignore <draw:circle> 10.3.8,
+ignore <draw:connector> 10.3.10,
+ignore <draw:control> 10.3.13,
+ignore <draw:custom-shape> 10.6.1,
+ignore <draw:ellipse> 10.3.9,
+ok <draw:frame> 10.4.2,
+ignore <draw:g> 10.3.15,
+ignore <draw:line> 10.3.3,
+ignore <draw:measure> 10.3.12,
+ignore <draw:page-thumbnail> 10.3.14,
+ignore <draw:path> 10.3.7,
+ignore <draw:polygon> 10.3.5,
+ignore <draw:polyline> 10.3.4,
+ignore <draw:rect> 10.3.2,
+ignore <draw:regular-polygon> 10.3.6,
+ok <office:annotation> 14.1,
+
+<draw:layer-set> 10.2.2,
+
+// draw:rect
+
+draw:name 19.197,
+ok draw:caption-id 19.115,
+ok draw:class-names 19.120,
+ok draw:corner-radius 19.127,
+ok draw:id 19.187,
+ok draw:layer 19.189,
+ok draw:style-name 19.219,
+ok draw:text-style-name 19.227,
+ok draw:transform 19.228,
+ok draw:z-index 19.231,
+
+xx presentation:class-names 19.394,
+xx presentation:style-name 19.426,
+
+ok svg:height 19.543,
+ok svg:width 19.575,
+ok svg:rx 19.554,
+ok svg:ry 19.555,
+ok svg:x 19.577,
+ok svg:y 19.581,
+
+ok table:end-cell-address 19.631,
+ok table:end-x 19.636,
+ok table:end-y 19.637,
+ok table:table-background 19.733,
+
+xx text:anchor-page-number 19.758,
+xx text:anchor-type 19.759
+
+xml:id 19.920
+
+child elements:
+
+<draw:glue-point> 10.3.16,
+<office:event-listeners> 10.3.19,
+<svg:desc> 10.3.18,
+<svg:title> 10.3.17,
+<text:list> 5.3.1 and
+<text:p> 5.1.3.
+
+
+// draw:frame
+
+ok draw:caption-id 19.115,
+ok draw:class-names 19.120,
+ok draw:copy-of 19.126,
+ok draw:id 19.187,
+ok draw:layer 19.189,
+ok draw:name 19.197,
+ok draw:style-name 19.219,
+ok draw:text-style-name 19.227,
+ok draw:transform 19.228,
+ok draw:z-index 19.231,
+ignore presentation:class 19.393,
+ignore presentation:class-names 19.394,
+ignore presentation:placeholder 19.411,
+ignore presentation:style-name 19.426,
+ignore presentation:user-transformed 19.431,
+ok style:rel-height 19.513,
+ok style:rel-width 19.514,
+ok svg:height 19.543,
+ok svg:width 19.575,
+ok svg:x 19.577,
+ok svg:y 19.581,
+ok table:end-cell-address 19.631,
+ok table:end-x 19.636,
+ok table:end-y 19.637,
+ok table:table-background 19.733,
+ignore text:anchor-pagenumber 19.758,
+ignore text:anchor-type 19.759 and
+xml:id 19.920.
+
+child elements:
+
+ignore <draw:applet> 10.4.7,
+ignore <draw:contour-path> 10.4.11.3,
+ignore <draw:contour-polygon> 10.4.11.2,
+ignore <draw:floating-frame> 10.4.10,
+ignore <draw:glue-point> 10.3.16,
+<draw:image> 10.4.4,
+ignore <draw:image-map> 10.4.13.2,
+ignore <draw:object> 10.4.6.2,
+ignore <draw:object-ole> 10.4.6.3,
+ignore <draw:plugin> 10.4.8,
+ignore <draw:text-box> 10.4.3,
+ok <office:event-listeners> 10.3.19,
+ok <svg:desc> 10.3.18,
+ok <svg:title> 10.3.17
+ignore <table:table> 9.1.2.
+
+// draw:image
+
+ok draw:filter-name 19.170,
+ok draw:mime-type 19.191,
+ok xlink:actuate 19.915,
+ok xlink:href 19.916,
+ok xlink:show 19.917,
+ok xlink:type 19.919
+ok xml:id 19.920.
+
+child elements:
+ok <office:binary-data> 10.4.5,
+ok <text:list> 5.3.1
+ok <text:p> 5.1.3.

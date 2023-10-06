@@ -7,6 +7,7 @@ use std::path::Path;
 use zip::write::FileOptions;
 
 use crate::config::{ConfigItem, ConfigItemType, ConfigValue};
+use crate::draw::{Annotation, DrawFrame, DrawFrameContent, DrawImage};
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::format::{format_duration2, format_validation_condition};
@@ -607,7 +608,7 @@ fn write_office_meta(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<
         xml_out.elem_text_esc("meta:initial-creator", &book.metadata.initial_creator)?;
     }
     if !book.metadata.creator.is_empty() {
-        xml_out.elem_text_esc("meta:creator", &book.metadata.creator)?;
+        xml_out.elem_text_esc("dc:creator", &book.metadata.creator)?;
     }
     if !book.metadata.printed_by.is_empty() {
         xml_out.elem_text_esc("meta:printed-by", &book.metadata.printed_by)?;
@@ -1747,9 +1748,14 @@ fn write_cell(
         "table:table-cell"
     };
 
-    match cell.value {
-        None | Some(Value::Empty) => xml_out.empty(tag)?,
-        _ => xml_out.elem(tag)?,
+    let is_empty = matches!(cell.value, Value::Empty)
+        && cell.annotation.is_none()
+        && cell.draw_frames.is_none();
+
+    if is_empty {
+        xml_out.empty(tag)?;
+    } else {
+        xml_out.elem(tag)?;
     }
 
     if let Some(formula) = cell.formula {
@@ -1759,10 +1765,8 @@ fn write_cell(
     // Direct style oder value based default style.
     if let Some(style) = cell.style {
         xml_out.attr_esc("table:style-name", style)?;
-    } else if let Some(value) = cell.value {
-        if let Some(style) = book.def_style(value.value_type()) {
-            xml_out.attr_esc("table:style-name", style)?;
-        }
+    } else if let Some(style) = book.def_style(cell.value.value_type()) {
+        xml_out.attr_esc("table:style-name", style)?;
     }
 
     // Content validation
@@ -1779,6 +1783,14 @@ fn write_cell(
             xml_out.attr_esc("table:number-columns-spanned", &span.col_span)?;
         }
     }
+    if let Some(span) = cell.matrix_span {
+        if span.row_span > 1 {
+            xml_out.attr_esc("table:number-matrix-rows-spanned", &span.row_span)?;
+        }
+        if span.col_span > 1 {
+            xml_out.attr_esc("table:number-matrix-columns-spanned", &span.col_span)?;
+        }
+    }
 
     // This finds the correct ValueFormat, but there is no way to use it.
     // Falls back to: Output the same string as needed for the value-attribute
@@ -1791,20 +1803,20 @@ fn write_cell(
     // };
 
     match cell.value {
-        None | Some(Value::Empty) => {}
-        Some(Value::Text(s)) => {
+        Value::Empty => {}
+        Value::Text(s) => {
             xml_out.attr_str("office:value-type", "string")?;
             for l in s.split('\n') {
                 xml_out.elem_text_esc("text:p", l)?;
             }
         }
-        Some(Value::TextXml(t)) => {
+        Value::TextXml(t) => {
             xml_out.attr_str("office:value-type", "string")?;
             for tt in t.iter() {
                 write_xmltag(tt, xml_out)?;
             }
         }
-        Some(Value::DateTime(d)) => {
+        Value::DateTime(d) => {
             xml_out.attr_str("office:value-type", "date")?;
             let value = d.format(DATETIME_FORMAT);
             xml_out.attr("office:date-value", &value)?;
@@ -1812,7 +1824,7 @@ fn write_cell(
             xml_out.text(&value)?;
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::TimeDuration(d)) => {
+        Value::TimeDuration(d) => {
             xml_out.attr_str("office:value-type", "time")?;
             let value = format_duration2(*d);
             xml_out.attr("office:time-value", &value)?;
@@ -1820,14 +1832,14 @@ fn write_cell(
             xml_out.text(&value)?;
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Boolean(b)) => {
+        Value::Boolean(b) => {
             xml_out.attr_str("office:value-type", "boolean")?;
             xml_out.attr_str("office:boolean-value", if *b { "true" } else { "false" })?;
             xml_out.elem("text:p")?;
             xml_out.text_str(if *b { "true" } else { "false" })?;
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Currency(v, c)) => {
+        Value::Currency(v, c) => {
             xml_out.attr_str("office:value-type", "currency")?;
             xml_out.attr_esc("office:currency", c)?;
             xml_out.attr("office:value", v)?;
@@ -1837,14 +1849,14 @@ fn write_cell(
             xml_out.text(v)?;
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Number(v)) => {
+        Value::Number(v) => {
             xml_out.attr_str("office:value-type", "float")?;
             xml_out.attr("office:value", v)?;
             xml_out.elem("text:p")?;
             xml_out.text(v)?;
             xml_out.end_elem("text:p")?;
         }
-        Some(Value::Percentage(v)) => {
+        Value::Percentage(v) => {
             xml_out.attr_str("office:value-type", "percentage")?;
             xml_out.attr("office:value", v)?;
             xml_out.elem("text:p")?;
@@ -1853,11 +1865,105 @@ fn write_cell(
         }
     }
 
-    match cell.value {
-        None | Some(Value::Empty) => {}
-        _ => xml_out.end_elem(tag)?,
+    if let Some(annotation) = cell.annotation {
+        write_annotation(annotation, xml_out)?;
     }
 
+    if let Some(draw_frames) = cell.draw_frames {
+        for draw_frame in draw_frames {
+            write_draw_frame(draw_frame, xml_out)?;
+        }
+    }
+
+    if !is_empty {
+        xml_out.end_elem(tag)?
+    }
+
+    Ok(())
+}
+
+fn write_draw_frame(
+    draw_frame: &DrawFrame,
+    xml_out: &mut OdsXmlWriter<'_>,
+) -> Result<(), OdsError> {
+    xml_out.elem("draw:frame")?;
+    for (k, v) in draw_frame.attrmap().iter() {
+        xml_out.attr_esc(k.as_ref(), v)?;
+    }
+
+    for content in draw_frame.content_ref() {
+        match content {
+            DrawFrameContent::Image(img) => {
+                write_draw_image(img, xml_out)?;
+            }
+        }
+    }
+
+    if let Some(desc) = draw_frame.desc() {
+        xml_out.elem("svg:desc")?;
+        xml_out.text_esc(desc)?;
+        xml_out.end_elem("svg:desc")?;
+    }
+    if let Some(title) = draw_frame.title() {
+        xml_out.elem("svg:title")?;
+        xml_out.text_esc(title)?;
+        xml_out.end_elem("svg:title")?;
+    }
+
+    xml_out.end_elem("draw:frame")?;
+
+    Ok(())
+}
+
+fn write_draw_image(
+    draw_image: &DrawImage,
+    xml_out: &mut OdsXmlWriter<'_>,
+) -> Result<(), OdsError> {
+    xml_out.elem("draw:image")?;
+    for (k, v) in draw_image.attrmap().iter() {
+        xml_out.attr_esc(k.as_ref(), v)?;
+    }
+
+    if let Some(bin) = draw_image.get_binary_base64() {
+        xml_out.elem("office:binary-data")?;
+        xml_out.text(bin)?;
+        xml_out.end_elem("office:binary-data")?;
+    }
+
+    for content in draw_image.get_text() {
+        write_xmltag(content, xml_out)?;
+    }
+
+    xml_out.end_elem("draw:image")?;
+
+    Ok(())
+}
+
+fn write_annotation(
+    annotation: &Annotation,
+    xml_out: &mut OdsXmlWriter<'_>,
+) -> Result<(), OdsError> {
+    xml_out.elem("office:annotation")?;
+    xml_out.attr("office:display", &annotation.display())?;
+    xml_out.attr_esc("office:name", &annotation.name())?;
+    for (k, v) in annotation.attrmap().iter() {
+        xml_out.attr_esc(k.as_ref(), v)?;
+    }
+
+    if let Some(creator) = annotation.creator() {
+        xml_out.elem("dc:creator")?;
+        xml_out.text_esc(creator.as_str())?;
+        xml_out.end_elem("dc:creator")?;
+    }
+    if let Some(date) = annotation.date() {
+        xml_out.elem("dc:date")?;
+        xml_out.text_esc(&date.format(DATETIME_FORMAT))?;
+        xml_out.end_elem("dc:date")?;
+    }
+    for v in annotation.text() {
+        write_xmltag(v, xml_out)?;
+    }
+    xml_out.end_elem("office:annotation")?;
     Ok(())
 }
 

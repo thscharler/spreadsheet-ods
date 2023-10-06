@@ -8,12 +8,6 @@ use spreadsheet_ods::{
 };
 use std::time::Instant;
 
-// #[test]
-// fn test_read2() {
-//     let wb = read_ods("tests/Kunden.ods").unwrap();
-//     assert_eq!(wb.num_sheets(), 2);
-// }
-
 #[test]
 fn test_write_read() -> Result<(), OdsError> {
     let mut wb = WorkBook::new_empty();

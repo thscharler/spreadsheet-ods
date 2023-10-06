@@ -10,13 +10,14 @@ use zip::ZipArchive;
 use crate::attrmap2::AttrMap2;
 use crate::condition::{Condition, ValueCondition};
 use crate::config::{Config, ConfigItem, ConfigItemType, ConfigValue};
+use crate::draw::{Annotation, DrawFrame, DrawFrameContent, DrawImage};
 use crate::ds::bufstack::BufStack;
 use crate::ds::detach::Detach;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType, ValueFormatTrait, ValueStyleMap};
 use crate::io::parse::{
     parse_bool, parse_currency, parse_datetime, parse_duration, parse_f64, parse_i16, parse_i32,
-    parse_i64, parse_u32, parse_visibility, parse_xlink_actuate, parse_xlink_show,
+    parse_i64, parse_string, parse_u32, parse_visibility, parse_xlink_actuate, parse_xlink_show,
     parse_xlink_type,
 };
 use crate::io::{DUMP_UNUSED, DUMP_XML};
@@ -607,11 +608,10 @@ fn read_table(
             println!(" read_table {:?}", evt);
         }
         match &evt {
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table" => {
                 // TODO: Maybe find a better fix for the repeat error.
                 // Reset the repeat count for the last two rows to one if it exceeds
-                // some arbitrary limit. 
+                // some arbitrary limit.
                 let mut it = sheet.row_header.iter_mut().rev();
                 if let Some((_row, last)) = it.next() {
                     if last.repeat > 1000 {
@@ -626,106 +626,106 @@ fn read_table(
                 break;
             }
 
-            Event::Start(xml_tag) |
-            Event::Empty(xml_tag)
-            if /* prelude */ xml_tag.name().as_ref() == b"table:title" ||
-                xml_tag.name().as_ref() == b"table:desc" ||
-                xml_tag.name().as_ref() == b"table:table-source" ||
-                xml_tag.name().as_ref() == b"office:dde-source" ||
-                xml_tag.name().as_ref() == b"table:scenario" ||
-                xml_tag.name().as_ref() == b"office:forms" ||
-                xml_tag.name().as_ref() == b"table:shapes" ||
-                /* epilogue */
-                xml_tag.name().as_ref() == b"table:named-expressions" ||
-                xml_tag.name().as_ref() == b"calcext:conditional-formats" => {
+            // Prelude
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"table:title"
+                    || xml_tag.name().as_ref() == b"table:desc"
+                    || xml_tag.name().as_ref() == b"table:table-source"
+                    || xml_tag.name().as_ref() == b"office:dde-source"
+                    || xml_tag.name().as_ref() == b"table:scenario"
+                    || xml_tag.name().as_ref() == b"office:forms"
+                    || xml_tag.name().as_ref() == b"table:shapes" =>
+            {
                 sheet.extra.push(read_xml(bs, xml_tag, empty_tag, xml)?);
             }
-
             Event::End(xml_tag)
-            if /* prelude */ xml_tag.name().as_ref() == b"table:title" ||
-                xml_tag.name().as_ref() == b"table:desc" ||
-                xml_tag.name().as_ref() == b"table:table-source" ||
-                xml_tag.name().as_ref() == b"office:dde-source" ||
-                xml_tag.name().as_ref() == b"table:scenario" ||
-                xml_tag.name().as_ref() == b"office:forms" ||
-                xml_tag.name().as_ref() == b"table:shapes" ||
-                /* epilogue */
-                xml_tag.name().as_ref() == b"table:named-expressions" ||
-                xml_tag.name().as_ref() == b"calcext:conditional-formats" => {}
+                if xml_tag.name().as_ref() == b"table:title"
+                    || xml_tag.name().as_ref() == b"table:desc"
+                    || xml_tag.name().as_ref() == b"table:table-source"
+                    || xml_tag.name().as_ref() == b"office:dde-source"
+                    || xml_tag.name().as_ref() == b"table:scenario"
+                    || xml_tag.name().as_ref() == b"office:forms"
+                    || xml_tag.name().as_ref() == b"table:shapes" => {}
 
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-column-group" => {
+            // Epilogue
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"table:named-expressions"
+                    || xml_tag.name().as_ref() == b"calcext:conditional-formats" =>
+            {
+                sheet.extra.push(read_xml(bs, xml_tag, empty_tag, xml)?);
+            }
+            Event::End(xml_tag)
+                if xml_tag.name().as_ref() == b"table:named-expressions"
+                    || xml_tag.name().as_ref() == b"calcext:conditional-formats" => {}
+
+            //
+            // Table Column Data
+            //
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-column-group" => {
                 let v = read_table_column_group_attr(table_col, xml_tag)?;
                 col_group.push(v);
             }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-column-group" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-column-group" => {
                 if let Some(mut v) = col_group.pop() {
                     v.set_to(table_col - 1);
                     sheet.group_cols.push(v);
                 }
             }
 
-            // skip
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-header-rows" => {
-            }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-header-rows" => {
+            // ignore for ods
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {}
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {}
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-columns" => {}
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-columns" => {}
+
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"table:table-column" => {
+                table_col = read_table_col_attr(&mut sheet, table_col, xml_tag)?;
             }
 
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-columns" => {
-            }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-columns" => {
-            }
-
-            Event::Empty(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-column" => {
-                table_col = read_table_col_attr(&mut sheet, table_col,  xml_tag)?;
-            }
-
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-row-group" => {
+            //
+            // Table row data
+            //
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-row-group" => {
                 let v = read_table_row_group_attr(row, xml_tag)?;
                 row_group.push(v);
             }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-row-group" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-row-group" => {
                 if let Some(mut v) = row_group.pop() {
-                    v.set_to(row-1);
+                    v.set_to(row - 1);
                     sheet.group_rows.push(v);
                 } // todo: ignore?
             }
 
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-rows" => {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-rows" => {
                 // noop
             }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-rows" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-rows" => {
                 // noop
             }
 
-            Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-row" => {
-                 row_repeat = read_table_row_attr(&mut sheet, row, xml_tag)?;
+            //
+            // Table cells
+            //
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
+                row_repeat = read_table_row_attr(&mut sheet, row, xml_tag)?;
             }
-            Event::End(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-row" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
                 row += row_repeat;
                 col = 0;
                 row_repeat = 1;
             }
 
             Event::Empty(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-cell" || xml_tag.name().as_ref() == b"table:covered-table-cell" => {
+                if xml_tag.name().as_ref() == b"table:table-cell"
+                    || xml_tag.name().as_ref() == b"table:covered-table-cell" =>
+            {
                 col = read_empty_table_cell(&mut sheet, row, col, xml_tag)?;
             }
-
             Event::Start(xml_tag)
-            if xml_tag.name().as_ref() == b"table:table-cell" || xml_tag.name().as_ref() == b"table:covered-table-cell" => {
+                if xml_tag.name().as_ref() == b"table:table-cell"
+                    || xml_tag.name().as_ref() == b"table:covered-table-cell" =>
+            {
                 col = read_table_cell2(bs, &mut sheet, row, col, xml_tag, xml)?;
             }
 
@@ -949,15 +949,8 @@ fn read_table_cell2(
     // Current cell tag
     let tag_name = super_tag.name();
 
+    let mut cell = CellData::default();
     let mut cell_repeat: u32 = 1;
-
-    let mut cell = CellData {
-        value: Default::default(),
-        formula: None,
-        style: None,
-        validation_name: None,
-        span: Default::default(),
-    };
 
     let mut tc = ReadTableCell2 {
         val_type: ValueType::Empty,
@@ -976,13 +969,31 @@ fn read_table_cell2(
                 cell_repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key.as_ref() == b"table:number-rows-spanned" => {
-                cell.span.row_span = parse_u32(&attr.value)?;
+                let row_span = parse_u32(&attr.value)?;
+                if row_span > 1 {
+                    cell.extra_mut().span.row_span = row_span;
+                }
             }
             attr if attr.key.as_ref() == b"table:number-columns-spanned" => {
-                cell.span.col_span = parse_u32(&attr.value)?;
+                let col_span = parse_u32(&attr.value)?;
+                if col_span > 1 {
+                    cell.extra_mut().span.col_span = col_span;
+                }
+            }
+            attr if attr.key.as_ref() == b"table:number-matrix-rows-spanned" => {
+                let row_span = parse_u32(&attr.value)?;
+                if row_span > 1 {
+                    cell.extra_mut().matrix_span.row_span = row_span;
+                }
+            }
+            attr if attr.key.as_ref() == b"table:number-matrix-columns-spanned" => {
+                let col_span = parse_u32(&attr.value)?;
+                if col_span > 1 {
+                    cell.extra_mut().matrix_span.col_span = col_span;
+                }
             }
             attr if attr.key.as_ref() == b"table:content-validation-name" => {
-                cell.validation_name = Some(attr.unescape_value()?.to_string());
+                cell.extra_mut().validation_name = Some(attr.unescape_value()?.to_string());
             }
             attr if attr.key.as_ref() == b"calcext:value-type" => {
                 // not used. office:value-type seems to be good enough.
@@ -1045,8 +1056,14 @@ fn read_table_cell2(
                 let new_txt = read_text_or_tag(bs, xml_tag, false, xml)?;
                 tc.content = append_text(new_txt, tc.content);
             }
-            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"text:p" => {
-                // noop
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:annotation" => {
+                let annotation = read_annotation(bs, xml_tag, xml)?;
+                cell.extra_mut().annotation = Some(annotation);
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"draw:frame" => {
+                let draw_frame = read_draw_frame(bs, xml_tag, xml)?;
+                cell.extra_mut().draw_frames.push(draw_frame);
             }
 
             Event::End(xml_tag) if xml_tag.name() == tag_name => {
@@ -1231,29 +1248,43 @@ fn read_empty_table_cell(
     super_tag: &BytesStart<'_>,
 ) -> Result<u32, OdsError> {
     let mut cell = None;
-    // Default advance is one column.
     let mut cell_repeat = 1;
+
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"table:number-columns-repeated" => {
                 cell_repeat = parse_u32(&attr.value)?;
             }
+            attr if attr.key.as_ref() == b"table:number-rows-spanned" => {
+                let row_span = parse_u32(&attr.value)?;
+                if row_span > 1 {
+                    cell.get_or_insert_with(CellData::default)
+                        .extra_mut()
+                        .span
+                        .row_span = row_span;
+                }
+            }
+            attr if attr.key.as_ref() == b"table:number-columns-spanned" => {
+                let col_span = parse_u32(&attr.value)?;
+                if col_span > 1 {
+                    cell.get_or_insert_with(CellData::default)
+                        .extra_mut()
+                        .span
+                        .col_span = parse_u32(&attr.value)?;
+                }
+            }
+            attr if attr.key.as_ref() == b"table:content-validation-name" => {
+                cell.get_or_insert_with(CellData::default)
+                    .extra_mut()
+                    .validation_name = Some(attr.unescape_value()?.to_string());
+            }
+
             attr if attr.key.as_ref() == b"table:formula" => {
-                cell.get_or_insert_with(CellData::new).formula =
+                cell.get_or_insert_with(CellData::default).formula =
                     Some(attr.unescape_value()?.to_string());
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                cell.get_or_insert_with(CellData::new).style =
-                    Some(attr.unescape_value()?.to_string());
-            }
-            attr if attr.key.as_ref() == b"table:number-rows-spanned" => {
-                cell.get_or_insert_with(CellData::new).span.row_span = parse_u32(&attr.value)?;
-            }
-            attr if attr.key.as_ref() == b"table:number-columns-spanned" => {
-                cell.get_or_insert_with(CellData::new).span.col_span = parse_u32(&attr.value)?;
-            }
-            attr if attr.key.as_ref() == b"table:content-validation-name" => {
-                cell.get_or_insert_with(CellData::new).validation_name =
+                cell.get_or_insert_with(CellData::default).style =
                     Some(attr.unescape_value()?.to_string());
             }
 
@@ -1278,6 +1309,171 @@ fn read_empty_table_cell(
     Ok(col)
 }
 
+fn read_annotation(
+    bs: &mut BufStack,
+    super_tag: &BytesStart<'_>,
+    xml: &mut OdsXmlReader<'_>,
+) -> Result<Annotation, OdsError> {
+    let mut annotation = Annotation::new_empty();
+
+    for attr in super_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"office:display" => {
+                annotation.set_display(parse_bool(&attr.value)?);
+            }
+            attr if attr.key.as_ref() == b"office:name" => {
+                annotation.set_name(attr.unescape_value()?);
+            }
+            attr => {
+                let k = from_utf8(attr.key.as_ref())?;
+                let v = attr.unescape_value()?.to_string();
+                annotation.attrmap_mut().set_attr(k, v);
+            }
+        }
+    }
+
+    let mut buf = bs.pop();
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        let empty_tag = matches!(evt, Event::Empty(_));
+        if DUMP_XML {
+            println!("read_annotation {:?}", evt);
+        }
+        match &evt {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:annotation" => {
+                break;
+            }
+
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"dc:creator" =>
+            {
+                annotation.set_creator(read_text(bs, xml_tag, empty_tag, parse_string, xml)?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"dc:date" =>
+            {
+                annotation.set_date(read_text(bs, xml_tag, empty_tag, parse_datetime, xml)?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"text:list"
+                    || xml_tag.name().as_ref() == b"text:p" =>
+            {
+                annotation.push_text(read_xml(bs, xml_tag, empty_tag, xml)?);
+            }
+
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_annotation", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(annotation)
+}
+
+fn read_draw_frame(
+    bs: &mut BufStack,
+    super_tag: &BytesStart<'_>,
+    xml: &mut OdsXmlReader<'_>,
+) -> Result<DrawFrame, OdsError> {
+    let mut draw_frame = DrawFrame::new();
+
+    copy_attr2(draw_frame.attrmap_mut(), super_tag)?;
+
+    let mut buf = bs.pop();
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        let empty_tag = matches!(evt, Event::Empty(_));
+        if DUMP_XML {
+            println!("read_draw_frame {:?}", evt);
+        }
+        match &evt {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"draw:frame" => {
+                break;
+            }
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"draw:image" => {
+                draw_frame.push_content(DrawFrameContent::Image(read_image(bs, xml_tag, xml)?));
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"svg:desc" => {
+                if let Some(v) = read_text(bs, xml_tag, empty_tag, parse_string, xml)? {
+                    draw_frame.set_desc(v);
+                }
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"svg:title" => {
+                if let Some(v) = read_text(bs, xml_tag, empty_tag, parse_string, xml)? {
+                    draw_frame.set_title(v);
+                }
+            }
+
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_draw_frame", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(draw_frame)
+}
+
+fn read_image(
+    bs: &mut BufStack,
+    super_tag: &BytesStart<'_>,
+    xml: &mut OdsXmlReader<'_>,
+) -> Result<DrawImage, OdsError> {
+    let mut draw_image = DrawImage::new();
+
+    copy_attr2(draw_image.attrmap_mut(), super_tag)?;
+
+    let mut buf = bs.pop();
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        let empty_tag = matches!(evt, Event::Empty(_));
+        if DUMP_XML {
+            println!("read_image {:?}", evt);
+        }
+        match &evt {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"draw:image" => {
+                break;
+            }
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:binary-data" => {
+                if let Some(v) = read_text(bs, xml_tag, empty_tag, parse_string, xml)? {
+                    draw_image.set_binary_base64(v);
+                }
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"text:list"
+                    || xml_tag.name().as_ref() == b"text:p" =>
+            {
+                draw_image.push_text(read_xml(bs, xml_tag, empty_tag, xml)?);
+            }
+
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_image", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(draw_image)
+}
+
 fn read_scripts(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -1290,8 +1486,6 @@ fn read_scripts(
             println!("read_scripts {:?}", evt);
         }
         match &evt {
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"office:scripts" => {}
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:scripts" => {
                 break;
             }
@@ -4124,29 +4318,6 @@ fn read_text_or_tag(
                 println!(" read_xml {:?}", evt);
             }
             match &evt {
-                Event::Text(xmlbytes) => {
-                    let v = xmlbytes.unescape()?;
-
-                    cellcontent = match cellcontent {
-                        TextContent2::Empty => {
-                            // Fresh plain text string.
-                            TextContent2::Text(v.to_string())
-                        }
-                        TextContent2::Text(mut old_txt) => {
-                            // We have a previous plain text string. Append to it.
-                            old_txt.push_str(&v);
-                            TextContent2::Text(old_txt)
-                        }
-                        TextContent2::Xml(mut xml) => {
-                            // There is already a tag. Append the text to its children.
-                            xml.add_text(v);
-                            TextContent2::Xml(xml)
-                        }
-                        TextContent2::XmlVec(_) => {
-                            unreachable!()
-                        }
-                    };
-                }
                 Event::Start(xmlbytes) => {
                     match cellcontent {
                         TextContent2::Empty => {
@@ -4167,39 +4338,6 @@ fn read_text_or_tag(
                     let mut new_tag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
                     copy_attr2(new_tag.attrmap_mut(), xmlbytes)?;
                     cellcontent = TextContent2::Xml(new_tag)
-                }
-                Event::End(xmlbytes) => {
-                    if xmlbytes.name() == super_tag.name() {
-                        if !stack.is_empty() {
-                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!("XML corrupted. Endtag {} occured before all elements are closed: {:?}", from_utf8(super_tag.name().as_ref())?, stack))));
-                        }
-                        break;
-                    }
-
-                    cellcontent = match cellcontent {
-                        TextContent2::Empty | TextContent2::Text(_) => {
-                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
-                                "XML corrupted. Endtag {} occured without start tag",
-                                from_utf8(xmlbytes.name().as_ref())?
-                            ))));
-                        }
-                        TextContent2::Xml(tag) => {
-                            if let Some(mut parent) = stack.pop() {
-                                parent.add_tag(tag);
-                                TextContent2::Xml(parent)
-                            } else {
-                                return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
-                                    format!(
-                                        "XML corrupted. Endtag {} occured without start tag",
-                                        from_utf8(xmlbytes.name().as_ref())?
-                                    ),
-                                )));
-                            }
-                        }
-                        TextContent2::XmlVec(_) => {
-                            unreachable!()
-                        }
-                    }
                 }
                 Event::Empty(xmlbytes) => {
                     match cellcontent {
@@ -4228,6 +4366,65 @@ fn read_text_or_tag(
                         unreachable!()
                     }
                 }
+                Event::Text(xmlbytes) => {
+                    let v = xmlbytes.unescape()?;
+
+                    cellcontent = match cellcontent {
+                        TextContent2::Empty => {
+                            // Fresh plain text string.
+                            TextContent2::Text(v.to_string())
+                        }
+                        TextContent2::Text(mut old_txt) => {
+                            // We have a previous plain text string. Append to it.
+                            old_txt.push_str(&v);
+                            TextContent2::Text(old_txt)
+                        }
+                        TextContent2::Xml(mut xml) => {
+                            // There is already a tag. Append the text to its children.
+                            xml.add_text(v);
+                            TextContent2::Xml(xml)
+                        }
+                        TextContent2::XmlVec(_) => {
+                            unreachable!()
+                        }
+                    };
+                }
+                Event::End(xmlbytes) if xmlbytes.name() == super_tag.name() => {
+                    if !stack.is_empty() {
+                        return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
+                            "XML corrupted. Endtag {} occured before all elements are closed: {:?}",
+                            from_utf8(super_tag.name().as_ref())?,
+                            stack
+                        ))));
+                    }
+                    break;
+                }
+                Event::End(xmlbytes) => {
+                    cellcontent = match cellcontent {
+                        TextContent2::Empty | TextContent2::Text(_) => {
+                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
+                                "XML corrupted. Endtag {} occured without start tag",
+                                from_utf8(xmlbytes.name().as_ref())?
+                            ))));
+                        }
+                        TextContent2::Xml(tag) => {
+                            if let Some(mut parent) = stack.pop() {
+                                parent.add_tag(tag);
+                                TextContent2::Xml(parent)
+                            } else {
+                                return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
+                                    format!(
+                                        "XML corrupted. Endtag {} occured without start tag",
+                                        from_utf8(xmlbytes.name().as_ref())?
+                                    ),
+                                )));
+                            }
+                        }
+                        TextContent2::XmlVec(_) => {
+                            unreachable!()
+                        }
+                    }
+                }
 
                 Event::Eof => {
                     break;
@@ -4242,6 +4439,61 @@ fn read_text_or_tag(
     }
 
     Ok(cellcontent)
+}
+
+/// Read simple text content.
+/// Fail on any tag other than the end-tag to the supertag.
+fn read_text<T, E>(
+    bs: &mut BufStack,
+    super_tag: &BytesStart<'_>,
+    empty_tag: bool,
+    parse: fn(&[u8]) -> Result<T, E>,
+    xml: &mut OdsXmlReader<'_>,
+) -> Result<Option<T>, OdsError>
+where
+    OdsError: From<E>,
+{
+    if empty_tag {
+        Ok(None)
+    } else {
+        let mut r = Vec::new();
+        let mut buf = bs.pop();
+        loop {
+            let evt = xml.read_event_into(&mut buf)?;
+            if DUMP_XML {
+                println!(" read_text {:?}", evt);
+            }
+            match &evt {
+                Event::Text(xml_tag) => {
+                    r.extend_from_slice(xml_tag.as_ref());
+                }
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
+                    break;
+                }
+                Event::Empty(xml_tag) | Event::Start(xml_tag) => {
+                    return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
+                        from_utf8(xml_tag.as_ref())?.to_string(),
+                    )))
+                }
+                Event::End(xml_tag) => {
+                    return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
+                        from_utf8(xml_tag.as_ref())?.to_string(),
+                    )))
+                }
+
+                Event::Eof => {
+                    break;
+                }
+
+                _ => {
+                    dump_unused2("read_text", &evt)?;
+                }
+            }
+        }
+        bs.push(buf);
+
+        Ok(Some(parse(&r)?))
+    }
 }
 
 #[inline(always)]
