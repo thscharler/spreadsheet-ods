@@ -1747,9 +1747,12 @@ fn write_cell(
         "table:table-cell"
     };
 
-    match cell.value {
-        Value::Empty => xml_out.empty(tag)?,
-        _ => xml_out.elem(tag)?,
+    let is_empty = matches!(cell.value, Value::Empty) && cell.annotation.is_none();
+
+    if is_empty {
+        xml_out.empty(tag)?;
+    } else {
+        xml_out.elem(tag)?;
     }
 
     if let Some(formula) = cell.formula {
@@ -1851,9 +1854,33 @@ fn write_cell(
         }
     }
 
-    match cell.value {
-        Value::Empty => {}
-        _ => xml_out.end_elem(tag)?,
+    //
+    if let Some(annotation) = cell.annotation {
+        xml_out.elem("office:annotation")?;
+        xml_out.attr("office:display", &annotation.display())?;
+        xml_out.attr_esc("office:name", &annotation.name())?;
+        for (k, v) in annotation.attrmap().iter() {
+            xml_out.attr_esc(k.as_ref(), v)?;
+        }
+
+        if let Some(creator) = annotation.creator() {
+            xml_out.elem("dc:creator")?;
+            xml_out.text_esc(creator.as_str())?;
+            xml_out.end_elem("dc:creator")?;
+        }
+        if let Some(date) = annotation.date() {
+            xml_out.elem("dc:date")?;
+            xml_out.text_esc(&date.format(DATETIME_FORMAT))?;
+            xml_out.end_elem("dc:date")?;
+        }
+        for v in annotation.text() {
+            write_xmltag(v, xml_out)?;
+        }
+        xml_out.end_elem("office:annotation")?;
+    }
+
+    if !is_empty {
+        xml_out.end_elem(tag)?
     }
 
     Ok(())

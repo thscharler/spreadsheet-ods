@@ -10,13 +10,14 @@ use zip::ZipArchive;
 use crate::attrmap2::AttrMap2;
 use crate::condition::{Condition, ValueCondition};
 use crate::config::{Config, ConfigItem, ConfigItemType, ConfigValue};
+use crate::draw::Annotation;
 use crate::ds::bufstack::BufStack;
 use crate::ds::detach::Detach;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType, ValueFormatTrait, ValueStyleMap};
 use crate::io::parse::{
     parse_bool, parse_currency, parse_datetime, parse_duration, parse_f64, parse_i16, parse_i32,
-    parse_i64, parse_u32, parse_visibility, parse_xlink_actuate, parse_xlink_show,
+    parse_i64, parse_string, parse_u32, parse_visibility, parse_xlink_actuate, parse_xlink_show,
     parse_xlink_type,
 };
 use crate::io::{DUMP_UNUSED, DUMP_XML};
@@ -1043,8 +1044,10 @@ fn read_table_cell2(
                 let new_txt = read_text_or_tag(bs, xml_tag, false, xml)?;
                 tc.content = append_text(new_txt, tc.content);
             }
-            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"text:p" => {
-                // noop
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:annotation" => {
+                let annotation = read_annotation(bs, xml_tag, xml)?;
+                cell.extra_mut().annotation = Some(annotation);
             }
 
             Event::End(xml_tag) if xml_tag.name() == tag_name => {
@@ -1290,6 +1293,73 @@ fn read_empty_table_cell(
     Ok(col)
 }
 
+fn read_annotation(
+    bs: &mut BufStack,
+    super_tag: &BytesStart<'_>,
+    xml: &mut OdsXmlReader<'_>,
+) -> Result<Annotation, OdsError> {
+    let mut annotation = Annotation::new_empty();
+
+    for attr in super_tag.attributes().with_checks(false) {
+        match attr? {
+            attr if attr.key.as_ref() == b"office:display" => {
+                annotation.set_display(parse_bool(&attr.value)?);
+            }
+            attr if attr.key.as_ref() == b"office:name" => {
+                annotation.set_name(attr.unescape_value()?);
+            }
+            attr => {
+                let k = from_utf8(attr.key.as_ref())?;
+                let v = attr.unescape_value()?.to_string();
+                annotation.attrmap_mut().set_attr(k, v);
+            }
+        }
+    }
+
+    let mut buf = bs.pop();
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        let empty_tag = matches!(evt, Event::Empty(_));
+        if DUMP_XML {
+            println!("read_annotation {:?}", evt);
+        }
+        match &evt {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:annotation" => {
+                break;
+            }
+
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"dc:creator" =>
+            {
+                annotation.set_creator(read_text(bs, xml_tag, empty_tag, parse_string, xml)?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"dc:date" =>
+            {
+                annotation.set_date(read_text(bs, xml_tag, empty_tag, parse_datetime, xml)?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"text:list"
+                    || xml_tag.name().as_ref() == b"text:p" =>
+            {
+                annotation.push_text(read_xml(bs, xml_tag, empty_tag, xml)?);
+            }
+
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_annotation", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(annotation)
+}
+
 fn read_scripts(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -1302,8 +1372,6 @@ fn read_scripts(
             println!("read_scripts {:?}", evt);
         }
         match &evt {
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"office:scripts" => {}
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:scripts" => {
                 break;
             }
@@ -4136,29 +4204,6 @@ fn read_text_or_tag(
                 println!(" read_xml {:?}", evt);
             }
             match &evt {
-                Event::Text(xmlbytes) => {
-                    let v = xmlbytes.unescape()?;
-
-                    cellcontent = match cellcontent {
-                        TextContent2::Empty => {
-                            // Fresh plain text string.
-                            TextContent2::Text(v.to_string())
-                        }
-                        TextContent2::Text(mut old_txt) => {
-                            // We have a previous plain text string. Append to it.
-                            old_txt.push_str(&v);
-                            TextContent2::Text(old_txt)
-                        }
-                        TextContent2::Xml(mut xml) => {
-                            // There is already a tag. Append the text to its children.
-                            xml.add_text(v);
-                            TextContent2::Xml(xml)
-                        }
-                        TextContent2::XmlVec(_) => {
-                            unreachable!()
-                        }
-                    };
-                }
                 Event::Start(xmlbytes) => {
                     match cellcontent {
                         TextContent2::Empty => {
@@ -4179,39 +4224,6 @@ fn read_text_or_tag(
                     let mut new_tag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
                     copy_attr2(new_tag.attrmap_mut(), xmlbytes)?;
                     cellcontent = TextContent2::Xml(new_tag)
-                }
-                Event::End(xmlbytes) => {
-                    if xmlbytes.name() == super_tag.name() {
-                        if !stack.is_empty() {
-                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!("XML corrupted. Endtag {} occured before all elements are closed: {:?}", from_utf8(super_tag.name().as_ref())?, stack))));
-                        }
-                        break;
-                    }
-
-                    cellcontent = match cellcontent {
-                        TextContent2::Empty | TextContent2::Text(_) => {
-                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
-                                "XML corrupted. Endtag {} occured without start tag",
-                                from_utf8(xmlbytes.name().as_ref())?
-                            ))));
-                        }
-                        TextContent2::Xml(tag) => {
-                            if let Some(mut parent) = stack.pop() {
-                                parent.add_tag(tag);
-                                TextContent2::Xml(parent)
-                            } else {
-                                return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
-                                    format!(
-                                        "XML corrupted. Endtag {} occured without start tag",
-                                        from_utf8(xmlbytes.name().as_ref())?
-                                    ),
-                                )));
-                            }
-                        }
-                        TextContent2::XmlVec(_) => {
-                            unreachable!()
-                        }
-                    }
                 }
                 Event::Empty(xmlbytes) => {
                     match cellcontent {
@@ -4240,6 +4252,65 @@ fn read_text_or_tag(
                         unreachable!()
                     }
                 }
+                Event::Text(xmlbytes) => {
+                    let v = xmlbytes.unescape()?;
+
+                    cellcontent = match cellcontent {
+                        TextContent2::Empty => {
+                            // Fresh plain text string.
+                            TextContent2::Text(v.to_string())
+                        }
+                        TextContent2::Text(mut old_txt) => {
+                            // We have a previous plain text string. Append to it.
+                            old_txt.push_str(&v);
+                            TextContent2::Text(old_txt)
+                        }
+                        TextContent2::Xml(mut xml) => {
+                            // There is already a tag. Append the text to its children.
+                            xml.add_text(v);
+                            TextContent2::Xml(xml)
+                        }
+                        TextContent2::XmlVec(_) => {
+                            unreachable!()
+                        }
+                    };
+                }
+                Event::End(xmlbytes) if xmlbytes.name() == super_tag.name() => {
+                    if !stack.is_empty() {
+                        return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
+                            "XML corrupted. Endtag {} occured before all elements are closed: {:?}",
+                            from_utf8(super_tag.name().as_ref())?,
+                            stack
+                        ))));
+                    }
+                    break;
+                }
+                Event::End(xmlbytes) => {
+                    cellcontent = match cellcontent {
+                        TextContent2::Empty | TextContent2::Text(_) => {
+                            return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
+                                "XML corrupted. Endtag {} occured without start tag",
+                                from_utf8(xmlbytes.name().as_ref())?
+                            ))));
+                        }
+                        TextContent2::Xml(tag) => {
+                            if let Some(mut parent) = stack.pop() {
+                                parent.add_tag(tag);
+                                TextContent2::Xml(parent)
+                            } else {
+                                return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
+                                    format!(
+                                        "XML corrupted. Endtag {} occured without start tag",
+                                        from_utf8(xmlbytes.name().as_ref())?
+                                    ),
+                                )));
+                            }
+                        }
+                        TextContent2::XmlVec(_) => {
+                            unreachable!()
+                        }
+                    }
+                }
 
                 Event::Eof => {
                     break;
@@ -4254,6 +4325,61 @@ fn read_text_or_tag(
     }
 
     Ok(cellcontent)
+}
+
+/// Read simple text content.
+/// Fail on any tag other than the end-tag to the supertag.
+fn read_text<T, E>(
+    bs: &mut BufStack,
+    super_tag: &BytesStart<'_>,
+    empty_tag: bool,
+    parse: fn(&[u8]) -> Result<T, E>,
+    xml: &mut OdsXmlReader<'_>,
+) -> Result<Option<T>, OdsError>
+where
+    OdsError: From<E>,
+{
+    if empty_tag {
+        Ok(None)
+    } else {
+        let mut r = Vec::new();
+        let mut buf = bs.pop();
+        loop {
+            let evt = xml.read_event_into(&mut buf)?;
+            if DUMP_XML {
+                println!(" read_text {:?}", evt);
+            }
+            match &evt {
+                Event::Text(xml_tag) => {
+                    r.extend_from_slice(xml_tag.as_ref());
+                }
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
+                    break;
+                }
+                Event::Empty(xml_tag) | Event::Start(xml_tag) => {
+                    return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
+                        from_utf8(xml_tag.as_ref())?.to_string(),
+                    )))
+                }
+                Event::End(xml_tag) => {
+                    return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
+                        from_utf8(xml_tag.as_ref())?.to_string(),
+                    )))
+                }
+
+                Event::Eof => {
+                    break;
+                }
+
+                _ => {
+                    dump_unused2("read_text", &evt)?;
+                }
+            }
+        }
+        bs.push(buf);
+
+        Ok(Some(parse(&r)?))
+    }
 }
 
 #[inline(always)]

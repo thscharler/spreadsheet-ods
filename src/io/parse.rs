@@ -113,6 +113,11 @@ pub(crate) fn parse_xlink_type(input: KSpan<'_>) -> Result<XLinkType, OdsError> 
 }
 
 /// Parse a attribute value as a currency.
+pub(crate) fn parse_string(input: KSpan<'_>) -> Result<String, OdsError> {
+    Ok(String::from_utf8_lossy(input).to_string())
+}
+
+/// Parse a attribute value as a currency.
 pub(crate) fn parse_currency(input: KSpan<'_>) -> Result<String, OdsError> {
     Ok(String::from_utf8_lossy(input).to_string())
 }

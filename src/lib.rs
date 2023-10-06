@@ -2393,6 +2393,77 @@ impl Sheet {
         }
     }
 
+    /// Sets the rowspan of the cell. Must be greater than 0.
+    pub fn set_matrix_row_span(&mut self, row: u32, col: u32, span: u32) {
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
+        cell.extra_mut().matrix_span.row_span = span;
+    }
+
+    /// Rowspan of the cell.
+    pub fn matrix_row_span(&self, row: u32, col: u32) -> u32 {
+        if let Some(CellData { extra: Some(c), .. }) = self.data.get(&(row, col)) {
+            c.matrix_span.row_span
+        } else {
+            1
+        }
+    }
+
+    /// Sets the colspan of the cell. Must be greater than 0.
+    pub fn set_matrix_col_span(&mut self, row: u32, col: u32, span: u32) {
+        assert!(span > 0);
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
+        cell.extra_mut().matrix_span.col_span = span;
+    }
+
+    /// Colspan of the cell.
+    pub fn matrix_col_span(&self, row: u32, col: u32) -> u32 {
+        if let Some(CellData { extra: Some(c), .. }) = self.data.get(&(row, col)) {
+            c.matrix_span.col_span
+        } else {
+            1
+        }
+    }
+
+    /// Sets a annotation for this cell.
+    pub fn set_annotation(&mut self, row: u32, col: u32, annotation: Annotation) {
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
+        cell.extra_mut().annotation = Some(annotation);
+    }
+
+    /// Removes the annotation.
+    pub fn clear_annotation(&mut self, row: u32, col: u32) {
+        if let Some(cell) = self.data.get_mut(&(row, col)) {
+            cell.extra_mut().annotation = None;
+        }
+    }
+
+    /// Returns a content-validation name for this cell.
+    pub fn annotation(&self, row: u32, col: u32) -> Option<&Annotation> {
+        if let Some(CellData { extra: Some(c), .. }) = self.data.get(&(row, col)) {
+            c.annotation.as_ref()
+        } else {
+            None
+        }
+    }
+
+    /// Returns a content-validation name for this cell.
+    pub fn annotation_mut(&mut self, row: u32, col: u32) -> Option<&mut Annotation> {
+        if let Some(CellData { extra: Some(c), .. }) = self.data.get_mut(&(row, col)) {
+            c.annotation.as_mut()
+        } else {
+            None
+        }
+    }
+
     // TODO: rest of cell data
 
     /// Print ranges.

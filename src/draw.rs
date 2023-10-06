@@ -1,6 +1,6 @@
 use crate::attrmap2::AttrMap2;
 use crate::style::units::RelativeScale;
-use crate::text::TextTag;
+use crate::text::{TextP, TextTag};
 use crate::xlink::{XLinkActuate, XLinkShow, XLinkType};
 use crate::{CellRef, GraphicStyleRef, Length, OdsError, ParagraphStyleRef};
 use base64::Engine;
@@ -25,8 +25,8 @@ pub struct Annotation {
 impl Annotation {
     pub fn new_empty() -> Self {
         Self {
-            name: "".to_string(),
-            display: true,
+            name: Default::default(),
+            display: false,
             creator: None,
             date: None,
             text: Default::default(),
@@ -34,15 +34,17 @@ impl Annotation {
         }
     }
 
-    pub fn new<S: Into<String>>(name: S) -> Self {
-        Self {
-            name: name.into(),
+    pub fn new<S: Into<String>>(annotation: S) -> Self {
+        let mut r = Self {
+            name: Default::default(),
             display: true,
             creator: None,
             date: None,
             text: Default::default(),
             attr: Default::default(),
-        }
+        };
+        r.push_text(TextP::new().text(annotation).into_xmltag());
+        r
     }
 
     /// Allows access to all attributes of the style itself.
@@ -101,6 +103,16 @@ impl Annotation {
     }
 
     /// Text
+    pub fn push_text(&mut self, text: TextTag) {
+        self.text.push(text);
+    }
+
+    /// Text
+    pub fn push_text_str<S: Into<String>>(&mut self, text: S) {
+        self.text.push(TextP::new().text(text).into_xmltag());
+    }
+
+    /// Text
     pub fn set_text(&mut self, text: Vec<TextTag>) {
         self.text = text;
     }
@@ -126,71 +138,71 @@ impl Annotation {
     xml_id!(attr);
 }
 
-/// The <draw:rect> element represents a rectangular drawing shape.
-#[derive(Debug, Clone)]
-pub struct DrawRect {
-    ///
-    name: String,
-    ///
-    attr: AttrMap2,
-}
-
-impl DrawRect {
-    pub fn new_empty() -> Self {
-        Self {
-            name: "".to_string(),
-            attr: Default::default(),
-        }
-    }
-
-    pub fn new<S: Into<String>>(name: S) -> Self {
-        Self {
-            name: name.into(),
-            attr: Default::default(),
-        }
-    }
-
-    /// Allows access to all attributes of the style itself.
-    pub fn attrmap(&self) -> &AttrMap2 {
-        &self.attr
-    }
-
-    /// Allows access to all attributes of the style itself.
-    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
-        &mut self.attr
-    }
-
-    /// Name
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Name
-    pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.name = name.into();
-    }
-
-    draw_caption_id!(attr);
-    draw_class_names!(attr);
-    draw_corner_radius!(attr);
-    draw_id!(attr);
-    draw_layer!(attr);
-    draw_style_name!(attr);
-    draw_text_style_name!(attr);
-    draw_transform!(attr);
-    draw_z_index!(attr);
-    svg_height!(attr);
-    svg_width!(attr);
-    svg_rx!(attr);
-    svg_ry!(attr);
-    svg_x!(attr);
-    svg_y!(attr);
-    table_end_cell_address!(attr);
-    table_end_x!(attr);
-    table_end_y!(attr);
-    table_table_background!(attr);
-    xml_id!(attr);
-}
+// /// The <draw:rect> element represents a rectangular drawing shape.
+// #[derive(Debug, Clone)]
+// pub struct DrawRect {
+//     ///
+//     name: String,
+//     ///
+//     attr: AttrMap2,
+// }
+//
+// impl DrawRect {
+//     pub fn new_empty() -> Self {
+//         Self {
+//             name: "".to_string(),
+//             attr: Default::default(),
+//         }
+//     }
+//
+//     pub fn new<S: Into<String>>(name: S) -> Self {
+//         Self {
+//             name: name.into(),
+//             attr: Default::default(),
+//         }
+//     }
+//
+//     /// Allows access to all attributes of the style itself.
+//     pub fn attrmap(&self) -> &AttrMap2 {
+//         &self.attr
+//     }
+//
+//     /// Allows access to all attributes of the style itself.
+//     pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+//         &mut self.attr
+//     }
+//
+//     /// Name
+//     pub fn name(&self) -> &str {
+//         &self.name
+//     }
+//
+//     /// Name
+//     pub fn set_name<S: Into<String>>(&mut self, name: S) {
+//         self.name = name.into();
+//     }
+//
+//     draw_caption_id!(attr);
+//     draw_class_names!(attr);
+//     draw_corner_radius!(attr);
+//     draw_id!(attr);
+//     draw_layer!(attr);
+//     draw_style_name!(attr);
+//     draw_text_style_name!(attr);
+//     draw_transform!(attr);
+//     draw_z_index!(attr);
+//     svg_height!(attr);
+//     svg_width!(attr);
+//     svg_rx!(attr);
+//     svg_ry!(attr);
+//     svg_x!(attr);
+//     svg_y!(attr);
+//     table_end_cell_address!(attr);
+//     table_end_x!(attr);
+//     table_end_y!(attr);
+//     table_table_background!(attr);
+//     xml_id!(attr);
+// }
 
 /// The <draw:frame> element represents a frame and serves as the container for elements that
 /// may occur in a frame.
