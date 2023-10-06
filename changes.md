@@ -1,3 +1,18 @@
+# 0.19.0
+
+NEW
+- Cell annotations.
+- Matrix span for cells.
+- Read images directly linked to a table cell. (There are images that are
+  tied to the sheet. Not covered yet.)
+
+CHANGED
+- Split the attribute macros along the xml prefix into separate files.
+- Internal CellData struct looses some data and gains a boxed extra field. 
+  Which accommodates seldom used data. CellContent and CellContentRef are
+  simply extended with the new fields.
+- Cleanup the code for reading table-cells. 
+
 # 0.18.0
 
 NEW 

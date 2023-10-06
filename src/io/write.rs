@@ -7,6 +7,7 @@ use std::path::Path;
 use zip::write::FileOptions;
 
 use crate::config::{ConfigItem, ConfigItemType, ConfigValue};
+use crate::draw::{Annotation, DrawFrame, DrawFrameContent, DrawImage};
 use crate::error::OdsError;
 use crate::format::FormatPartType;
 use crate::io::format::{format_duration2, format_validation_condition};
@@ -607,7 +608,7 @@ fn write_office_meta(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<
         xml_out.elem_text_esc("meta:initial-creator", &book.metadata.initial_creator)?;
     }
     if !book.metadata.creator.is_empty() {
-        xml_out.elem_text_esc("meta:creator", &book.metadata.creator)?;
+        xml_out.elem_text_esc("dc:creator", &book.metadata.creator)?;
     }
     if !book.metadata.printed_by.is_empty() {
         xml_out.elem_text_esc("meta:printed-by", &book.metadata.printed_by)?;
@@ -1747,7 +1748,9 @@ fn write_cell(
         "table:table-cell"
     };
 
-    let is_empty = matches!(cell.value, Value::Empty) && cell.annotation.is_none();
+    let is_empty = matches!(cell.value, Value::Empty)
+        && cell.annotation.is_none()
+        && cell.draw_frames.is_none();
 
     if is_empty {
         xml_out.empty(tag)?;
@@ -1778,6 +1781,14 @@ fn write_cell(
         }
         if span.col_span > 1 {
             xml_out.attr_esc("table:number-columns-spanned", &span.col_span)?;
+        }
+    }
+    if let Some(span) = cell.matrix_span {
+        if span.row_span > 1 {
+            xml_out.attr_esc("table:number-matrix-rows-spanned", &span.row_span)?;
+        }
+        if span.col_span > 1 {
+            xml_out.attr_esc("table:number-matrix-columns-spanned", &span.col_span)?;
         }
     }
 
@@ -1854,35 +1865,105 @@ fn write_cell(
         }
     }
 
-    //
     if let Some(annotation) = cell.annotation {
-        xml_out.elem("office:annotation")?;
-        xml_out.attr("office:display", &annotation.display())?;
-        xml_out.attr_esc("office:name", &annotation.name())?;
-        for (k, v) in annotation.attrmap().iter() {
-            xml_out.attr_esc(k.as_ref(), v)?;
-        }
+        write_annotation(annotation, xml_out)?;
+    }
 
-        if let Some(creator) = annotation.creator() {
-            xml_out.elem("dc:creator")?;
-            xml_out.text_esc(creator.as_str())?;
-            xml_out.end_elem("dc:creator")?;
+    if let Some(draw_frames) = cell.draw_frames {
+        for draw_frame in draw_frames {
+            write_draw_frame(draw_frame, xml_out)?;
         }
-        if let Some(date) = annotation.date() {
-            xml_out.elem("dc:date")?;
-            xml_out.text_esc(&date.format(DATETIME_FORMAT))?;
-            xml_out.end_elem("dc:date")?;
-        }
-        for v in annotation.text() {
-            write_xmltag(v, xml_out)?;
-        }
-        xml_out.end_elem("office:annotation")?;
     }
 
     if !is_empty {
         xml_out.end_elem(tag)?
     }
 
+    Ok(())
+}
+
+fn write_draw_frame(
+    draw_frame: &DrawFrame,
+    xml_out: &mut OdsXmlWriter<'_>,
+) -> Result<(), OdsError> {
+    xml_out.elem("draw:frame")?;
+    for (k, v) in draw_frame.attrmap().iter() {
+        xml_out.attr_esc(k.as_ref(), v)?;
+    }
+
+    for content in draw_frame.content_ref() {
+        match content {
+            DrawFrameContent::Image(img) => {
+                write_draw_image(img, xml_out)?;
+            }
+        }
+    }
+
+    if let Some(desc) = draw_frame.desc() {
+        xml_out.elem("svg:desc")?;
+        xml_out.text_esc(desc)?;
+        xml_out.end_elem("svg:desc")?;
+    }
+    if let Some(title) = draw_frame.title() {
+        xml_out.elem("svg:title")?;
+        xml_out.text_esc(title)?;
+        xml_out.end_elem("svg:title")?;
+    }
+
+    xml_out.end_elem("draw:frame")?;
+
+    Ok(())
+}
+
+fn write_draw_image(
+    draw_image: &DrawImage,
+    xml_out: &mut OdsXmlWriter<'_>,
+) -> Result<(), OdsError> {
+    xml_out.elem("draw:image")?;
+    for (k, v) in draw_image.attrmap().iter() {
+        xml_out.attr_esc(k.as_ref(), v)?;
+    }
+
+    if let Some(bin) = draw_image.get_binary_base64() {
+        xml_out.elem("office:binary-data")?;
+        xml_out.text(bin)?;
+        xml_out.end_elem("office:binary-data")?;
+    }
+
+    for content in draw_image.get_text() {
+        write_xmltag(content, xml_out)?;
+    }
+
+    xml_out.end_elem("draw:image")?;
+
+    Ok(())
+}
+
+fn write_annotation(
+    annotation: &Annotation,
+    xml_out: &mut OdsXmlWriter<'_>,
+) -> Result<(), OdsError> {
+    xml_out.elem("office:annotation")?;
+    xml_out.attr("office:display", &annotation.display())?;
+    xml_out.attr_esc("office:name", &annotation.name())?;
+    for (k, v) in annotation.attrmap().iter() {
+        xml_out.attr_esc(k.as_ref(), v)?;
+    }
+
+    if let Some(creator) = annotation.creator() {
+        xml_out.elem("dc:creator")?;
+        xml_out.text_esc(creator.as_str())?;
+        xml_out.end_elem("dc:creator")?;
+    }
+    if let Some(date) = annotation.date() {
+        xml_out.elem("dc:date")?;
+        xml_out.text_esc(&date.format(DATETIME_FORMAT))?;
+        xml_out.end_elem("dc:date")?;
+    }
+    for v in annotation.text() {
+        write_xmltag(v, xml_out)?;
+    }
+    xml_out.end_elem("office:annotation")?;
     Ok(())
 }
 

@@ -2464,7 +2464,39 @@ impl Sheet {
         }
     }
 
-    // TODO: rest of cell data
+    /// Add a drawframe to a specific cell.
+    pub fn add_draw_frame(&mut self, row: u32, col: u32, draw_frame: DrawFrame) {
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
+        cell.extra_mut().draw_frames.push(draw_frame);
+    }
+
+    /// Removes all drawframes.
+    pub fn clear_draw_frames(&mut self, row: u32, col: u32) {
+        if let Some(cell) = self.data.get_mut(&(row, col)) {
+            cell.extra_mut().draw_frames = Vec::new();
+        }
+    }
+
+    /// Returns the draw-frames.
+    pub fn draw_frames(&self, row: u32, col: u32) -> Option<&Vec<DrawFrame>> {
+        if let Some(CellData { extra: Some(c), .. }) = self.data.get(&(row, col)) {
+            Some(c.draw_frames.as_ref())
+        } else {
+            None
+        }
+    }
+
+    /// Returns a content-validation name for this cell.
+    pub fn draw_frames_mut(&mut self, row: u32, col: u32) -> Option<&mut Vec<DrawFrame>> {
+        if let Some(CellData { extra: Some(c), .. }) = self.data.get_mut(&(row, col)) {
+            Some(c.draw_frames.as_mut())
+        } else {
+            None
+        }
+    }
 
     /// Print ranges.
     pub fn add_print_range(&mut self, range: CellRange) {

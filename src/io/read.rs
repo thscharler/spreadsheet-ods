@@ -10,7 +10,7 @@ use zip::ZipArchive;
 use crate::attrmap2::AttrMap2;
 use crate::condition::{Condition, ValueCondition};
 use crate::config::{Config, ConfigItem, ConfigItemType, ConfigValue};
-use crate::draw::Annotation;
+use crate::draw::{Annotation, DrawFrame, DrawFrameContent, DrawImage};
 use crate::ds::bufstack::BufStack;
 use crate::ds::detach::Detach;
 use crate::error::OdsError;
@@ -980,6 +980,18 @@ fn read_table_cell2(
                     cell.extra_mut().span.col_span = col_span;
                 }
             }
+            attr if attr.key.as_ref() == b"table:number-matrix-rows-spanned" => {
+                let row_span = parse_u32(&attr.value)?;
+                if row_span > 1 {
+                    cell.extra_mut().matrix_span.row_span = row_span;
+                }
+            }
+            attr if attr.key.as_ref() == b"table:number-matrix-columns-spanned" => {
+                let col_span = parse_u32(&attr.value)?;
+                if col_span > 1 {
+                    cell.extra_mut().matrix_span.col_span = col_span;
+                }
+            }
             attr if attr.key.as_ref() == b"table:content-validation-name" => {
                 cell.extra_mut().validation_name = Some(attr.unescape_value()?.to_string());
             }
@@ -1048,6 +1060,10 @@ fn read_table_cell2(
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:annotation" => {
                 let annotation = read_annotation(bs, xml_tag, xml)?;
                 cell.extra_mut().annotation = Some(annotation);
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"draw:frame" => {
+                let draw_frame = read_draw_frame(bs, xml_tag, xml)?;
+                cell.extra_mut().draw_frames.push(draw_frame);
             }
 
             Event::End(xml_tag) if xml_tag.name() == tag_name => {
@@ -1358,6 +1374,104 @@ fn read_annotation(
     bs.push(buf);
 
     Ok(annotation)
+}
+
+fn read_draw_frame(
+    bs: &mut BufStack,
+    super_tag: &BytesStart<'_>,
+    xml: &mut OdsXmlReader<'_>,
+) -> Result<DrawFrame, OdsError> {
+    let mut draw_frame = DrawFrame::new();
+
+    copy_attr2(draw_frame.attrmap_mut(), super_tag)?;
+
+    let mut buf = bs.pop();
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        let empty_tag = matches!(evt, Event::Empty(_));
+        if DUMP_XML {
+            println!("read_draw_frame {:?}", evt);
+        }
+        match &evt {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"draw:frame" => {
+                break;
+            }
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"draw:image" => {
+                draw_frame.push_content(DrawFrameContent::Image(read_image(bs, xml_tag, xml)?));
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"svg:desc" => {
+                if let Some(v) = read_text(bs, xml_tag, empty_tag, parse_string, xml)? {
+                    draw_frame.set_desc(v);
+                }
+            }
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"svg:title" => {
+                if let Some(v) = read_text(bs, xml_tag, empty_tag, parse_string, xml)? {
+                    draw_frame.set_title(v);
+                }
+            }
+
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_draw_frame", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(draw_frame)
+}
+
+fn read_image(
+    bs: &mut BufStack,
+    super_tag: &BytesStart<'_>,
+    xml: &mut OdsXmlReader<'_>,
+) -> Result<DrawImage, OdsError> {
+    let mut draw_image = DrawImage::new();
+
+    copy_attr2(draw_image.attrmap_mut(), super_tag)?;
+
+    let mut buf = bs.pop();
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        let empty_tag = matches!(evt, Event::Empty(_));
+        if DUMP_XML {
+            println!("read_image {:?}", evt);
+        }
+        match &evt {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"draw:image" => {
+                break;
+            }
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:binary-data" => {
+                if let Some(v) = read_text(bs, xml_tag, empty_tag, parse_string, xml)? {
+                    draw_image.set_binary_base64(v);
+                }
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"text:list"
+                    || xml_tag.name().as_ref() == b"text:p" =>
+            {
+                draw_image.push_text(read_xml(bs, xml_tag, empty_tag, xml)?);
+            }
+
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                dump_unused2("read_image", &evt)?;
+            }
+        }
+
+        buf.clear();
+    }
+    bs.push(buf);
+
+    Ok(draw_image)
 }
 
 fn read_scripts(

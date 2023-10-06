@@ -61,6 +61,7 @@ macro_rules! svg_width {
     };
 }
 
+#[allow(unused_macros)]
 macro_rules! svg_rx {
     ($acc:ident) => {
         /// See §9.4 of[SVG].
@@ -78,6 +79,7 @@ macro_rules! svg_rx {
     };
 }
 
+#[allow(unused_macros)]
 macro_rules! svg_ry {
     ($acc:ident) => {
         /// See §9.4 of [SVG].

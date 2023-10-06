@@ -1,3 +1,7 @@
+//!
+//! Draw.
+//!
+
 use crate::attrmap2::AttrMap2;
 use crate::style::units::RelativeScale;
 use crate::text::{TextP, TextTag};
@@ -23,6 +27,7 @@ pub struct Annotation {
 }
 
 impl Annotation {
+    /// New annotation.
     pub fn new_empty() -> Self {
         Self {
             name: Default::default(),
@@ -34,6 +39,7 @@ impl Annotation {
         }
     }
 
+    /// New annotation.
     pub fn new<S: Into<String>>(annotation: S) -> Self {
         let mut r = Self {
             name: Default::default(),
@@ -209,8 +215,6 @@ impl Annotation {
 /// Frame formatting properties are stored in styles belonging to the graphic family.
 #[derive(Debug, Clone)]
 pub struct DrawFrame {
-    ///
-    name: String,
     /// The <svg:title> element specifies a name for a graphic object.
     title: Option<String>,
     /// The <svg:desc> element specifies a prose description of a graphic object that may be used to
@@ -222,25 +226,17 @@ pub struct DrawFrame {
     content: Vec<DrawFrameContent>,
 }
 
+/// Draw-frame content data.
 #[derive(Debug, Clone)]
 pub enum DrawFrameContent {
-    Image(Box<DrawImage>),
+    /// Image
+    Image(DrawImage),
 }
 
 impl DrawFrame {
-    pub fn new_empty() -> Self {
+    /// New.
+    pub fn new() -> Self {
         Self {
-            name: "".to_string(),
-            title: None,
-            desc: None,
-            attr: Default::default(),
-            content: Default::default(),
-        }
-    }
-
-    pub fn new<S: Into<String>>(name: S) -> Self {
-        Self {
-            name: name.into(),
             title: None,
             desc: None,
             attr: Default::default(),
@@ -258,16 +254,62 @@ impl DrawFrame {
         &mut self.attr
     }
 
-    /// Name
-    pub fn name(&self) -> &str {
-        &self.name
+    /// Desc
+    pub fn desc(&self) -> Option<&String> {
+        self.desc.as_ref()
+    }
+
+    /// Desc
+    pub fn set_desc<S: Into<String>>(&mut self, desc: S) {
+        self.desc = Some(desc.into())
+    }
+
+    /// Desc
+    pub fn clear_desc(&mut self) {
+        self.desc = None;
+    }
+
+    /// Title
+    pub fn title(&self) -> Option<&String> {
+        self.title.as_ref()
     }
 
     /// Name
-    pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.name = name.into();
+    pub fn set_title<S: Into<String>>(&mut self, title: S) {
+        self.title = Some(title.into());
     }
 
+    /// Name
+    pub fn clear_title(&mut self) {
+        self.title = None;
+    }
+
+    /// Frame content.
+    pub fn set_content(&mut self, content: Vec<DrawFrameContent>) {
+        self.content = content;
+    }
+
+    /// Frame content.
+    pub fn push_content(&mut self, content: DrawFrameContent) {
+        self.content.push(content);
+    }
+
+    /// Frame content.
+    pub fn clear_content(&mut self) {
+        self.content.clear();
+    }
+
+    /// Frame content.
+    pub fn content_ref(&self) -> &Vec<DrawFrameContent> {
+        &self.content
+    }
+
+    /// Frame content.
+    pub fn content_mut(&mut self) -> &mut Vec<DrawFrameContent> {
+        &mut self.content
+    }
+
+    draw_name!(attr);
     draw_caption_id!(attr);
     draw_class_names!(attr);
     draw_corner_radius!(attr);
@@ -307,15 +349,8 @@ pub struct DrawImage {
 }
 
 impl DrawImage {
-    pub fn new_empty() -> Self {
-        Self {
-            attr: Default::default(),
-            binary_data: None,
-            text: Default::default(),
-        }
-    }
-
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    /// New.
+    pub fn new() -> Self {
         Self {
             attr: Default::default(),
             binary_data: None,
@@ -333,14 +368,17 @@ impl DrawImage {
         &mut self.attr
     }
 
+    /// Image binary data.
     pub fn get_binary_base64(&self) -> Option<&String> {
         self.binary_data.as_ref()
     }
 
+    /// Image binary data.
     pub fn set_binary_base64(&mut self, binary: String) {
         self.binary_data = Some(binary);
     }
 
+    /// Image binary data.
     pub fn get_binary(&self) -> Result<Vec<u8>, OdsError> {
         let ng = base64::engine::GeneralPurpose::new(
             &base64::alphabet::STANDARD,
@@ -354,6 +392,9 @@ impl DrawImage {
         }
     }
 
+    /// Image binary data.
+    /// Note: While the image data may have an arbitrary format, vector graphics should
+    /// be stored in the [SVG] format and bitmap graphics in the [PNG] format.
     pub fn set_binary(&mut self, binary: &[u8]) {
         let ng = base64::engine::GeneralPurpose::new(
             &base64::alphabet::STANDARD,
@@ -363,14 +404,27 @@ impl DrawImage {
         self.binary_data = Some(ng.encode(binary));
     }
 
+    /// Image binary data.
     pub fn clear_binary(&mut self) {
         self.binary_data = None;
     }
 
+    /// Text
     pub fn get_text(&self) -> &Vec<TextTag> {
         &self.text
     }
 
+    /// Text
+    pub fn push_text(&mut self, text: TextTag) {
+        self.text.push(text);
+    }
+
+    /// Text
+    pub fn push_text_str<S: Into<String>>(&mut self, text: S) {
+        self.text.push(TextP::new().text(text).into_xmltag());
+    }
+
+    /// Text
     pub fn set_text(&mut self, text: Vec<TextTag>) {
         self.text = text;
     }

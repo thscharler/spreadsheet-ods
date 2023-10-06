@@ -12,6 +12,16 @@ macro_rules! draw_caption_id {
     };
 }
 
+macro_rules! draw_name {
+    ($acc:ident) => {
+        /// The draw:name attribute specifies a name by which a <draw:frame> element can be
+        /// referenced.
+        pub fn set_draw_name<S: Into<String>>(&mut self, id: S) {
+            self.$acc.set_attr("draw:name", id.into());
+        }
+    };
+}
+
 macro_rules! draw_class_names {
     ($acc:ident) => {
         /// The draw:class-names attribute specifies a white-space-separated list of styles with the family
