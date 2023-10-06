@@ -12,7 +12,7 @@ categories = ["parser-implementations"]
 exclude = [".idea/*", ".gitignore"]
 
 [features]
-default = ["use_decimal", "all_locales", "check_xml"]
+default = ["use_decimal", "all_locales" ]
 # Add conversions from rust_decimal.
 use_decimal = []
 # Check the xml output for wellformedness.

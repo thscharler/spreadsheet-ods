@@ -266,10 +266,10 @@ pub mod xmltree;
 
 // Use the IndexMap for debugging, makes diffing much easier.
 // Otherwise the std::HashMap is good.
-pub(crate) type HashMap<K, V> = indexmap::IndexMap<K, V>;
-pub(crate) type HashMapIter<'a, K, V> = indexmap::map::Iter<'a, K, V>;
-// pub(crate) type HashMap<K, V> = std::collections::HashMap<K, V>;
-// pub(crate) type HashMapIter<'a, K, V> = std::collections::hash_map::Iter<'a, K, V>;
+// pub(crate) type HashMap<K, V> = indexmap::IndexMap<K, V>;
+// pub(crate) type HashMapIter<'a, K, V> = indexmap::map::Iter<'a, K, V>;
+pub(crate) type HashMap<K, V> = std::collections::HashMap<K, V>;
+pub(crate) type HashMapIter<'a, K, V> = std::collections::hash_map::Iter<'a, K, V>;
 
 /// Book is the main structure for the Spreadsheet.
 #[derive(Clone, Default)]
