@@ -1,3 +1,7 @@
+# 0.18.1
+
+Published with xml-tag checks active. Corrected now.
+
 # 0.18.0
 
 NEW 
