@@ -35,9 +35,9 @@ const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 trait SeekWrite: Seek + Write {}
 impl<T> SeekWrite for T where T: Seek + Write {}
 
-struct OdsContext<'a> {
+struct OdsContext<W: Seek + Write> {
     compression: CompressionMethod,
-    zip_writer: ZipWriter<&'a mut dyn SeekWrite>,
+    zip_writer: ZipWriter<W>,
 }
 
 struct FodsContext<'a> {
@@ -326,14 +326,21 @@ fn write_fods_content(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Re
 ///
 /// All the parts are written to a temp directory and then zipped together.
 ///
-fn write_ods_impl(mut ctx: OdsContext<'_>, book: &mut WorkBook) -> Result<(), OdsError> {
+fn write_ods_impl<W: Write + Seek>(
+    mut ctx: OdsContext<W>,
+    book: &mut WorkBook,
+) -> Result<(), OdsError> {
     sanity_checks(book)?;
 
     sync(book)?;
 
     create_manifest(book)?;
 
-    write_ods_mimetype(&mut ctx)?;
+    ctx.zip_writer.start_file(
+        "mimetype",
+        FileOptions::default().compression_method(CompressionMethod::Stored),
+    )?;
+    write_ods_mimetype(&mut ctx.zip_writer)?;
 
     ctx.zip_writer
         .add_directory("META-INF", FileOptions::default())?;
@@ -571,13 +578,8 @@ fn create_manifest_rdf() -> Result<Manifest, OdsError> {
     ))
 }
 
-fn write_ods_mimetype(ctx: &mut OdsContext<'_>) -> Result<(), io::Error> {
-    ctx.zip_writer.start_file(
-        "mimetype",
-        FileOptions::default().compression_method(CompressionMethod::Stored),
-    )?;
-    ctx.zip_writer
-        .write_all("application/vnd.oasis.opendocument.spreadsheet".as_bytes())?;
+fn write_ods_mimetype(write: &'_ mut dyn Write) -> Result<(), io::Error> {
+    write.write_all("application/vnd.oasis.opendocument.spreadsheet".as_bytes())?;
     Ok(())
 }
 
@@ -2804,7 +2806,10 @@ fn write_xmltag(x: &XmlTag, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsErr
 }
 
 // All extra entries from the manifest.
-fn write_ods_extra(ctx: &mut OdsContext<'_>, book: &WorkBook) -> Result<(), OdsError> {
+fn write_ods_extra<W: Write + Seek>(
+    ctx: &mut OdsContext<W>,
+    book: &WorkBook,
+) -> Result<(), OdsError> {
     for manifest in book.manifest.values() {
         if !matches!(
             manifest.full_path.as_str(),

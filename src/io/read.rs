@@ -1,6 +1,6 @@
 use std::convert::{TryFrom, TryInto};
 use std::fs::File;
-use std::io::{BufReader, Cursor, Read, Seek, Write};
+use std::io::{BufRead, BufReader, Cursor, Read, Seek, Write};
 use std::path::Path;
 
 use chrono::{Duration, NaiveDateTime};
@@ -47,7 +47,7 @@ use std::borrow::Cow;
 use std::str::from_utf8;
 use zip::read::ZipFile;
 
-type OdsXmlReader<'a> = quick_xml::Reader<BufReader<Box<dyn Read + 'a>>>;
+type OdsXmlReader<'a> = quick_xml::Reader<&'a mut dyn BufRead>;
 
 /// Reads an ODS-file from a buffer
 pub fn read_ods_buf(buf: &[u8]) -> Result<WorkBook, OdsError> {
@@ -63,38 +63,35 @@ pub fn read_ods_from<T: Read + Seek>(read: T) -> Result<WorkBook, OdsError> {
 
 /// Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
-    let file = File::open(path.as_ref())?;
-    let zip = ZipArchive::new(file)?;
+    let read = BufReader::new(File::open(path.as_ref())?);
+    let zip = ZipArchive::new(read)?;
     read_ods_impl(zip)
 }
 
 /// Reads an FODS-file from a buffer
-#[allow(dead_code)]
 pub fn read_fods_buf(buf: &[u8]) -> Result<WorkBook, OdsError> {
-    let read = Cursor::new(buf);
-    read_fods_impl(Box::new(read))
+    let mut read = Cursor::new(buf);
+    read_fods_impl(&mut read)
 }
 
 /// Reads an FODS-file from a reader
-#[allow(dead_code)]
 pub fn read_fods_from<T: Read>(read: T) -> Result<WorkBook, OdsError> {
-    read_fods_impl(Box::new(read))
+    let read = BufReader::new(read);
+    read_fods_impl(read)
 }
 
 /// Reads an FODS-file.
-#[allow(dead_code)]
 pub fn read_fods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
-    let file = File::open(path.as_ref())?;
-    read_fods_impl(Box::new(file))
+    let mut read = BufReader::new(File::open(path.as_ref())?);
+    read_fods_impl(&mut read)
 }
 
 /// Reads an ODS-file.
-fn read_fods_impl(read: Box<dyn Read + '_>) -> Result<WorkBook, OdsError> {
+fn read_fods_impl<R: BufRead>(mut read: R) -> Result<WorkBook, OdsError> {
     let mut book = WorkBook::new_empty();
     let mut bufstack = BufStack::new();
 
-    let read = BufReader::new(read);
-    let mut xml = quick_xml::Reader::from_reader(read);
+    let mut xml: quick_xml::Reader<&mut dyn BufRead> = quick_xml::Reader::from_reader(&mut read);
 
     read_fods_content(&mut bufstack, &mut book, &mut xml)?;
 
@@ -171,30 +168,34 @@ fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, Ods
     read_ods_manifest(&mut bufstack, &mut book, &mut zip)?;
 
     if let Ok(z) = zip.by_name("meta.xml") {
-        let read: Box<dyn Read> = Box::new(z);
-        let mut xml = quick_xml::Reader::from_reader(BufReader::new(read));
+        let mut read = BufReader::new(z);
+        let read: &mut dyn BufRead = &mut read;
+        let mut xml = quick_xml::Reader::from_reader(read);
         read_ods_metadata(&mut bufstack, &mut book, &mut xml)?;
     } else {
         book.metadata = Default::default();
     }
 
     if let Ok(z) = zip.by_name("settings.xml") {
-        let read: Box<dyn Read> = Box::new(z);
-        let mut xml = quick_xml::Reader::from_reader(BufReader::new(read));
+        let mut read = BufReader::new(z);
+        let read: &mut dyn BufRead = &mut read;
+        let mut xml = quick_xml::Reader::from_reader(read);
         read_ods_settings(&mut bufstack, &mut book, &mut xml)?;
     } else {
         book.config = default_settings();
     }
 
     {
-        let read: Box<dyn Read> = Box::new(zip.by_name("styles.xml")?);
-        let mut xml = quick_xml::Reader::from_reader(BufReader::new(read));
+        let mut read = BufReader::new(zip.by_name("styles.xml")?);
+        let read: &mut dyn BufRead = &mut read;
+        let mut xml = quick_xml::Reader::from_reader(read);
         read_ods_styles(&mut bufstack, &mut book, &mut xml)?;
     }
 
     {
-        let read: Box<dyn Read> = Box::new(zip.by_name("content.xml")?);
-        let mut xml = quick_xml::Reader::from_reader(BufReader::new(read));
+        let mut read = BufReader::new(zip.by_name("content.xml")?);
+        let read: &mut dyn BufRead = &mut read;
+        let mut xml = quick_xml::Reader::from_reader(read);
         read_ods_content(&mut bufstack, &mut book, &mut xml)?;
     }
 
