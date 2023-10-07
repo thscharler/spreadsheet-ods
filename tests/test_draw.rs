@@ -8,7 +8,7 @@ fn test_draw_image() -> Result<(), OdsError> {
     assert!(sh.draw_frames(1, 1).is_some());
 
     write_ods(&mut wb, "test_out/draw_image.ods")?;
-    let mut wb = read_ods("test_out/draw_image.ods")?;
+    let wb = read_ods("test_out/draw_image.ods")?;
 
     let sh = wb.sheet(0);
     assert!(sh.draw_frames(1, 1).is_some());
