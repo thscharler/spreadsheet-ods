@@ -2,7 +2,7 @@
 //! Conditional styles.
 //!
 
-use crate::condition::{Condition, ValueCondition};
+use crate::condition::Condition;
 use crate::CellRef;
 
 /// A style-map is one way for conditional formatting of cells.
@@ -39,7 +39,7 @@ impl StyleMap {
     }
 
     /// Condition
-    pub fn set_condition(&mut self, cond: ValueCondition) {
+    pub fn set_condition(&mut self, cond: Condition) {
         self.condition = cond.to_string();
     }
 

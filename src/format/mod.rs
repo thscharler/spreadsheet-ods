@@ -285,9 +285,9 @@ pub struct FormatPart {
     /// The index of a position starts with 1 and is counted by digits from right to left in the integer part of
     /// a number, starting left from a decimal separator if one exists, or from the last digit of the number.
     /// Text is inserted before the digit at the specified position. If the value of number:position
-    /// attribute is greater than the value of number:min-integer-digits 19.355 and greater than
+    /// attribute is greater than the value of number:min-integer-digits and greater than
     /// the number of integer digits in the number, text is prepended to the number.
-    position: i32,
+    position: Option<i32>,
     /// Some content.
     content: Option<String>,
 }
@@ -342,7 +342,7 @@ impl FormatPart {
         FormatPart {
             part_type: ftype,
             attr: Default::default(),
-            position: 0,
+            position: None,
             content: None,
         }
     }
@@ -382,11 +382,16 @@ impl FormatPart {
 
     /// Sets the position for embedded text in a number format part.
     pub fn set_position(&mut self, pos: i32) {
-        self.position = pos;
+        self.position = Some(pos);
+    }
+
+    /// Clear the position for embedded text in a number format part.
+    pub fn clear_position(&mut self) {
+        self.position = None;
     }
 
     /// The position for embedded text in a number format part.
-    pub fn position(&self) -> i32 {
+    pub fn position(&self) -> Option<i32> {
         self.position
     }
 
@@ -394,6 +399,12 @@ impl FormatPart {
     /// for text and currency-symbol.
     pub fn set_content<S: Into<String>>(&mut self, content: S) {
         self.content = Some(content.into());
+    }
+
+    /// Clear the textual content for this part. This is only used
+    /// for text and currency-symbol.
+    pub fn clear_content(&mut self) {
+        self.content = None;
     }
 
     /// Returns the text content.

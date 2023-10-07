@@ -1612,14 +1612,14 @@ fn read_page_style(
             {
                 copy_attr2(pl.style_mut(), xml_tag)?;
             }
-            Event::End(end_tag) if end_tag.name().as_ref() == b"style:page-layout-properties" => {}
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"style:page-layout-properties" => {}
 
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"style:header-style" =>
             {
                 headerstyle = true;
             }
-            Event::End(end_tag) if end_tag.name().as_ref() == b"style:header-style" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"style:header-style" => {
                 headerstyle = false;
             }
 
@@ -1628,7 +1628,7 @@ fn read_page_style(
             {
                 footerstyle = true;
             }
-            Event::End(end_tag) if end_tag.name().as_ref() == b"style:footer-style" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"style:footer-style" => {
                 footerstyle = false;
             }
 
@@ -1642,7 +1642,7 @@ fn read_page_style(
                     copy_attr2(pl.footerstyle_mut().style_mut(), xml_tag)?;
                 }
             }
-            Event::End(end_tag) if end_tag.name().as_ref() == b"style:header-footer-properties" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"style:header-footer-properties" => {
             }
 
             Event::Start(xml_tag) | Event::Empty(xml_tag)
@@ -1651,7 +1651,7 @@ fn read_page_style(
                 // noop for now. sets the background transparent.
             }
 
-            Event::End(end_tag) if end_tag.name().as_ref() == b"style:page-layout" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"style:page-layout" => {
                 break;
             }
 
@@ -1946,7 +1946,7 @@ fn read_master_page(
                 masterpage.set_footer_left(read_headerfooter(bs, xml_tag, xml)?);
             }
 
-            Event::End(end_tag) if end_tag.name().as_ref() == b"style:master-page" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"style:master-page" => {
                 break;
             }
             Event::Eof => break,
@@ -2025,8 +2025,8 @@ fn read_headerfooter(
             }
             // no other tags supported for now. they have never been seen in the wild.
             Event::Text(_) => (),
-            Event::End(end_tag) => {
-                if end_tag.name() == super_tag.name() {
+            Event::End(xml_tag) => {
+                if xml_tag.name() == super_tag.name() {
                     hf.set_content(match content {
                         TextContent::Empty => Vec::new(),
                         TextContent::Text(v) => vec![TextP::new().text(v).into()],
@@ -2237,9 +2237,6 @@ fn read_value_format_parts<T: ValueFormatTrait>(
     let name = copy_style_attr(valuestyle.attrmap_mut(), super_tag)?;
     valuestyle.set_name(name.as_str());
 
-    // Styles with content information are stored before completion.
-    let mut valuestyle_part = None;
-
     let mut buf = bs.pop();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
@@ -2251,163 +2248,214 @@ fn read_value_format_parts<T: ValueFormatTrait>(
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"number:boolean" =>
             {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Boolean)?);
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::Boolean,
+                    xml,
+                )?);
             }
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"number:number" =>
             {
-                // TODO: embedded-text below is completeley broken. removed it as a quick fix.
-                //       embedded-text is a sub-tag of number:number. correct someday.
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Number)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:scientific-number" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::ScientificNumber)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:day" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Day)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:month" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Month)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:year" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Year)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:era" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Era)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:day-of-week" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::DayOfWeek)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:week-of-year" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::WeekOfYear)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:quarter" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Quarter)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:hours" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Hours)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:minutes" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Minutes)?);
-            }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:seconds" =>
-            {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Seconds)?);
+                valuestyle.push_part(read_part_number(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::Number,
+                    xml,
+                )?);
             }
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"number:fraction" =>
             {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::Fraction)?);
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::Fraction,
+                    xml,
+                )?);
             }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:scientific-number" =>
+            {
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::ScientificNumber,
+                    xml,
+                )?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:text"
+                    || xml_tag.name().as_ref() == b"loext:text" =>
+            {
+                valuestyle.push_part(read_part_text(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::Text,
+                    xml,
+                )?);
+            }
+
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"number:am-pm" =>
             {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::AmPm)?);
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::AmPm,
+                    xml,
+                )?);
             }
             Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:text-content" =>
+                if xml_tag.name().as_ref() == b"number:day" =>
             {
-                valuestyle.push_part(read_part(xml_tag, FormatPartType::TextContent)?);
+                valuestyle.push_part(read_part(bs, xml_tag, empty_tag, FormatPartType::Day, xml)?);
             }
             Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"style:map" =>
+                if xml_tag.name().as_ref() == b"number:day-of-week" =>
             {
-                valuestyle.push_stylemap(read_valuestylemap(xml_tag)?);
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::DayOfWeek,
+                    xml,
+                )?);
             }
-
-            Event::End(xml_tag) if xml_tag.name().as_ref() == b"loext:text" => {}
             Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"loext:text" => {}
-
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:fill-character"
-                    || xml_tag.name().as_ref() == b"loext:fill-character" =>
+                if xml_tag.name().as_ref() == b"number:era" =>
             {
-                valuestyle_part = Some(read_part(xml_tag, FormatPartType::FillCharacter)?);
-                if empty_tag {
-                    if let Some(part) = valuestyle_part {
-                        valuestyle.push_part(part);
-                    }
-                    valuestyle_part = None;
-                }
+                valuestyle.push_part(read_part(bs, xml_tag, empty_tag, FormatPartType::Era, xml)?);
             }
-            Event::End(e)
-                if e.name().as_ref() == b"number:fill-character"
-                    || e.name().as_ref() == b"loext:fill-character" =>
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:hours" =>
             {
-                if let Some(part) = valuestyle_part {
-                    valuestyle.push_part(part);
-                }
-                valuestyle_part = None;
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::Hours,
+                    xml,
+                )?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:minutes" =>
+            {
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::Minutes,
+                    xml,
+                )?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:month" =>
+            {
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::Month,
+                    xml,
+                )?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:quarter" =>
+            {
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::Quarter,
+                    xml,
+                )?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:seconds" =>
+            {
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::Seconds,
+                    xml,
+                )?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:week-of-year" =>
+            {
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::WeekOfYear,
+                    xml,
+                )?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:year" =>
+            {
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::Year,
+                    xml,
+                )?);
             }
 
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"number:currency-symbol" =>
             {
-                valuestyle_part = Some(read_part(xml_tag, FormatPartType::CurrencySymbol)?);
-                if empty_tag {
-                    if let Some(part) = valuestyle_part {
-                        valuestyle.push_part(part);
-                    }
-                    valuestyle_part = None;
-                }
+                valuestyle.push_part(read_part_text(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::CurrencySymbol,
+                    xml,
+                )?);
             }
-            Event::End(e) if e.name().as_ref() == b"number:currency-symbol" => {
-                if let Some(part) = valuestyle_part {
-                    valuestyle.push_part(part);
-                }
-                valuestyle_part = None;
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:fill-character"
+                    || xml_tag.name().as_ref() == b"loext:fill-character" =>
+            {
+                valuestyle.push_part(read_part_text(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::FillCharacter,
+                    xml,
+                )?);
+            }
+            Event::Start(xml_tag) | Event::Empty(xml_tag)
+                if xml_tag.name().as_ref() == b"number:text-content" =>
+            {
+                valuestyle.push_part(read_part(
+                    bs,
+                    xml_tag,
+                    empty_tag,
+                    FormatPartType::TextContent,
+                    xml,
+                )?);
             }
 
             Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"number:text" =>
+                if xml_tag.name().as_ref() == b"style:map" =>
             {
-                valuestyle_part = Some(read_part(xml_tag, FormatPartType::Text)?);
-                if empty_tag {
-                    if let Some(part) = valuestyle_part {
-                        valuestyle.push_part(part);
-                    }
-                    valuestyle_part = None;
-                }
+                valuestyle.push_stylemap(read_value_stylemap(xml_tag)?);
             }
-            Event::End(e) if e.name().as_ref() == b"number:text" => {
-                if let Some(part) = valuestyle_part {
-                    valuestyle.push_part(part);
-                }
-                valuestyle_part = None;
-            }
-
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"style:text-properties" =>
             {
                 copy_attr2(valuestyle.textstyle_mut(), xml_tag)?;
-            }
-
-            Event::Text(e) => {
-                if let Some(part) = &mut valuestyle_part {
-                    part.set_content(xml.decoder().decode(e.unescape()?.as_bytes())?);
-                }
             }
 
             Event::End(e) if e.name() == super_tag.name() => {
@@ -2428,64 +2476,141 @@ fn read_value_format_parts<T: ValueFormatTrait>(
 }
 
 fn read_part(
+    bs: &mut BufStack,
     super_tag: &BytesStart<'_>,
+    empty_tag: bool,
     part_type: FormatPartType,
+    xml: &mut OdsXmlReader<'_>,
 ) -> Result<FormatPart, OdsError> {
     let mut part = FormatPart::new(part_type);
     copy_attr2(part.attrmap_mut(), super_tag)?;
 
-    // // There is one relevant subtag embedded-text.
-    // let mut buf = bs.get_buf();
-    // loop {
-    //     let evt = xml.read_event_into(&mut buf)?;
-    //     if DUMP_XML {
-    //         println!(" read_part {:?}", evt);
-    //     }
-    //     match &evt {
-    //         Event::Start( xml_tag2) | Event::Empty( xml_tag2) => {
-    //             match xml_tag2.name().as_ref() {
-    //                 b"number:embedded-text" => {
-    //                     for attr in xml_tag2.attributes().with_checks(false) {
-    //                         let attr = attr?;
-    //                         match attr.key.as_ref() {
-    //                             b"number:position" => {
-    //                                 part.set_position(parse_i32(&attr.value)?);
-    //                             }
-    //                             attr => {
-    //                                 return Err(OdsError::Ods(format!(
-    //                                     "embedded-text: attribute unknown {} ",
-    //                                     from_utf8(attr)?
-    //                                 )))
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //                 _ => dump_unused2("read_value_format", &evt)?,
-    //             }
-    //         }
-    //         Event::Text( e) => {
-    //             part.set_content(xml.decoder().decode(e.unescape()?.as_bytes())?);
-    //         }
-    //         Event::End( e) => match e.name().as_ref() {
-    //             b"number:embedded-text" => {
-    //                 break;
-    //             }
-    //             _ => {
-    //                 dump_unused2("read_value_format", &evt)?;
-    //             }
-    //         },
-    //         Event::Eof => break,
-    //         _ => {}
-    //     }
-    // }
-    //
-    // bs.push(buf);
+    if !empty_tag {
+        let mut buf = bs.pop();
+        loop {
+            let evt = xml.read_event_into(&mut buf)?;
+            if DUMP_XML {
+                println!(" read_part {:?}", evt);
+            }
+            match &evt {
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
+                    break;
+                }
+                Event::Eof => {
+                    break;
+                }
+                _ => {
+                    unused_event("read_part", &evt)?;
+                }
+            }
+        }
+        bs.push(buf);
+    }
 
     Ok(part)
 }
 
-#[allow(clippy::too_many_arguments)]
+// value format part with text content
+fn read_part_text(
+    bs: &mut BufStack,
+    super_tag: &BytesStart<'_>,
+    empty_tag: bool,
+    part_type: FormatPartType,
+    xml: &mut OdsXmlReader<'_>,
+) -> Result<FormatPart, OdsError> {
+    let mut part = FormatPart::new(part_type);
+    copy_attr2(part.attrmap_mut(), super_tag)?;
+
+    if !empty_tag {
+        let mut buf = bs.pop();
+        loop {
+            let evt = xml.read_event_into(&mut buf)?;
+            if DUMP_XML {
+                println!(" read_part_text {:?}", evt);
+            }
+            match &evt {
+                Event::Text(xml_tag) => {
+                    part.set_content(xml_tag.unescape()?);
+                }
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
+                    break;
+                }
+                Event::Eof => {
+                    break;
+                }
+                _ => {
+                    unused_event("read_part_text", &evt)?;
+                }
+            }
+        }
+        bs.push(buf);
+    }
+
+    Ok(part)
+}
+
+fn read_part_number(
+    bs: &mut BufStack,
+    super_tag: &BytesStart<'_>,
+    empty_tag: bool,
+    part_type: FormatPartType,
+    xml: &mut OdsXmlReader<'_>,
+) -> Result<FormatPart, OdsError> {
+    let mut part = FormatPart::new(part_type);
+    copy_attr2(part.attrmap_mut(), super_tag)?;
+
+    if !empty_tag {
+        let mut buf = bs.pop();
+        loop {
+            let evt = xml.read_event_into(&mut buf)?;
+            if DUMP_XML {
+                println!(" read_part_embedded_text {:?}", evt);
+            }
+            match &evt {
+                Event::Start(xml_tag) | Event::Empty(xml_tag)
+                    if xml_tag.name().as_ref() == b"number:embedded-text" =>
+                {
+                    for attr in xml_tag.attributes().with_checks(false) {
+                        let attr = attr?;
+                        match attr.key.as_ref() {
+                            b"number:position" => {
+                                part.set_position(parse_i32(&attr.value)?);
+                            }
+                            _ => {
+                                unused_attr(
+                                    "read_part_embedded_text",
+                                    xml_tag.name().as_ref(),
+                                    &attr,
+                                )?;
+                            }
+                        }
+                    }
+                }
+                Event::End(xml_tag) if xml_tag.name().as_ref() == b"number:embedded-text" => {}
+                Event::Text(e) => {
+                    part.set_content(parse_string(e.as_ref())?);
+                }
+
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
+                    break;
+                }
+
+                Event::Eof => {
+                    break;
+                }
+                _ => {
+                    unused_event("read_part_embedded_text", &evt)?;
+                }
+            }
+        }
+        bs.push(buf);
+    }
+
+    Ok(part)
+}
+
 // style:style tag
+#[allow(clippy::too_many_arguments)]
 fn read_style_style(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -2576,8 +2701,8 @@ fn read_tablestyle(
                     }
                 },
                 Event::Text(_) => (),
-                Event::End(end_tag) => {
-                    if end_tag.name().as_ref() == super_tag.name().as_ref() {
+                Event::End(xml_tag) => {
+                    if xml_tag.name().as_ref() == super_tag.name().as_ref() {
                         book.add_tablestyle(style);
                         break;
                     } else {
@@ -2633,8 +2758,8 @@ fn read_rowstyle(
                     }
                 },
                 Event::Text(_) => (),
-                Event::End(end_tag) => {
-                    if end_tag.name() == super_tag.name() {
+                Event::End(xml_tag) => {
+                    if xml_tag.name() == super_tag.name() {
                         book.add_rowstyle(style);
                         break;
                     } else {
@@ -2689,8 +2814,8 @@ fn read_colstyle(
                     }
                 },
                 Event::Text(_) => (),
-                Event::End(end_tag) => {
-                    if end_tag.name() == super_tag.name() {
+                Event::End(xml_tag) => {
+                    if xml_tag.name() == super_tag.name() {
                         book.add_colstyle(style);
                         break;
                     } else {
@@ -2753,7 +2878,7 @@ fn read_cellstyle(
                 {
                     copy_attr2(style.paragraphstyle_mut(), xml_tag)?;
                 }
-                Event::End(end_tag) if end_tag.name().as_ref() == b"style:paragraph-properties" => {
+                Event::End(xml_tag) if xml_tag.name().as_ref() == b"style:paragraph-properties" => {
                 }
                 // Event::Start(xml_tag) | Event::Empty(xml_tag)
                 //     if xml_tag.name().as_ref() == b"style:graphic-properties" =>
@@ -2773,7 +2898,7 @@ fn read_cellstyle(
                 //     style.paragraph_mut().add_tabstop(ts);
                 // }
                 Event::Text(_) => (),
-                Event::End(end_tag) if end_tag.name() == super_tag.name() => {
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                     book.add_cellstyle(style);
                     break;
                 }
@@ -2828,13 +2953,13 @@ fn read_paragraphstyle(
                 {
                     copy_attr2(style.paragraphstyle_mut(), xml_tag)?;
                 }
-                Event::End(end_tag) if end_tag.name().as_ref() == b"style:paragraph-properties" => {
+                Event::End(xml_tag) if xml_tag.name().as_ref() == b"style:paragraph-properties" => {
                 }
                 // b"style:graphic-properties" => copy_attr(style.graphic_mut(), xml, xml_tag)?,
                 // b"style:map" => style.push_stylemap(read_stylemap(xml, xml_tag)?),
                 Event::Start(xml_tag) | Event::Empty(xml_tag)
                     if xml_tag.name().as_ref() == b"style:tab-stops" => {}
-                Event::End(end_tag) if end_tag.name().as_ref() == b"style:tab-stops" => {}
+                Event::End(xml_tag) if xml_tag.name().as_ref() == b"style:tab-stops" => {}
                 Event::Start(xml_tag) | Event::Empty(xml_tag)
                     if xml_tag.name().as_ref() == b"style:tab-stop" =>
                 {
@@ -2843,7 +2968,7 @@ fn read_paragraphstyle(
                     style.add_tabstop(ts);
                 }
 
-                Event::End(end_tag) if end_tag.name() == super_tag.name() => {
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                     book.add_paragraphstyle(style);
                     break;
                 }
@@ -2895,7 +3020,7 @@ fn read_textstyle(
                 {
                     copy_attr2(style.textstyle_mut(), xml_tag)?;
                 }
-                Event::End(end_tag) if end_tag.name() == super_tag.name() => {
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                     book.add_textstyle(style);
                     break;
                 }
@@ -2946,7 +3071,7 @@ fn read_rubystyle(
                 {
                     copy_attr2(style.rubystyle_mut(), xml_tag)?;
                 }
-                Event::End(end_tag) if end_tag.name() == super_tag.name() => {
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                     book.add_rubystyle(style);
                     break;
                 }
@@ -3017,7 +3142,7 @@ fn read_graphicstyle(
                     // todo:
                 }
 
-                Event::End(end_tag) if end_tag.name() == super_tag.name() => {
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                     book.add_graphicstyle(style);
                     break;
                 }
@@ -3034,7 +3159,8 @@ fn read_graphicstyle(
     Ok(())
 }
 
-fn read_valuestylemap(super_tag: &BytesStart<'_>) -> Result<ValueStyleMap, OdsError> {
+// style:map inside a number style.
+fn read_value_stylemap(super_tag: &BytesStart<'_>) -> Result<ValueStyleMap, OdsError> {
     let mut sm = ValueStyleMap::default();
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
@@ -3045,7 +3171,7 @@ fn read_valuestylemap(super_tag: &BytesStart<'_>) -> Result<ValueStyleMap, OdsEr
                 sm.set_applied_style(attr.unescape_value()?.to_string());
             }
             attr => {
-                unused_attr("read_stylemap", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_value_stylemap", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -3058,7 +3184,7 @@ fn read_stylemap(super_tag: &BytesStart<'_>) -> Result<StyleMap, OdsError> {
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"style:condition" => {
-                sm.set_condition(ValueCondition::new(attr.unescape_value()?.to_string()));
+                sm.set_condition(Condition::new(attr.unescape_value()?.to_string()));
             }
             attr if attr.key.as_ref() == b"style:apply-style-name" => {
                 sm.set_applied_style(attr.unescape_value()?.to_string());

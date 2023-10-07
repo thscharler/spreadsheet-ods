@@ -2525,17 +2525,22 @@ fn write_valuestyle<T: ValueFormatTrait>(
                 }
                 xml_out.end_elem(part_tag)?;
             } else if part.part_type() == FormatPartType::Number {
-                if let Some(embedded_text) = part.content() {
+                if let Some(position) = part.position() {
                     xml_out.elem(part_tag)?;
                     for (a, v) in part.attrmap().iter() {
                         xml_out.attr_esc(a.as_ref(), v)?;
                     }
 
                     // embedded text
-                    xml_out.elem("number:embedded-text")?;
-                    xml_out.attr_esc("number:position", &part.position())?;
-                    xml_out.text_esc(embedded_text)?;
-                    xml_out.end_elem("number:embedded-text")?;
+                    if let Some(content) = part.content() {
+                        xml_out.elem("number:embedded-text")?;
+                        xml_out.attr_esc("number:position", &position)?;
+                        xml_out.text_esc(content)?;
+                        xml_out.end_elem("number:embedded-text")?;
+                    } else {
+                        xml_out.empty("number:embedded-text")?;
+                        xml_out.attr_esc("number:position", &position)?;
+                    }
 
                     xml_out.end_elem(part_tag)?;
                 } else {
