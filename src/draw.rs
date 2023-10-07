@@ -93,32 +93,32 @@ impl Annotation {
         self.creator = creator.map(|v| v.into())
     }
 
-    /// Date
+    /// Date of the annotation.
     pub fn date(&self) -> Option<&NaiveDateTime> {
         self.date.as_ref()
     }
 
-    /// Date
+    /// Date of the annotation.
     pub fn set_date(&mut self, date: Option<NaiveDateTime>) {
         self.date = date;
     }
 
-    /// Text
+    /// Text.
     pub fn text(&self) -> &Vec<TextTag> {
         &self.text
     }
 
-    /// Text
+    /// Text.
     pub fn push_text(&mut self, text: TextTag) {
         self.text.push(text);
     }
 
-    /// Text
+    /// Text.
     pub fn push_text_str<S: Into<String>>(&mut self, text: S) {
         self.text.push(TextP::new().text(text).into_xmltag());
     }
 
-    /// Text
+    /// Text.
     pub fn set_text(&mut self, text: Vec<TextTag>) {
         self.text = text;
     }

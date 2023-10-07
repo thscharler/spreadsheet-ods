@@ -154,7 +154,7 @@ fn read_fods_content(
                 break;
             }
             _ => {
-                dump_unused2("read_fods_content", &evt)?;
+                unused_event("read_fods_content", &evt)?;
             }
         }
     }
@@ -269,7 +269,7 @@ fn read_manifest_manifest(
             }
 
             _ => {
-                dump_unused2("read_manifest", &evt)?;
+                unused_event("read_manifest", &evt)?;
             }
         }
         buf.clear();
@@ -441,7 +441,7 @@ fn read_ods_content(
                 break;
             }
             _ => {
-                dump_unused2("read_ods_content", &evt)?;
+                unused_event("read_ods_content", &evt)?;
             }
         }
 
@@ -529,7 +529,7 @@ fn read_office_body(
                 break;
             }
             _ => {
-                dump_unused2("read_office_body", &evt)?;
+                unused_event("read_office_body", &evt)?;
             }
         }
 
@@ -565,7 +565,7 @@ fn read_namespaces_and_version(
                 }
             }
             attr => {
-                dump_unused(
+                unused_attr(
                     "read_namespaces_and_version",
                     super_tag.name().as_ref(),
                     &attr,
@@ -716,21 +716,15 @@ fn read_table(
                 row_repeat = 1;
             }
 
-            Event::Empty(xml_tag)
+            Event::Empty(xml_tag) | Event::Start(xml_tag)
                 if xml_tag.name().as_ref() == b"table:table-cell"
                     || xml_tag.name().as_ref() == b"table:covered-table-cell" =>
             {
-                col = read_empty_table_cell(&mut sheet, row, col, xml_tag)?;
-            }
-            Event::Start(xml_tag)
-                if xml_tag.name().as_ref() == b"table:table-cell"
-                    || xml_tag.name().as_ref() == b"table:covered-table-cell" =>
-            {
-                col = read_table_cell2(bs, &mut sheet, row, col, xml_tag, xml)?;
+                col = read_table_cell(bs, &mut sheet, row, col, xml_tag, empty_tag, xml)?;
             }
 
             _ => {
-                dump_unused2("read_table", &evt)?;
+                unused_event("read_table", &evt)?;
             }
         }
         buf.clear();
@@ -763,7 +757,7 @@ fn read_table_attr(sheet: &mut Sheet, super_tag: &BytesStart<'_>) -> Result<(), 
                 sheet.print_ranges = parse_cellranges(v.as_ref())?;
             }
             attr => {
-                dump_unused("read_table_attr", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_table_attr", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -807,7 +801,7 @@ fn read_table_row_attr(
                 }
             }
             attr => {
-                dump_unused("read_table_row_attr", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_table_row_attr", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -828,7 +822,7 @@ fn read_table_column_group_attr(
                 display = parse_bool(&attr.value)?;
             }
             attr => {
-                dump_unused(
+                unused_attr(
                     "read_table_column_group_attr",
                     super_tag.name().as_ref(),
                     &attr,
@@ -854,7 +848,7 @@ fn read_table_row_group_attr(row: u32, super_tag: &BytesStart<'_>) -> Result<Gro
                 display = parse_bool(&attr.value)?;
             }
             attr => {
-                dump_unused(
+                unused_attr(
                     "read_table_row_group_attr",
                     super_tag.name().as_ref(),
                     &attr,
@@ -896,7 +890,7 @@ fn read_table_col_attr(
                 visible = parse_visibility(&attr.value)?;
             }
             attr => {
-                dump_unused("read_table_col_attr", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_table_col_attr", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -918,7 +912,7 @@ fn read_table_col_attr(
 
 #[derive(Debug)]
 #[allow(variant_size_differences)]
-enum TextContent2 {
+enum TextContent {
     Empty,
     Text(String),
     Xml(TextTag),
@@ -926,7 +920,7 @@ enum TextContent2 {
 }
 
 #[derive(Debug)]
-struct ReadTableCell2 {
+struct ReadTableCell {
     val_type: ValueType,
     val_datetime: Option<NaiveDateTime>,
     val_duration: Option<Duration>,
@@ -935,24 +929,22 @@ struct ReadTableCell2 {
     val_string: Option<String>,
     val_currency: Option<String>,
 
-    content: TextContent2,
+    content: TextContent,
 }
 
-fn read_table_cell2(
+fn read_table_cell(
     bs: &mut BufStack,
     sheet: &mut Sheet,
     row: u32,
     mut col: u32,
     super_tag: &BytesStart<'_>,
+    empty_tag: bool,
     xml: &mut OdsXmlReader<'_>,
 ) -> Result<u32, OdsError> {
-    // Current cell tag
-    let tag_name = super_tag.name();
+    let mut cell = None;
+    let mut cell_repeat = 1;
 
-    let mut cell = CellData::default();
-    let mut cell_repeat: u32 = 1;
-
-    let mut tc = ReadTableCell2 {
+    let mut tc = ReadTableCell {
         val_type: ValueType::Empty,
         val_datetime: None,
         val_duration: None,
@@ -960,7 +952,7 @@ fn read_table_cell2(
         val_bool: None,
         val_string: None,
         val_currency: None,
-        content: TextContent2::Empty,
+        content: TextContent::Empty,
     };
 
     for attr in super_tag.attributes().with_checks(false) {
@@ -971,34 +963,49 @@ fn read_table_cell2(
             attr if attr.key.as_ref() == b"table:number-rows-spanned" => {
                 let row_span = parse_u32(&attr.value)?;
                 if row_span > 1 {
-                    cell.extra_mut().span.row_span = row_span;
+                    cell.get_or_insert_with(CellData::default)
+                        .extra_mut()
+                        .span
+                        .row_span = row_span;
                 }
             }
             attr if attr.key.as_ref() == b"table:number-columns-spanned" => {
                 let col_span = parse_u32(&attr.value)?;
                 if col_span > 1 {
-                    cell.extra_mut().span.col_span = col_span;
+                    cell.get_or_insert_with(CellData::default)
+                        .extra_mut()
+                        .span
+                        .col_span = col_span;
                 }
             }
             attr if attr.key.as_ref() == b"table:number-matrix-rows-spanned" => {
                 let row_span = parse_u32(&attr.value)?;
                 if row_span > 1 {
-                    cell.extra_mut().matrix_span.row_span = row_span;
+                    cell.get_or_insert_with(CellData::default)
+                        .extra_mut()
+                        .matrix_span
+                        .row_span = row_span;
                 }
             }
             attr if attr.key.as_ref() == b"table:number-matrix-columns-spanned" => {
                 let col_span = parse_u32(&attr.value)?;
                 if col_span > 1 {
-                    cell.extra_mut().matrix_span.col_span = col_span;
+                    cell.get_or_insert_with(CellData::default)
+                        .extra_mut()
+                        .matrix_span
+                        .col_span = col_span;
                 }
             }
             attr if attr.key.as_ref() == b"table:content-validation-name" => {
-                cell.extra_mut().validation_name = Some(attr.unescape_value()?.to_string());
+                cell.get_or_insert_with(CellData::default)
+                    .extra_mut()
+                    .validation_name = Some(attr.unescape_value()?.to_string());
             }
             attr if attr.key.as_ref() == b"calcext:value-type" => {
                 // not used. office:value-type seems to be good enough.
             }
             attr if attr.key.as_ref() == b"office:value-type" => {
+                cell.get_or_insert_with(CellData::default);
                 tc.val_type = match attr.value.as_ref() {
                     b"string" => ValueType::Text,
                     b"float" => ValueType::Number,
@@ -1016,150 +1023,170 @@ fn read_table_cell2(
                 }
             }
             attr if attr.key.as_ref() == b"office:date-value" => {
+                cell.get_or_insert_with(CellData::default);
                 tc.val_datetime = Some(parse_datetime(&attr.value)?);
             }
             attr if attr.key.as_ref() == b"office:time-value" => {
+                cell.get_or_insert_with(CellData::default);
                 tc.val_duration = Some(parse_duration(&attr.value)?);
             }
             attr if attr.key.as_ref() == b"office:value" => {
+                cell.get_or_insert_with(CellData::default);
                 tc.val_float = Some(parse_f64(&attr.value)?);
             }
             attr if attr.key.as_ref() == b"office:boolean-value" => {
+                cell.get_or_insert_with(CellData::default);
                 tc.val_bool = Some(parse_bool(&attr.value)?);
             }
             attr if attr.key.as_ref() == b"office:string-value" => {
+                cell.get_or_insert_with(CellData::default);
                 tc.val_string = Some(attr.unescape_value()?.to_string());
             }
             attr if attr.key.as_ref() == b"office:currency" => {
+                cell.get_or_insert_with(CellData::default);
                 tc.val_currency = Some(parse_currency(&attr.value)?);
             }
             attr if attr.key.as_ref() == b"table:formula" => {
-                cell.formula = Some(attr.unescape_value()?.to_string());
+                cell.get_or_insert_with(CellData::default).formula =
+                    Some(attr.unescape_value()?.to_string());
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                cell.style = Some(attr.unescape_value()?.to_string());
+                cell.get_or_insert_with(CellData::default).style =
+                    Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused("read_table_cell2", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_table_cell2", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
 
-    let mut buf = bs.pop();
-    loop {
-        let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
-            println!(" read_table_cell {:?}", evt);
-        }
-        match &evt {
-            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"text:p" => {
-                let new_txt = read_text_or_tag(bs, xml_tag, false, xml)?;
-                tc.content = append_text(new_txt, tc.content);
+    if !empty_tag {
+        let mut buf = bs.pop();
+        loop {
+            let evt = xml.read_event_into(&mut buf)?;
+            if DUMP_XML {
+                println!(" read_table_cell {:?}", evt);
             }
-
-            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:annotation" => {
-                let annotation = read_annotation(bs, xml_tag, xml)?;
-                cell.extra_mut().annotation = Some(annotation);
-            }
-            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"draw:frame" => {
-                let draw_frame = read_draw_frame(bs, xml_tag, xml)?;
-                cell.extra_mut().draw_frames.push(draw_frame);
-            }
-
-            Event::End(xml_tag) if xml_tag.name() == tag_name => {
-                parse_value2(tc, &mut cell)?;
-
-                while cell_repeat > 1 {
-                    sheet.add_cell_data(row, col, cell.clone());
-                    col += 1;
-                    cell_repeat -= 1;
+            match &evt {
+                Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"text:p" => {}
+                Event::Start(xml_tag) if xml_tag.name().as_ref() == b"text:p" => {
+                    let new_txt = read_text_or_tag(bs, xml_tag, false, xml)?;
+                    tc.content = append_text(new_txt, tc.content);
                 }
-                sheet.add_cell_data(row, col, cell);
-                col += 1;
 
-                break;
+                Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:annotation" => {
+                    let annotation = read_annotation(bs, xml_tag, xml)?;
+                    cell.get_or_insert_with(CellData::default)
+                        .extra_mut()
+                        .annotation = Some(annotation);
+                }
+                Event::Start(xml_tag) if xml_tag.name().as_ref() == b"draw:frame" => {
+                    let draw_frame = read_draw_frame(bs, xml_tag, xml)?;
+                    cell.get_or_insert_with(CellData::default)
+                        .extra_mut()
+                        .draw_frames
+                        .push(draw_frame);
+                }
+
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
+                    break;
+                }
+
+                Event::Eof => {
+                    break;
+                }
+
+                _ => {
+                    unused_event("read_table_cell", &evt)?;
+                }
             }
 
-            Event::Eof => {
-                break;
-            }
-
-            _ => {
-                dump_unused2("read_table_cell", &evt)?;
-            }
+            buf.clear();
         }
-
-        buf.clear();
+        bs.push(buf);
     }
-    bs.push(buf);
+
+    if let Some(mut cell) = cell {
+        parse_value(tc, &mut cell)?;
+
+        while cell_repeat > 1 {
+            sheet.add_cell_data(row, col, cell.clone());
+            col += 1;
+            cell_repeat -= 1;
+        }
+        sheet.add_cell_data(row, col, cell);
+        col += 1;
+    } else {
+        col += cell_repeat;
+    }
 
     Ok(col)
 }
 
-fn append_text(new_txt: TextContent2, mut content: TextContent2) -> TextContent2 {
+fn append_text(new_txt: TextContent, mut content: TextContent) -> TextContent {
     // There can be multiple text:p elements within the cell.
     content = match content {
-        TextContent2::Empty => new_txt,
-        TextContent2::Text(txt) => {
+        TextContent::Empty => new_txt,
+        TextContent::Text(txt) => {
             // Have a destructured text:p from before.
             // Wrap up and create list.
             let p = TextP::new().text(txt).into_xmltag();
             let mut vec = vec![p];
 
             match new_txt {
-                TextContent2::Empty => {}
-                TextContent2::Text(txt) => {
+                TextContent::Empty => {}
+                TextContent::Text(txt) => {
                     let p2 = TextP::new().text(txt).into_xmltag();
                     vec.push(p2);
                 }
-                TextContent2::Xml(xml) => {
+                TextContent::Xml(xml) => {
                     vec.push(xml);
                 }
-                TextContent2::XmlVec(_) => {
+                TextContent::XmlVec(_) => {
                     unreachable!();
                 }
             }
-            TextContent2::XmlVec(vec)
+            TextContent::XmlVec(vec)
         }
-        TextContent2::Xml(xml) => {
+        TextContent::Xml(xml) => {
             let mut vec = vec![xml];
             match new_txt {
-                TextContent2::Empty => {}
-                TextContent2::Text(txt) => {
+                TextContent::Empty => {}
+                TextContent::Text(txt) => {
                     let p2 = TextP::new().text(txt).into_xmltag();
                     vec.push(p2);
                 }
-                TextContent2::Xml(xml) => {
+                TextContent::Xml(xml) => {
                     vec.push(xml);
                 }
-                TextContent2::XmlVec(_) => {
+                TextContent::XmlVec(_) => {
                     unreachable!();
                 }
             }
-            TextContent2::XmlVec(vec)
+            TextContent::XmlVec(vec)
         }
-        TextContent2::XmlVec(mut vec) => {
+        TextContent::XmlVec(mut vec) => {
             match new_txt {
-                TextContent2::Empty => {}
-                TextContent2::Text(txt) => {
+                TextContent::Empty => {}
+                TextContent::Text(txt) => {
                     let p2 = TextP::new().text(txt).into_xmltag();
                     vec.push(p2);
                 }
-                TextContent2::Xml(xml) => {
+                TextContent::Xml(xml) => {
                     vec.push(xml);
                 }
-                TextContent2::XmlVec(_) => {
+                TextContent::XmlVec(_) => {
                     unreachable!();
                 }
             }
-            TextContent2::XmlVec(vec)
+            TextContent::XmlVec(vec)
         }
     };
 
     content
 }
 
-fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError> {
+fn parse_value(tc: ReadTableCell, cell: &mut CellData) -> Result<(), OdsError> {
     match tc.val_type {
         ValueType::Empty => {
             // noop
@@ -1201,16 +1228,16 @@ fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError>
                 cell.value = Value::Text(v);
             } else {
                 match tc.content {
-                    TextContent2::Empty => {
+                    TextContent::Empty => {
                         // noop
                     }
-                    TextContent2::Text(txt) => {
+                    TextContent::Text(txt) => {
                         cell.value = Value::Text(txt);
                     }
-                    TextContent2::Xml(xml) => {
+                    TextContent::Xml(xml) => {
                         cell.value = Value::TextXml(vec![xml]);
                     }
-                    TextContent2::XmlVec(vec) => {
+                    TextContent::XmlVec(vec) => {
                         cell.value = Value::TextXml(vec);
                     }
                 }
@@ -1236,77 +1263,6 @@ fn parse_value2(tc: ReadTableCell2, cell: &mut CellData) -> Result<(), OdsError>
     }
 
     Ok(())
-}
-
-/// Reads a table-cell from an empty XML tag.
-/// There seems to be no data associated, but it can have a style and a formula.
-/// And first of all we need the repeat count for the correct placement.
-fn read_empty_table_cell(
-    sheet: &mut Sheet,
-    row: u32,
-    mut col: u32,
-    super_tag: &BytesStart<'_>,
-) -> Result<u32, OdsError> {
-    let mut cell = None;
-    let mut cell_repeat = 1;
-
-    for attr in super_tag.attributes().with_checks(false) {
-        match attr? {
-            attr if attr.key.as_ref() == b"table:number-columns-repeated" => {
-                cell_repeat = parse_u32(&attr.value)?;
-            }
-            attr if attr.key.as_ref() == b"table:number-rows-spanned" => {
-                let row_span = parse_u32(&attr.value)?;
-                if row_span > 1 {
-                    cell.get_or_insert_with(CellData::default)
-                        .extra_mut()
-                        .span
-                        .row_span = row_span;
-                }
-            }
-            attr if attr.key.as_ref() == b"table:number-columns-spanned" => {
-                let col_span = parse_u32(&attr.value)?;
-                if col_span > 1 {
-                    cell.get_or_insert_with(CellData::default)
-                        .extra_mut()
-                        .span
-                        .col_span = parse_u32(&attr.value)?;
-                }
-            }
-            attr if attr.key.as_ref() == b"table:content-validation-name" => {
-                cell.get_or_insert_with(CellData::default)
-                    .extra_mut()
-                    .validation_name = Some(attr.unescape_value()?.to_string());
-            }
-
-            attr if attr.key.as_ref() == b"table:formula" => {
-                cell.get_or_insert_with(CellData::default).formula =
-                    Some(attr.unescape_value()?.to_string());
-            }
-            attr if attr.key.as_ref() == b"table:style-name" => {
-                cell.get_or_insert_with(CellData::default).style =
-                    Some(attr.unescape_value()?.to_string());
-            }
-
-            attr => {
-                dump_unused("read_empty_table_cell", super_tag.name().as_ref(), &attr)?;
-            }
-        }
-    }
-
-    if let Some(cell) = cell {
-        while cell_repeat > 1 {
-            sheet.add_cell_data(row, col, cell.clone());
-            col += 1;
-            cell_repeat -= 1;
-        }
-        sheet.add_cell_data(row, col, cell);
-        col += 1;
-    } else {
-        col += cell_repeat;
-    }
-
-    Ok(col)
 }
 
 fn read_annotation(
@@ -1365,7 +1321,7 @@ fn read_annotation(
                 break;
             }
             _ => {
-                dump_unused2("read_annotation", &evt)?;
+                unused_event("read_annotation", &evt)?;
             }
         }
 
@@ -1397,14 +1353,20 @@ fn read_draw_frame(
                 break;
             }
 
-            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"draw:image" => {
-                draw_frame.push_content(DrawFrameContent::Image(read_image(bs, xml_tag, xml)?));
+            Event::Empty(xml_tag) | Event::Start(xml_tag)
+                if xml_tag.name().as_ref() == b"draw:image" =>
+            {
+                draw_frame.push_content(DrawFrameContent::Image(read_image(
+                    bs, xml_tag, empty_tag, xml,
+                )?));
             }
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"svg:desc" => {}
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"svg:desc" => {
                 if let Some(v) = read_text(bs, xml_tag, empty_tag, parse_string, xml)? {
                     draw_frame.set_desc(v);
                 }
             }
+            Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"svg:title" => {}
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"svg:title" => {
                 if let Some(v) = read_text(bs, xml_tag, empty_tag, parse_string, xml)? {
                     draw_frame.set_title(v);
@@ -1415,7 +1377,7 @@ fn read_draw_frame(
                 break;
             }
             _ => {
-                dump_unused2("read_draw_frame", &evt)?;
+                unused_event("read_draw_frame", &evt)?;
             }
         }
 
@@ -1429,47 +1391,50 @@ fn read_draw_frame(
 fn read_image(
     bs: &mut BufStack,
     super_tag: &BytesStart<'_>,
+    empty_tag: bool,
     xml: &mut OdsXmlReader<'_>,
 ) -> Result<DrawImage, OdsError> {
     let mut draw_image = DrawImage::new();
 
     copy_attr2(draw_image.attrmap_mut(), super_tag)?;
 
-    let mut buf = bs.pop();
-    loop {
-        let evt = xml.read_event_into(&mut buf)?;
-        let empty_tag = matches!(evt, Event::Empty(_));
-        if DUMP_XML {
-            println!("read_image {:?}", evt);
-        }
-        match &evt {
-            Event::End(xml_tag) if xml_tag.name().as_ref() == b"draw:image" => {
-                break;
+    if !empty_tag {
+        let mut buf = bs.pop();
+        loop {
+            let evt = xml.read_event_into(&mut buf)?;
+            let empty_tag = matches!(evt, Event::Empty(_));
+            if DUMP_XML {
+                println!("read_image {:?}", evt);
             }
+            match &evt {
+                Event::End(xml_tag) if xml_tag.name().as_ref() == b"draw:image" => {
+                    break;
+                }
 
-            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:binary-data" => {
-                if let Some(v) = read_text(bs, xml_tag, empty_tag, parse_string, xml)? {
-                    draw_image.set_binary_base64(v);
+                Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:binary-data" => {
+                    if let Some(v) = read_text(bs, xml_tag, empty_tag, parse_string, xml)? {
+                        draw_image.set_binary_base64(v);
+                    }
+                }
+                Event::Start(xml_tag) | Event::Empty(xml_tag)
+                    if xml_tag.name().as_ref() == b"text:list"
+                        || xml_tag.name().as_ref() == b"text:p" =>
+                {
+                    draw_image.push_text(read_xml(bs, xml_tag, empty_tag, xml)?);
+                }
+
+                Event::Eof => {
+                    break;
+                }
+                _ => {
+                    unused_event("read_image", &evt)?;
                 }
             }
-            Event::Start(xml_tag) | Event::Empty(xml_tag)
-                if xml_tag.name().as_ref() == b"text:list"
-                    || xml_tag.name().as_ref() == b"text:p" =>
-            {
-                draw_image.push_text(read_xml(bs, xml_tag, empty_tag, xml)?);
-            }
 
-            Event::Eof => {
-                break;
-            }
-            _ => {
-                dump_unused2("read_image", &evt)?;
-            }
+            buf.clear();
         }
-
-        buf.clear();
+        bs.push(buf);
     }
-    bs.push(buf);
 
     Ok(draw_image)
 }
@@ -1510,7 +1475,7 @@ fn read_scripts(
                 break;
             }
             _ => {
-                dump_unused2("read_scripts", &evt)?;
+                unused_event("read_scripts", &evt)?;
             }
         }
 
@@ -1558,7 +1523,7 @@ fn read_event_listener(super_tag: &BytesStart<'_>) -> Result<EventListener, OdsE
                 evt.link_type = parse_xlink_type(attr.unescape_value()?.as_bytes())?;
             }
             attr => {
-                dump_unused("read_event_listener", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_event_listener", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -1599,7 +1564,7 @@ fn read_office_font_face_decls(
                 break;
             }
             _ => {
-                dump_unused2("read_fonts", &evt)?;
+                unused_event("read_fonts", &evt)?;
             }
         }
 
@@ -1627,7 +1592,7 @@ fn read_page_style(
                 pl.master_page_usage = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused("read_page_style", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_page_style", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -1693,7 +1658,7 @@ fn read_page_style(
             Event::Text(_) => (),
             Event::Eof => break,
             _ => {
-                dump_unused2("read_page_layout", &evt)?;
+                unused_event("read_page_layout", &evt)?;
             }
         }
 
@@ -1753,7 +1718,7 @@ fn read_validations(
             Event::Text(_) => (),
             Event::Eof => break,
             _ => {
-                dump_unused2("read_validations", &evt)?;
+                unused_event("read_validations", &evt)?;
             }
         }
     }
@@ -1780,14 +1745,14 @@ fn read_validation_help(
                 vh.set_title(Some(attr.unescape_value()?.to_string()));
             }
             attr => {
-                dump_unused("read_validations", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_validations", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
     let txt = read_text_or_tag(bs, super_tag, empty_tag, xml)?;
     match txt {
-        TextContent2::Empty => {}
-        TextContent2::Xml(txt) => {
+        TextContent::Empty => {}
+        TextContent::Xml(txt) => {
             vh.set_text(Some(txt));
         }
         _ => {
@@ -1834,14 +1799,14 @@ fn read_validation_error(
                 ve.set_title(Some(attr.unescape_value()?.to_string()));
             }
             attr => {
-                dump_unused("read_validations", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_validations", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
     let txt = read_text_or_tag(bs, super_tag, empty_tag, xml)?;
     match txt {
-        TextContent2::Empty => {}
-        TextContent2::Xml(txt) => {
+        TextContent::Empty => {}
+        TextContent::Xml(txt) => {
             ve.set_text(Some(txt));
         }
         _ => {
@@ -1879,7 +1844,7 @@ fn read_validation(valid: &mut Validation, super_tag: &BytesStart<'_>) -> Result
                 valid.set_display(attr.value.as_ref().try_into()?);
             }
             attr => {
-                dump_unused("read_validation", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_validation", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -1911,7 +1876,7 @@ fn read_office_master_styles(
             Event::Text(_) => (),
             Event::Eof => break,
             _ => {
-                dump_unused2("read_master_styles", &evt)?;
+                unused_event("read_master_styles", &evt)?;
             }
         }
 
@@ -1944,7 +1909,7 @@ fn read_master_page(
                 masterpage.set_display_name(attr.unescape_value()?.as_ref().into());
             }
             attr => {
-                dump_unused("read_master_page", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_master_page", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -1986,7 +1951,7 @@ fn read_master_page(
             }
             Event::Eof => break,
             _ => {
-                dump_unused2("read_master_page", &evt)?;
+                unused_event("read_master_page", &evt)?;
             }
         }
 
@@ -2006,7 +1971,7 @@ fn read_headerfooter(
     xml: &mut OdsXmlReader<'_>,
 ) -> Result<HeaderFooter, OdsError> {
     let mut hf = HeaderFooter::new();
-    let mut content = TextContent2::Empty;
+    let mut content = TextContent::Empty;
 
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
@@ -2014,7 +1979,7 @@ fn read_headerfooter(
                 hf.set_display(parse_bool(&attr.value)?);
             }
             attr => {
-                dump_unused("read_headerfooter", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_headerfooter", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -2063,17 +2028,17 @@ fn read_headerfooter(
             Event::End(end_tag) => {
                 if end_tag.name() == super_tag.name() {
                     hf.set_content(match content {
-                        TextContent2::Empty => Vec::new(),
-                        TextContent2::Text(v) => vec![TextP::new().text(v).into()],
-                        TextContent2::Xml(v) => vec![v],
-                        TextContent2::XmlVec(v) => v,
+                        TextContent::Empty => Vec::new(),
+                        TextContent::Text(v) => vec![TextP::new().text(v).into()],
+                        TextContent::Xml(v) => vec![v],
+                        TextContent::XmlVec(v) => v,
                     });
                     break;
                 }
             }
             Event::Eof => break,
             _ => {
-                dump_unused2("read_headerfooter", &evt)?;
+                unused_event("read_headerfooter", &evt)?;
             }
         }
 
@@ -2126,7 +2091,7 @@ fn read_office_styles(
             Event::Text(_) => (),
             Event::Eof => break,
             _ => {
-                dump_unused2("read_styles_tag", &evt)?;
+                unused_event("read_styles_tag", &evt)?;
             }
         }
 
@@ -2189,7 +2154,7 @@ fn read_office_automatic_styles(
             Event::Text(_) => (),
             Event::Eof => break,
             _ => {
-                dump_unused2("read_auto_styles", &evt)?;
+                unused_event("read_auto_styles", &evt)?;
             }
         }
 
@@ -2451,7 +2416,7 @@ fn read_value_format_parts<T: ValueFormatTrait>(
 
             Event::Eof => break,
             _ => {
-                dump_unused2("read_value_format_parts", &evt)?;
+                unused_event("read_value_format_parts", &evt)?;
             }
         }
 
@@ -2607,7 +2572,7 @@ fn read_tablestyle(
                 Event::Start(xml_tag) | Event::Empty(xml_tag) => match xml_tag.name().as_ref() {
                     b"style:table-properties" => copy_attr2(style.tablestyle_mut(), xml_tag)?,
                     _ => {
-                        dump_unused2("read_table_style", &evt)?;
+                        unused_event("read_table_style", &evt)?;
                     }
                 },
                 Event::Text(_) => (),
@@ -2616,12 +2581,12 @@ fn read_tablestyle(
                         book.add_tablestyle(style);
                         break;
                     } else {
-                        dump_unused2("read_table_style", &evt)?;
+                        unused_event("read_table_style", &evt)?;
                     }
                 }
                 Event::Eof => break,
                 _ => {
-                    dump_unused2("read_table_style", &evt)?;
+                    unused_event("read_table_style", &evt)?;
                 }
             }
         }
@@ -2664,7 +2629,7 @@ fn read_rowstyle(
                 Event::Start(xml_tag) | Event::Empty(xml_tag) => match xml_tag.name().as_ref() {
                     b"style:table-row-properties" => copy_attr2(style.rowstyle_mut(), xml_tag)?,
                     _ => {
-                        dump_unused2("read_rowstyle", &evt)?;
+                        unused_event("read_rowstyle", &evt)?;
                     }
                 },
                 Event::Text(_) => (),
@@ -2673,12 +2638,12 @@ fn read_rowstyle(
                         book.add_rowstyle(style);
                         break;
                     } else {
-                        dump_unused2("read_rowstyle", &evt)?;
+                        unused_event("read_rowstyle", &evt)?;
                     }
                 }
                 Event::Eof => break,
                 _ => {
-                    dump_unused2("read_rowstyle", &evt)?;
+                    unused_event("read_rowstyle", &evt)?;
                 }
             }
         }
@@ -2720,7 +2685,7 @@ fn read_colstyle(
                 Event::Start(xml_tag) | Event::Empty(xml_tag) => match xml_tag.name().as_ref() {
                     b"style:table-column-properties" => copy_attr2(style.colstyle_mut(), xml_tag)?,
                     _ => {
-                        dump_unused2("read_colstyle", &evt)?;
+                        unused_event("read_colstyle", &evt)?;
                     }
                 },
                 Event::Text(_) => (),
@@ -2729,12 +2694,12 @@ fn read_colstyle(
                         book.add_colstyle(style);
                         break;
                     } else {
-                        dump_unused2("read_colstyle", &evt)?;
+                        unused_event("read_colstyle", &evt)?;
                     }
                 }
                 Event::Eof => break,
                 _ => {
-                    dump_unused2("read_colstyle", &evt)?;
+                    unused_event("read_colstyle", &evt)?;
                 }
             }
         }
@@ -2814,7 +2779,7 @@ fn read_cellstyle(
                 }
                 Event::Eof => break,
                 _ => {
-                    dump_unused2("read_cellstyle", &evt)?;
+                    unused_event("read_cellstyle", &evt)?;
                 }
             }
         }
@@ -2886,7 +2851,7 @@ fn read_paragraphstyle(
                 Event::Text(_) => (),
                 Event::Eof => break,
                 _ => {
-                    dump_unused2("read_paragraphstyle", &evt)?;
+                    unused_event("read_paragraphstyle", &evt)?;
                 }
             }
         }
@@ -2937,7 +2902,7 @@ fn read_textstyle(
                 Event::Text(_) => (),
                 Event::Eof => break,
                 _ => {
-                    dump_unused2("read_textstyle", &evt)?;
+                    unused_event("read_textstyle", &evt)?;
                 }
             }
         }
@@ -2988,7 +2953,7 @@ fn read_rubystyle(
                 Event::Text(_) => (),
                 Event::Eof => break,
                 _ => {
-                    dump_unused2("read_rubystyle", &evt)?;
+                    unused_event("read_rubystyle", &evt)?;
                 }
             }
         }
@@ -3059,7 +3024,7 @@ fn read_graphicstyle(
                 Event::Text(_) => (),
                 Event::Eof => break,
                 _ => {
-                    dump_unused2("read_graphicstyle", &evt)?;
+                    unused_event("read_graphicstyle", &evt)?;
                 }
             }
         }
@@ -3080,7 +3045,7 @@ fn read_valuestylemap(super_tag: &BytesStart<'_>) -> Result<ValueStyleMap, OdsEr
                 sm.set_applied_style(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused("read_stylemap", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_stylemap", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -3103,7 +3068,7 @@ fn read_stylemap(super_tag: &BytesStart<'_>) -> Result<StyleMap, OdsError> {
                 sm.set_base_cell(Some(parse_cellref(v.as_ref())?));
             }
             attr => {
-                dump_unused("read_stylemap", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_stylemap", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -3186,7 +3151,7 @@ fn read_ods_styles(
                 break;
             }
             _ => {
-                dump_unused2("read_styles", &evt)?;
+                unused_event("read_styles", &evt)?;
             }
         }
 
@@ -3317,7 +3282,7 @@ fn read_ods_metadata(
                 break;
             }
             _ => {
-                dump_unused2("read_ods_metadata", &evt)?;
+                unused_event("read_ods_metadata", &evt)?;
             }
         }
 
@@ -3497,7 +3462,7 @@ fn read_office_meta(
                 break;
             }
             _ => {
-                dump_unused2("read_metadata", &evt)?;
+                unused_event("read_metadata", &evt)?;
             }
         }
 
@@ -3530,7 +3495,7 @@ fn read_metadata_template(tag: &BytesStart<'_>) -> Result<MetaTemplate, OdsError
                 template.link_type = Some(parse_xlink_type(attr.unescape_value()?.as_bytes())?);
             }
             attr => {
-                dump_unused("read_metadata_template", tag.name().as_ref(), &attr)?;
+                unused_attr("read_metadata_template", tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -3559,7 +3524,7 @@ fn read_metadata_auto_reload(tag: &BytesStart<'_>) -> Result<MetaAutoReload, Ods
                 auto_reload.link_type = Some(parse_xlink_type(attr.unescape_value()?.as_bytes())?);
             }
             attr => {
-                dump_unused("read_metadata_auto_reload", tag.name().as_ref(), &attr)?;
+                unused_attr("read_metadata_auto_reload", tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -3582,7 +3547,7 @@ fn read_metadata_hyperlink_behaviour(
                     Some(parse_xlink_show(attr.unescape_value()?.as_bytes())?);
             }
             attr => {
-                dump_unused(
+                unused_attr(
                     "read_metadata_hyperlink_behaviour",
                     tag.name().as_ref(),
                     &attr,
@@ -3615,7 +3580,7 @@ fn read_metadata_document_statistics(
                 document_statistics.table_count = parse_u32(attr.unescape_value()?.as_bytes())?;
             }
             attr => {
-                dump_unused(
+                unused_attr(
                     "read_metadata_document_statistics",
                     tag.name().as_ref(),
                     &attr,
@@ -3649,7 +3614,7 @@ fn read_metadata_user_defined(
                 });
             }
             attr => {
-                dump_unused("read_meta_user_defined", tag.name().as_ref(), &attr)?;
+                unused_attr("read_meta_user_defined", tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -3680,7 +3645,7 @@ fn read_metadata_user_defined(
                 break;
             }
             _ => {
-                dump_unused2("read_meta_user_defined", &evt)?;
+                unused_event("read_meta_user_defined", &evt)?;
             }
         }
 
@@ -3718,7 +3683,7 @@ fn read_metadata_value<T>(
                 break;
             }
             _ => {
-                dump_unused2("read_metadata_value", &evt)?;
+                unused_event("read_metadata_value", &evt)?;
             }
         }
 
@@ -3758,7 +3723,7 @@ fn read_ods_settings(
                 break;
             }
             _ => {
-                dump_unused2("read_settings", &evt)?;
+                unused_event("read_settings", &evt)?;
             }
         }
 
@@ -3794,7 +3759,7 @@ fn read_office_settings(
             }
             Event::Eof => break,
             _ => {
-                dump_unused2("read_office_settings", &evt)?;
+                unused_event("read_office_settings", &evt)?;
             }
         }
 
@@ -3822,7 +3787,7 @@ fn read_config_item_set(
                 name = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused("read_config_item_set", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_config_item_set", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -3864,7 +3829,7 @@ fn read_config_item_set(
             }
             Event::Eof => break,
             _ => {
-                dump_unused2("read_config_item_set", &evt)?;
+                unused_event("read_config_item_set", &evt)?;
             }
         }
 
@@ -3890,7 +3855,7 @@ fn read_config_item_map_indexed(
                 name = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused(
+                unused_attr(
                     "read_config_item_map_indexed",
                     super_tag.name().as_ref(),
                     &attr,
@@ -3926,7 +3891,7 @@ fn read_config_item_map_indexed(
             }
             Event::Eof => break,
             _ => {
-                dump_unused2("read_config_item_map_indexed", &evt)?;
+                unused_event("read_config_item_map_indexed", &evt)?;
             }
         }
 
@@ -3952,7 +3917,7 @@ fn read_config_item_map_named(
                 name = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused(
+                unused_attr(
                     "read_config_item_map_named",
                     super_tag.name().as_ref(),
                     &attr,
@@ -3994,7 +3959,7 @@ fn read_config_item_map_named(
             }
             Event::Eof => break,
             _ => {
-                dump_unused2("read_config_item_map_named", &evt)?;
+                unused_event("read_config_item_map_named", &evt)?;
             }
         }
 
@@ -4020,7 +3985,7 @@ fn read_config_item_map_entry(
                 name = Some(attr.unescape_value()?.to_string());
             }
             attr => {
-                dump_unused(
+                unused_attr(
                     "read_config_item_map_entry",
                     super_tag.name().as_ref(),
                     &attr,
@@ -4064,7 +4029,7 @@ fn read_config_item_map_entry(
 
             Event::Eof => break,
             _ => {
-                dump_unused2("read_config_item_map_entry", &evt)?;
+                unused_event("read_config_item_map_entry", &evt)?;
             }
         }
 
@@ -4122,7 +4087,7 @@ fn read_config_item(
                 };
             }
             attr => {
-                dump_unused("read_config_item", super_tag.name().as_ref(), &attr)?;
+                unused_attr("read_config_item", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
@@ -4186,7 +4151,7 @@ fn read_config_item(
                 break;
             }
             _ => {
-                dump_unused2("read_config_item", &evt)?;
+                unused_event("read_config_item", &evt)?;
             }
         }
 
@@ -4275,7 +4240,7 @@ fn read_xml(
                 }
 
                 _ => {
-                    dump_unused2("read_xml", &evt)?;
+                    unused_event("read_xml", &evt)?;
                 }
             }
             buf.clear();
@@ -4293,9 +4258,9 @@ fn read_text_or_tag(
     super_tag: &BytesStart<'_>,
     empty_tag: bool,
     xml: &mut OdsXmlReader<'_>,
-) -> Result<TextContent2, OdsError> {
+) -> Result<TextContent, OdsError> {
     let mut stack = Vec::new();
-    let mut cellcontent = TextContent2::Empty;
+    let mut cellcontent = TextContent::Empty;
 
     // The toplevel element is passed in with the xml_tag.
     // It is only created if there are further xml tags in the
@@ -4320,16 +4285,16 @@ fn read_text_or_tag(
             match &evt {
                 Event::Start(xmlbytes) => {
                     match cellcontent {
-                        TextContent2::Empty => {
+                        TextContent::Empty => {
                             stack.push(create_toplevel(None)?);
                         }
-                        TextContent2::Text(old_txt) => {
+                        TextContent::Text(old_txt) => {
                             stack.push(create_toplevel(Some(old_txt))?);
                         }
-                        TextContent2::Xml(parent) => {
+                        TextContent::Xml(parent) => {
                             stack.push(parent);
                         }
-                        TextContent2::XmlVec(_) => {
+                        TextContent::XmlVec(_) => {
                             unreachable!()
                         }
                     }
@@ -4337,20 +4302,20 @@ fn read_text_or_tag(
                     // Set the new tag.
                     let mut new_tag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
                     copy_attr2(new_tag.attrmap_mut(), xmlbytes)?;
-                    cellcontent = TextContent2::Xml(new_tag)
+                    cellcontent = TextContent::Xml(new_tag)
                 }
                 Event::Empty(xmlbytes) => {
                     match cellcontent {
-                        TextContent2::Empty => {
+                        TextContent::Empty => {
                             stack.push(create_toplevel(None)?);
                         }
-                        TextContent2::Text(txt) => {
+                        TextContent::Text(txt) => {
                             stack.push(create_toplevel(Some(txt))?);
                         }
-                        TextContent2::Xml(parent) => {
+                        TextContent::Xml(parent) => {
                             stack.push(parent);
                         }
-                        TextContent2::XmlVec(_) => {
+                        TextContent::XmlVec(_) => {
                             unreachable!()
                         }
                     }
@@ -4361,7 +4326,7 @@ fn read_text_or_tag(
                         copy_attr2(emptytag.attrmap_mut(), xmlbytes)?;
                         parent.add_tag(emptytag);
 
-                        cellcontent = TextContent2::Xml(parent);
+                        cellcontent = TextContent::Xml(parent);
                     } else {
                         unreachable!()
                     }
@@ -4370,21 +4335,21 @@ fn read_text_or_tag(
                     let v = xmlbytes.unescape()?;
 
                     cellcontent = match cellcontent {
-                        TextContent2::Empty => {
+                        TextContent::Empty => {
                             // Fresh plain text string.
-                            TextContent2::Text(v.to_string())
+                            TextContent::Text(v.to_string())
                         }
-                        TextContent2::Text(mut old_txt) => {
+                        TextContent::Text(mut old_txt) => {
                             // We have a previous plain text string. Append to it.
                             old_txt.push_str(&v);
-                            TextContent2::Text(old_txt)
+                            TextContent::Text(old_txt)
                         }
-                        TextContent2::Xml(mut xml) => {
+                        TextContent::Xml(mut xml) => {
                             // There is already a tag. Append the text to its children.
                             xml.add_text(v);
-                            TextContent2::Xml(xml)
+                            TextContent::Xml(xml)
                         }
-                        TextContent2::XmlVec(_) => {
+                        TextContent::XmlVec(_) => {
                             unreachable!()
                         }
                     };
@@ -4401,16 +4366,16 @@ fn read_text_or_tag(
                 }
                 Event::End(xmlbytes) => {
                     cellcontent = match cellcontent {
-                        TextContent2::Empty | TextContent2::Text(_) => {
+                        TextContent::Empty | TextContent::Text(_) => {
                             return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
                                 "XML corrupted. Endtag {} occured without start tag",
                                 from_utf8(xmlbytes.name().as_ref())?
                             ))));
                         }
-                        TextContent2::Xml(tag) => {
+                        TextContent::Xml(tag) => {
                             if let Some(mut parent) = stack.pop() {
                                 parent.add_tag(tag);
-                                TextContent2::Xml(parent)
+                                TextContent::Xml(parent)
                             } else {
                                 return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
                                     format!(
@@ -4420,7 +4385,7 @@ fn read_text_or_tag(
                                 )));
                             }
                         }
-                        TextContent2::XmlVec(_) => {
+                        TextContent::XmlVec(_) => {
                             unreachable!()
                         }
                     }
@@ -4431,7 +4396,7 @@ fn read_text_or_tag(
                 }
 
                 _ => {
-                    dump_unused2("read_text_or_tag", &evt)?;
+                    unused_event("read_text_or_tag", &evt)?;
                 }
             }
         }
@@ -4486,7 +4451,7 @@ where
                 }
 
                 _ => {
-                    dump_unused2("read_text", &evt)?;
+                    unused_event("read_text", &evt)?;
                 }
             }
         }
@@ -4497,7 +4462,7 @@ where
 }
 
 #[inline(always)]
-fn dump_unused(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsError> {
+fn unused_attr(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsError> {
     if DUMP_UNUSED {
         let tag = from_utf8(tag)?;
         let key = from_utf8(attr.key.as_ref())?;
@@ -4508,7 +4473,7 @@ fn dump_unused(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsEr
 }
 
 #[inline(always)]
-fn dump_unused2(func: &str, evt: &Event<'_>) -> Result<(), OdsError> {
+fn unused_event(func: &str, evt: &Event<'_>) -> Result<(), OdsError> {
     if DUMP_UNUSED {
         match &evt {
             Event::Text(text) => {
