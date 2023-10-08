@@ -3127,20 +3127,12 @@ fn read_graphicstyle(
                 Event::Start(xml_tag) | Event::Empty(xml_tag)
                     if xml_tag.name().as_ref() == b"style:paragraph-properties" =>
                 {
-                    // todo:
-                }
-                Event::End(xml_tag) if xml_tag.name().as_ref() == b"style:paragraph-properties" => {
-                    // todo:
+                    copy_attr2(style.paragraphstyle_mut(), xml_tag)?;
                 }
                 Event::Start(xml_tag) | Event::Empty(xml_tag)
                     if xml_tag.name().as_ref() == b"style:text-properties" =>
                 {
-                    // todo:
-                }
-                Event::Start(xml_tag) | Event::Empty(xml_tag)
-                    if xml_tag.name().as_ref() == b"style:tab-stops" =>
-                {
-                    // todo:
+                    copy_attr2(style.textstyle_mut(), xml_tag)?;
                 }
 
                 Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {

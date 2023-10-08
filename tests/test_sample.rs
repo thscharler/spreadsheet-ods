@@ -35,7 +35,11 @@ fn test_samples() -> Result<(), OdsError> {
                     println!("{:?}", ff);
 
                     let mut xdur = Duration::new(0, 0);
-                    let _wb = timingr("read_ods", || read_ods(&ff), &mut xdur)?;
+                    let _wb = timingr(
+                        format!("read {:?} {}", ff, f.metadata()?.len()).as_str(),
+                        || read_ods(&ff),
+                        &mut xdur,
+                    )?;
 
                     dur += xdur;
                     count += 1;
@@ -54,28 +58,29 @@ fn test_samples() -> Result<(), OdsError> {
     Ok(())
 }
 
-// #[test]
-// fn test_sample() -> Result<(), OdsError> {
-//     let sample = "12_322_20220607112222.ods";
-//     let path = Path::new("..\\spreadsheet-ods-samples\\");
-//
-//     let mut dur = Duration::new(0, 0);
-//
-//     let ff = path.join(sample);
-//
-//     println!();
-//     println!("{:?}", ff);
-//
-//     let mut xdur = Duration::new(0, 0);
-//     let wb = timingr("read_ods", || read_ods(&ff), &mut xdur)?;
-//     dur += xdur;
-//
-//     for v in wb.iter_rubystyles() {
-//         dbg!(v);
-//     }
-//
-//     println!();
-//     println!("dur {}ms", dur.as_nanos() as f64 / 1e6,);
-//
-//     Ok(())
-// }
+#[test]
+fn test_sample() -> Result<(), OdsError> {
+    let path = Path::new("..\\spreadsheet-ods-samples\\");
+
+    let sample = "108_BasicChange.ods";
+
+    let mut dur = Duration::new(0, 0);
+
+    let ff = path.join(sample);
+
+    println!();
+    println!("{:?}", ff);
+
+    let mut xdur = Duration::new(0, 0);
+    let wb = timingr(
+        format!("read {:?} {}", ff, ff.metadata()?.len()).as_str(),
+        || read_ods(&ff),
+        &mut xdur,
+    )?;
+    dur += xdur;
+
+    println!();
+    println!("dur {}ms", dur.as_nanos() as f64 / 1e6,);
+
+    Ok(())
+}

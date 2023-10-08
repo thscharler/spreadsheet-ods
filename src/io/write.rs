@@ -2493,6 +2493,18 @@ fn write_graphicstyle(
             xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
+    if !style.paragraphstyle().is_empty() {
+        xml_out.empty("style:paragraph-properties")?;
+        for (a, v) in style.paragraphstyle().iter() {
+            xml_out.attr_esc(a.as_ref(), v)?;
+        }
+    }
+    if !style.textstyle().is_empty() {
+        xml_out.empty("style:text-properties")?;
+        for (a, v) in style.textstyle().iter() {
+            xml_out.attr_esc(a.as_ref(), v)?;
+        }
+    }
 
     if style.styleuse() == StyleUse::Default {
         xml_out.end_elem("style:default-style")?;
