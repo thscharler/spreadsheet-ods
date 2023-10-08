@@ -190,7 +190,7 @@ pub use crate::format::{
     ValueFormatPercentage, ValueFormatRef, ValueFormatText, ValueFormatTimeDuration,
 };
 pub use crate::io::read::{
-    read_fods, read_fods_buf, read_fods_from, read_ods, read_ods_buf, read_ods_from,
+    read_fods, read_fods_buf, read_fods_from, read_ods, read_ods_buf, read_ods_from, OdsOptions,
 };
 pub use crate::io::write::{
     write_fods, write_fods_buf, write_fods_to, write_ods, write_ods_buf,

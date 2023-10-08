@@ -49,62 +49,81 @@ use zip::read::ZipFile;
 
 type OdsXmlReader<'a> = quick_xml::Reader<&'a mut dyn BufRead>;
 
+#[derive(Default, Debug)]
+pub struct OdsOptions {
+    // parse the content only.
+    content_only: bool,
+}
+
+impl OdsOptions {
+    /// Parse the content only. Doesn't buffer any extra files and ignores styles etc.
+    /// Shaves off some time and memory if only the data is required.
+    pub fn content_only(mut self) -> Self {
+        self.content_only = true;
+        self
+    }
+
+    /// Reads a .ods file.
+    pub fn read_ods<T: Read + Seek>(self, read: T) -> Result<WorkBook, OdsError> {
+        let zip = ZipArchive::new(read)?;
+        if self.content_only {
+            read_ods_impl_content_only(zip)
+        } else {
+            read_ods_impl(zip)
+        }
+    }
+
+    /// Reads a flat .fods file.
+    pub fn read_fods<T: BufRead>(self, mut read: T) -> Result<WorkBook, OdsError> {
+        if self.content_only {
+            read_fods_impl_content_only(&mut read)
+        } else {
+            read_fods_impl(&mut read)
+        }
+    }
+}
+
 /// Reads an ODS-file from a buffer
 pub fn read_ods_buf(buf: &[u8]) -> Result<WorkBook, OdsError> {
-    let zip = ZipArchive::new(Cursor::new(buf))?;
-    read_ods_impl(zip)
+    let read = Cursor::new(buf);
+    OdsOptions::default().read_ods(read)
 }
 
 /// Reads an ODS-file from a reader
 pub fn read_ods_from<T: Read + Seek>(read: T) -> Result<WorkBook, OdsError> {
-    let zip = ZipArchive::new(read)?;
-    read_ods_impl(zip)
+    OdsOptions::default().read_ods(read)
 }
 
 /// Reads an ODS-file.
 pub fn read_ods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
     let read = BufReader::new(File::open(path.as_ref())?);
-    let zip = ZipArchive::new(read)?;
-    read_ods_impl(zip)
+    OdsOptions::default().read_ods(read)
 }
 
 /// Reads an FODS-file from a buffer
 pub fn read_fods_buf(buf: &[u8]) -> Result<WorkBook, OdsError> {
     let mut read = Cursor::new(buf);
-    read_fods_impl(&mut read)
+    OdsOptions::default().read_fods(&mut read)
 }
 
 /// Reads an FODS-file from a reader
 pub fn read_fods_from<T: Read>(read: T) -> Result<WorkBook, OdsError> {
     let read = BufReader::new(read);
-    read_fods_impl(read)
+    OdsOptions::default().read_fods(read)
 }
 
 /// Reads an FODS-file.
 pub fn read_fods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
-    let mut read = BufReader::new(File::open(path.as_ref())?);
-    read_fods_impl(&mut read)
+    let read = BufReader::new(File::open(path.as_ref())?);
+    OdsOptions::default().read_fods(read)
 }
 
-/// Reads an ODS-file.
-fn read_fods_impl<R: BufRead>(mut read: R) -> Result<WorkBook, OdsError> {
+fn read_fods_impl(read: &mut dyn BufRead) -> Result<WorkBook, OdsError> {
     let mut book = WorkBook::new_empty();
-    let mut bufstack = BufStack::new();
+    let mut bs = BufStack::new();
+    let mut xml: quick_xml::Reader<&mut dyn BufRead> = quick_xml::Reader::from_reader(read);
 
-    let mut xml: quick_xml::Reader<&mut dyn BufRead> = quick_xml::Reader::from_reader(&mut read);
-
-    read_fods_content(&mut bufstack, &mut book, &mut xml)?;
-
-    Ok(book)
-}
-
-fn read_fods_content(
-    bs: &mut BufStack,
-    book: &mut WorkBook,
-    xml: &mut OdsXmlReader<'_>,
-) -> Result<(), OdsError> {
     let mut buf = bs.pop();
-
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -122,28 +141,28 @@ fn read_fods_content(
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document" => {}
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:meta" => {
-                read_office_meta(bs, book, xml)?;
+                read_office_meta(&mut bs, &mut book, &mut xml)?;
             }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:settings" => {
-                read_office_settings(bs, book, xml)?;
+                read_office_settings(&mut bs, &mut book, &mut xml)?;
             }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:scripts" => {
-                read_scripts(bs, book, xml)?
+                read_scripts(&mut bs, &mut book, &mut xml)?
             }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:font-face-decls" => {
-                read_office_font_face_decls(bs, book, StyleOrigin::Content, xml)?
+                read_office_font_face_decls(&mut bs, &mut book, StyleOrigin::Content, &mut xml)?
             }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:styles" => {
-                read_office_styles(bs, book, StyleOrigin::Content, xml)?
+                read_office_styles(&mut bs, &mut book, StyleOrigin::Content, &mut xml)?
             }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:automatic-styles" => {
-                read_office_automatic_styles(bs, book, StyleOrigin::Content, xml)?
+                read_office_automatic_styles(&mut bs, &mut book, StyleOrigin::Content, &mut xml)?
             }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:master-styles" => {
-                read_office_master_styles(bs, book, StyleOrigin::Content, xml)?
+                read_office_master_styles(&mut bs, &mut book, StyleOrigin::Content, &mut xml)?
             }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:body" => {
-                read_office_body(bs, book, xml)?;
+                read_office_body(&mut bs, &mut book, &mut xml)?;
             }
 
             Event::Decl(_) => {}
@@ -155,9 +174,39 @@ fn read_fods_content(
             }
         }
     }
-
     bs.push(buf);
-    Ok(())
+
+    Ok(book)
+}
+
+fn read_fods_impl_content_only(read: &mut dyn BufRead) -> Result<WorkBook, OdsError> {
+    let mut book = WorkBook::new_empty();
+    let mut bufstack = BufStack::new();
+
+    let mut xml: quick_xml::Reader<&mut dyn BufRead> = quick_xml::Reader::from_reader(read);
+
+    let mut buf = bufstack.pop();
+    loop {
+        let evt = xml.read_event_into(&mut buf)?;
+        if DUMP_XML {
+            println!("read_fods_content_only {:?}", evt);
+        }
+
+        match &evt {
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:body" => {
+                read_office_body(&mut bufstack, &mut book, &mut xml)?;
+            }
+            Event::Eof => {
+                break;
+            }
+            _ => {
+                // a lot is ignored.
+            }
+        }
+    }
+    bufstack.push(buf);
+
+    Ok(book)
 }
 
 /// Reads an ODS-file.
@@ -172,8 +221,6 @@ fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, Ods
         let read: &mut dyn BufRead = &mut read;
         let mut xml = quick_xml::Reader::from_reader(read);
         read_ods_metadata(&mut bufstack, &mut book, &mut xml)?;
-    } else {
-        book.metadata = Default::default();
     }
 
     if let Ok(z) = zip.by_name("settings.xml") {
@@ -181,12 +228,10 @@ fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, Ods
         let read: &mut dyn BufRead = &mut read;
         let mut xml = quick_xml::Reader::from_reader(read);
         read_ods_settings(&mut bufstack, &mut book, &mut xml)?;
-    } else {
-        book.config = default_settings();
     }
 
-    {
-        let mut read = BufReader::new(zip.by_name("styles.xml")?);
+    if let Ok(z) = zip.by_name("styles.xml") {
+        let mut read = BufReader::new(z);
         let read: &mut dyn BufRead = &mut read;
         let mut xml = quick_xml::Reader::from_reader(read);
         read_ods_styles(&mut bufstack, &mut book, &mut xml)?;
@@ -205,6 +250,24 @@ fn read_ods_impl<R: Read + Seek>(mut zip: ZipArchive<R>) -> Result<WorkBook, Ods
     Ok(book)
 }
 
+/// Reads an ODS-file.
+fn read_ods_impl_content_only<R: Read + Seek>(
+    mut zip: ZipArchive<R>,
+) -> Result<WorkBook, OdsError> {
+    let mut book = WorkBook::new_empty();
+    let mut bufstack = BufStack::new();
+
+    let mut read = BufReader::new(zip.by_name("content.xml")?);
+    let read: &mut dyn BufRead = &mut read;
+    let mut xml = quick_xml::Reader::from_reader(read);
+    read_ods_content(&mut bufstack, &mut book, &mut xml)?;
+
+    // We do some data duplication here, to make everything easier to use.
+    // not needed: calc_derived(&mut book)?;
+
+    Ok(book)
+}
+
 fn read_ods_manifest<R: Read + Seek>(
     bs: &mut BufStack,
     book: &mut WorkBook,
@@ -217,12 +280,11 @@ fn read_ods_manifest<R: Read + Seek>(
     }
 
     // now the data if needed ...
-    for manifest in book.manifest.values_mut() {
+    for manifest in book.manifest.values_mut().filter(|v| !v.is_dir()) {
         if !matches!(
             manifest.full_path.as_str(),
             "/" | "settings.xml" | "styles.xml" | "content.xml" | "meta.xml"
-        ) && !manifest.is_dir()
-        {
+        ) {
             let mut ze = zip.by_name(manifest.full_path.as_str())?;
             let mut buf = Vec::new();
             ze.read_to_end(&mut buf)?;
