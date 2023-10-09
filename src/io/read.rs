@@ -49,6 +49,7 @@ use zip::read::ZipFile;
 
 type OdsXmlReader<'a> = quick_xml::Reader<&'a mut dyn BufRead>;
 
+/// Read options for ods-files.
 #[derive(Default, Debug)]
 pub struct OdsOptions {
     // parse the content only.
@@ -1005,7 +1006,7 @@ fn read_table_cell(
     xml: &mut OdsXmlReader<'_>,
 ) -> Result<u32, OdsError> {
     let mut cell = None;
-    let mut cell_repeat = 1;
+    let mut repeat = 1;
 
     let mut tc = ReadTableCell {
         val_type: ValueType::Empty,
@@ -1021,7 +1022,7 @@ fn read_table_cell(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"table:number-columns-repeated" => {
-                cell_repeat = parse_u32(&attr.value)?;
+                repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key.as_ref() == b"table:number-rows-spanned" => {
                 let row_span = parse_u32(&attr.value)?;
@@ -1170,17 +1171,12 @@ fn read_table_cell(
     }
 
     if let Some(mut cell) = cell {
+        cell.repeat = repeat;
         parse_value(tc, &mut cell)?;
-
-        while cell_repeat > 1 {
-            sheet.add_cell_data(row, col, cell.clone());
-            col += 1;
-            cell_repeat -= 1;
-        }
         sheet.add_cell_data(row, col, cell);
-        col += 1;
+        col += repeat;
     } else {
-        col += cell_repeat;
+        col += repeat;
     }
 
     Ok(col)

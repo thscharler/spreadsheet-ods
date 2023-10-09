@@ -53,6 +53,6 @@ version = "0.4"
 default-features = false
 features = ["clock", "alloc"]
 
-[profile.test]
-opt-level = 3
-debug = 1
+#[profile.test]
+#opt-level = 3
+#debug = 1

@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 use std::fs::File;
-use std::io;
 use std::io::{BufWriter, Cursor, Seek, Write};
 use std::path::Path;
+use std::{io, mem};
 use zip::{CompressionMethod, ZipWriter};
 
 use zip::write::FileOptions;
@@ -1372,17 +1372,105 @@ fn write_content_validations(
     Ok(())
 }
 
-/// Is the cell hidden, and if yes how many more columns are hit.
-fn check_hidden(ranges: &[CellRange], row: u32, col: u32) -> (bool, u32) {
-    if let Some(found) = ranges.iter().find(|s| s.contains(row, col)) {
-        (true, found.to_col() - col)
+#[derive(Debug)]
+struct SplitCols {
+    col: u32,
+    col_to: u32,
+    hidden: bool,
+}
+
+impl SplitCols {
+    fn repeat(&self) -> u32 {
+        self.col_to - self.col + 1
+    }
+}
+
+/// Is the cell (partially) hidden?
+fn split_hidden(ranges: &[CellRange], row: u32, col: u32, repeat: u32, out: &mut Vec<SplitCols>) {
+    out.clear();
+    if repeat == 1 {
+        if ranges.iter().find(|v| v.contains(row, col)).is_some() {
+            let range = SplitCols {
+                col,
+                col_to: col,
+                hidden: true,
+            };
+            out.push(range);
+        } else {
+            let range = SplitCols {
+                col,
+                col_to: col,
+                hidden: false,
+            };
+            out.push(range);
+        }
     } else {
-        (false, 0)
+        let ranges: Vec<_> = ranges
+            .iter()
+            .filter(|v| row >= v.row() && row <= v.to_row())
+            .collect();
+
+        let mut range: Option<SplitCols> = None;
+        'col_loop: for c in col..col + repeat {
+            for r in &ranges {
+                if c >= r.col() && c <= r.to_col() {
+                    if let Some(range) = &mut range {
+                        if range.hidden {
+                            range.col_to = c;
+                        } else {
+                            let v = mem::replace(
+                                range,
+                                SplitCols {
+                                    col: c,
+                                    col_to: c,
+                                    hidden: true,
+                                },
+                            );
+                            out.push(v);
+                        }
+                    } else {
+                        range.replace(SplitCols {
+                            col: c,
+                            col_to: c,
+                            hidden: true,
+                        });
+                    }
+
+                    continue 'col_loop;
+                }
+            }
+            // not hidden
+            if let Some(range) = &mut range {
+                if range.hidden {
+                    let v = mem::replace(
+                        range,
+                        SplitCols {
+                            col: c,
+                            col_to: c,
+                            hidden: false,
+                        },
+                    );
+                    out.push(v);
+                } else {
+                    range.col_to = c;
+                }
+            } else {
+                range.replace(SplitCols {
+                    col: c,
+                    col_to: c,
+                    hidden: false,
+                });
+            }
+        }
+
+        if let Some(range) = range {
+            out.push(range);
+        }
     }
 }
 
 /// Removes any outlived Ranges from the vector.
-fn remove_outlooped(ranges: &mut Vec<CellRange>, row: u32, col: u32) {
+fn remove_outlived(ranges: &mut Vec<CellRange>, row: u32, col: u32) {
     *ranges = ranges
         .drain(..)
         .filter(|s| !s.out_looped(row, col))
@@ -1428,6 +1516,7 @@ fn write_sheet(
 
     // list of current spans
     let mut spans = Vec::<CellRange>::new();
+    let mut split = Vec::<SplitCols>::new();
 
     // table-row + table-cell
     let mut first_cell = true;
@@ -1444,6 +1533,8 @@ fn write_sheet(
         } else {
             1
         };
+        // Cell repeat count.
+        let cur_col_repeat = *cell.repeat;
 
         // There may be a lot of gaps of any kind in our data.
         // In the XML format there is no cell identification, every gap
@@ -1463,7 +1554,7 @@ fn write_sheet(
         let forward_delta_row = next_row - cur_row;
         // Column deltas are only relevant in the same row, but we need to
         // fill up to max used columns.
-        let forward_delta_col = if forward_delta_row >= 1 {
+        let forward_delta_col = if forward_delta_row > 0 {
             max_cell.1 - cur_col
         } else {
             next_col - cur_col
@@ -1472,7 +1563,7 @@ fn write_sheet(
         // Looking backward row-wise.
         let backward_delta_row = cur_row - prev_row;
         // When a row changes our delta is from zero to cur_col.
-        let backward_delta_col = if backward_delta_row >= 1 {
+        let backward_delta_col = if backward_delta_row > 0 {
             cur_col
         } else {
             cur_col - prev_col
@@ -1492,21 +1583,28 @@ fn write_sheet(
 
         // Any empty rows before this one?
         if backward_delta_row > 0 {
+            if backward_delta_row < prev_row_repeat {
+                return Err(OdsError::Ods(format!(
+                    "{}: row-repeat of {} for row {} overlaps with the following row.",
+                    sheet.name, prev_row_repeat, prev_row,
+                )));
+            }
+
             // The repeat counter for the empty rows before is reduced by the last
             // real repeat.
-            let mut synth_row_repeat = backward_delta_row as i32 - prev_row_repeat as i32;
+            let mut synth_row_repeat = backward_delta_row - prev_row_repeat;
             // At the very beginning last row is 0. But nothing has been written for it.
             // To account for this we add one repeat.
             if first_cell {
                 synth_row_repeat += 1;
             }
-            let synth_row = cur_row as i32 - synth_row_repeat;
+            let synth_row = cur_row - synth_row_repeat;
 
             if synth_row_repeat > 0 {
                 write_empty_rows_before(
                     sheet,
-                    synth_row as u32,
-                    synth_row_repeat as u32,
+                    synth_row,
+                    synth_row_repeat,
                     max_cell,
                     &mut row_group_count,
                     xml_out,
@@ -1528,31 +1626,85 @@ fn write_sheet(
         }
 
         // Remove no longer usefull cell-spans.
-        remove_outlooped(&mut spans, cur_row, cur_col);
+        remove_outlived(&mut spans, cur_row, cur_col);
 
-        // Current cell is hidden?
-        let (is_hidden, hidden_cols) = check_hidden(&spans, cur_row, cur_col);
+        // Split the current cell in visible/hidden ranges.
+        split_hidden(&spans, cur_row, cur_col, cur_col_repeat, &mut split);
+
+        // Maybe span, only if visible. That nicely eliminates all double hides.
+        // Only check for the start cell in case of repeat.
+        if let Some(span) = cell.span {
+            if !split[0].hidden && (span.row_span > 1 || span.col_span > 1) {
+                spans.push(CellRange::origin_span(cur_row, cur_col, span.into()));
+            }
+        }
 
         // And now to something completely different ...
-        write_cell(book, &cell, is_hidden, xml_out)?;
+        for s in &split {
+            write_cell(book, &cell, s.hidden, s.repeat(), xml_out)?;
+        }
 
-        // There may be some blank cells until the next one, but only one less the forward.
-        if forward_delta_col > 1 {
-            write_empty_cells(forward_delta_col, hidden_cols, xml_out)?;
+        // There may be some blank cells until the next one.
+        if forward_delta_row > 0 {
+            // Write empty cells to fill up to the max used column.
+            // If there is some overlap with repeat, it can be ignored.
+            let synth_delta_col = forward_delta_col.saturating_sub(cur_col_repeat);
+            if synth_delta_col > 0 {
+                split_hidden(
+                    &spans,
+                    cur_row,
+                    cur_col + cur_col_repeat,
+                    synth_delta_col,
+                    &mut split,
+                );
+                dbg!(
+                    &spans,
+                    cur_row,
+                    cur_col,
+                    cur_col_repeat,
+                    synth_delta_col,
+                    &split
+                );
+                for s in &split {
+                    write_empty_cells(s.hidden, s.repeat(), xml_out)?;
+                }
+            }
+        } else if forward_delta_col > 0 {
+            // Write empty cells unto the next cell with data.
+            // Fail on overlap with repeat.
+            if forward_delta_col < cur_col_repeat {
+                return Err(OdsError::Ods(format!(
+                    "{}: col-repeat of {} for row/col {}/{} overlaps with the following cell.",
+                    sheet.name, cur_col_repeat, cur_row, cur_col,
+                )));
+            }
+            let synth_delta_col = forward_delta_col - cur_col_repeat;
+            if synth_delta_col > 0 {
+                split_hidden(
+                    &spans,
+                    cur_row,
+                    cur_col + cur_col_repeat,
+                    synth_delta_col,
+                    &mut split,
+                );
+                dbg!(
+                    &spans,
+                    cur_row,
+                    cur_col,
+                    cur_col_repeat,
+                    synth_delta_col,
+                    &split
+                );
+                for s in &split {
+                    write_empty_cells(s.hidden, s.repeat(), xml_out)?;
+                }
+            }
         }
 
         // The last cell we will write? We can close the last row here,
         // where we have all the data.
         if is_last_cell {
             write_end_last_row(&mut row_group_count, xml_out)?;
-        }
-
-        // maybe span. only if visible, that nicely eliminates all
-        // double hides.
-        if let Some(span) = cell.span {
-            if !is_hidden && (span.row_span > 1 || span.col_span > 1) {
-                spans.push(CellRange::origin_span(cur_row, cur_col, span.into()));
-            }
         }
 
         first_cell = false;
@@ -1573,26 +1725,17 @@ fn write_sheet(
 }
 
 fn write_empty_cells(
-    mut forward_delta_col: u32,
-    hidden_cols: u32,
+    hidden: bool,
+    repeat: u32,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
-    // split between hidden and regular cells.
-    if hidden_cols >= forward_delta_col {
-        xml_out.empty("covered-table-cell")?;
-        xml_out.attr("table:number-columns-repeated", &(forward_delta_col - 1))?;
-
-        forward_delta_col = 0;
-    } else if hidden_cols > 0 {
-        xml_out.empty("covered-table-cell")?;
-        xml_out.attr("table:number-columns-repeated", &hidden_cols)?;
-
-        forward_delta_col -= hidden_cols;
-    }
-
-    if forward_delta_col > 0 {
+    if hidden {
+        xml_out.empty("table:covered-table-cell")?;
+    } else {
         xml_out.empty("table:table-cell")?;
-        xml_out.attr("table:number-columns-repeated", &(forward_delta_col - 1))?;
+    }
+    if repeat > 1 {
+        xml_out.attr("table:number-columns-repeated", &repeat)?;
     }
 
     Ok(())
@@ -1646,7 +1789,9 @@ fn write_start_current_row(
     // Might not be the first column in this row.
     if backward_delta_col > 0 {
         xml_out.empty("table:table-cell")?;
-        xml_out.attr_esc("table:number-columns-repeated", &backward_delta_col)?;
+        if backward_delta_col > 1 {
+            xml_out.attr_esc("table:number-columns-repeated", &backward_delta_col)?;
+        }
     }
 
     Ok(())
@@ -1805,6 +1950,7 @@ fn write_cell(
     book: &WorkBook,
     cell: &CellContentRef<'_>,
     is_hidden: bool,
+    repeat: u32,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     let tag = if is_hidden {
@@ -1825,6 +1971,10 @@ fn write_cell(
 
     if let Some(formula) = cell.formula {
         xml_out.attr_esc("table:formula", formula)?;
+    }
+
+    if repeat > 1 {
+        xml_out.attr_esc("table:number-columns-repeated", &repeat)?;
     }
 
     // Direct style oder value based default style.

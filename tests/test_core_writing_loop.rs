@@ -102,3 +102,80 @@ fn test_write_gap_repeat() -> Result<(), OdsError> {
 
     Ok(())
 }
+
+#[test]
+#[should_panic]
+fn test_write_row_overlap() -> () {
+    let mut wb = WorkBook::new_empty();
+
+    let mut sh = Sheet::new("Sheet1");
+    sh.set_value(2, 0, 1);
+    sh.set_row_repeat(2, 2);
+    sh.set_value(3, 0, 1);
+    wb.push_sheet(sh);
+
+    let _ = write_ods(&mut wb, "test_out/simple5.ods").unwrap();
+}
+
+#[test]
+#[should_panic]
+fn test_write_col_overlap() -> () {
+    let mut wb = WorkBook::new_empty();
+
+    let mut sh = Sheet::new("Sheet1");
+    sh.set_value(3, 0, 100);
+    sh.set_col_repeat(3, 0, 5);
+    sh.set_value(3, 4, 101);
+    wb.push_sheet(sh);
+
+    let _ = write_ods(&mut wb, "test_out/simple6.ods").unwrap();
+}
+
+#[test]
+fn test_write_repeat() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new_empty();
+
+    let mut sh = Sheet::new("Sheet1");
+
+    sh.set_value(9, 9, "X");
+
+    sh.set_value(2, 0, 100);
+    sh.set_col_repeat(2, 0, 5);
+
+    sh.set_value(3, 0, 100);
+    sh.set_col_repeat(3, 0, 20);
+
+    sh.set_value(4, 0, 100);
+    sh.set_col_repeat(4, 0, 5);
+    sh.set_value(4, 5, 101);
+
+    sh.set_value(5, 1, "V");
+    sh.set_col_span(5, 1, 2);
+    sh.set_row_span(5, 1, 2);
+
+    sh.set_value(6, 0, 100);
+    sh.set_col_repeat(6, 0, 5);
+    sh.set_value(6, 5, 101);
+
+    wb.push_sheet(sh);
+
+    write_ods(&mut wb, "test_out/col_repeat.ods")?;
+
+    let wb = read_ods("test_out/col_repeat.ods")?;
+    let sh = wb.sheet(0);
+
+    assert_eq!(sh.value(9, 9).as_str_or(""), "X");
+    assert_eq!(sh.value(2, 0).as_u32_or(0), 100);
+    assert_eq!(sh.col_repeat(2, 0), 5);
+    assert_eq!(sh.value(4, 5).as_u32_or(0), 101);
+    assert_eq!(sh.value(6, 0).as_u32_or(0), 100);
+    assert_eq!(sh.col_repeat(6, 0), 1);
+    assert_eq!(sh.value(6, 1).as_u32_or(0), 100);
+    assert_eq!(sh.col_repeat(6, 1), 2);
+    assert_eq!(sh.value(6, 3).as_u32_or(0), 100);
+    assert_eq!(sh.col_repeat(6, 3), 2);
+    assert_eq!(sh.value(6, 5).as_u32_or(0), 101);
+    assert_eq!(sh.col_repeat(6, 5), 1);
+
+    Ok(())
+}

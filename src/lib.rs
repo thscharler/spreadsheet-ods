@@ -2306,6 +2306,24 @@ impl Sheet {
         }
     }
 
+    /// Sets a repeat counter for the cell.
+    pub fn set_col_repeat(&mut self, row: u32, col: u32, repeat: u32) {
+        let cell = self
+            .data
+            .entry((row, col))
+            .or_insert_with(CellData::default);
+        cell.repeat = repeat;
+    }
+
+    /// Returns the repeat counter for the cell.
+    pub fn col_repeat(&self, row: u32, col: u32) -> u32 {
+        if let Some(c) = self.data.get(&(row, col)) {
+            c.repeat
+        } else {
+            1
+        }
+    }
+
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
     pub fn set_cellstyle(&mut self, row: u32, col: u32, style: &CellStyleRef) {
         let cell = self
@@ -2851,7 +2869,10 @@ pub struct CellSpan {
 
 impl Default for CellSpan {
     fn default() -> Self {
-        Self::new()
+        Self {
+            row_span: 1,
+            col_span: 1,
+        }
     }
 }
 
@@ -2870,10 +2891,7 @@ impl From<&CellSpan> for (u32, u32) {
 impl CellSpan {
     /// Default span 1,1
     pub fn new() -> Self {
-        Self {
-            row_span: 1,
-            col_span: 1,
-        }
+        Self::default()
     }
 
     /// Is this empty? Defined as row_span==1 and col_span==1.
@@ -2907,13 +2925,15 @@ impl CellSpan {
 }
 
 /// One Cell of the spreadsheet.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct CellData {
     value: Value,
     // Unparsed formula string.
     formula: Option<String>,
     // Cell style name.
     style: Option<String>,
+    // Cell repeated.
+    repeat: u32,
     // Scarcely used extra data.
     extra: Option<Box<CellDataExt>>,
 }
@@ -2931,6 +2951,18 @@ struct CellDataExt {
     annotation: Option<Annotation>,
     // Draw
     draw_frames: Vec<DrawFrame>,
+}
+
+impl Default for CellData {
+    fn default() -> Self {
+        Self {
+            value: Default::default(),
+            formula: None,
+            style: None,
+            repeat: 1,
+            extra: None,
+        }
+    }
 }
 
 impl CellData {
@@ -2965,6 +2997,7 @@ impl CellData {
             value: self.value.clone(),
             style: self.style.clone(),
             formula: self.formula.clone(),
+            repeat: self.repeat,
             validation_name,
             span,
             matrix_span,
@@ -2997,6 +3030,7 @@ impl CellData {
             value: self.value,
             style: self.style,
             formula: self.formula,
+            repeat: self.repeat,
             validation_name,
             span,
             matrix_span,
@@ -3023,6 +3057,7 @@ impl CellData {
             value: &self.value,
             style: self.style.as_ref(),
             formula: self.formula.as_ref(),
+            repeat: &self.repeat,
             validation_name,
             span,
             matrix_span,
@@ -3042,6 +3077,8 @@ pub struct CellContentRef<'a> {
     pub style: Option<&'a String>,
     /// Reference to the cell formula.
     pub formula: Option<&'a String>,
+    /// Reference to the repeat count.
+    pub repeat: &'a u32,
     /// Reference to a cell validation.
     pub validation_name: Option<&'a String>,
     /// Reference to the cellspan.
@@ -3068,6 +3105,11 @@ impl<'a> CellContentRef<'a> {
     /// Returns the cell style.
     pub fn style(&self) -> Option<&'a String> {
         self.style
+    }
+
+    /// Returns the repeat count.
+    pub fn repeat(&self) -> &'a u32 {
+        self.repeat
     }
 
     /// Returns the validation name.
@@ -3131,6 +3173,8 @@ pub struct CellContent {
     pub style: Option<String>,
     /// Cell formula.
     pub formula: Option<String>,
+    /// Cell repeat count.
+    pub repeat: u32,
     /// Reference to a validation rule.
     pub validation_name: Option<String>,
     /// Cellspan.
@@ -3156,6 +3200,7 @@ impl CellContent {
             value: self.value,
             formula: self.formula,
             style: self.style,
+            repeat: self.repeat,
             extra,
         }
     }
@@ -3218,6 +3263,18 @@ impl CellContent {
     /// Removes the style.
     pub fn clear_style(&mut self) {
         self.style = None;
+    }
+
+    /// Sets the repeat count for the cell.
+    /// Value must be > 0.
+    pub fn set_repeat(&mut self, repeat: u32) {
+        assert!(repeat > 0);
+        self.repeat = repeat;
+    }
+
+    /// Returns the repeat count for the cell.
+    pub fn get_repeat(&mut self) -> u32 {
+        self.repeat
     }
 
     /// Returns the validation name.
