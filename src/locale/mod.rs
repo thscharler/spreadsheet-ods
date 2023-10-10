@@ -2,6 +2,8 @@
 //! Defines localized versions for all default formats.
 //!
 
+mod default;
+
 #[cfg(feature = "locale_de_AT")]
 mod de_at;
 #[cfg(feature = "locale_en_US")]

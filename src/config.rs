@@ -110,7 +110,11 @@ impl ConfigMap {
         let idx = self.key_index.get(name.as_ref());
 
         if let Some(idx) = idx {
-            self.values.get_mut(*idx).unwrap().1 = item.into();
+            if let Some(v) = self.values.get_mut(*idx) {
+                v.1 = item.into();
+            } else {
+                unreachable!();
+            }
         } else {
             self.values.push((name.as_ref().to_string(), item.into()));
             self.key_index

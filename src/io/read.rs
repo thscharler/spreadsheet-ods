@@ -11,7 +11,6 @@ use crate::attrmap2::AttrMap2;
 use crate::condition::{Condition, ValueCondition};
 use crate::config::{Config, ConfigItem, ConfigItemType, ConfigValue};
 use crate::draw::{Annotation, DrawFrame, DrawFrameContent, DrawImage};
-use crate::ds::bufstack::BufStack;
 use crate::ds::detach::Detach;
 use crate::error::OdsError;
 use crate::format::{FormatPart, FormatPartType, ValueFormatTrait, ValueStyleMap};
@@ -44,6 +43,7 @@ use crate::{
 };
 use quick_xml::events::attributes::Attribute;
 use std::borrow::Cow;
+use std::mem;
 use std::str::from_utf8;
 
 type OdsXmlReader<'a> = quick_xml::Reader<&'a mut dyn BufRead>;
@@ -147,19 +147,27 @@ pub fn read_fods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
 }
 
 struct OdsContext {
-    bs: BufStack,
     book: WorkBook,
+
     use_repeat_for_cells: bool,
     use_repeat_for_empty: bool,
+
+    buffers: Vec<Vec<u8>>,
+    xml_buffer: Vec<XmlTag>,
+    col_group_buffer: Vec<Grouped>,
+    row_group_buffer: Vec<Grouped>,
 }
 
 impl Default for OdsContext {
     fn default() -> Self {
         OdsContext {
-            bs: BufStack::new(),
-            book: WorkBook::new_empty(),
+            book: Default::default(),
             use_repeat_for_cells: false,
             use_repeat_for_empty: false,
+            buffers: vec![],
+            xml_buffer: vec![],
+            col_group_buffer: vec![],
+            row_group_buffer: vec![],
         }
     }
 }
@@ -172,13 +180,51 @@ impl OdsContext {
             ..Default::default()
         }
     }
+
+    fn pop_xml_buf(&mut self) -> Vec<XmlTag> {
+        mem::replace(&mut self.xml_buffer, Vec::default())
+    }
+
+    fn push_xml_buf(&mut self, mut buf: Vec<XmlTag>) {
+        buf.clear();
+        self.xml_buffer = buf;
+    }
+
+    fn pop_colgroup_buf(&mut self) -> Vec<Grouped> {
+        mem::replace(&mut self.col_group_buffer, Vec::default())
+    }
+
+    fn push_colgroup_buf(&mut self, mut buf: Vec<Grouped>) {
+        buf.clear();
+        self.col_group_buffer = buf;
+    }
+
+    fn pop_rowgroup_buf(&mut self) -> Vec<Grouped> {
+        mem::replace(&mut self.row_group_buffer, Vec::default())
+    }
+
+    fn push_rowgroup_buf(&mut self, mut buf: Vec<Grouped>) {
+        buf.clear();
+        self.row_group_buffer = buf;
+    }
+
+    // Return a temporary buffer.
+    fn pop_buf(&mut self) -> Vec<u8> {
+        self.buffers.pop().unwrap_or_default()
+    }
+
+    // Give back a buffer to be reused later.
+    fn push_buf(&mut self, mut buf: Vec<u8>) {
+        buf.clear();
+        self.buffers.push(buf);
+    }
 }
 
 fn read_fods_impl(read: &mut dyn BufRead, options: &OdsOptions) -> Result<WorkBook, OdsError> {
     let mut ctx = OdsContext::new(options);
     let mut xml = quick_xml::Reader::from_reader(read);
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -229,7 +275,7 @@ fn read_fods_impl(read: &mut dyn BufRead, options: &OdsOptions) -> Result<WorkBo
             }
         }
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(ctx.book)
 }
@@ -241,7 +287,7 @@ fn read_fods_impl_content_only(
     let mut ctx = OdsContext::new(options);
     let mut xml: quick_xml::Reader<&mut dyn BufRead> = quick_xml::Reader::from_reader(read);
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -260,7 +306,7 @@ fn read_fods_impl_content_only(
             }
         }
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(ctx.book)
 }
@@ -270,12 +316,7 @@ fn read_ods_impl<R: Read + Seek>(
     mut zip: ZipArchive<R>,
     options: &OdsOptions,
 ) -> Result<WorkBook, OdsError> {
-    let mut ctx = OdsContext {
-        bs: BufStack::new(),
-        book: WorkBook::new_empty(),
-        use_repeat_for_cells: options.use_repeat_for_cells,
-        use_repeat_for_empty: options.use_repeat_for_empty,
-    };
+    let mut ctx = OdsContext::new(options);
 
     if let Ok(z) = zip.by_name("META-INF/manifest.xml") {
         let mut read = BufReader::new(z);
@@ -327,12 +368,7 @@ fn read_ods_impl_content_only<R: Read + Seek>(
     mut zip: ZipArchive<R>,
     options: &OdsOptions,
 ) -> Result<WorkBook, OdsError> {
-    let mut ctx = OdsContext {
-        bs: BufStack::new(),
-        book: WorkBook::new_empty(),
-        use_repeat_for_cells: options.use_repeat_for_cells,
-        use_repeat_for_empty: options.use_repeat_for_empty,
-    };
+    let mut ctx = OdsContext::new(options);
 
     let mut read = BufReader::new(zip.by_name("content.xml")?);
     let read: &mut dyn BufRead = &mut read;
@@ -364,7 +400,7 @@ fn read_ods_extras<R: Read + Seek>(
 }
 
 fn read_ods_manifest(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         match &evt {
@@ -399,7 +435,7 @@ fn read_ods_manifest(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
         }
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
     Ok(())
 }
 
@@ -520,7 +556,7 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
 
 // Reads the content.xml
 fn read_ods_content(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -568,14 +604,14 @@ fn read_ods_content(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
 
 // Reads the content.xml
 fn read_office_body(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -652,7 +688,7 @@ fn read_office_body(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
@@ -713,10 +749,10 @@ fn read_table(
     let mut row_repeat: u32 = 1;
 
     // Groups can be stacked.
-    let mut col_group = Vec::new();
-    let mut row_group = Vec::new();
+    let mut col_group = ctx.pop_colgroup_buf();
+    let mut row_group = ctx.pop_rowgroup_buf();
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -847,7 +883,9 @@ fn read_table(
         }
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
+    ctx.push_colgroup_buf(col_group);
+    ctx.push_rowgroup_buf(row_group);
 
     ctx.book.push_sheet(sheet);
 
@@ -1179,7 +1217,7 @@ fn read_table_cell(
     }
 
     if !empty_tag {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -1219,7 +1257,7 @@ fn read_table_cell(
 
             buf.clear();
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     if let Some(mut cell) = cell {
@@ -1421,7 +1459,7 @@ fn read_annotation(
         }
     }
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -1460,7 +1498,7 @@ fn read_annotation(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(annotation)
 }
@@ -1474,7 +1512,7 @@ fn read_draw_frame(
 
     copy_attr2(draw_frame.attrmap_mut(), super_tag)?;
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -1514,7 +1552,7 @@ fn read_draw_frame(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(draw_frame)
 }
@@ -1530,7 +1568,7 @@ fn read_image(
     copy_attr2(draw_image.attrmap_mut(), super_tag)?;
 
     if !empty_tag {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             let empty_tag = matches!(evt, Event::Empty(_));
@@ -1564,14 +1602,14 @@ fn read_image(
 
             buf.clear();
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     Ok(draw_image)
 }
 
 fn read_scripts(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -1609,7 +1647,7 @@ fn read_scripts(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), 
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
@@ -1667,7 +1705,7 @@ fn read_office_font_face_decls(
     let mut font: FontFaceDecl = FontFaceDecl::new_empty();
     font.set_origin(origin);
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -1697,7 +1735,7 @@ fn read_office_font_face_decls(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
@@ -1726,7 +1764,7 @@ fn read_page_style(
     let mut headerstyle = false;
     let mut footerstyle = false;
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -1789,7 +1827,7 @@ fn read_page_style(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     ctx.book.add_pagestyle(pl);
 
@@ -1799,7 +1837,7 @@ fn read_page_style(
 fn read_validations(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), OdsError> {
     let mut valid = Validation::new();
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -1843,7 +1881,7 @@ fn read_validations(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<
             }
         }
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
@@ -1978,7 +2016,7 @@ fn read_office_master_styles(
     xml: &mut OdsXmlReader<'_>,
     origin: StyleOrigin,
 ) -> Result<(), OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -2002,7 +2040,7 @@ fn read_office_master_styles(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
@@ -2033,7 +2071,7 @@ fn read_master_page(
         }
     }
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -2075,7 +2113,7 @@ fn read_master_page(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     ctx.book.add_masterpage(masterpage);
 
@@ -2102,7 +2140,7 @@ fn read_headerfooter(
         }
     }
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -2162,7 +2200,7 @@ fn read_headerfooter(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(hf)
 }
@@ -2173,7 +2211,7 @@ fn read_office_styles(
     xml: &mut OdsXmlReader<'_>,
     origin: StyleOrigin,
 ) -> Result<(), OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -2214,7 +2252,7 @@ fn read_office_styles(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
@@ -2225,7 +2263,7 @@ fn read_office_automatic_styles(
     xml: &mut OdsXmlReader<'_>,
     origin: StyleOrigin,
 ) -> Result<(), OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -2268,7 +2306,7 @@ fn read_office_automatic_styles(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
@@ -2344,7 +2382,7 @@ fn read_value_format_parts<T: ValueFormatTrait>(
     let name = copy_style_attr(valuestyle.attrmap_mut(), super_tag)?;
     valuestyle.set_name(name.as_str());
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
@@ -2587,7 +2625,7 @@ fn read_value_format_parts<T: ValueFormatTrait>(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
@@ -2603,7 +2641,7 @@ fn read_part(
     copy_attr2(part.attrmap_mut(), super_tag)?;
 
     if !empty_tag {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -2621,7 +2659,7 @@ fn read_part(
                 }
             }
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     Ok(part)
@@ -2639,7 +2677,7 @@ fn read_part_text(
     copy_attr2(part.attrmap_mut(), super_tag)?;
 
     if !empty_tag {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -2660,7 +2698,7 @@ fn read_part_text(
                 }
             }
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     Ok(part)
@@ -2677,7 +2715,7 @@ fn read_part_number(
     copy_attr2(part.attrmap_mut(), super_tag)?;
 
     if !empty_tag {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -2718,7 +2756,7 @@ fn read_part_number(
                 }
             }
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     Ok(part)
@@ -2794,7 +2832,7 @@ fn read_tablestyle(
     if empty_tag {
         ctx.book.add_tablestyle(style);
     } else {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -2823,7 +2861,7 @@ fn read_tablestyle(
             }
         }
 
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     Ok(())
@@ -2850,7 +2888,7 @@ fn read_rowstyle(
     if empty_tag {
         ctx.book.add_rowstyle(style);
     } else {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -2878,7 +2916,7 @@ fn read_rowstyle(
                 }
             }
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     Ok(())
@@ -2905,7 +2943,7 @@ fn read_colstyle(
     if empty_tag {
         ctx.book.add_colstyle(style);
     } else {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -2934,7 +2972,7 @@ fn read_colstyle(
             }
         }
 
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
     Ok(())
 }
@@ -2960,7 +2998,7 @@ fn read_cellstyle(
     if empty_tag {
         ctx.book.add_cellstyle(style);
     } else {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -3012,7 +3050,7 @@ fn read_cellstyle(
                 }
             }
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     Ok(())
@@ -3039,7 +3077,7 @@ fn read_paragraphstyle(
     if empty_tag {
         ctx.book.add_paragraphstyle(style);
     } else {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -3083,7 +3121,7 @@ fn read_paragraphstyle(
                 }
             }
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     Ok(())
@@ -3110,7 +3148,7 @@ fn read_textstyle(
     if empty_tag {
         ctx.book.add_textstyle(style);
     } else {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -3133,7 +3171,7 @@ fn read_textstyle(
                 }
             }
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     Ok(())
@@ -3160,7 +3198,7 @@ fn read_rubystyle(
     if empty_tag {
         ctx.book.add_rubystyle(style);
     } else {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -3183,7 +3221,7 @@ fn read_rubystyle(
                 }
             }
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     Ok(())
@@ -3210,7 +3248,7 @@ fn read_graphicstyle(
     if empty_tag {
         ctx.book.add_graphicstyle(style);
     } else {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -3243,7 +3281,7 @@ fn read_graphicstyle(
                 }
             }
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
     Ok(())
@@ -3326,7 +3364,7 @@ fn copy_attr2(attrmap: &mut AttrMap2, super_tag: &BytesStart<'_>) -> Result<(), 
 }
 
 fn read_ods_styles(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -3363,7 +3401,7 @@ fn read_ods_styles(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
@@ -3460,7 +3498,7 @@ pub(crate) fn default_settings() -> Detach<Config> {
 }
 
 fn read_ods_metadata(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
 
     loop {
         let evt = xml.read_event_into(&mut buf)?;
@@ -3490,13 +3528,13 @@ fn read_ods_metadata(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
 
 fn read_office_meta(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
 
     loop {
         let evt = xml.read_event_into(&mut buf)?;
@@ -3665,7 +3703,7 @@ fn read_office_meta(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
@@ -3816,7 +3854,7 @@ fn read_metadata_user_defined(
         }
     }
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -3848,7 +3886,7 @@ fn read_metadata_user_defined(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(user_defined)
 }
@@ -3861,7 +3899,7 @@ fn read_metadata_value<T>(
     parse: fn(&[u8]) -> Result<T, OdsError>,
     default: fn() -> T,
 ) -> Result<T, OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     let mut value = None;
     loop {
         let evt = xml.read_event_into(&mut buf)?;
@@ -3886,13 +3924,13 @@ fn read_metadata_value<T>(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(value.unwrap_or(default()))
 }
 
 fn read_ods_settings(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), OdsError> {
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -3922,7 +3960,7 @@ fn read_ods_settings(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok(())
 }
@@ -3931,7 +3969,7 @@ fn read_ods_settings(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
 fn read_office_settings(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), OdsError> {
     let mut config = Config::new();
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -3954,7 +3992,7 @@ fn read_office_settings(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Res
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     ctx.book.config = Detach::new(config);
 
@@ -3987,7 +4025,7 @@ fn read_config_item_set(
         return Err(OdsError::Ods("config-item-set without name".to_string()));
     };
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -4024,7 +4062,7 @@ fn read_config_item_set(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok((name, config_set))
 }
@@ -4063,7 +4101,7 @@ fn read_config_item_map_indexed(
 
     let mut index = 0;
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -4086,7 +4124,7 @@ fn read_config_item_map_indexed(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok((name, config_vec))
 }
@@ -4123,7 +4161,7 @@ fn read_config_item_map_named(
         ));
     };
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -4154,7 +4192,7 @@ fn read_config_item_map_named(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok((name, config_map))
 }
@@ -4183,7 +4221,7 @@ fn read_config_item_map_entry(
         }
     }
 
-    let mut buf = ctx.bs.pop();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if DUMP_XML {
@@ -4224,7 +4262,7 @@ fn read_config_item_map_entry(
 
         buf.clear();
     }
-    ctx.bs.push(buf);
+    ctx.push_buf(buf);
 
     Ok((name, config_set))
 }
@@ -4295,8 +4333,8 @@ fn read_config_item(
         ));
     };
 
-    let mut value = ctx.bs.pop();
-    let mut buf = ctx.bs.pop();
+    let mut value = ctx.pop_buf();
+    let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         match &evt {
@@ -4349,8 +4387,8 @@ fn read_config_item(
         }
         buf.clear();
     }
-    ctx.bs.push(buf);
-    ctx.bs.push(value);
+    ctx.push_buf(buf);
+    ctx.push_buf(value);
 
     let config_val = if let Some(config_val) = config_val {
         config_val
@@ -4368,14 +4406,14 @@ fn read_xml(
     super_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<XmlTag, OdsError> {
-    let mut stack = Vec::new();
+    let mut stack = ctx.pop_xml_buf();
 
     let mut tag = XmlTag::new(xml.decoder().decode(super_tag.name().as_ref())?);
     copy_attr2(tag.attrmap_mut(), super_tag)?;
     stack.push(tag);
 
     if !empty_tag {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -4430,11 +4468,12 @@ fn read_xml(
             buf.clear();
         }
 
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
 
-    assert_eq!(stack.len(), 1);
-    Ok(stack.pop().unwrap())
+    let tag = stack.pop().unwrap();
+    ctx.push_xml_buf(stack);
+    Ok(tag)
 }
 
 fn read_text_or_tag(
@@ -4443,7 +4482,7 @@ fn read_text_or_tag(
     super_tag: &BytesStart<'_>,
     empty_tag: bool,
 ) -> Result<TextContent, OdsError> {
-    let mut stack = Vec::new(); // todo?
+    let mut stack = ctx.pop_xml_buf();
     let mut cellcontent = TextContent::Empty;
 
     // The toplevel element is passed in with the xml_tag.
@@ -4460,7 +4499,7 @@ fn read_text_or_tag(
     };
 
     if !empty_tag {
-        let mut buf = ctx.bs.pop();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -4584,8 +4623,10 @@ fn read_text_or_tag(
                 }
             }
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
     }
+
+    ctx.push_xml_buf(stack);
 
     Ok(cellcontent)
 }
@@ -4605,8 +4646,8 @@ where
     if empty_tag {
         Ok(None)
     } else {
-        let mut r = Vec::new();
-        let mut buf = ctx.bs.pop();
+        let mut result_buf = ctx.pop_buf();
+        let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             if DUMP_XML {
@@ -4614,7 +4655,7 @@ where
             }
             match &evt {
                 Event::Text(xml_tag) => {
-                    r.extend_from_slice(xml_tag.as_ref());
+                    result_buf.extend_from_slice(xml_tag.as_ref());
                 }
                 Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                     break;
@@ -4629,19 +4670,20 @@ where
                         from_utf8(xml_tag.as_ref())?.to_string(),
                     )))
                 }
-
                 Event::Eof => {
                     break;
                 }
-
                 _ => {
                     unused_event("read_text", &evt)?;
                 }
             }
         }
-        ctx.bs.push(buf);
+        ctx.push_buf(buf);
 
-        Ok(Some(parse(&r)?))
+        let result = parse(&result_buf)?;
+        ctx.push_buf(result_buf);
+
+        Ok(Some(result))
     }
 }
 
