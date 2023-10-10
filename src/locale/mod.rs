@@ -44,6 +44,7 @@ lazy_static! {
         #[allow(unused_mut)]
         let mut lm: HashMap<Locale, &'static dyn LocalizedValueFormat> = HashMap::new();
 
+        lm.insert(icu_locid::locale!("en"), &default::LOCALE_DEFAULT);
         #[cfg(feature = "locale_de_AT")]
         {
             lm.insert(icu_locid::locale!("de_AT"), &de_at::LOCALE_DE_AT);

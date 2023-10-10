@@ -93,7 +93,7 @@ fn test_sample_repeat() -> Result<(), OdsError> {
 fn run_sample(options: OdsOptions) -> Result<(), OdsError> {
     // let path = Path::new("..\\spreadsheet-ods-samples\\");
     let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
-    let sample = "businesstrip11201.ods";
+    let sample = "spanimals12-supptabs.ods";
 
     let f = path.join(sample);
 

@@ -221,7 +221,7 @@ use crate::xlink::{XLinkActuate, XLinkType};
 use crate::xmltree::{XmlContent, XmlTag};
 use chrono::{Duration, NaiveTime};
 use chrono::{NaiveDate, NaiveDateTime};
-use icu_locid::Locale;
+use icu_locid::{locale, Locale};
 #[cfg(feature = "use_decimal")]
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 #[cfg(feature = "use_decimal")]
@@ -288,7 +288,7 @@ pub(crate) type HashMap<K, V> = std::collections::HashMap<K, V>;
 pub(crate) type HashMapIter<'a, K, V> = std::collections::hash_map::Iter<'a, K, V>;
 
 /// Book is the main structure for the Spreadsheet.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct WorkBook {
     /// The data.
     sheets: Vec<Detach<Sheet>>,
@@ -457,6 +457,12 @@ fn auto_style_name<T>(
     autonum.insert(prefix.to_string(), cnt);
 
     style_name
+}
+
+impl Default for WorkBook {
+    fn default() -> Self {
+        WorkBook::new(locale!("en"))
+    }
 }
 
 impl WorkBook {
