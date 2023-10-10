@@ -6,4 +6,4 @@ pub(crate) mod write;
 mod xmlwriter;
 
 const DUMP_XML: bool = false;
-const DUMP_UNUSED: bool = true;
+const DUMP_UNUSED: bool = false;

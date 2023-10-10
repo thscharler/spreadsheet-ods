@@ -32,7 +32,7 @@ fn test_samples_content() -> Result<(), OdsError> {
 
 #[test]
 fn test_samples_repeat() -> Result<(), OdsError> {
-    run_samples(OdsOptions::default().use_repeat_for_cells())
+    run_samples(OdsOptions::default().use_repeat_for_empty())
 }
 
 fn run_samples(options: OdsOptions) -> Result<(), OdsError> {
@@ -87,7 +87,7 @@ fn test_sample_content() -> Result<(), OdsError> {
 
 #[test]
 fn test_sample_repeat() -> Result<(), OdsError> {
-    run_sample(OdsOptions::default().use_repeat_for_cells())
+    run_sample(OdsOptions::default().use_repeat_for_empty())
 }
 
 fn run_sample(options: OdsOptions) -> Result<(), OdsError> {

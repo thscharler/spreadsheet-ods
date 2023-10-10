@@ -55,6 +55,8 @@ pub struct OdsOptions {
     content_only: bool,
     // expand duplicated cells
     use_repeat_for_cells: bool,
+    // expand most duplicated cells.
+    use_repeat_for_empty: bool,
 }
 
 impl OdsOptions {
@@ -70,6 +72,14 @@ impl OdsOptions {
     /// stored with each cell.
     pub fn use_repeat_for_cells(mut self) -> Self {
         self.use_repeat_for_cells = true;
+        self
+    }
+
+    /// Cells are duplicated based on their table:number-columns-repeated.
+    /// With this switch this duplications is turned off for cells with
+    /// no value and no formula. Instead these cells are stored with a repeat-count.
+    pub fn use_repeat_for_empty(mut self) -> Self {
+        self.use_repeat_for_empty = true;
         self
     }
 
@@ -132,6 +142,7 @@ struct OdsContext {
     bs: BufStack,
     book: WorkBook,
     use_repeat_for_cells: bool,
+    use_repeat_for_empty: bool,
 }
 
 impl Default for OdsContext {
@@ -140,6 +151,7 @@ impl Default for OdsContext {
             bs: BufStack::new(),
             book: WorkBook::new_empty(),
             use_repeat_for_cells: false,
+            use_repeat_for_empty: false,
         }
     }
 }
@@ -148,6 +160,7 @@ impl OdsContext {
     fn new(options: &OdsOptions) -> Self {
         Self {
             use_repeat_for_cells: options.use_repeat_for_cells,
+            use_repeat_for_empty: options.use_repeat_for_empty,
             ..Default::default()
         }
     }
@@ -253,6 +266,7 @@ fn read_ods_impl<R: Read + Seek>(
         bs: BufStack::new(),
         book: WorkBook::new_empty(),
         use_repeat_for_cells: options.use_repeat_for_cells,
+        use_repeat_for_empty: options.use_repeat_for_empty,
     };
 
     if let Ok(z) = zip.by_name("META-INF/manifest.xml") {
@@ -309,6 +323,7 @@ fn read_ods_impl_content_only<R: Read + Seek>(
         bs: BufStack::new(),
         book: WorkBook::new_empty(),
         use_repeat_for_cells: options.use_repeat_for_cells,
+        use_repeat_for_empty: options.use_repeat_for_empty,
     };
 
     let mut read = BufReader::new(zip.by_name("content.xml")?);
@@ -787,7 +802,9 @@ fn read_table(
                 if let Some(mut v) = row_group.pop() {
                     v.set_to(row - 1);
                     sheet.group_rows.push(v);
-                } // todo: ignore?
+                } else {
+                    // there are no unbalanced tags.
+                }
             }
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-rows" => {
@@ -1200,11 +1217,8 @@ fn read_table_cell(
     if let Some(mut cell) = cell {
         parse_value(tc, &mut cell)?;
         // cloning is not everything
-        if ctx.use_repeat_for_cells {
+        if use_repeat(ctx, &cell) {
             cell.repeat = repeat;
-            if repeat > 1 && !is_quasi_empty(&cell) {
-                println!("{}:{} = {:?}", row, col, cell);
-            }
             sheet.add_cell_data(row, col, cell);
             col += repeat;
         } else {
@@ -1223,8 +1237,15 @@ fn read_table_cell(
     Ok(col)
 }
 
-fn is_quasi_empty(cell: &CellData) -> bool {
-    cell.value == Value::Empty && cell.formula.is_none() && cell.extra.is_none()
+#[inline]
+fn use_repeat(ctx: &mut OdsContext, cell: &CellData) -> bool {
+    if ctx.use_repeat_for_cells {
+        true
+    } else if ctx.use_repeat_for_empty {
+        cell.value == Value::Empty && cell.formula.is_none()
+    } else {
+        false
+    }
 }
 
 fn append_text(new_txt: TextContent, mut content: TextContent) -> TextContent {
