@@ -49,7 +49,7 @@ use std::str::from_utf8;
 type OdsXmlReader<'a> = quick_xml::Reader<&'a mut dyn BufRead>;
 
 /// Read options for ods-files.
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct OdsOptions {
     // parse the content only.
     content_only: bool,
@@ -57,6 +57,16 @@ pub struct OdsOptions {
     use_repeat_for_cells: bool,
     // expand most duplicated cells.
     use_repeat_for_empty: bool,
+}
+
+impl Default for OdsOptions {
+    fn default() -> Self {
+        Self {
+            content_only: false,
+            use_repeat_for_cells: false,
+            use_repeat_for_empty: true,
+        }
+    }
 }
 
 impl OdsOptions {

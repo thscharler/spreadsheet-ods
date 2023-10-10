@@ -1,17 +1,39 @@
 # 0.19.0
 
+BREAKING
+
+- The default for reading is changed to use the repeat counter for empty cells.
+  While this should be fine for most uses, it still might break something.
+  But the speedup for many cases is to impressive to not to change this.
+    - This can be reverted to the previous default with OdsOptions::
+      use_clone_for_repeat().
+
 NEW
+
+- Add OdsOptions for read options.
+    - content_only() - Parses only the data content, no styles etc.
+      WorkBooks that are read this way should rather be treated as read-only,
+      writing them back will loose all the meta-data, styles, ..
+    - use_repeat_for_cells() - Sets the repeat-counter for a cell instead
+      of cloning the cell.
+    - use_repeat_for_empty() - Sets the repeat-counter for empty cells, but
+      not for cells containing data or formulas.
+    - use_clone_for_repeat() - Clone always.
+      Rows are never spread out like this, they always use the repeat count.
 - Cell annotations.
 - Matrix span for cells.
 - Read images directly linked to a table cell. (There are images that are
   tied to the sheet. Not covered yet.)
 
 CHANGED
+
 - Split the attribute macros along the xml prefix into separate files.
-- Internal CellData struct looses some data and gains a boxed extra field. 
+- Internal CellData struct looses some data and gains a boxed extra field.
   Which accommodates seldom used data. CellContent and CellContentRef are
   simply extended with the new fields.
-- Cleanup the code for reading table-cells. 
+- Cleanup the code for reading table-cells.
+- GraphicStyle now keeps paragraph and text attributes.
+- WorkBook::default() now uses a default locale to init basic cell styles.
 
 # 0.18.1
 
@@ -19,17 +41,18 @@ Published with xml-tag checks active. Corrected now.
 
 # 0.18.0
 
-NEW 
+NEW
 
 - Read/Write Flat-ODS (.fods) files.
-  - read/write functions duplicated for fods-files.
+    - read/write functions duplicated for fods-files.
 - Add support for row and column groupings.
 - Add basic support for scripts and event-listeners.
 - Namespaces are now copied too.
 
 CHANGED
 
-- Removed support for header-rows/header-columns. This is only used for Writer not for Spreadsheet.
+- Removed support for header-rows/header-columns. This is only used for Writer
+  not for Spreadsheet.
 - Datetime values can have a trailing "Z".
 - Basic support for ruby-styles.
 - Add missing iterators for WorkBook content.

@@ -110,12 +110,7 @@
 //!   to read the contents correctly. LibreOffice seems to ignore this completely
 //!   and display everything correctly.
 //!
-//! What is not supported:
-//! * Spreadsheets
-//!   * Row and column grouping
-//!
 //! Next on the TO-DO list:
-//! * Row and column grouping.
 //! * Calculation settings.
 //! * Named expressions.
 //!
@@ -146,10 +141,8 @@
 //! * calcext:conditional-formats
 //!
 //! When storing a previously read ODS file, all the contained files
-//! are copied to the new file, except settings.xml, styles.xml and content.xml.
-//! For a new ODS file mimetype, manifest, manifest.rdf, meta.xml
-//! are filled with minimal defaults. There is no way to set these
-//! for now.
+//! are copied to the new file. The files content.xml, styles.xml,
+//! settings.xml and manifest.xml are written from the data.
 //!
 
 #![doc(html_root_url = "https://docs.rs/spreadsheet-ods")]
