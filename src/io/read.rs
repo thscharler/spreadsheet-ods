@@ -83,6 +83,14 @@ impl OdsOptions {
         self
     }
 
+    /// Cells are always duplicated based on their table:number-columns-repeated.
+    /// Warning: This can blow up read times significantly.
+    pub fn use_clone_for_repeat(mut self) -> Self {
+        self.use_repeat_for_cells = false;
+        self.use_repeat_for_empty = false;
+        self
+    }
+
     /// Reads a .ods file.
     pub fn read_ods<T: Read + Seek>(&self, read: T) -> Result<WorkBook, OdsError> {
         let zip = ZipArchive::new(read)?;
