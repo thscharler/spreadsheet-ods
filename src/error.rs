@@ -147,7 +147,7 @@ where
             nom::Err::Incomplete(_) => OdsError::Parse("incomplete", None),
             nom::Err::Error(e) | nom::Err::Failure(e) => OdsError::Parse(
                 e.code.as_static(),
-                Some(from_utf8(e.span).unwrap_or("decoding failed").into()),
+                Some(String::from_utf8_lossy(e.span).into()),
             ),
         }
     }

@@ -389,7 +389,7 @@ impl ConfigItem {
                 // create if non existent
                 let item = self
                     .as_map_mut()
-                    .unwrap()
+                    .expect("is_map() and as_map_mut() should agree")
                     .get_or_create(name, || ConfigItem::new(*itype));
 
                 if !(item == itype) {

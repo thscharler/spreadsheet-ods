@@ -3613,9 +3613,9 @@ impl Value {
     #[cfg(feature = "use_decimal")]
     pub fn as_decimal_or(&self, d: Decimal) -> Decimal {
         match self {
-            Value::Number(n) => Decimal::from_f64(*n).unwrap(),
-            Value::Currency(v, _) => Decimal::from_f64(*v).unwrap(),
-            Value::Percentage(p) => Decimal::from_f64(*p).unwrap(),
+            Value::Number(n) => Decimal::from_f64(*n).unwrap_or(d),
+            Value::Currency(v, _) => Decimal::from_f64(*v).unwrap_or(d),
+            Value::Percentage(p) => Decimal::from_f64(*p).unwrap_or(d),
             _ => d,
         }
     }
@@ -3625,9 +3625,9 @@ impl Value {
     #[cfg(feature = "use_decimal")]
     pub fn as_decimal_opt(&self) -> Option<Decimal> {
         match self {
-            Value::Number(n) => Some(Decimal::from_f64(*n).unwrap()),
-            Value::Currency(v, _) => Some(Decimal::from_f64(*v).unwrap()),
-            Value::Percentage(p) => Some(Decimal::from_f64(*p).unwrap()),
+            Value::Number(n) => Decimal::from_f64(*n),
+            Value::Currency(v, _) => Decimal::from_f64(*v),
+            Value::Percentage(p) => Decimal::from_f64(*p),
             _ => None,
         }
     }
@@ -3849,7 +3849,7 @@ impl From<Option<String>> for Value {
 #[cfg(feature = "use_decimal")]
 impl From<Decimal> for Value {
     fn from(f: Decimal) -> Self {
-        Value::Number(f.to_f64().unwrap())
+        Value::Number(f.to_f64().expect("decimal->f64 should not fail"))
     }
 }
 
@@ -3857,7 +3857,7 @@ impl From<Decimal> for Value {
 impl From<Option<Decimal>> for Value {
     fn from(f: Option<Decimal>) -> Self {
         if let Some(f) = f {
-            Value::Number(f.to_f64().unwrap())
+            Value::Number(f.to_f64().expect("decimal->f64 should not fail"))
         } else {
             Value::Empty
         }
@@ -3956,7 +3956,7 @@ impl From<NaiveDate> for Value {
 impl From<Option<NaiveDate>> for Value {
     fn from(dt: Option<NaiveDate>) -> Self {
         if let Some(dt) = dt {
-            Value::DateTime(dt.and_hms_opt(0, 0, 0).unwrap())
+            Value::DateTime(dt.and_hms_opt(0, 0, 0).expect("valid time"))
         } else {
             Value::Empty
         }
@@ -3966,7 +3966,7 @@ impl From<Option<NaiveDate>> for Value {
 impl From<NaiveTime> for Value {
     fn from(ti: NaiveTime) -> Self {
         Value::DateTime(NaiveDateTime::new(
-            NaiveDate::from_ymd_opt(1900, 1, 1).unwrap(),
+            NaiveDate::from_ymd_opt(1900, 1, 1).expect("valid date"),
             ti,
         ))
     }
@@ -3976,7 +3976,7 @@ impl From<Option<NaiveTime>> for Value {
     fn from(dt: Option<NaiveTime>) -> Self {
         if let Some(ti) = dt {
             Value::DateTime(NaiveDateTime::new(
-                NaiveDate::from_ymd_opt(1900, 1, 1).unwrap(),
+                NaiveDate::from_ymd_opt(1900, 1, 1).expect("valid date"),
                 ti,
             ))
         } else {

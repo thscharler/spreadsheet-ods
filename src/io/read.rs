@@ -2028,7 +2028,7 @@ fn read_office_master_styles(
             {
                 read_master_page(ctx, xml, origin, xml_tag)?;
             }
-            Event::End(e) if e.name().as_ref() == b"office:master-styles" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:master-styles" => {
                 break;
             }
             Event::Text(_) => (),
@@ -2240,7 +2240,7 @@ fn read_office_styles(
             {
                 read_value_format(ctx, xml, origin, StyleUse::Named, xml_tag)?;
             }
-            Event::End(e) if e.name().as_ref() == b"office:styles" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:styles" => {
                 break;
             }
             Event::Text(_) => (),
@@ -2294,7 +2294,7 @@ fn read_office_automatic_styles(
                 read_page_style(ctx, xml, xml_tag)?;
             }
 
-            Event::End(e) if e.name().as_ref() == b"office:automatic-styles" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:automatic-styles" => {
                 break;
             }
             Event::Text(_) => (),
@@ -2357,9 +2357,10 @@ fn read_value_format(
         }
         _ => {
             if DUMP_UNUSED {
-                let tag_name = super_tag.name();
-                let n = xml.decoder().decode(tag_name.as_ref())?;
-                println!(" read_value_format unused {n}");
+                println!(
+                    " read_value_format unused {}",
+                    from_utf8(super_tag.name().as_ref())?
+                );
             }
         }
     }
@@ -2614,7 +2615,7 @@ fn read_value_format_parts<T: ValueFormatTrait>(
             {
                 copy_attr2(valuestyle.textstyle_mut(), xml_tag)?;
             }
-            Event::End(e) if e.name() == super_tag.name() => {
+            Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                 break;
             }
             Event::Eof => break,
@@ -2684,8 +2685,8 @@ fn read_part_text(
                 println!(" read_part_text {:?}", evt);
             }
             match &evt {
-                Event::Text(xml_tag) => {
-                    part.set_content(xml_tag.unescape()?);
+                Event::Text(xml_text) => {
+                    part.set_content(xml_text.unescape()?);
                 }
                 Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                     break;
@@ -2742,8 +2743,8 @@ fn read_part_number(
                     }
                 }
                 Event::End(xml_tag) if xml_tag.name().as_ref() == b"number:embedded-text" => {}
-                Event::Text(e) => {
-                    part.set_content(parse_string(e.as_ref())?);
+                Event::Text(xml_text) => {
+                    part.set_content(parse_string(xml_text.as_ref())?);
                 }
                 Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                     break;
@@ -3865,15 +3866,19 @@ fn read_metadata_user_defined(
             Event::End(xml_tag) if xml_tag.name() == tag.name() => {
                 break;
             }
-            Event::Text(v) => {
+            Event::Text(xml_text) => {
                 user_defined.value = match value_type {
-                    Some("boolean") => MetaValue::Boolean(parse_bool(v.unescape()?.as_bytes())?),
-                    Some("date") => MetaValue::Datetime(parse_datetime(v.unescape()?.as_bytes())?),
-                    Some("float") => MetaValue::Float(parse_f64(v.unescape()?.as_bytes())?),
-                    Some("time") => {
-                        MetaValue::TimeDuration(parse_duration(v.unescape()?.as_bytes())?)
+                    Some("boolean") => {
+                        MetaValue::Boolean(parse_bool(xml_text.unescape()?.as_bytes())?)
                     }
-                    _ => MetaValue::String(v.unescape()?.to_string()),
+                    Some("date") => {
+                        MetaValue::Datetime(parse_datetime(xml_text.unescape()?.as_bytes())?)
+                    }
+                    Some("float") => MetaValue::Float(parse_f64(xml_text.unescape()?.as_bytes())?),
+                    Some("time") => {
+                        MetaValue::TimeDuration(parse_duration(xml_text.unescape()?.as_bytes())?)
+                    }
+                    _ => MetaValue::String(xml_text.unescape()?.to_string()),
                 };
             }
             Event::Eof => {
@@ -3911,8 +3916,8 @@ fn read_metadata_value<T>(
             Event::End(xml_tag) if xml_tag.name() == tag.name() => {
                 break;
             }
-            Event::Text(v) => {
-                value = Some(parse(v.unescape()?.as_bytes())?);
+            Event::Text(xml_text) => {
+                value = Some(parse(xml_text.unescape()?.as_bytes())?);
             }
             Event::Eof => {
                 break;
@@ -3981,7 +3986,7 @@ fn read_office_settings(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Res
                 config.insert(name, set);
             }
 
-            Event::End(e) if e.name().as_ref() == b"office:settings" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:settings" => {
                 break;
             }
             Event::Eof => break,
@@ -4051,7 +4056,7 @@ fn read_config_item_set(
                 let (name, val) = read_config_item_map_named(ctx, xml, xml_tag)?;
                 config_set.insert(name, val);
             }
-            Event::End(e) if e.name().as_ref() == b"config:config-item-set" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"config:config-item-set" => {
                 break;
             }
             Event::Eof => break,
@@ -4113,7 +4118,7 @@ fn read_config_item_map_indexed(
                 config_vec.insert(index.to_string(), entry);
                 index += 1;
             }
-            Event::End(e) if e.name().as_ref() == b"config:config-item-map-indexed" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"config:config-item-map-indexed" => {
                 break;
             }
             Event::Eof => break,
@@ -4181,7 +4186,7 @@ fn read_config_item_map_named(
 
                 config_map.insert(name, entry);
             }
-            Event::End(e) if e.name().as_ref() == b"config:config-item-map-named" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"config:config-item-map-named" => {
                 break;
             }
             Event::Eof => break,
@@ -4250,7 +4255,7 @@ fn read_config_item_map_entry(
                 let (name, val) = read_config_item_map_named(ctx, xml, xml_tag)?;
                 config_set.insert(name, val);
             }
-            Event::End(e) if e.name().as_ref() == b"config:config-item-map-entry" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"config:config-item-map-entry" => {
                 break;
             }
 
@@ -4338,10 +4343,10 @@ fn read_config_item(
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         match &evt {
-            Event::Text(txt) => {
-                value.write_all(txt.unescape()?.as_bytes())?;
+            Event::Text(xml_text) => {
+                value.write_all(xml_text.unescape()?.as_bytes())?;
             }
-            Event::End(e) if e.name().as_ref() == b"config:config-item" => {
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"config:config-item" => {
                 let value = <Cow<'_, [u8]> as From<&Vec<u8>>>::from(value.as_ref());
                 match val_type {
                     ConfigValueType::None => {}
@@ -4408,7 +4413,7 @@ fn read_xml(
 ) -> Result<XmlTag, OdsError> {
     let mut stack = ctx.pop_xml_buf();
 
-    let mut tag = XmlTag::new(xml.decoder().decode(super_tag.name().as_ref())?);
+    let mut tag = XmlTag::new(from_utf8(super_tag.name().as_ref())?);
     copy_attr2(tag.attrmap_mut(), super_tag)?;
     stack.push(tag);
 
@@ -4420,16 +4425,16 @@ fn read_xml(
                 println!(" read_xml {:?}", evt);
             }
             match &evt {
-                Event::Start(xmlbytes) => {
-                    let mut tag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
-                    copy_attr2(tag.attrmap_mut(), xmlbytes)?;
+                Event::Start(xml_tag) => {
+                    let mut tag = XmlTag::new(from_utf8(xml_tag.name().as_ref())?);
+                    copy_attr2(tag.attrmap_mut(), xml_tag)?;
                     stack.push(tag);
                 }
-                Event::End(xmlbytes) => {
-                    if xmlbytes.name() == super_tag.name() {
+                Event::End(xml_tag) => {
+                    if xml_tag.name() == super_tag.name() {
                         break;
                     } else {
-                        let tag = stack.pop().unwrap();
+                        let tag = stack.pop().expect("valid stack");
                         if let Some(parent) = stack.last_mut() {
                             parent.add_tag(tag);
                         } else {
@@ -4437,9 +4442,9 @@ fn read_xml(
                         }
                     }
                 }
-                Event::Empty(xmlbytes) => {
-                    let mut emptytag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
-                    copy_attr2(emptytag.attrmap_mut(), xmlbytes)?;
+                Event::Empty(xml_tag) => {
+                    let mut emptytag = XmlTag::new(from_utf8(xml_tag.name().as_ref())?);
+                    copy_attr2(emptytag.attrmap_mut(), xml_tag)?;
 
                     if let Some(parent) = stack.last_mut() {
                         parent.add_tag(emptytag);
@@ -4447,13 +4452,9 @@ fn read_xml(
                         unreachable!()
                     }
                 }
-                Event::Text(xmlbytes) => {
+                Event::Text(xml_text) => {
                     if let Some(parent) = stack.last_mut() {
-                        parent.add_text(
-                            xml.decoder()
-                                .decode(xmlbytes.unescape().unwrap().as_bytes())
-                                .unwrap(),
-                        );
+                        parent.add_text(xml_text.unescape()?.as_ref());
                     } else {
                         unreachable!()
                     }
@@ -4506,7 +4507,7 @@ fn read_text_or_tag(
                 println!(" read_xml {:?}", evt);
             }
             match &evt {
-                Event::Start(xmlbytes) => {
+                Event::Start(xml_tag) => {
                     match cellcontent {
                         TextContent::Empty => {
                             stack.push(create_toplevel(None)?);
@@ -4523,11 +4524,11 @@ fn read_text_or_tag(
                     }
 
                     // Set the new tag.
-                    let mut new_tag = XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
-                    copy_attr2(new_tag.attrmap_mut(), xmlbytes)?;
+                    let mut new_tag = XmlTag::new(from_utf8(xml_tag.name().as_ref())?);
+                    copy_attr2(new_tag.attrmap_mut(), xml_tag)?;
                     cellcontent = TextContent::Xml(new_tag)
                 }
-                Event::Empty(xmlbytes) => {
+                Event::Empty(xml_tag) => {
                     match cellcontent {
                         TextContent::Empty => {
                             stack.push(create_toplevel(None)?);
@@ -4544,9 +4545,8 @@ fn read_text_or_tag(
                     }
                     if let Some(mut parent) = stack.pop() {
                         // Create the tag and append it immediately to the parent.
-                        let mut emptytag =
-                            XmlTag::new(xml.decoder().decode(xmlbytes.name().as_ref())?);
-                        copy_attr2(emptytag.attrmap_mut(), xmlbytes)?;
+                        let mut emptytag = XmlTag::new(from_utf8(xml_tag.name().as_ref())?);
+                        copy_attr2(emptytag.attrmap_mut(), xml_tag)?;
                         parent.add_tag(emptytag);
 
                         cellcontent = TextContent::Xml(parent);
@@ -4554,8 +4554,8 @@ fn read_text_or_tag(
                         unreachable!()
                     }
                 }
-                Event::Text(xmlbytes) => {
-                    let v = xmlbytes.unescape()?;
+                Event::Text(xml_text) => {
+                    let v = xml_text.unescape()?;
 
                     cellcontent = match cellcontent {
                         TextContent::Empty => {
@@ -4577,7 +4577,7 @@ fn read_text_or_tag(
                         }
                     };
                 }
-                Event::End(xmlbytes) if xmlbytes.name() == super_tag.name() => {
+                Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                     if !stack.is_empty() {
                         return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
                             "XML corrupted. Endtag {} occured before all elements are closed: {:?}",
@@ -4587,12 +4587,12 @@ fn read_text_or_tag(
                     }
                     break;
                 }
-                Event::End(xmlbytes) => {
+                Event::End(xml_tag) => {
                     cellcontent = match cellcontent {
                         TextContent::Empty | TextContent::Text(_) => {
                             return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(format!(
                                 "XML corrupted. Endtag {} occured without start tag",
-                                from_utf8(xmlbytes.name().as_ref())?
+                                from_utf8(xml_tag.name().as_ref())?
                             ))));
                         }
                         TextContent::Xml(tag) => {
@@ -4603,7 +4603,7 @@ fn read_text_or_tag(
                                 return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
                                     format!(
                                         "XML corrupted. Endtag {} occured without start tag",
-                                        from_utf8(xmlbytes.name().as_ref())?
+                                        from_utf8(xml_tag.name().as_ref())?
                                     ),
                                 )));
                             }
@@ -4654,8 +4654,8 @@ where
                 println!(" read_text {:?}", evt);
             }
             match &evt {
-                Event::Text(xml_tag) => {
-                    result_buf.extend_from_slice(xml_tag.as_ref());
+                Event::Text(xml_text) => {
+                    result_buf.extend_from_slice(xml_text.as_ref());
                 }
                 Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                     break;
@@ -4702,8 +4702,8 @@ fn unused_attr(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsEr
 fn unused_event(func: &str, evt: &Event<'_>) -> Result<(), OdsError> {
     if DUMP_UNUSED {
         match &evt {
-            Event::Text(text) => {
-                if !text.unescape()?.trim().is_empty() {
+            Event::Text(xml_text) => {
+                if !xml_text.unescape()?.trim().is_empty() {
                     println!("unused text: {} ({:?})", func, evt);
                 }
             }
