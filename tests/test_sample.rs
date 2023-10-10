@@ -22,6 +22,20 @@ fn timing_run<E, R>(
 
 #[test]
 fn test_samples() -> Result<(), OdsError> {
+    run_samples(OdsOptions::default())
+}
+
+#[test]
+fn test_samples_content() -> Result<(), OdsError> {
+    run_samples(OdsOptions::default().content_only())
+}
+
+#[test]
+fn test_samples_repeat() -> Result<(), OdsError> {
+    run_samples(OdsOptions::default().use_repeat_for_cells())
+}
+
+fn run_samples(options: OdsOptions) -> Result<(), OdsError> {
     // let path = Path::new("..\\spreadsheet-ods-samples\\");
     let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
 
@@ -44,7 +58,7 @@ fn test_samples() -> Result<(), OdsError> {
                         "read",
                         || {
                             let read = BufReader::new(Cursor::new(&buf));
-                            OdsOptions::default().read_ods(read)
+                            options.read_ods(read)
                         },
                         1,
                     )?;
@@ -55,39 +69,7 @@ fn test_samples() -> Result<(), OdsError> {
             }
         }
 
-        //
-
-        let mut total2 = Duration::default();
-        let mut count2 = 0;
-
-        for f in path.read_dir()? {
-            let f = f?;
-
-            if f.metadata()?.is_file() {
-                if f.file_name().to_string_lossy().ends_with(".ods") {
-                    println!();
-                    println!("{:?} {}", f.path(), f.metadata()?.len());
-
-                    let mut buf = Vec::new();
-                    File::open(f.path())?.read_to_end(&mut buf)?;
-
-                    let (dur, _) = timing_run(
-                        "read",
-                        || {
-                            let read = BufReader::new(Cursor::new(&buf));
-                            OdsOptions::default().content_only().read_ods(read)
-                        },
-                        1,
-                    )?;
-
-                    total2 += dur;
-                    count2 += 1;
-                }
-            }
-        }
-
         println!("{:?} {} avg {:?}", total, count, total / count);
-        println!("{:?} {} avg {:?}", total2, count2, total2 / count2);
     }
 
     Ok(())
@@ -95,6 +77,20 @@ fn test_samples() -> Result<(), OdsError> {
 
 #[test]
 fn test_sample() -> Result<(), OdsError> {
+    run_sample(OdsOptions::default())
+}
+
+#[test]
+fn test_sample_content() -> Result<(), OdsError> {
+    run_sample(OdsOptions::default().content_only())
+}
+
+#[test]
+fn test_sample_repeat() -> Result<(), OdsError> {
+    run_sample(OdsOptions::default().use_repeat_for_cells())
+}
+
+fn run_sample(options: OdsOptions) -> Result<(), OdsError> {
     // let path = Path::new("..\\spreadsheet-ods-samples\\");
     let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
     let sample = "businesstrip11201.ods";
@@ -107,22 +103,19 @@ fn test_sample() -> Result<(), OdsError> {
     let mut buf = Vec::new();
     File::open(&f)?.read_to_end(&mut buf)?;
 
-    timing_run(
+    let wb = timing_run(
         "read",
         || {
             let read = BufReader::new(Cursor::new(&buf));
-            OdsOptions::default().read_ods(read)
+            options.read_ods(read)
         },
         1,
     )?;
-    timing_run(
-        "reac",
-        || {
-            let read = BufReader::new(Cursor::new(&buf));
-            OdsOptions::default().content_only().read_ods(read)
-        },
-        1,
-    )?;
+    let mut cell_count = 0usize;
+    for sh in wb.1.iter_sheets() {
+        cell_count += sh.cell_count();
+    }
+    println!("cell_count {}", cell_count);
 
     Ok(())
 }

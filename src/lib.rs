@@ -1932,6 +1932,11 @@ impl Sheet {
         self.into_iter()
     }
 
+    /// Count all cells with any data.
+    pub fn cell_count(&self) -> usize {
+        self.data.len()
+    }
+
     /// Iterate a range of cells.
     pub fn range<R>(&self, range: R) -> Range<'_>
     where
