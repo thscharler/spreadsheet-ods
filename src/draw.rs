@@ -213,7 +213,7 @@ impl Annotation {
 /// The <draw:frame> element represents a frame and serves as the container for elements that
 /// may occur in a frame.
 /// Frame formatting properties are stored in styles belonging to the graphic family.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DrawFrame {
     /// The <svg:title> element specifies a name for a graphic object.
     title: Option<String>,
@@ -236,12 +236,7 @@ pub enum DrawFrameContent {
 impl DrawFrame {
     /// New.
     pub fn new() -> Self {
-        Self {
-            title: None,
-            desc: None,
-            attr: Default::default(),
-            content: Default::default(),
-        }
+        Default::default()
     }
 
     /// Allows access to all attributes of the style itself.
@@ -341,7 +336,7 @@ impl DrawFrame {
 /// image data.
 /// Note: While the image data may have an arbitrary format, vector graphics should
 /// be stored in the [SVG] format and bitmap graphics in the [PNG] format.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DrawImage {
     attr: AttrMap2,
     binary_data: Option<String>,
@@ -351,11 +346,7 @@ pub struct DrawImage {
 impl DrawImage {
     /// New.
     pub fn new() -> Self {
-        Self {
-            attr: Default::default(),
-            binary_data: None,
-            text: Default::default(),
-        }
+        Default::default()
     }
 
     /// Allows access to all attributes of the style itself.

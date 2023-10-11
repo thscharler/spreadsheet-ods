@@ -3,7 +3,7 @@ use std::io::{BufReader, Cursor, Read};
 use std::path::Path;
 use std::time::{Duration, Instant};
 
-use spreadsheet_ods::{read_ods, OdsError, OdsOptions};
+use spreadsheet_ods::{OdsError, OdsOptions};
 
 fn timing_run<E, R>(
     name: &str,
@@ -22,12 +22,12 @@ fn timing_run<E, R>(
 
 #[test]
 fn test_samples() -> Result<(), OdsError> {
-    run_samples(OdsOptions::default())
+    run_samples(OdsOptions::default().use_clone_for_repeat())
 }
 
 #[test]
 fn test_samples_content() -> Result<(), OdsError> {
-    run_samples(OdsOptions::default().content_only())
+    run_samples(OdsOptions::default().content_only().use_repeat_for_empty())
 }
 
 #[test]
@@ -77,12 +77,12 @@ fn run_samples(options: OdsOptions) -> Result<(), OdsError> {
 
 #[test]
 fn test_sample() -> Result<(), OdsError> {
-    run_sample(OdsOptions::default())
+    run_sample(OdsOptions::default().use_clone_for_repeat())
 }
 
 #[test]
 fn test_sample_content() -> Result<(), OdsError> {
-    run_sample(OdsOptions::default().content_only())
+    run_sample(OdsOptions::default().content_only().use_repeat_for_empty())
 }
 
 #[test]

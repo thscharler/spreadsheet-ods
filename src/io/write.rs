@@ -1389,7 +1389,7 @@ impl SplitCols {
 fn split_hidden(ranges: &[CellRange], row: u32, col: u32, repeat: u32, out: &mut Vec<SplitCols>) {
     out.clear();
     if repeat == 1 {
-        if ranges.iter().find(|v| v.contains(row, col)).is_some() {
+        if ranges.iter().any(|v| v.contains(row, col)) {
             let range = SplitCols {
                 col,
                 col_to: col,
@@ -1656,14 +1656,6 @@ fn write_sheet(
                     cur_col + cur_col_repeat,
                     synth_delta_col,
                     &mut split,
-                );
-                dbg!(
-                    &spans,
-                    cur_row,
-                    cur_col,
-                    cur_col_repeat,
-                    synth_delta_col,
-                    &split
                 );
                 for s in &split {
                     write_empty_cells(s.hidden, s.repeat(), xml_out)?;

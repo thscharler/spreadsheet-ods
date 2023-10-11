@@ -105,18 +105,18 @@ impl OdsOptions {
     pub fn read_ods<T: Read + Seek>(&self, read: T) -> Result<WorkBook, OdsError> {
         let zip = ZipArchive::new(read)?;
         if self.content_only {
-            read_ods_impl_content_only(zip, &self)
+            read_ods_impl_content_only(zip, self)
         } else {
-            read_ods_impl(zip, &self)
+            read_ods_impl(zip, self)
         }
     }
 
     /// Reads a flat .fods file.
     pub fn read_fods<T: BufRead>(&self, mut read: T) -> Result<WorkBook, OdsError> {
         if self.content_only {
-            read_fods_impl_content_only(&mut read, &self)
+            read_fods_impl_content_only(&mut read, self)
         } else {
-            read_fods_impl(&mut read, &self)
+            read_fods_impl(&mut read, self)
         }
     }
 }
@@ -156,6 +156,7 @@ pub fn read_fods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
     OdsOptions::default().read_fods(read)
 }
 
+#[derive(Default)]
 struct OdsContext {
     book: WorkBook,
 
@@ -168,20 +169,6 @@ struct OdsContext {
     row_group_buffer: Vec<Grouped>,
 }
 
-impl Default for OdsContext {
-    fn default() -> Self {
-        OdsContext {
-            book: Default::default(),
-            use_repeat_for_cells: false,
-            use_repeat_for_empty: false,
-            buffers: vec![],
-            xml_buffer: vec![],
-            col_group_buffer: vec![],
-            row_group_buffer: vec![],
-        }
-    }
-}
-
 impl OdsContext {
     fn new(options: &OdsOptions) -> Self {
         Self {
@@ -192,7 +179,7 @@ impl OdsContext {
     }
 
     fn pop_xml_buf(&mut self) -> Vec<XmlTag> {
-        mem::replace(&mut self.xml_buffer, Vec::default())
+        mem::take(&mut self.xml_buffer)
     }
 
     fn push_xml_buf(&mut self, mut buf: Vec<XmlTag>) {
@@ -201,7 +188,7 @@ impl OdsContext {
     }
 
     fn pop_colgroup_buf(&mut self) -> Vec<Grouped> {
-        mem::replace(&mut self.col_group_buffer, Vec::default())
+        mem::take(&mut self.col_group_buffer)
     }
 
     fn push_colgroup_buf(&mut self, mut buf: Vec<Grouped>) {
@@ -210,7 +197,7 @@ impl OdsContext {
     }
 
     fn pop_rowgroup_buf(&mut self) -> Vec<Grouped> {
-        mem::replace(&mut self.row_group_buffer, Vec::default())
+        mem::take(&mut self.row_group_buffer)
     }
 
     fn push_rowgroup_buf(&mut self, mut buf: Vec<Grouped>) {
@@ -1273,7 +1260,7 @@ fn read_table_cell(
     if let Some(mut cell) = cell {
         parse_value(tc, &mut cell)?;
         // cloning is not everything
-        if use_repeat(ctx, &cell) {
+        if use_repeat(ctx, &cell, repeat) {
             cell.repeat = repeat;
             sheet.add_cell_data(row, col, cell);
             col += repeat;
@@ -1294,8 +1281,10 @@ fn read_table_cell(
 }
 
 #[inline]
-fn use_repeat(ctx: &mut OdsContext, cell: &CellData) -> bool {
-    if ctx.use_repeat_for_cells {
+fn use_repeat(ctx: &mut OdsContext, cell: &CellData, repeat: u32) -> bool {
+    if repeat == 1 {
+        true
+    } else if ctx.use_repeat_for_cells {
         true
     } else if ctx.use_repeat_for_empty {
         cell.value == Value::Empty && cell.formula.is_none()
@@ -3956,7 +3945,7 @@ fn read_ods_settings(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
             Event::Decl(_) => {}
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"office:document-settings" => {
-                let (_, xmlns) = read_namespaces_and_version(&xml_tag)?;
+                let (_, xmlns) = read_namespaces_and_version(xml_tag)?;
                 ctx.book.xmlns.insert("settings.xml".to_string(), xmlns);
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"office:document-settings" => {}

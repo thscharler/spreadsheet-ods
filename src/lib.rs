@@ -2972,7 +2972,7 @@ impl Default for CellData {
 impl CellData {
     pub(crate) fn extra_mut(&mut self) -> &mut CellDataExt {
         if self.extra.is_none() {
-            self.extra = Some(Box::new(CellDataExt::default()));
+            self.extra = Some(Box::default());
         }
         self.extra.as_mut().expect("celldataext")
     }
@@ -2982,8 +2982,8 @@ impl CellData {
             if let Some(extra) = &self.extra {
                 (
                     extra.validation_name.clone(),
-                    extra.span.clone(),
-                    extra.matrix_span.clone(),
+                    extra.span,
+                    extra.matrix_span,
                     extra.annotation.clone(),
                     extra.draw_frames.clone(),
                 )
@@ -3210,6 +3210,7 @@ impl CellContent {
     }
 
     /// Move stuff into a CellDataExt.
+    #[allow(clippy::wrong_self_convention)]
     pub(crate) fn into_celldata_ext(&mut self) -> Option<Box<CellDataExt>> {
         if self.validation_name.is_some()
             || !self.span.is_empty()

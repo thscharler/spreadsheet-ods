@@ -1,4 +1,6 @@
-use spreadsheet_ods::{read_ods, write_ods, OdsError, Sheet, WorkBook};
+use spreadsheet_ods::{read_ods, write_ods, OdsError, OdsOptions, Sheet, WorkBook};
+use std::fs::File;
+use std::io::BufReader;
 
 // basic case, data in the very first row
 #[test]
@@ -161,7 +163,10 @@ fn test_write_repeat() -> Result<(), OdsError> {
 
     write_ods(&mut wb, "test_out/col_repeat.ods")?;
 
-    let wb = read_ods("test_out/col_repeat.ods")?;
+    let read = BufReader::new(File::open("test_out/col_repeat.ods")?);
+    let wb = OdsOptions::default()
+        .use_repeat_for_cells()
+        .read_ods(read)?;
     let sh = wb.sheet(0);
 
     assert_eq!(sh.value(9, 9).as_str_or(""), "X");

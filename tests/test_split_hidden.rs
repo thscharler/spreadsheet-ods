@@ -1,5 +1,6 @@
 use spreadsheet_ods::CellRange;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 struct SplitCols {
     col: u32,
