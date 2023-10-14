@@ -1,4 +1,8 @@
+mod lib_test;
+
+use lib_test::*;
 use spreadsheet_ods::{read_ods, write_ods, OdsError, OdsOptions, Sheet, WorkBook};
+use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -11,7 +15,7 @@ fn test_write_first() -> Result<(), OdsError> {
     sh.set_value(0, 0, 1);
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/simple0.ods")?;
+    test_write_ods(&mut wb, "test_out/simple0.ods")?;
 
     let wb = read_ods("test_out/simple0.ods")?;
     let sh = wb.sheet(0);
@@ -30,7 +34,7 @@ fn test_write_empty_before() -> Result<(), OdsError> {
     sh.set_value(5, 0, 1);
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/simple1.ods")?;
+    test_write_ods(&mut wb, "test_out/simple1.ods")?;
 
     let wb = read_ods("test_out/simple1.ods")?;
     let sh = wb.sheet(0);
@@ -50,7 +54,7 @@ fn test_write_simple() -> Result<(), OdsError> {
     sh.set_value(5, 0, 1);
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/simple2.ods")?;
+    test_write_ods(&mut wb, "test_out/simple2.ods")?;
 
     let wb = read_ods("test_out/simple2.ods")?;
     let sh = wb.sheet(0);
@@ -71,7 +75,7 @@ fn test_write_gap() -> Result<(), OdsError> {
     sh.set_value(5, 0, 1);
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/simple3.ods")?;
+    test_write_ods(&mut wb, "test_out/simple3.ods")?;
 
     let wb = read_ods("test_out/simple3.ods")?;
     let sh = wb.sheet(0);
@@ -94,7 +98,7 @@ fn test_write_gap_repeat() -> Result<(), OdsError> {
     sh.set_value(5, 0, 1);
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/simple4.ods")?;
+    test_write_ods(&mut wb, "test_out/simple4.ods")?;
 
     let wb = read_ods("test_out/simple4.ods")?;
     let sh = wb.sheet(0);
@@ -116,7 +120,13 @@ fn test_write_row_overlap() -> () {
     sh.set_value(3, 0, 1);
     wb.push_sheet(sh);
 
-    let _ = write_ods(&mut wb, "test_out/simple5.ods").unwrap();
+    match test_write_ods(&mut wb, "test_out/simple5.ods") {
+        Ok(_) => {}
+        Err(_) => {
+            let _ = fs::remove_file("test_out/simple5.ods");
+            panic!();
+        }
+    }
 }
 
 #[test]
@@ -130,7 +140,13 @@ fn test_write_col_overlap() -> () {
     sh.set_value(3, 4, 101);
     wb.push_sheet(sh);
 
-    let _ = write_ods(&mut wb, "test_out/simple6.ods").unwrap();
+    match test_write_ods(&mut wb, "test_out/simple6.ods") {
+        Ok(_) => {}
+        Err(_) => {
+            let _ = fs::remove_file("test_out/simple6.ods");
+            panic!();
+        }
+    }
 }
 
 #[test]
@@ -161,7 +177,7 @@ fn test_write_repeat() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/col_repeat.ods")?;
+    test_write_ods(&mut wb, "test_out/col_repeat.ods")?;
 
     let read = BufReader::new(File::open("test_out/col_repeat.ods")?);
     let wb = OdsOptions::default()

@@ -97,25 +97,27 @@ fn run_sample(options: OdsOptions) -> Result<(), OdsError> {
 
     let f = path.join(sample);
 
-    println!();
-    println!("{:?} {}", f.as_path(), f.metadata()?.len());
+    if f.exists() {
+        println!();
+        println!("{:?} {}", f.as_path(), f.metadata()?.len());
 
-    let mut buf = Vec::new();
-    File::open(&f)?.read_to_end(&mut buf)?;
+        let mut buf = Vec::new();
+        File::open(&f)?.read_to_end(&mut buf)?;
 
-    let wb = timing_run(
-        "read",
-        || {
-            let read = BufReader::new(Cursor::new(&buf));
-            options.read_ods(read)
-        },
-        1,
-    )?;
-    let mut cell_count = 0usize;
-    for sh in wb.1.iter_sheets() {
-        cell_count += sh.cell_count();
+        let wb = timing_run(
+            "read",
+            || {
+                let read = BufReader::new(Cursor::new(&buf));
+                options.read_ods(read)
+            },
+            1,
+        )?;
+        let mut cell_count = 0usize;
+        for sh in wb.1.iter_sheets() {
+            cell_count += sh.cell_count();
+        }
+        println!("cell_count {}", cell_count);
     }
-    println!("cell_count {}", cell_count);
 
     Ok(())
 }

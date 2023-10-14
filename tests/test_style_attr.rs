@@ -1,5 +1,7 @@
-use color::Rgb;
+mod lib_test;
 
+use color::Rgb;
+use lib_test::*;
 use spreadsheet_ods::condition::Condition;
 use spreadsheet_ods::style::stylemap::StyleMap;
 use spreadsheet_ods::style::units::{
@@ -369,7 +371,7 @@ fn test_stylemap() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/styles.ods")?;
+    test_write_ods(&mut wb, "test_out/styles.ods")?;
 
     Ok(())
 }

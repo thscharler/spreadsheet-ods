@@ -1,11 +1,13 @@
-use std::fs::File;
-use std::io::{Cursor, Read, Write};
-use std::path::Path;
+mod lib_test;
 
+use lib_test::*;
 use spreadsheet_ods::{
     read_ods, read_ods_buf, write_ods, write_ods_buf, write_ods_to, OdsError, Sheet, SplitMode,
     ValueType, WorkBook,
 };
+use std::fs::File;
+use std::io::{Cursor, Read, Write};
+use std::path::Path;
 use std::time::Instant;
 
 #[test]
@@ -17,7 +19,7 @@ fn test_write_read() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/test_0.ods")?;
+    test_write_ods(&mut wb, "test_out/test_0.ods")?;
 
     let wi = read_ods("test_out/test_0.ods")?;
     let si = wi.sheet(0);
@@ -57,7 +59,7 @@ pub fn timingn<E>(name: &str, mut fun: impl FnMut()) -> Result<(), E> {
 fn read_rw_orders() -> Result<(), OdsError> {
     let mut wb = read_ods("tests/orders.ods")?;
     dbg!(2);
-    write_ods(&mut wb, "test_out/orders.ods")?;
+    test_write_ods(&mut wb, "test_out/orders.ods")?;
     dbg!(3);
     let _wb = read_ods("test_out/orders.ods")?;
     Ok(())
@@ -74,7 +76,7 @@ fn read_orders() -> Result<(), OdsError> {
     cc.vert_split_pos = 2;
     cc.vert_split_mode = SplitMode::Heading;
 
-    write_ods(&mut wb, "test_out/orders.ods")?;
+    test_write_ods(&mut wb, "test_out/orders.ods")?;
     Ok(())
 }
 
@@ -86,14 +88,15 @@ fn test_write_read_write_read() -> Result<(), OdsError> {
     std::fs::copy(path, temp)?;
 
     let mut ods = read_ods(temp)?;
-    write_ods(&mut ods, temp)?;
+    test_write_ods(&mut ods, temp)?;
     let _ods = read_ods(temp)?;
 
     Ok(())
 }
 
+#[should_panic]
 #[test]
-fn test_write_repeat_overlapped() -> Result<(), OdsError> {
+fn test_write_repeat_overlapped() {
     let mut wb = WorkBook::new_empty();
     let mut sh = Sheet::new("1");
 
@@ -106,7 +109,26 @@ fn test_write_repeat_overlapped() -> Result<(), OdsError> {
     wb.push_sheet(sh);
 
     let path = Path::new("test_out/overlap.ods");
-    write_ods(&mut wb, path)?;
+    test_write_ods(&mut wb, path).unwrap();
+
+    let _ods = read_ods(path).unwrap();
+}
+
+#[test]
+fn test_write_repeat_overlapped2() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new_empty();
+    let mut sh = Sheet::new("1");
+
+    sh.set_value(0, 0, "A");
+    sh.set_row_repeat(0, 3);
+    sh.set_value(4, 0, "X");
+    sh.set_value(5, 0, "X");
+    sh.set_value(6, 0, "B");
+
+    wb.push_sheet(sh);
+
+    let path = Path::new("test_out/overlap2.ods");
+    test_write_ods(&mut wb, path)?;
 
     let _ods = read_ods(path)?;
 
@@ -122,7 +144,7 @@ fn test_write_buf() -> Result<(), OdsError> {
     wb.push_sheet(sh);
 
     let p = Path::new("test_out/bufnot.ods");
-    write_ods(&mut wb, p)?;
+    test_write_ods(&mut wb, p)?;
     let len = p.to_path_buf().metadata()?.len() as usize;
 
     let v = Vec::new();
@@ -151,7 +173,7 @@ fn test_read_buf() -> Result<(), OdsError> {
     cc.vert_split_pos = 2;
     cc.vert_split_mode = SplitMode::Heading;
 
-    write_ods(&mut wb, "test_out/orders.ods")?;
+    test_write_ods(&mut wb, "test_out/orders.ods")?;
     Ok(())
 }
 

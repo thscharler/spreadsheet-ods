@@ -1,4 +1,7 @@
+mod lib_test;
+
 use chrono::{Duration, NaiveDateTime};
+use lib_test::*;
 use spreadsheet_ods::metadata::{MetaUserDefined, MetaValue};
 use spreadsheet_ods::{read_ods, write_ods, OdsError, Sheet, WorkBook};
 
@@ -31,7 +34,7 @@ fn test_write_read() -> Result<(), OdsError> {
     sh.set_value(0, 0, "A");
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/meta0.ods")?;
+    test_write_ods(&mut wb, "test_out/meta0.ods")?;
 
     let wi = read_ods("test_out/meta0.ods")?;
 

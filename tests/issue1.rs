@@ -1,3 +1,6 @@
+mod lib_test;
+
+use lib_test::*;
 use spreadsheet_ods::style::units::*;
 use spreadsheet_ods::*;
 
@@ -19,7 +22,7 @@ fn issue1() {
     //sheet.cell_mut(1, 1).set_style("Square style");
     wb.push_sheet(sheet);
 
-    if let Err(x) = spreadsheet_ods::write_ods(&mut wb, output_file) {
+    if let Err(x) = test_write_ods(&mut wb, output_file) {
         println!("Error: {}", x)
     }
 }

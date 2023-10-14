@@ -1,5 +1,7 @@
-use color::Rgb;
+mod lib_test;
 
+use color::Rgb;
+use lib_test::*;
 use spreadsheet_ods::style::units::Length;
 use spreadsheet_ods::style::{MasterPage, PageStyle, TableStyle};
 use spreadsheet_ods::xmltree::XmlVec;
@@ -21,11 +23,11 @@ fn test_pagelayout() -> Result<(), OdsError> {
     let path = std::path::Path::new("test_out/rexp.ods");
 
     if path.exists() {
-        write_ods(&mut ods, path)?;
+        test_write_ods(&mut ods, path)?;
     } else {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::File::create(path)?;
-        write_ods(&mut ods, path)?;
+        test_write_ods(&mut ods, path)?;
     }
 
     Ok(())
@@ -56,7 +58,7 @@ fn test_crpagelayout() -> Result<(), OdsError> {
 
     wb.push_sheet(Sheet::new("1"));
 
-    write_ods(&mut wb, "test_out/hf0.ods")?;
+    test_write_ods(&mut wb, "test_out/hf0.ods")?;
 
     Ok(())
 }

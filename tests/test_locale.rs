@@ -1,5 +1,8 @@
+mod lib_test;
+
 use chrono::{Duration, NaiveDate, NaiveDateTime};
 use icu_locid::{locale, Locale};
+use lib_test::*;
 use spreadsheet_ods::defaultstyles::DefaultStyle;
 use spreadsheet_ods::{
     read_ods, write_ods, CellStyle, OdsError, Sheet, Value, ValueFormatCurrency, WorkBook,
@@ -23,7 +26,7 @@ pub fn test_locale1() -> Result<(), OdsError> {
 
     wb.push_sheet(sheet);
 
-    write_ods(&mut wb, "test_out/locale1.ods")?;
+    test_write_ods(&mut wb, "test_out/locale1.ods")?;
 
     Ok(())
 }
@@ -44,7 +47,7 @@ pub fn test_locale2() -> Result<(), OdsError> {
 
     wb.push_sheet(sheet);
 
-    write_ods(&mut wb, "test_out/locale2.ods")?;
+    test_write_ods(&mut wb, "test_out/locale2.ods")?;
 
     let _wb = read_ods("test_out/locale2.ods")?;
 
@@ -63,7 +66,12 @@ pub fn test_locale3() -> Result<(), OdsError> {
     sheet.set_value(
         5,
         1,
-        Value::DateTime(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()),
+        Value::DateTime(
+            NaiveDate::from_ymd_opt(2000, 1, 1)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap(),
+        ),
     );
     sheet.set_value(
         6,
@@ -74,7 +82,7 @@ pub fn test_locale3() -> Result<(), OdsError> {
 
     wb.push_sheet(sheet);
 
-    write_ods(&mut wb, "test_out/locale3.ods")?;
+    test_write_ods(&mut wb, "test_out/locale3.ods")?;
 
     let _wb = read_ods("test_out/locale3.ods")?;
 
@@ -103,19 +111,34 @@ pub fn test_locale4() -> Result<(), OdsError> {
     sheet.set_styled_value(
         5,
         1,
-        Value::DateTime(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()),
+        Value::DateTime(
+            NaiveDate::from_ymd_opt(2000, 1, 1)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap(),
+        ),
         &DefaultStyle::date(),
     );
     sheet.set_styled_value(
         6,
         1,
-        Value::DateTime(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap().and_hms_opt(1, 2, 3).unwrap()),
+        Value::DateTime(
+            NaiveDate::from_ymd_opt(2000, 1, 1)
+                .unwrap()
+                .and_hms_opt(1, 2, 3)
+                .unwrap(),
+        ),
         &DefaultStyle::datetime(),
     );
     sheet.set_styled_value(
         7,
         1,
-        Value::DateTime(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap().and_hms_opt(1, 2, 3).unwrap()),
+        Value::DateTime(
+            NaiveDate::from_ymd_opt(2000, 1, 1)
+                .unwrap()
+                .and_hms_opt(1, 2, 3)
+                .unwrap(),
+        ),
         &DefaultStyle::time_of_day(),
     );
     sheet.set_styled_value(
@@ -127,7 +150,7 @@ pub fn test_locale4() -> Result<(), OdsError> {
 
     wb.push_sheet(sheet);
 
-    write_ods(&mut wb, "test_out/locale4.ods")?;
+    test_write_ods(&mut wb, "test_out/locale4.ods")?;
 
     let _wb = read_ods("test_out/locale4.ods")?;
 

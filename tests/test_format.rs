@@ -1,6 +1,8 @@
+mod lib_test;
+
 use chrono::NaiveDateTime;
 use icu_locid::locale;
-
+use lib_test::*;
 use spreadsheet_ods::format::{FormatCalendarStyle, FormatNumberStyle};
 use spreadsheet_ods::style::CellStyle;
 use spreadsheet_ods::{
@@ -115,10 +117,10 @@ fn write_format() -> Result<(), OdsError> {
     wb.push_sheet(sh);
     let path = std::path::Path::new("test_out/format.ods");
     if path.exists() {
-        write_ods(&mut wb, path)
+        test_write_ods(&mut wb, path)
     } else {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::File::create(path)?;
-        write_ods(&mut wb, path)
+        test_write_ods(&mut wb, path)
     }
 }

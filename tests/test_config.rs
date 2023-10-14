@@ -1,3 +1,6 @@
+mod lib_test;
+
+use lib_test::*;
 use spreadsheet_ods::{read_ods, write_ods, OdsError, SplitMode};
 
 #[test]
@@ -11,6 +14,6 @@ fn read_orders() -> Result<(), OdsError> {
     cc.vert_split_pos = 2;
     cc.vert_split_mode = SplitMode::Heading;
 
-    write_ods(&mut wb, "test_out/orders.ods")?;
+    test_write_ods(&mut wb, "test_out/orders.ods")?;
     Ok(())
 }

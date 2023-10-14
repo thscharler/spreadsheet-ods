@@ -1,3 +1,6 @@
+mod lib_test;
+
+use lib_test::*;
 use spreadsheet_ods::draw::Annotation;
 use spreadsheet_ods::{write_ods, OdsError, Sheet, WorkBook};
 
@@ -20,7 +23,7 @@ fn test_annotation() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/annotation.ods")?;
+    test_write_ods(&mut wb, "test_out/annotation.ods")?;
 
     Ok(())
 }

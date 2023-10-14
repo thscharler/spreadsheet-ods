@@ -1,3 +1,6 @@
+mod lib_test;
+
+use lib_test::*;
 use spreadsheet_ods::condition::Condition;
 use spreadsheet_ods::text::TextP;
 use spreadsheet_ods::validation::{Validation, ValidationError, ValidationHelp};
@@ -98,7 +101,7 @@ fn test_validation0() -> Result<(), OdsError> {
 
     book.push_sheet(sheet);
 
-    write_ods(&mut book, "test_out/validation0.ods")?;
+    test_write_ods(&mut book, "test_out/validation0.ods")?;
 
     Ok(())
 }
@@ -130,7 +133,7 @@ fn test_validation1() -> Result<(), OdsError> {
 
     book.push_sheet(sheet);
 
-    write_ods(&mut book, "test_out/validation1.ods")?;
+    test_write_ods(&mut book, "test_out/validation1.ods")?;
 
     Ok(())
 }

@@ -1,3 +1,6 @@
+mod lib_test;
+
+use lib_test::*;
 use spreadsheet_ods::{read_ods, write_ods, Grouped, OdsError, Sheet, WorkBook};
 
 #[test]
@@ -29,7 +32,7 @@ fn test_write_group1() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/rowgroup1.ods")?;
+    test_write_ods(&mut wb, "test_out/rowgroup1.ods")?;
 
     let wb = read_ods("test_out/rowgroup1.ods")?;
     let sh = wb.sheet(0);
@@ -76,7 +79,7 @@ fn test_write_group2() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/colgroup2.ods")?;
+    test_write_ods(&mut wb, "test_out/colgroup2.ods")?;
 
     let wb = read_ods("test_out/colgroup2.ods")?;
     let sh = wb.sheet(0);

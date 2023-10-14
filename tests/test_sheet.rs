@@ -1,3 +1,6 @@
+mod lib_test;
+
+use lib_test::*;
 use spreadsheet_ods::{
     cm, currency, percent, read_ods, write_ods, CellRange, Length, OdsError, Sheet, Value,
     ValueType, WorkBook,
@@ -13,7 +16,7 @@ fn test_colwidth() -> Result<(), OdsError> {
     sh.set_row_height(0, cm!(1.27));
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/colwidth.ods")?;
+    test_write_ods(&mut wb, "test_out/colwidth.ods")?;
 
     let wb = read_ods("test_out/colwidth.ods")?;
     assert_eq!(wb.sheet(0).col_width(0), cm!(2.54));
@@ -50,7 +53,7 @@ fn test_row_repeat() -> Result<(), OdsError> {
     sh.set_row_repeat(4, 2);
 
     wb.push_sheet(sh);
-    write_ods(&mut wb, "test_out/row_repeat.ods")?;
+    test_write_ods(&mut wb, "test_out/row_repeat.ods")?;
 
     let wb = read_ods("test_out/row_repeat.ods")?;
     assert_eq!(wb.sheet(0).row_repeat(4), 2);
@@ -117,7 +120,7 @@ fn test_span() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/test_span.ods")?;
+    test_write_ods(&mut wb, "test_out/test_span.ods")?;
     let wi = read_ods("test_out/test_span.ods")?;
 
     let si = wi.sheet(0);
@@ -147,7 +150,7 @@ fn test_print_range() -> Result<(), OdsError> {
     sh.add_print_range(CellRange::local(11, 11, 19, 19));
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/test_print_range.ods")?;
+    test_write_ods(&mut wb, "test_out/test_print_range.ods")?;
 
     let wb = read_ods("test_out/test_print_range.ods")?;
     let sh = wb.sheet(0);
@@ -172,7 +175,7 @@ fn display_print() -> Result<(), OdsError> {
     s1.set_print(false);
     wb.push_sheet(s1);
 
-    write_ods(&mut wb, "test_out/display_print.ods")?;
+    test_write_ods(&mut wb, "test_out/display_print.ods")?;
 
     Ok(())
 }
@@ -197,7 +200,7 @@ fn split_table() -> Result<(), OdsError> {
     sh.split_horizontal(250);
     wb.push_sheet(sh);
 
-    write_ods(&mut wb, "test_out/split_table.ods")?;
+    test_write_ods(&mut wb, "test_out/split_table.ods")?;
 
     Ok(())
 }

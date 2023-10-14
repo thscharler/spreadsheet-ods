@@ -51,6 +51,10 @@ This project is licensed under either of
 
 at your option.
 
+## Changes
+
+[changes.md](https://github.com/thscharler/spreadsheet-ods/blob/master/changes.md)
+
 ## Contributing
 
 I welcome all people who want to contribute.  
