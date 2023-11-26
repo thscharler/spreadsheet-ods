@@ -263,6 +263,7 @@ pub mod defaultstyles;
 pub mod draw;
 pub mod error;
 pub mod format;
+#[macro_use]
 pub mod formula;
 pub mod manifest;
 pub mod metadata;

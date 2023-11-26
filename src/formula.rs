@@ -4,7 +4,363 @@
 
 use crate::refs::{CellRange, CellRef};
 
-// TODO: more formula stuff. parsing?
+/// Macro for cell-references.
+///
+/// Syntax:
+///     cell!([abs] row, [abs] col);
+///     cell!([abs] row, [abs] col, [abs] row_to, [abs] col_to);
+///     cell!(table => [abs] row, [abs] col);
+///     cell!(table => [abs] row, [abs] col, [abs] row_to, [abs] col_to);
+#[macro_export]
+macro_rules! cell {
+    (abs $row:expr, abs $col:expr) => {
+        spreadsheet_ods::CellRef::new_all(None, None, true, $row, true, $col)
+    };
+    (abs $row:expr, $col:expr) => {
+        spreadsheet_ods::CellRef::new_all(None, None, true, $row, false, $col)
+    };
+    ($row:expr, abs $col:expr) => {
+        spreadsheet_ods::CellRef::new_all(None, None, false, $row, true, $col)
+    };
+    ($row:expr, $col:expr) => {
+        spreadsheet_ods::CellRef::new_all(None, None, false, $row, false, $col)
+    };
+
+    (abs $row:expr, abs $col:expr, abs $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, true, $row, true, $col, None, true, $row2, true, $col2,
+        )
+    };
+    (abs $row:expr, abs $col:expr, abs $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, true, $row, true, $col, None, true, $row2, false, $col2,
+        )
+    };
+    (abs $row:expr, abs $col:expr, $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, true, $row, true, $col, None, false, $row2, true, $col2,
+        )
+    };
+    (abs $row:expr, abs $col:expr, $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, true, $row, true, $col, None, false, $row2, false, $col2,
+        )
+    };
+    (abs $row:expr, $col:expr, abs $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, true, $row, false, $col, None, true, $row2, true, $col2,
+        )
+    };
+    (abs $row:expr, $col:expr, abs $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, true, $row, false, $col, None, true, $row2, false, $col2,
+        )
+    };
+    (abs $row:expr, $col:expr, $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, true, $row, false, $col, None, false, $row2, true, $col2,
+        )
+    };
+    (abs $row:expr,  $col:expr,  $row2:expr,  $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, true, $row, false, $col, None, false, $row2, false, $col2,
+        )
+    };
+    ( $row:expr, abs $col:expr, abs $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, false, $row, true, $col, None, true, $row2, true, $col2,
+        )
+    };
+    ( $row:expr, abs $col:expr, abs $row2:expr,  $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, false, $row, true, $col, None, true, $row2, false, $col2,
+        )
+    };
+    ( $row:expr, abs $col:expr, $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, false, $row, true, $col, None, false, $row2, true, $col2,
+        )
+    };
+    ($row:expr, abs $col:expr, $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, false, $row, true, $col, None, false, $row2, false, $col2,
+        )
+    };
+    ($row:expr, $col:expr, abs $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, false, $row, false, $col, None, true, $row2, true, $col2,
+        )
+    };
+    ($row:expr, $col:expr, abs $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, false, $row, false, $col, None, true, $row2, false, $col2,
+        )
+    };
+    ($row:expr, $col:expr, $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, false, $row, false, $col, None, false, $row2, true, $col2,
+        )
+    };
+    ($row:expr, $col:expr, $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None, None, false, $row, false, $col, None, false, $row2, false, $col2,
+        )
+    };
+
+    ($table:expr => abs $row:expr, abs $col:expr) => {
+        spreadsheet_ods::CellRef::new_all(None, Some($table.into()), true, $row, true, $col)
+    };
+    ($table:expr => abs $row:expr, $col:expr) => {
+        spreadsheet_ods::CellRef::new_all(None, Some($table.into()), true, $row, true, $col)
+    };
+    ($table:expr => $row:expr, abs $col:expr) => {
+        spreadsheet_ods::CellRef::new_all(None, Some($table.into()), true, $row, true, $col)
+    };
+    ($table:expr => $row:expr, $col:expr) => {
+        spreadsheet_ods::CellRef::new_all(None, Some($table.into()), true, $row, true, $col)
+    };
+
+    ($table:expr => abs $row:expr, abs $col:expr, abs $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            true,
+            $row,
+            true,
+            $col,
+            None,
+            true,
+            $row2,
+            true,
+            $col2,
+        )
+    };
+    ($table:expr => abs $row:expr, abs $col:expr, abs $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            true,
+            $row,
+            true,
+            $col,
+            None,
+            true,
+            $row2,
+            false,
+            $col2,
+        )
+    };
+    ($table:expr => abs $row:expr, abs $col:expr, $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            true,
+            $row,
+            true,
+            $col,
+            None,
+            false,
+            $row2,
+            true,
+            $col2,
+        )
+    };
+    ($table:expr => abs $row:expr, abs $col:expr, $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            true,
+            $row,
+            true,
+            $col,
+            None,
+            false,
+            $row2,
+            false,
+            $col2,
+        )
+    };
+    ($table:expr => abs $row:expr, $col:expr, abs $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            true,
+            $row,
+            false,
+            $col,
+            None,
+            true,
+            $row2,
+            true,
+            $col2,
+        )
+    };
+    ($table:expr => abs $row:expr, $col:expr, abs $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            true,
+            $row,
+            false,
+            $col,
+            None,
+            true,
+            $row2,
+            false,
+            $col2,
+        )
+    };
+    ($table:expr => abs $row:expr, $col:expr, $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            true,
+            $row,
+            false,
+            $col,
+            None,
+            false,
+            $row2,
+            true,
+            $col2,
+        )
+    };
+    ($table:expr => abs $row:expr,  $col:expr,  $row2:expr,  $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            true,
+            $row,
+            false,
+            $col,
+            None,
+            false,
+            $row2,
+            false,
+            $col2,
+        )
+    };
+    ($table:expr =>  $row:expr, abs $col:expr, abs $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            false,
+            $row,
+            true,
+            $col,
+            None,
+            true,
+            $row2,
+            true,
+            $col2,
+        )
+    };
+    ($table:expr =>  $row:expr, abs $col:expr, abs $row2:expr,  $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            false,
+            $row,
+            true,
+            $col,
+            None,
+            true,
+            $row2,
+            false,
+            $col2,
+        )
+    };
+    ($table:expr =>  $row:expr, abs $col:expr, $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            false,
+            $row,
+            true,
+            $col,
+            None,
+            false,
+            $row2,
+            true,
+            $col2,
+        )
+    };
+    ($table:expr => $row:expr, abs $col:expr, $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            false,
+            $row,
+            true,
+            $col,
+            None,
+            false,
+            $row2,
+            false,
+            $col2,
+        )
+    };
+    ($table:expr => $row:expr, $col:expr, abs $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            false,
+            $row,
+            false,
+            $col,
+            None,
+            true,
+            $row2,
+            true,
+            $col2,
+        )
+    };
+    ($table:expr => $row:expr, $col:expr, abs $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            false,
+            $row,
+            false,
+            $col,
+            None,
+            true,
+            $row2,
+            false,
+            $col2,
+        )
+    };
+    ($table:expr => $row:expr, $col:expr, $row2:expr, abs $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            false,
+            $row,
+            false,
+            $col,
+            None,
+            false,
+            $row2,
+            true,
+            $col2,
+        )
+    };
+    ($table:expr => $row:expr, $col:expr, $row2:expr, $col2:expr) => {
+        spreadsheet_ods::CellRange::new_all(
+            None,
+            Some($table.into()),
+            false,
+            $row,
+            false,
+            $col,
+            None,
+            false,
+            $row2,
+            false,
+            $col2,
+        )
+    };
+}
 
 /// Creates a cell-reference for use in formulas.
 pub fn fcellref(row: u32, col: u32) -> String {

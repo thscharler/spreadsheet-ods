@@ -31,6 +31,7 @@ pub(crate) enum RCode {
 }
 
 impl AsStatic<str> for RCode {
+    #[inline]
     fn as_static(&self) -> &'static str {
         match self {
             RCode::NomError => "NomError",
@@ -44,6 +45,7 @@ impl AsStatic<str> for RCode {
 }
 
 impl Display for RCode {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -59,6 +61,7 @@ pub(crate) type KTokenizerResult<'s, O> = TokenizerResult<RCode, KSpan<'s>, O>;
 pub(crate) type KTokenizerError<'s> = TokenizerError<RCode, KSpan<'s>>;
 
 /// Parse as Visibility.
+#[inline]
 pub(crate) fn parse_visibility(input: KSpan<'_>) -> Result<Visibility, OdsError> {
     match input {
         b"visible" => Ok(Visibility::Visible),
@@ -72,6 +75,7 @@ pub(crate) fn parse_visibility(input: KSpan<'_>) -> Result<Visibility, OdsError>
 }
 
 /// Parse XLinkActuate enum
+#[inline]
 pub(crate) fn parse_xlink_actuate(input: KSpan<'_>) -> Result<XLinkActuate, OdsError> {
     match input {
         b"onLoad" => Ok(XLinkActuate::OnLoad),
@@ -84,6 +88,7 @@ pub(crate) fn parse_xlink_actuate(input: KSpan<'_>) -> Result<XLinkActuate, OdsE
 }
 
 /// Parse XLinkShow enum
+#[inline]
 pub(crate) fn parse_xlink_show(input: KSpan<'_>) -> Result<XLinkShow, OdsError> {
     match input {
         b"new" => Ok(XLinkShow::New),
@@ -96,6 +101,7 @@ pub(crate) fn parse_xlink_show(input: KSpan<'_>) -> Result<XLinkShow, OdsError> 
 }
 
 /// Parse XLinkType enum
+#[inline]
 pub(crate) fn parse_xlink_type(input: KSpan<'_>) -> Result<XLinkType, OdsError> {
     match input {
         b"simple" => Ok(XLinkType::Simple),
@@ -113,51 +119,61 @@ pub(crate) fn parse_xlink_type(input: KSpan<'_>) -> Result<XLinkType, OdsError> 
 }
 
 /// Parse a attribute value as a currency.
+#[inline]
 pub(crate) fn parse_string(input: KSpan<'_>) -> Result<String, OdsError> {
     Ok(String::from_utf8_lossy(input).to_string())
 }
 
 /// Parse a attribute value as a currency.
+#[inline]
 pub(crate) fn parse_currency(input: KSpan<'_>) -> Result<String, OdsError> {
     Ok(String::from_utf8_lossy(input).to_string())
 }
 
 /// Parse a bool.
+#[inline]
 pub(crate) fn parse_bool(input: KSpan<'_>) -> Result<bool, OdsError> {
     Ok(token_bool(input)?)
 }
 
 /// Parse a u32.
+#[inline]
 pub(crate) fn parse_u32(input: KSpan<'_>) -> Result<u32, OdsError> {
     Ok(token_u32(input)?)
 }
 
 /// Parse a i64.
+#[inline]
 pub(crate) fn parse_i64(input: KSpan<'_>) -> Result<i64, OdsError> {
     Ok(token_i64(input)?)
 }
 
 /// Parse a i32.
+#[inline]
 pub(crate) fn parse_i32(input: KSpan<'_>) -> Result<i32, OdsError> {
     Ok(token_i32(input)?)
 }
 
 /// Parse a i16.
+#[inline]
 pub(crate) fn parse_i16(input: KSpan<'_>) -> Result<i16, OdsError> {
     Ok(token_i16(input)?)
 }
 
 /// Parse a f64.
+#[inline]
 pub(crate) fn parse_f64(input: KSpan<'_>) -> Result<f64, OdsError> {
     Ok(token_float(input)?)
 }
 
 /// Parse a XML Schema datetime.
+#[inline]
 pub(crate) fn parse_datetime(input: KSpan<'_>) -> Result<NaiveDateTime, OdsError> {
     Ok(token_datetime(input)?)
 }
 
 /// Parse a XML Schema time duration.
+#[inline]
 pub(crate) fn parse_duration(input: KSpan<'_>) -> Result<Duration, OdsError> {
     Ok(token_duration(input)?)
 }
