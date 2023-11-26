@@ -37,22 +37,6 @@ unicode-ident = "1.0"
 kparse = "3.0.4"
 indexmap = "2.0"
 base64 = "0.21"
-
-[dependencies.quick-xml]
-version = "0.30.0"
-# Should be UTF-8, no need for encoding related stuff.
-#features = ["encoding"]
-
-[dependencies.zip]
-version = "0.6.6"
-default-features = false
-features = ["deflate", "time"]
-
-[dependencies.chrono]
-version = "0.4"
-default-features = false
-features = ["clock", "alloc"]
-
-#[profile.test]
-#opt-level = 3
-#debug = 1
+quick-xml = "0.31.0"
+zip = { version="0.6.6", default-features = false, features = [ "deflate", "time"] }
+chrono = { version="0.4", default-features = false, features = ["clock", "alloc"]}
