@@ -3714,7 +3714,6 @@ fn read_metadata_template(tag: &BytesStart<'_>) -> Result<MetaTemplate, OdsError
     for attr in tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"meta:date" => {
-                dbg!(&attr);
                 template.date = Some(parse_datetime(attr.unescape_value()?.as_bytes())?);
             }
             attr if attr.key.as_ref() == b"xlink:actuate" => {
