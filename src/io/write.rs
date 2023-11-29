@@ -1679,14 +1679,6 @@ fn write_sheet(
                     synth_delta_col,
                     &mut split,
                 );
-                dbg!(
-                    &spans,
-                    cur_row,
-                    cur_col,
-                    cur_col_repeat,
-                    synth_delta_col,
-                    &split
-                );
                 for s in &split {
                     write_empty_cells(s.hidden, s.repeat(), xml_out)?;
                 }

@@ -1,3 +1,7 @@
+# 0.19.2
+
+dbg!() removed.
+
 # 0.19.1
 
 Move cell! macro from spreadsheet-ods-formula crate to this one.
