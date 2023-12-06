@@ -1,4 +1,4 @@
-# 0.19.4
+# 0.20.0
 
 - breaking: Split lib.rs in workbook.rs, sheet.rs, cell.rs and value.rs
     * mod error removed, only crate::ODSError is reachable.
