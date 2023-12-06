@@ -2,7 +2,7 @@ mod lib_test;
 
 use lib_test::*;
 use spreadsheet_ods::draw::Annotation;
-use spreadsheet_ods::{write_ods, OdsError, Sheet, WorkBook};
+use spreadsheet_ods::{OdsError, Sheet, WorkBook};
 
 #[test]
 fn test_annotation() -> Result<(), OdsError> {

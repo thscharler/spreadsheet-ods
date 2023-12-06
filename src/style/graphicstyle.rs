@@ -10,8 +10,8 @@ use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, text_position, Border,
     Length, Rgb,
 };
-use crate::style::{StyleOrigin, StyleUse};
-use crate::{Locale, TextStyleRef};
+use crate::style::{StyleOrigin, StyleUse, TextStyleRef};
+use icu_locid::Locale;
 use std::fmt::{Display, Formatter};
 
 style_ref!(GraphicStyleRef);

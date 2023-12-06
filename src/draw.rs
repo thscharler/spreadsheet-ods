@@ -4,9 +4,10 @@
 
 use crate::attrmap2::AttrMap2;
 use crate::style::units::RelativeScale;
+use crate::style::{GraphicStyleRef, ParagraphStyleRef};
 use crate::text::{TextP, TextTag};
 use crate::xlink::{XLinkActuate, XLinkShow, XLinkType};
-use crate::{CellRef, GraphicStyleRef, Length, OdsError, ParagraphStyleRef};
+use crate::{CellRef, Length, OdsError};
 use base64::Engine;
 use chrono::NaiveDateTime;
 
@@ -335,7 +336,7 @@ impl DrawFrame {
 /// The <draw:image> element may have text content. Text content is displayed in addition to the
 /// image data.
 /// Note: While the image data may have an arbitrary format, vector graphics should
-/// be stored in the [SVG] format and bitmap graphics in the [PNG] format.
+/// be stored in the SVG format and bitmap graphics in the PNG format.
 #[derive(Debug, Clone, Default)]
 pub struct DrawImage {
     attr: AttrMap2,
@@ -385,7 +386,7 @@ impl DrawImage {
 
     /// Image binary data.
     /// Note: While the image data may have an arbitrary format, vector graphics should
-    /// be stored in the [SVG] format and bitmap graphics in the [PNG] format.
+    /// be stored in the SVG format and bitmap graphics in the PNG format.
     pub fn set_binary(&mut self, binary: &[u8]) {
         let ng = base64::engine::GeneralPurpose::new(
             &base64::alphabet::STANDARD,

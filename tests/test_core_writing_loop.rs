@@ -1,7 +1,7 @@
 mod lib_test;
 
 use lib_test::*;
-use spreadsheet_ods::{read_ods, write_ods, OdsError, OdsOptions, Sheet, WorkBook};
+use spreadsheet_ods::{read_ods, OdsError, OdsOptions, Sheet, WorkBook};
 use std::fs;
 use std::fs::File;
 use std::io::BufReader;

@@ -8,6 +8,7 @@ use quick_xml::events::{BytesStart, Event};
 use zip::ZipArchive;
 
 use crate::attrmap2::AttrMap2;
+use crate::cell::CellData;
 use crate::condition::{Condition, ValueCondition};
 use crate::config::{Config, ConfigItem, ConfigItemType, ConfigValue};
 use crate::draw::{Annotation, DrawFrame, DrawFrameContent, DrawImage};
@@ -19,7 +20,7 @@ use crate::io::parse::{
     parse_i64, parse_string, parse_u32, parse_visibility, parse_xlink_actuate, parse_xlink_show,
     parse_xlink_type,
 };
-use crate::io::{DUMP_UNUSED, DUMP_XML};
+use crate::io::{NamespaceMap, DUMP_UNUSED, DUMP_XML};
 use crate::manifest::Manifest;
 use crate::metadata::{
     MetaAutoReload, MetaDocumentStatistics, MetaHyperlinkBehaviour, MetaTemplate, MetaUserDefined,
@@ -36,10 +37,9 @@ use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
 use crate::xmltree::XmlTag;
 use crate::{
-    CellData, CellStyle, EventListener, Grouped, Length, NamespaceMap, Script, Sheet, SplitMode,
-    Value, ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
-    ValueFormatPercentage, ValueFormatText, ValueFormatTimeDuration, ValueType, Visibility,
-    WorkBook,
+    CellStyle, EventListener, Grouped, Length, Script, Sheet, SplitMode, Value, ValueFormatBoolean,
+    ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage,
+    ValueFormatText, ValueFormatTimeDuration, ValueType, Visibility, WorkBook,
 };
 use quick_xml::events::attributes::Attribute;
 use std::borrow::Cow;

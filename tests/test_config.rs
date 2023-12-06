@@ -1,7 +1,7 @@
 mod lib_test;
 
 use lib_test::*;
-use spreadsheet_ods::{read_ods, write_ods, OdsError, SplitMode};
+use spreadsheet_ods::{read_ods, OdsError, SplitMode};
 
 #[test]
 fn read_orders() -> Result<(), OdsError> {

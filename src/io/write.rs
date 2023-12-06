@@ -10,9 +10,10 @@ use zip::write::FileOptions;
 use crate::config::{ConfigItem, ConfigItemType, ConfigValue};
 use crate::draw::{Annotation, DrawFrame, DrawFrameContent, DrawImage};
 use crate::error::OdsError;
-use crate::format::FormatPartType;
+use crate::format::{FormatPartType, ValueFormatTrait};
 use crate::io::format::{format_duration2, format_validation_condition};
 use crate::io::xmlwriter::XmlWriter;
+use crate::io::NamespaceMap;
 use crate::manifest::Manifest;
 use crate::metadata::MetaValue;
 use crate::refs::{format_cellranges, CellRange};
@@ -22,11 +23,10 @@ use crate::style::{
 };
 use crate::validation::ValidationDisplay;
 use crate::xmltree::{XmlContent, XmlTag};
+use crate::HashMap;
 use crate::{
-    CellContentRef, EventListener, Length, Script, Sheet, Value, ValueFormatTrait, ValueType,
-    Visibility, WorkBook,
+    CellContentRef, EventListener, Length, Script, Sheet, Value, ValueType, Visibility, WorkBook,
 };
-use crate::{HashMap, NamespaceMap};
 
 type OdsXmlWriter<'a> = XmlWriter<&'a mut dyn Write>;
 

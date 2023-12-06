@@ -1,7 +1,7 @@
 mod lib_test;
 
 use lib_test::*;
-use spreadsheet_ods::{read_ods, write_ods, OdsError};
+use spreadsheet_ods::{read_ods, OdsError};
 
 #[test]
 fn test_draw_image() -> Result<(), OdsError> {

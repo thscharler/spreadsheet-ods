@@ -25,6 +25,7 @@ pub fn timingr<E, R>(
     Ok(result)
 }
 
+#[allow(dead_code)]
 fn create_wb(rows: u32, cols: u32) -> impl FnMut() -> Result<WorkBook, OdsError> {
     move || {
         let mut wb = WorkBook::new_empty();
@@ -90,7 +91,8 @@ struct DummyRowHeader {
     height: Length,
 }
 
-#[test]
+// #[test]
+#[allow(dead_code)]
 fn test_b0() -> Result<(), OdsError> {
     const ROWS: u32 = 100;
     const COLS: u32 = 400;

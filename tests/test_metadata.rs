@@ -3,7 +3,7 @@ mod lib_test;
 use chrono::{Duration, NaiveDateTime};
 use lib_test::*;
 use spreadsheet_ods::metadata::{MetaUserDefined, MetaValue};
-use spreadsheet_ods::{read_ods, write_ods, OdsError, Sheet, WorkBook};
+use spreadsheet_ods::{read_ods, OdsError, Sheet, WorkBook};
 
 #[test]
 fn test_write_read() -> Result<(), OdsError> {

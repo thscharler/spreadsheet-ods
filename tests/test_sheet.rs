@@ -2,8 +2,7 @@ mod lib_test;
 
 use lib_test::*;
 use spreadsheet_ods::{
-    cm, currency, percent, read_ods, write_ods, CellRange, Length, OdsError, Sheet, Value,
-    ValueType, WorkBook,
+    cm, currency, percent, read_ods, CellRange, Length, OdsError, Sheet, Value, ValueType, WorkBook,
 };
 
 #[test]

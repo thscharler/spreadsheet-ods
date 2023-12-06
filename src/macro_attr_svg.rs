@@ -96,7 +96,7 @@ macro_rules! svg_ry {
 
 macro_rules! svg_x {
     ($acc:ident) => {
-        /// See §5.1.2 of [SVG]. For drawing shapes that have a non-rectangular shape, the coordinate
+        /// See §5.1.2 of SVG. For drawing shapes that have a non-rectangular shape, the coordinate
         /// refers to the drawing shape's bounding box.
         pub fn svg_x(&mut self, x: Length) {
             self.$acc.set_attr("svg:x", x.to_string());
@@ -106,7 +106,7 @@ macro_rules! svg_x {
 
 macro_rules! svg_y {
     ($acc:ident) => {
-        /// See §5.1.2 of [SVG]. For drawing shapes that have a non-rectangular shape, the coordinate
+        /// See §5.1.2 of SVG. For drawing shapes that have a non-rectangular shape, the coordinate
         /// refers to the drawing shape's bounding box.
         pub fn svg_y(&mut self, y: Length) {
             self.$acc.set_attr("svg:y", y.to_string());

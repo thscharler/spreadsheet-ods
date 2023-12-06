@@ -4,7 +4,7 @@ use lib_test::*;
 use spreadsheet_ods::condition::Condition;
 use spreadsheet_ods::text::TextP;
 use spreadsheet_ods::validation::{Validation, ValidationError, ValidationHelp};
-use spreadsheet_ods::{write_ods, CellRange, OdsError, Sheet, WorkBook};
+use spreadsheet_ods::{CellRange, OdsError, Sheet, WorkBook};
 
 #[test]
 fn test_validation0() -> Result<(), OdsError> {

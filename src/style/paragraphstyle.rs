@@ -9,11 +9,11 @@ use crate::style::units::{
     TextEmphasize, TextEmphasizePosition, TextKeep, TextPosition, TextRelief, TextTransform,
     WritingMode,
 };
+use crate::style::MasterPageRef;
 use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, text_position,
     StyleOrigin, StyleUse, TextStyleRef,
 };
-use crate::MasterPageRef;
 use icu_locid::Locale;
 use std::fmt::{Display, Formatter};
 

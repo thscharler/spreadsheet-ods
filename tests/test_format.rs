@@ -6,7 +6,7 @@ use lib_test::*;
 use spreadsheet_ods::format::{FormatCalendarStyle, FormatNumberStyle};
 use spreadsheet_ods::style::CellStyle;
 use spreadsheet_ods::{
-    write_ods, OdsError, Sheet, ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime,
+    OdsError, Sheet, ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime,
     ValueFormatNumber, ValueFormatPercentage, WorkBook,
 };
 

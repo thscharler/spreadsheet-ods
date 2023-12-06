@@ -117,20 +117,20 @@ macro_rules! draw_transform {
         /// the transform definitions are double values (18.2)
         ///
         /// The defined transforms are:
-        /// • matrix(<a> <b> <c> <d> <e> <f>), specifies a transformation in the form of a
+        /// • matrix(a b c d e f), specifies a transformation in the form of a
         /// transformation matrix of six values. "The values describe a standard 3x2 homogeneous
-        /// transformation matrix in column-major order, where the right column (<e>, <f>) describes the
+        /// transformation matrix in column-major order, where the right column (e, f) describes the
         /// translation.
-        /// • rotate(<rotate-angle>), specifies a rotation by <rotate-angle> degrees about the
+        /// • rotate(rotate-angle), specifies a rotation by rotate-angle degrees about the
         /// origin of the shape’s coordinate system.
-        /// • scale(<sx> [<sy>]), specifies a scale operation by <sx> and <sy>. If <sy> is not
-        /// provided, it is assumed to be equal to <sx>.
-        /// • skewX(<skew-angle>), specifies a skew transformation by <skew-angle> degrees along
+        /// • scale(sx \[sy\]), specifies a scale operation by sx and sy. If sy is not
+        /// provided, it is assumed to be equal to sx.
+        /// • skewX(skew-angle), specifies a skew transformation by skew-angle degrees along
         /// the x-axis.
-        /// • skewY(<skew-angle>), specifies a skew transformation by <skew-angle> degrees along
+        /// • skewY(skew-angle), specifies a skew transformation by skew-angle degrees along
         /// the y-axis.
-        /// • translate(<tx> [<ty>]), specifies a translation by <tx> and <ty>, where <tx> and
-        /// <ty> are lengths (18.3.18). If <ty> is not provided, it is assumed to be zero.
+        /// • translate(tx \[ty\]), specifies a translation by tx and ty, where tx and
+        /// ty are lengths (18.3.18). If ty is not provided, it is assumed to be zero.
         pub fn set_draw_transform<S: AsRef<str>>(&mut self, transform: &[S]) {
             let mut s = String::new();
             for v in transform {
@@ -209,9 +209,9 @@ macro_rules! draw_mime_type {
     ($acc:ident) => {
         /// The draw:mime-type attribute specifies the MIME type of the media type that a plugin
         /// processes, or the MIME type of the image given by a <draw:image> element. Valid values for
-        /// this attribute are those defined in accordance with §3.7 of [RFC2616], or registered in accordance
-        /// with [RFC6838].
-        /// Note: Additional information on MIME media types can be found at [MIMETYPES].
+        /// this attribute are those defined in accordance with §3.7 of RFC2616, or registered in accordance
+        /// with RFC6838.
+        /// Note: Additional information on MIME media types can be found at MIMETYPES.
         pub fn set_draw_mime_type<S: Into<String>>(&mut self, name: S) {
             self.$acc.set_attr("draw:mime-type", name.into());
         }

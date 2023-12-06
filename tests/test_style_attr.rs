@@ -12,7 +12,7 @@ use spreadsheet_ods::style::units::{
 use spreadsheet_ods::style::{
     CellStyle, ColStyle, FontFaceDecl, PageStyle, RowStyle, StyleOrigin, StyleUse, TableStyle,
 };
-use spreadsheet_ods::{cm, deg, mm, pt, write_ods, CellRef, OdsError, Sheet, WorkBook};
+use spreadsheet_ods::{cm, deg, mm, pt, CellRef, OdsError, Sheet, WorkBook};
 
 #[test]
 fn test_attr1() {

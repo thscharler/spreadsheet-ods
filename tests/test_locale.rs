@@ -4,9 +4,7 @@ use chrono::{Duration, NaiveDate, NaiveDateTime};
 use icu_locid::{locale, Locale};
 use lib_test::*;
 use spreadsheet_ods::defaultstyles::DefaultStyle;
-use spreadsheet_ods::{
-    read_ods, write_ods, CellStyle, OdsError, Sheet, Value, ValueFormatCurrency, WorkBook,
-};
+use spreadsheet_ods::{read_ods, CellStyle, OdsError, Sheet, Value, ValueFormatCurrency, WorkBook};
 
 #[test]
 pub fn test_locale1() -> Result<(), OdsError> {

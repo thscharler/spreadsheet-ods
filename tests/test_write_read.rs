@@ -2,8 +2,8 @@ mod lib_test;
 
 use lib_test::*;
 use spreadsheet_ods::{
-    read_ods, read_ods_buf, write_ods, write_ods_buf, write_ods_to, OdsError, Sheet, SplitMode,
-    ValueType, WorkBook,
+    read_ods, read_ods_buf, write_ods_buf, write_ods_to, OdsError, Sheet, SplitMode, ValueType,
+    WorkBook,
 };
 use std::fs::File;
 use std::io::{Cursor, Read, Write};
