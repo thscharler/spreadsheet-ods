@@ -39,9 +39,9 @@ use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp
 use crate::workbook::{EventListener, Script};
 use crate::xmltree::XmlTag;
 use crate::{
-    CellStyle, Length, Sheet, Value, ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime,
-    ValueFormatNumber, ValueFormatPercentage, ValueFormatText, ValueFormatTimeDuration, ValueType,
-    WorkBook,
+    CellStyle, ColRange, Length, RowRange, Sheet, Value, ValueFormatBoolean, ValueFormatCurrency,
+    ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage, ValueFormatText,
+    ValueFormatTimeDuration, ValueType, WorkBook,
 };
 use quick_xml::events::attributes::Attribute;
 use std::borrow::Cow;
@@ -747,6 +747,9 @@ fn read_table(
     // Rows can be repeated. In reality only empty ones ever are.
     let mut row_repeat: u32 = 1;
 
+    let mut col_range_from = 0;
+    let mut row_range_from = 0;
+
     // Groups can be stacked.
     let mut col_group = ctx.pop_colgroup_buf();
     let mut row_group = ctx.pop_rowgroup_buf();
@@ -823,9 +826,27 @@ fn read_table(
                 }
             }
 
-            // ignore for ods
-            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {}
-            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {}
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-columns" => {
+                col_range_from = table_col;
+            }
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-columns" => {
+                if let Some(header_cols) = &mut sheet.header_cols {
+                    header_cols.set_to_col(table_col - 1);
+                } else {
+                    sheet.header_cols = Some(ColRange::new(col_range_from, table_col - 1));
+                }
+            }
+
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {
+                row_range_from = row;
+            }
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {
+                if let Some(header_rows) = &mut sheet.header_rows {
+                    header_rows.set_to_row(row - 1);
+                } else {
+                    sheet.header_rows = Some(RowRange::new(row_range_from, row - 1));
+                }
+            }
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-columns" => {}
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-columns" => {}

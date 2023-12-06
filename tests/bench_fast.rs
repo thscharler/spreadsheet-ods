@@ -2,8 +2,9 @@ use icu_locid::locale;
 use std::hint::black_box;
 use std::time::Instant;
 
+use spreadsheet_ods::sheet::Visibility;
 use spreadsheet_ods::{
-    write_ods_buf, write_ods_buf_uncompressed, Length, OdsError, Sheet, Visibility, WorkBook,
+    write_ods_buf, write_ods_buf_uncompressed, Length, OdsError, Sheet, WorkBook,
 };
 
 pub fn timingr<E, R>(

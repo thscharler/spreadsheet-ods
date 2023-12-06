@@ -8,7 +8,7 @@ use crate::style::{ColStyleRef, RowStyleRef, TableStyleRef};
 use crate::validation::ValidationRef;
 use crate::value_::Value;
 use crate::xmltree::XmlTag;
-use crate::{CellRange, CellStyleRef, Length, OdsError};
+use crate::{CellRange, CellStyleRef, ColRange, Length, OdsError, RowRange};
 use std::collections::BTreeMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -184,6 +184,8 @@ pub struct Sheet {
     pub(crate) display: bool,
     pub(crate) print: bool,
 
+    pub(crate) header_rows: Option<RowRange>,
+    pub(crate) header_cols: Option<ColRange>,
     pub(crate) print_ranges: Option<Vec<CellRange>>,
 
     pub(crate) group_rows: Vec<Grouped>,
@@ -304,6 +306,12 @@ impl fmt::Debug for Sheet {
         for (k, v) in &self.row_header {
             writeln!(f, "{:?} {:?}", k, v)?;
         }
+        if let Some(header_rows) = &self.header_rows {
+            writeln!(f, "header rows {:?}", header_rows)?;
+        }
+        if let Some(header_cols) = &self.header_cols {
+            writeln!(f, "header cols {:?}", header_cols)?;
+        }
         for v in &self.group_cols {
             writeln!(f, "group cols {:?}", v)?;
         }
@@ -339,6 +347,8 @@ impl Sheet {
             data: BTreeMap::new(),
             col_header: Default::default(),
             style: None,
+            header_rows: None,
+            header_cols: None,
             print_ranges: None,
             group_rows: Default::default(),
             group_cols: Default::default(),
@@ -360,6 +370,8 @@ impl Sheet {
             row_header: self.row_header.clone(),
             display: self.display,
             print: self.print,
+            header_rows: self.header_rows.clone(),
+            header_cols: self.header_cols.clone(),
             print_ranges: self.print_ranges.clone(),
             group_rows: self.group_rows.clone(),
             group_cols: self.group_cols.clone(),
@@ -960,6 +972,36 @@ impl Sheet {
         } else {
             None
         }
+    }
+
+    /// Defines a range of rows as header rows.
+    pub fn set_header_rows(&mut self, row_start: u32, row_end: u32) {
+        self.header_rows = Some(RowRange::new(row_start, row_end));
+    }
+
+    /// Clears the header-rows definition.
+    pub fn clear_header_rows(&mut self) {
+        self.header_rows = None;
+    }
+
+    /// Returns the header rows.
+    pub fn header_rows(&self) -> &Option<RowRange> {
+        &self.header_rows
+    }
+
+    /// Defines a range of columns as header columns.
+    pub fn set_header_cols(&mut self, col_start: u32, col_end: u32) {
+        self.header_cols = Some(ColRange::new(col_start, col_end));
+    }
+
+    /// Clears the header-columns definition.
+    pub fn clear_header_cols(&mut self) {
+        self.header_cols = None;
+    }
+
+    /// Returns the header columns.
+    pub fn header_cols(&self) -> &Option<ColRange> {
+        &self.header_cols
     }
 
     /// Print ranges.

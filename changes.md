@@ -1,5 +1,8 @@
 # 0.19.4
 
+- fix: 0.18.0 removed header_rows and header_cols. 
+    Mistook these with some useless feature. Reinstated now. 
+
 - refactor: Split lib.rs in workbook.rs, sheet.rs, cell.rs and value.rs
 
 - Remove mktemp. Not used anymore.

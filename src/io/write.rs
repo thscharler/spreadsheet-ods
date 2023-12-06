@@ -1518,6 +1518,7 @@ fn write_sheet(
     let mut prev_row_repeat: u32 = 1;
     let mut prev_col: u32 = 0;
     let mut row_group_count = 0;
+    let mut row_header = false;
 
     let mut it = sheet.into_iter();
     while let Some(((cur_row, cur_col), cell)) = it.next() {
@@ -1571,6 +1572,7 @@ fn write_sheet(
                 prev_row,
                 prev_row_repeat,
                 &mut row_group_count,
+                &mut row_header,
                 xml_out,
             )?;
         }
@@ -1601,6 +1603,7 @@ fn write_sheet(
                     synth_row_repeat,
                     max_cell,
                     &mut row_group_count,
+                    &mut row_header,
                     xml_out,
                 )?;
             }
@@ -1615,6 +1618,7 @@ fn write_sheet(
                 cur_row_repeat,
                 backward_delta_col,
                 &mut row_group_count,
+                &mut row_header,
                 xml_out,
             )?;
         }
@@ -1682,7 +1686,7 @@ fn write_sheet(
         // The last cell we will write? We can close the last row here,
         // where we have all the data.
         if is_last_cell {
-            write_end_last_row(&mut row_group_count, xml_out)?;
+            write_end_last_row(&mut row_group_count, &mut row_header, xml_out)?;
         }
 
         first_cell = false;
@@ -1725,6 +1729,7 @@ fn write_start_current_row(
     cur_row_repeat: u32,
     backward_delta_col: u32,
     row_group_count: &mut u32,
+    row_header: &mut bool,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     // groups
@@ -1745,6 +1750,17 @@ fn write_start_current_row(
                 xml_out.attr_str("table:display", "false")?;
             }
         }
+    }
+
+    // print-header
+    if let Some(header_rows) = &sheet.header_rows {
+        if header_rows.row() >= cur_row && header_rows.row() < cur_row + cur_row_repeat {
+            *row_header = true;
+        }
+    }
+    if *row_header {
+        xml_out.elem("table:table-header-rows")?;
+        xml_out.comment("start_current_row")?;
     }
 
     // row
@@ -1780,10 +1796,22 @@ fn write_end_prev_row(
     last_r: u32,
     last_r_repeat: u32,
     row_group_count: &mut u32,
+    row_header: &mut bool,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     // row
     xml_out.end_elem("table:table-row")?;
+    if *row_header {
+        xml_out.end_elem("table:table-header-rows")?;
+        xml_out.comment("end_prev_row")?;
+    }
+
+    // end of the print-header
+    if let Some(header_rows) = &sheet.header_rows {
+        if header_rows.to_row() >= last_r && header_rows.to_row() < last_r + last_r_repeat {
+            *row_header = false;
+        }
+    }
 
     // groups
     for row_group in &sheet.group_rows {
@@ -1803,10 +1831,19 @@ fn write_end_prev_row(
 
 fn write_end_last_row(
     row_group_count: &mut u32,
+    row_header: &mut bool,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     // row
     xml_out.end_elem("table:table-row")?;
+
+    // end of the print-header.
+    // todo: might loose some empty rows?
+    if *row_header {
+        *row_header = false;
+        xml_out.end_elem("table:table-header-rows")?;
+        xml_out.comment("end_last_row")?;
+    }
 
     // close all groups
     while *row_group_count > 0 {
@@ -1823,11 +1860,22 @@ fn write_empty_rows_before(
     last_row_repeat: u32,
     max_cell: (u32, u32),
     row_group_count: &mut u32,
+    row_header: &mut bool,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     // Are there any row groups? Then we don't use repeat but write everything out.
-    if !sheet.group_rows.is_empty() {
+    if !sheet.group_rows.is_empty() || sheet.header_rows.is_some() {
         for r in last_row..last_row + last_row_repeat {
+            if *row_header {
+                xml_out.end_elem("table:table-header-rows")?;
+                xml_out.comment("empty_rows_before")?;
+            }
+            // end of the print-header
+            if let Some(header_rows) = &sheet.header_rows {
+                if header_rows.to_row() == r {
+                    *row_header = false;
+                }
+            }
             // groups
             for row_group in &sheet.group_rows {
                 if row_group.to() == r {
@@ -1843,6 +1891,16 @@ fn write_empty_rows_before(
                         xml_out.attr_str("table:display", "false")?;
                     }
                 }
+            }
+            // start of print-header
+            if let Some(header_rows) = &sheet.header_rows {
+                if header_rows.row() == r {
+                    *row_header = true;
+                }
+            }
+            if *row_header {
+                xml_out.elem("table:table-header-rows")?;
+                xml_out.comment("empty_rows_before")?;
             }
             // row
             write_empty_row(sheet, r, 1, max_cell, xml_out)?;
@@ -1889,6 +1947,8 @@ fn write_table_columns(
     max_cell: (u32, u32),
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
+    let mut col_header = false;
+
     // table:table-column
     for c in 0..max_cell.1 {
         for grp in &sheet.group_cols {
@@ -1898,6 +1958,16 @@ fn write_table_columns(
                     xml_out.attr_str("table:display", "false")?;
                 }
             }
+        }
+
+        // print-header columns
+        if let Some(header_cols) = &sheet.header_cols {
+            if header_cols.col() == c {
+                col_header = true;
+            }
+        }
+        if col_header {
+            xml_out.elem("table:table-header-columns")?;
         }
 
         xml_out.empty("table:table-column")?;
@@ -1910,6 +1980,16 @@ fn write_table_columns(
             }
             if col_header.visible() != Visibility::Visible {
                 xml_out.attr_esc("table:visibility", &col_header.visible())?;
+            }
+        }
+
+        if col_header {
+            xml_out.end_elem("table:table-header-columns")?;
+        }
+        // print-header columns
+        if let Some(header_cols) = &sheet.header_cols {
+            if header_cols.to_col() == c {
+                col_header = false;
             }
         }
 

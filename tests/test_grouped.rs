@@ -1,7 +1,8 @@
 mod lib_test;
 
 use lib_test::*;
-use spreadsheet_ods::{read_ods, Grouped, OdsError, Sheet, WorkBook};
+use spreadsheet_ods::sheet::Grouped;
+use spreadsheet_ods::{read_ods, OdsError, Sheet, WorkBook};
 
 #[test]
 fn test_write_group1() -> Result<(), OdsError> {
