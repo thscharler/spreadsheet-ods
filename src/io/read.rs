@@ -1305,6 +1305,7 @@ fn read_table_cell(
 
 #[inline]
 fn use_repeat(ctx: &mut OdsContext, cell: &CellData, repeat: u32) -> bool {
+    #[allow(clippy::if_same_then_else)]
     if repeat == 1 {
         true
     } else if ctx.use_repeat_for_cells {

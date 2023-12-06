@@ -36,7 +36,7 @@ impl Display for Visibility {
 }
 
 /// Row data
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub(crate) struct RowHeader {
     pub(crate) style: Option<String>,
     pub(crate) cellstyle: Option<String>,
@@ -45,8 +45,8 @@ pub(crate) struct RowHeader {
     pub(crate) height: Length,
 }
 
-impl RowHeader {
-    pub(crate) fn new() -> Self {
+impl Default for RowHeader {
+    fn default() -> Self {
         Self {
             style: None,
             cellstyle: None,
@@ -55,7 +55,9 @@ impl RowHeader {
             height: Default::default(),
         }
     }
+}
 
+impl RowHeader {
     pub(crate) fn set_style(&mut self, style: &RowStyleRef) {
         self.style = Some(style.to_string());
     }
@@ -116,15 +118,6 @@ pub(crate) struct ColHeader {
 }
 
 impl ColHeader {
-    pub(crate) fn new() -> Self {
-        Self {
-            style: None,
-            cellstyle: None,
-            visible: Default::default(),
-            width: Default::default(),
-        }
-    }
-
     pub(crate) fn set_style(&mut self, style: &ColStyleRef) {
         self.style = Some(style.to_string());
     }
@@ -432,18 +425,12 @@ impl Sheet {
 
     /// Column style.
     pub fn set_colstyle(&mut self, col: u32, style: &ColStyleRef) {
-        self.col_header
-            .entry(col)
-            .or_insert_with(ColHeader::new)
-            .set_style(style);
+        self.col_header.entry(col).or_default().set_style(style);
     }
 
     /// Remove the style.
     pub fn clear_colstyle(&mut self, col: u32) {
-        self.col_header
-            .entry(col)
-            .or_insert_with(ColHeader::new)
-            .clear_style();
+        self.col_header.entry(col).or_default().clear_style();
     }
 
     /// Returns the column style.
@@ -457,18 +444,12 @@ impl Sheet {
 
     /// Default cell style for this column.
     pub fn set_col_cellstyle(&mut self, col: u32, style: &CellStyleRef) {
-        self.col_header
-            .entry(col)
-            .or_insert_with(ColHeader::new)
-            .set_cellstyle(style);
+        self.col_header.entry(col).or_default().set_cellstyle(style);
     }
 
     /// Remove the style.
     pub fn clear_col_cellstyle(&mut self, col: u32) {
-        self.col_header
-            .entry(col)
-            .or_insert_with(ColHeader::new)
-            .clear_cellstyle();
+        self.col_header.entry(col).or_default().clear_cellstyle();
     }
 
     /// Returns the default cell style for this column.
@@ -482,10 +463,7 @@ impl Sheet {
 
     /// Visibility of the column
     pub fn set_col_visible(&mut self, col: u32, visible: Visibility) {
-        self.col_header
-            .entry(col)
-            .or_insert_with(ColHeader::new)
-            .set_visible(visible);
+        self.col_header.entry(col).or_default().set_visible(visible);
     }
 
     /// Returns the default cell style for this column.
@@ -499,10 +477,7 @@ impl Sheet {
 
     /// Sets the column width for this column.
     pub fn set_col_width(&mut self, col: u32, width: Length) {
-        self.col_header
-            .entry(col)
-            .or_insert_with(ColHeader::new)
-            .set_width(width);
+        self.col_header.entry(col).or_default().set_width(width);
     }
 
     /// Returns the column-width.
@@ -516,18 +491,12 @@ impl Sheet {
 
     /// Row style.
     pub fn set_rowstyle(&mut self, row: u32, style: &RowStyleRef) {
-        self.row_header
-            .entry(row)
-            .or_insert_with(RowHeader::new)
-            .set_style(style);
+        self.row_header.entry(row).or_default().set_style(style);
     }
 
     /// Remove the style.
     pub fn clear_rowstyle(&mut self, row: u32) {
-        self.row_header
-            .entry(row)
-            .or_insert_with(RowHeader::new)
-            .clear_style();
+        self.row_header.entry(row).or_default().clear_style();
     }
 
     /// Returns the row style.
@@ -541,18 +510,12 @@ impl Sheet {
 
     /// Default cell style for this row.
     pub fn set_row_cellstyle(&mut self, row: u32, style: &CellStyleRef) {
-        self.row_header
-            .entry(row)
-            .or_insert_with(RowHeader::new)
-            .set_cellstyle(style);
+        self.row_header.entry(row).or_default().set_cellstyle(style);
     }
 
     /// Remove the style.
     pub fn clear_row_cellstyle(&mut self, row: u32) {
-        self.row_header
-            .entry(row)
-            .or_insert_with(RowHeader::new)
-            .clear_cellstyle();
+        self.row_header.entry(row).or_default().clear_cellstyle();
     }
 
     /// Returns the default cell style for this row.
@@ -566,10 +529,7 @@ impl Sheet {
 
     /// Visibility of the row
     pub fn set_row_visible(&mut self, row: u32, visible: Visibility) {
-        self.row_header
-            .entry(row)
-            .or_insert_with(RowHeader::new)
-            .set_visible(visible);
+        self.row_header.entry(row).or_default().set_visible(visible);
     }
 
     /// Returns the default cell style for this row.
@@ -590,10 +550,7 @@ impl Sheet {
     ///
     /// Panics if the repeat is 0.
     pub fn set_row_repeat(&mut self, row: u32, repeat: u32) {
-        self.row_header
-            .entry(row)
-            .or_insert_with(RowHeader::new)
-            .set_repeat(repeat)
+        self.row_header.entry(row).or_default().set_repeat(repeat)
     }
 
     /// Returns the repeat count for this row.
@@ -607,10 +564,7 @@ impl Sheet {
 
     /// Sets the row-height.
     pub fn set_row_height(&mut self, row: u32, height: Length) {
-        self.row_header
-            .entry(row)
-            .or_insert_with(RowHeader::new)
-            .set_height(height);
+        self.row_header.entry(row).or_default().set_height(height);
     }
 
     /// Returns the row-height
@@ -713,20 +667,14 @@ impl Sheet {
         value: V,
         style: &CellStyleRef,
     ) {
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.value = value.into();
         cell.style = Some(style.to_string());
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
     pub fn set_value<V: Into<Value>>(&mut self, row: u32, col: u32, value: V) {
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.value = value.into();
     }
 
@@ -741,10 +689,7 @@ impl Sheet {
 
     /// Sets a formula for the specified cell. Creates a new cell if necessary.
     pub fn set_formula<V: Into<String>>(&mut self, row: u32, col: u32, formula: V) {
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.formula = Some(formula.into());
     }
 
@@ -766,10 +711,7 @@ impl Sheet {
 
     /// Sets a repeat counter for the cell.
     pub fn set_col_repeat(&mut self, row: u32, col: u32, repeat: u32) {
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.repeat = repeat;
     }
 
@@ -784,10 +726,7 @@ impl Sheet {
 
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
     pub fn set_cellstyle(&mut self, row: u32, col: u32, style: &CellStyleRef) {
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.style = Some(style.to_string());
     }
 
@@ -809,10 +748,7 @@ impl Sheet {
 
     /// Sets a content-validation for this cell.
     pub fn set_validation(&mut self, row: u32, col: u32, validation: &ValidationRef) {
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.extra_mut().validation_name = Some(validation.to_string());
     }
 
@@ -834,10 +770,7 @@ impl Sheet {
 
     /// Sets the rowspan of the cell. Must be greater than 0.
     pub fn set_row_span(&mut self, row: u32, col: u32, span: u32) {
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.extra_mut().span.set_row_span(span);
     }
 
@@ -853,10 +786,7 @@ impl Sheet {
     /// Sets the colspan of the cell. Must be greater than 0.
     pub fn set_col_span(&mut self, row: u32, col: u32, span: u32) {
         assert!(span > 0);
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.extra_mut().span.set_col_span(span);
     }
 
@@ -871,10 +801,7 @@ impl Sheet {
 
     /// Sets the rowspan of the cell. Must be greater than 0.
     pub fn set_matrix_row_span(&mut self, row: u32, col: u32, span: u32) {
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.extra_mut().matrix_span.set_row_span(span);
     }
 
@@ -890,10 +817,7 @@ impl Sheet {
     /// Sets the colspan of the cell. Must be greater than 0.
     pub fn set_matrix_col_span(&mut self, row: u32, col: u32, span: u32) {
         assert!(span > 0);
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.extra_mut().matrix_span.set_col_span(span);
     }
 
@@ -908,10 +832,7 @@ impl Sheet {
 
     /// Sets a annotation for this cell.
     pub fn set_annotation(&mut self, row: u32, col: u32, annotation: Annotation) {
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.extra_mut().annotation = Some(annotation);
     }
 
@@ -942,10 +863,7 @@ impl Sheet {
 
     /// Add a drawframe to a specific cell.
     pub fn add_draw_frame(&mut self, row: u32, col: u32, draw_frame: DrawFrame) {
-        let cell = self
-            .data
-            .entry((row, col))
-            .or_insert_with(CellData::default);
+        let cell = self.data.entry((row, col)).or_default();
         cell.extra_mut().draw_frames.push(draw_frame);
     }
 
