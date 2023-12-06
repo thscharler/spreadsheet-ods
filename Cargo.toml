@@ -1,6 +1,6 @@
 [package]
 name = "spreadsheet-ods"
-version = "0.19.3"
+version = "0.20.0"
 authors = ["thomasscharler <thscharler@gmail.com>"]
 edition = "2021"
 description = "Read and write ODS files"
@@ -59,7 +59,6 @@ rust_decimal = "1.32"
 rust_decimal_macros = "1.32"
 color-rs = "0.8"
 string_cache = "0.8"
-#mktemp = "0.5"
 time = "0.3"
 nom = "7.1"
 nom_locate = "4.0"

@@ -1,12 +1,18 @@
 # 0.19.4
 
-- fix: 0.18.0 removed header_rows and header_cols. 
-    Mistook these with some useless feature. Reinstated now. 
+- breaking: Split lib.rs in workbook.rs, sheet.rs, cell.rs and value.rs
+    * mod error removed, only crate::ODSError is reachable.
+    * new mod workbook: EventListener, Script and WorkBookConfig moved here.
+    * new mod sheet: CellIter, Grouped, Range, SheetConfig, SplitMode and
+      Visibility moved here.
+    * new mod cell: CellSpan moved here.
 
-- refactor: Split lib.rs in workbook.rs, sheet.rs, cell.rs and value.rs
+- fix: 0.18.0 removed header_rows and header_cols.
+  Mistook these with some useless feature. Reinstated now.
 
-- Remove mktemp. Not used anymore.
-- Remove indexmap. Only used for a specific task, generally use std::HashMap.
+- cleanup: Remove mktemp. Not used anymore.
+- cleanup: Remove indexmap. Only used for a specific task, generally use std::
+  HashMap.
 
 # 0.19.3
 
