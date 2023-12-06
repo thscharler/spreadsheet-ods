@@ -1,5 +1,29 @@
 #![doc = include_str!("../crate.md")]
 
+pub use color;
+
+pub use crate::cell_::{CellContent, CellContentRef};
+pub use crate::error::OdsError;
+pub use crate::format::{
+    ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
+    ValueFormatPercentage, ValueFormatRef, ValueFormatText, ValueFormatTimeDuration,
+};
+pub use crate::io::read::{
+    read_fods, read_fods_buf, read_fods_from, read_ods, read_ods_buf, read_ods_from, OdsOptions,
+};
+pub use crate::io::write::{
+    write_fods, write_fods_buf, write_fods_to, write_ods, write_ods_buf,
+    write_ods_buf_uncompressed, write_ods_to,
+};
+pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
+pub use crate::sheet_::Sheet;
+pub use crate::style::units::{Angle, Length};
+pub use crate::style::{CellStyle, CellStyleRef};
+pub use crate::value_::{Value, ValueType};
+// pub mod value {
+// }
+pub use crate::workbook_::WorkBook;
+
 #[macro_use]
 mod macro_attr_draw;
 #[macro_use]
@@ -27,65 +51,42 @@ mod macro_text;
 
 mod attrmap2;
 mod cell_;
-pub mod condition;
 mod config;
-pub mod defaultstyles;
-pub mod draw;
 mod ds;
 mod error;
-pub mod format;
-#[macro_use]
-pub mod formula;
 mod io;
 mod locale;
-pub mod manifest;
-pub mod metadata;
-pub mod refs;
 mod sheet_;
-pub mod style;
-pub mod text;
-pub mod validation;
 #[macro_use]
 mod value_;
 mod workbook_;
-pub mod xlink;
-pub mod xmltree;
 
-pub use color;
-
-pub use crate::cell_::{CellContent, CellContentRef};
-pub use crate::error::OdsError;
-pub use crate::format::{
-    ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
-    ValueFormatPercentage, ValueFormatRef, ValueFormatText, ValueFormatTimeDuration,
-};
-pub use crate::io::read::{
-    read_fods, read_fods_buf, read_fods_from, read_ods, read_ods_buf, read_ods_from, OdsOptions,
-};
-pub use crate::io::write::{
-    write_fods, write_fods_buf, write_fods_to, write_ods, write_ods_buf,
-    write_ods_buf_uncompressed, write_ods_to,
-};
-pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
-pub use crate::style::units::{Angle, Length};
-pub use crate::style::{CellStyle, CellStyleRef};
-/// Detail structs for a Cell.
 pub mod cell {
+    //! Detail structs for a Cell.
     pub use crate::cell_::CellSpan;
 }
-pub use crate::sheet_::Sheet;
-/// Detail structs for a Sheet.
+pub mod condition;
+pub mod defaultstyles;
+pub mod draw;
+pub mod format;
+#[macro_use]
+pub mod formula;
+pub mod manifest;
+pub mod metadata;
+pub mod refs;
 pub mod sheet {
+    //! Detail structs for a Sheet.
     pub use crate::sheet_::{CellIter, Grouped, Range, SheetConfig, SplitMode, Visibility};
 }
-pub use crate::value_::{Value, ValueType};
-// pub mod value {
-// }
-pub use crate::workbook_::WorkBook;
-/// Detail structs for the WorkBook.
+pub mod style;
+pub mod text;
+pub mod validation;
 pub mod workbook {
+    //! Detail structs for the WorkBook.
     pub use crate::workbook_::{EventListener, Script, WorkBookConfig};
 }
+pub mod xlink;
+pub mod xmltree;
 
 // Use the IndexMap for debugging, makes diffing much easier.
 // Otherwise the std::HashMap is good.
