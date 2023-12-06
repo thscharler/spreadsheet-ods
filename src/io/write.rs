@@ -131,8 +131,6 @@ pub fn write_fods<P: AsRef<Path>>(book: &mut WorkBook, fods_path: P) -> Result<(
 
 /// Writes the ODS file.
 ///
-/// All the parts are written to a temp directory and then zipped together.
-///
 fn write_fods_impl(ctx: FodsContext<'_>, book: &mut WorkBook) -> Result<(), OdsError> {
     sanity_checks(book)?;
     sync(book)?;
@@ -323,8 +321,6 @@ fn write_fods_content(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Re
 }
 
 /// Writes the ODS file.
-///
-/// All the parts are written to a temp directory and then zipped together.
 ///
 fn write_ods_impl<W: Write + Seek>(
     mut ctx: OdsContext<W>,
