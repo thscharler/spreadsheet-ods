@@ -17,13 +17,13 @@ mod macro_attr_table;
 #[macro_use]
 mod macro_attr_xlink;
 #[macro_use]
-mod unit_macro;
+mod macro_units;
 #[macro_use]
-mod format_macro;
+mod macro_format;
 #[macro_use]
-mod style_macro;
+mod macro_style;
 #[macro_use]
-mod text_macro;
+mod macro_text;
 
 mod attrmap2;
 mod cell_;
