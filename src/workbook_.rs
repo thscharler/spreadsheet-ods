@@ -10,14 +10,14 @@ use crate::io::read::default_settings;
 use crate::io::NamespaceMap;
 use crate::manifest::Manifest;
 use crate::metadata::Metadata;
-use crate::sheet::Sheet;
+use crate::sheet_::Sheet;
 use crate::style::{
     ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
     PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, RubyStyle,
     RubyStyleRef, TableStyle, TableStyleRef, TextStyle, TextStyleRef,
 };
 use crate::validation::{Validation, ValidationRef};
-use crate::value::ValueType;
+use crate::value_::ValueType;
 use crate::xlink::{XLinkActuate, XLinkType};
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::{

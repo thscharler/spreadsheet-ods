@@ -1,6 +1,6 @@
 use crate::draw::{Annotation, DrawFrame};
 use crate::validation::ValidationRef;
-use crate::value::Value;
+use crate::value_::Value;
 use crate::CellStyleRef;
 
 /// A cell can span multiple rows/columns.

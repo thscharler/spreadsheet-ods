@@ -26,32 +26,34 @@ mod style_macro;
 mod text_macro;
 
 mod attrmap2;
-mod cell;
-mod config;
-mod ds;
-mod io;
-mod locale;
-mod sheet;
-#[macro_use]
-mod value;
-mod workbook;
-
+mod cell_;
 pub mod condition;
+mod config;
 pub mod defaultstyles;
 pub mod draw;
-pub mod error;
+mod ds;
+mod error;
 pub mod format;
 #[macro_use]
 pub mod formula;
+mod io;
+mod locale;
 pub mod manifest;
 pub mod metadata;
 pub mod refs;
+mod sheet_;
 pub mod style;
 pub mod text;
 pub mod validation;
+#[macro_use]
+mod value_;
+mod workbook_;
 pub mod xlink;
 pub mod xmltree;
 
+pub use color;
+
+pub use crate::cell_::{CellContent, CellContentRef};
 pub use crate::error::OdsError;
 pub use crate::format::{
     ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
@@ -67,11 +69,23 @@ pub use crate::io::write::{
 pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
 pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
-pub use cell::{CellContent, CellContentRef, CellSpan};
-pub use color;
-pub use sheet::{CellIter, Grouped, Range, Sheet, SheetConfig, SplitMode, Visibility};
-pub use value::{Value, ValueType};
-pub use workbook::{EventListener, Script, WorkBook, WorkBookConfig};
+/// Detail structs for a Cell.
+pub mod cell {
+    pub use crate::cell_::CellSpan;
+}
+pub use crate::sheet_::Sheet;
+/// Detail structs for a Sheet.
+pub mod sheet {
+    pub use crate::sheet_::{CellIter, Grouped, Range, SheetConfig, SplitMode, Visibility};
+}
+pub use crate::value_::{Value, ValueType};
+// pub mod value {
+// }
+pub use crate::workbook_::WorkBook;
+/// Detail structs for the WorkBook.
+pub mod workbook {
+    pub use crate::workbook_::{EventListener, Script, WorkBookConfig};
+}
 
 // Use the IndexMap for debugging, makes diffing much easier.
 // Otherwise the std::HashMap is good.

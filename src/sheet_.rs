@@ -2,11 +2,11 @@
 //! One sheet of the spreadsheet.
 //!
 
-use crate::cell::{CellContent, CellContentRef, CellData};
+use crate::cell_::{CellContent, CellContentRef, CellData};
 use crate::draw::{Annotation, DrawFrame};
 use crate::style::{ColStyleRef, RowStyleRef, TableStyleRef};
 use crate::validation::ValidationRef;
-use crate::value::Value;
+use crate::value_::Value;
 use crate::xmltree::XmlTag;
 use crate::{CellRange, CellStyleRef, Length, OdsError};
 use std::collections::BTreeMap;

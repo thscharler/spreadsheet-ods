@@ -4,8 +4,9 @@
 //! For many cases this omits the transformation to a &str
 
 use crate::error::AsStatic;
+use crate::sheet::Visibility;
 use crate::xlink::{XLinkActuate, XLinkShow, XLinkType};
-use crate::{OdsError, Visibility};
+use crate::OdsError;
 use chrono::Duration;
 use chrono::NaiveDateTime;
 use kparse::prelude::*;

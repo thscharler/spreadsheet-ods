@@ -1,12 +1,3 @@
-use std::borrow::Cow;
-use std::fs::File;
-use std::io::{BufWriter, Cursor, Seek, Write};
-use std::path::Path;
-use std::{io, mem};
-use zip::{CompressionMethod, ZipWriter};
-
-use zip::write::FileOptions;
-
 use crate::config::{ConfigItem, ConfigItemType, ConfigValue};
 use crate::draw::{Annotation, DrawFrame, DrawFrameContent, DrawImage};
 use crate::error::OdsError;
@@ -17,16 +8,23 @@ use crate::io::NamespaceMap;
 use crate::manifest::Manifest;
 use crate::metadata::MetaValue;
 use crate::refs::{format_cellranges, CellRange};
+use crate::sheet::Visibility;
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
     ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::validation::ValidationDisplay;
+use crate::workbook::{EventListener, Script};
 use crate::xmltree::{XmlContent, XmlTag};
 use crate::HashMap;
-use crate::{
-    CellContentRef, EventListener, Length, Script, Sheet, Value, ValueType, Visibility, WorkBook,
-};
+use crate::{CellContentRef, Length, Sheet, Value, ValueType, WorkBook};
+use std::borrow::Cow;
+use std::fs::File;
+use std::io::{BufWriter, Cursor, Seek, Write};
+use std::path::Path;
+use std::{io, mem};
+use zip::write::FileOptions;
+use zip::{CompressionMethod, ZipWriter};
 
 type OdsXmlWriter<'a> = XmlWriter<&'a mut dyn Write>;
 
