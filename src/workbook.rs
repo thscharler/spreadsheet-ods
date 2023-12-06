@@ -1,3 +1,7 @@
+//!
+//! Workbook
+//!
+
 use crate::config::Config;
 use crate::defaultstyles::{DefaultFormat, DefaultStyle};
 use crate::ds::detach::{Detach, Detached};

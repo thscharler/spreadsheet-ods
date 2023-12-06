@@ -38,30 +38,35 @@ impl CellSpan {
     }
 
     /// Is this empty? Defined as row_span==1 and col_span==1.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.row_span == 1 && self.col_span == 1
     }
 
     /// Sets the row span of this cell.
     /// Cells below with values will be lost when writing.
+    #[inline]
     pub fn set_row_span(&mut self, rows: u32) {
         assert!(rows > 0);
         self.row_span = rows;
     }
 
     /// Returns the row span.
+    #[inline]
     pub fn row_span(&self) -> u32 {
         self.row_span
     }
 
     /// Sets the column span of this cell.
     /// Cells to the right with values will be lost when writing.
+    #[inline]
     pub fn set_col_span(&mut self, cols: u32) {
         assert!(cols > 0);
         self.col_span = cols;
     }
 
     /// Returns the col span.
+    #[inline]
     pub fn col_span(&self) -> u32 {
         self.col_span
     }
@@ -97,6 +102,7 @@ pub(crate) struct CellDataExt {
 }
 
 impl Default for CellData {
+    #[inline]
     fn default() -> Self {
         Self {
             value: Default::default(),
@@ -236,31 +242,37 @@ pub struct CellContentRef<'a> {
 
 impl<'a> CellContentRef<'a> {
     /// Returns the value.
+    #[inline]
     pub fn value(&self) -> &'a Value {
         self.value
     }
 
     /// Returns the formula.
+    #[inline]
     pub fn formula(&self) -> Option<&'a String> {
         self.formula
     }
 
     /// Returns the cell style.
+    #[inline]
     pub fn style(&self) -> Option<&'a String> {
         self.style
     }
 
     /// Returns the repeat count.
+    #[inline]
     pub fn repeat(&self) -> &'a u32 {
         self.repeat
     }
 
     /// Returns the validation name.
+    #[inline]
     pub fn validation(&self) -> Option<&'a String> {
         self.validation_name
     }
 
     /// Returns the row span.
+    #[inline]
     pub fn row_span(&self) -> u32 {
         if let Some(span) = self.span {
             span.row_span
@@ -270,6 +282,7 @@ impl<'a> CellContentRef<'a> {
     }
 
     /// Returns the col span.
+    #[inline]
     pub fn col_span(&self) -> u32 {
         if let Some(span) = self.span {
             span.col_span
@@ -279,6 +292,7 @@ impl<'a> CellContentRef<'a> {
     }
 
     /// Returns the row span for a matrix.
+    #[inline]
     pub fn matrix_row_span(&self) -> u32 {
         if let Some(matrix_span) = self.matrix_span {
             matrix_span.row_span
@@ -288,6 +302,7 @@ impl<'a> CellContentRef<'a> {
     }
 
     /// Returns the col span for a matrix.
+    #[inline]
     pub fn matrix_col_span(&self) -> u32 {
         if let Some(matrix_span) = self.matrix_span {
             matrix_span.col_span
@@ -297,11 +312,13 @@ impl<'a> CellContentRef<'a> {
     }
 
     /// Returns the validation name.
+    #[inline]
     pub fn annotation(&self) -> Option<&'a Annotation> {
         self.annotation
     }
 
     /// Returns draw frames.
+    #[inline]
     pub fn draw_frames(&self) -> Option<&'a Vec<DrawFrame>> {
         self.draw_frames
     }
@@ -332,6 +349,7 @@ pub struct CellContent {
 
 impl CellContent {
     /// Empty.
+    #[inline]
     pub fn new() -> Self {
         Default::default()
     }
@@ -370,141 +388,167 @@ impl CellContent {
     }
 
     /// Returns the value.
+    #[inline]
     pub fn value(&self) -> &Value {
         &self.value
     }
 
     /// Sets the value.
+    #[inline]
     pub fn set_value<V: Into<Value>>(&mut self, value: V) {
         self.value = value.into();
     }
 
     /// Returns the formula.
+    #[inline]
     pub fn formula(&self) -> Option<&String> {
         self.formula.as_ref()
     }
 
     /// Sets the formula.
+    #[inline]
     pub fn set_formula<V: Into<String>>(&mut self, formula: V) {
         self.formula = Some(formula.into());
     }
 
     /// Resets the formula.
+    #[inline]
     pub fn clear_formula(&mut self) {
         self.formula = None;
     }
 
     /// Returns the cell style.
+    #[inline]
     pub fn style(&self) -> Option<&String> {
         self.style.as_ref()
     }
 
     /// Sets the cell style.
+    #[inline]
     pub fn set_style(&mut self, style: &CellStyleRef) {
         self.style = Some(style.to_string());
     }
 
     /// Removes the style.
+    #[inline]
     pub fn clear_style(&mut self) {
         self.style = None;
     }
 
     /// Sets the repeat count for the cell.
     /// Value must be > 0.
+    #[inline]
     pub fn set_repeat(&mut self, repeat: u32) {
         assert!(repeat > 0);
         self.repeat = repeat;
     }
 
     /// Returns the repeat count for the cell.
+    #[inline]
     pub fn get_repeat(&mut self) -> u32 {
         self.repeat
     }
 
     /// Returns the validation name.
+    #[inline]
     pub fn validation(&self) -> Option<&String> {
         self.validation_name.as_ref()
     }
 
     /// Sets the validation name.
+    #[inline]
     pub fn set_validation(&mut self, validation: &ValidationRef) {
         self.validation_name = Some(validation.to_string());
     }
 
     /// No validation.
+    #[inline]
     pub fn clear_validation(&mut self) {
         self.validation_name = None;
     }
 
     /// Sets the row span of this cell.
     /// Cells below with values will be lost when writing.
+    #[inline]
     pub fn set_row_span(&mut self, rows: u32) {
         assert!(rows > 0);
         self.span.row_span = rows;
     }
 
     /// Returns the row span.
+    #[inline]
     pub fn row_span(&self) -> u32 {
         self.span.row_span
     }
 
     /// Sets the column span of this cell.
     /// Cells to the right with values will be lost when writing.
+    #[inline]
     pub fn set_col_span(&mut self, cols: u32) {
         assert!(cols > 0);
         self.span.col_span = cols;
     }
 
     /// Returns the col span.
+    #[inline]
     pub fn col_span(&self) -> u32 {
         self.span.col_span
     }
 
     /// Sets the row span of this cell.
     /// Cells below with values will be lost when writing.
+    #[inline]
     pub fn set_matrix_row_span(&mut self, rows: u32) {
         assert!(rows > 0);
         self.matrix_span.row_span = rows;
     }
 
     /// Returns the row span.
+    #[inline]
     pub fn matrix_row_span(&self) -> u32 {
         self.matrix_span.row_span
     }
 
     /// Sets the column span of this cell.
     /// Cells to the right with values will be lost when writing.
+    #[inline]
     pub fn set_matrix_col_span(&mut self, cols: u32) {
         assert!(cols > 0);
         self.matrix_span.col_span = cols;
     }
 
     /// Returns the col span.
+    #[inline]
     pub fn matrix_col_span(&self) -> u32 {
         self.matrix_span.col_span
     }
 
     /// Annotation
+    #[inline]
     pub fn set_annotation(&mut self, annotation: Annotation) {
         self.annotation = Some(annotation);
     }
 
     /// Annotation
+    #[inline]
     pub fn clear_annotation(&mut self) {
         self.annotation = None;
     }
 
     /// Returns the Annotation
+    #[inline]
     pub fn annotation(&self) -> Option<&Annotation> {
         self.annotation.as_ref()
     }
 
     /// Draw Frames
+    #[inline]
     pub fn set_draw_frames(&mut self, draw_frames: Vec<DrawFrame>) {
         self.draw_frames = draw_frames;
     }
 
     /// Draw Frames
+    #[inline]
     pub fn draw_frames(&self) -> &Vec<DrawFrame> {
         &self.draw_frames
     }

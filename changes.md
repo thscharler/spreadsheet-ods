@@ -1,4 +1,9 @@
+# 0.19.4
 
+- refactor: Split lib.rs in workbook.rs, sheet.rs, cell.rs and value.rs
+
+- Remove mktemp. Not used anymore.
+- Remove indexmap. Only used for a specific task, generally use std::HashMap.
 
 # 0.19.3
 

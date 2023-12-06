@@ -1,3 +1,7 @@
+//!
+//! One sheet of the spreadsheet.
+//!
+
 use crate::cell::{CellContent, CellContentRef, CellData};
 use crate::draw::{Annotation, DrawFrame};
 use crate::style::{ColStyleRef, RowStyleRef, TableStyleRef};

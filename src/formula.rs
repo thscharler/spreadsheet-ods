@@ -7,10 +7,12 @@ use crate::refs::{CellRange, CellRef};
 /// Macro for cell-references.
 ///
 /// Syntax:
+/// ```bnf
 ///     cell!(\[abs] row, \[abs] col);
 ///     cell!(\[abs] row, \[abs] col, \[abs] row_to, \[abs] col_to);
 ///     cell!(table => \[abs] row, \[abs] col);
 ///     cell!(table => \[abs] row, \[abs] col, \[abs] row_to, \[abs] col_to);
+/// ```
 #[macro_export]
 macro_rules! cell {
     (abs $row:expr, abs $col:expr) => {
