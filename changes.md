@@ -1,3 +1,13 @@
+# 0.20.1
+
+- Change OdsOptions.use_repeat_for_empty to default to false. The result of the
+former default of true was to surprising when editing spreadsheets. 
+- But add the behaviour to read to ignore any cell-data that contains no data
+except a repeat count. This accounts for most of the uses the flag was indented 
+for without the repercussions.
+
+- Make CRow and CCol public and add the necessary functionality. 
+
 # 0.20.0
 
 - breaking: Split lib.rs in workbook.rs, sheet.rs, cell.rs and value.rs

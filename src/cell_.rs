@@ -2,6 +2,7 @@ use crate::draw::{Annotation, DrawFrame};
 use crate::validation::ValidationRef;
 use crate::value_::Value;
 use crate::CellStyleRef;
+use std::fmt::{Display, Formatter};
 
 /// A cell can span multiple rows/columns.
 #[derive(Debug, Clone, Copy)]
@@ -16,6 +17,12 @@ impl Default for CellSpan {
             row_span: 1,
             col_span: 1,
         }
+    }
+}
+
+impl Display for CellSpan {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(+{}+{})", self.row_span, self.col_span)
     }
 }
 
@@ -115,6 +122,27 @@ impl Default for CellData {
 }
 
 impl CellData {
+    /// Holds no value and no formula.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.value == Value::Empty && self.formula.is_none()
+    }
+
+    /// Holds no useful data at all.
+    pub(crate) fn is_void(&self) -> bool {
+        self.value == Value::Empty
+            && self.formula.is_none()
+            && self.style.is_none()
+            // repeated nothing is still nothing: && self.repeat == 1
+            && (self.extra.is_none()
+                || self.extra.as_ref().is_some_and(|v| {
+                    v.validation_name.is_none()
+                        && v.span.is_empty()
+                        && v.matrix_span.is_empty()
+                        && v.annotation.is_none()
+                        && v.draw_frames.is_empty()
+                }))
+    }
+
     pub(crate) fn extra_mut(&mut self) -> &mut CellDataExt {
         if self.extra.is_none() {
             self.extra = Some(Box::default());

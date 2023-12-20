@@ -2,6 +2,7 @@ use spreadsheet_ods::{OdsError, WorkBook};
 use std::fs;
 use std::path::Path;
 
+#[allow(dead_code)]
 pub(crate) fn test_write_ods<P: AsRef<Path>>(
     book: &mut WorkBook,
     ods_path: P,

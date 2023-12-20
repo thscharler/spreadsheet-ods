@@ -15,7 +15,7 @@ pub use crate::io::write::{
     write_fods, write_fods_buf, write_fods_to, write_ods, write_ods_buf,
     write_ods_buf_uncompressed, write_ods_to,
 };
-pub use crate::refs::{CellRange, CellRef, ColRange, RowRange};
+pub use crate::refs::{CCol, CRow, CellRange, CellRef, ColRange, RowRange};
 pub use crate::sheet_::Sheet;
 pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};

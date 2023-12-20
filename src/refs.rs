@@ -18,7 +18,7 @@ mod parser;
 
 /// Basic cell reference.
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct CRow {
+pub struct CRow {
     /// Row reference is fixed.
     row_abs: bool,
     /// Row.
@@ -27,13 +27,44 @@ pub(crate) struct CRow {
 
 impl CRow {
     /// Row
-    pub(crate) fn row(&self) -> u32 {
+    pub fn new(row: u32) -> Self {
+        Self {
+            row_abs: false,
+            row,
+        }
+    }
+
+    /// Row
+    pub fn row(&self) -> u32 {
         self.row
     }
 
+    /// Row
+    pub fn set_row(&mut self, row: u32) {
+        self.row = row;
+    }
+
     /// "$" row reference
-    pub(crate) fn row_abs(&self) -> bool {
+    pub fn row_abs(&self) -> bool {
         self.row_abs
+    }
+
+    /// "$" row reference
+    pub fn set_row_abs(&mut self, abs: bool) {
+        self.row_abs = abs;
+    }
+
+    /// Makes this CellReference into an absolute reference.
+    pub fn absolute(mut self) -> Self {
+        self.row_abs = true;
+        self
+    }
+
+    /// Makes this CellReference into an absolute reference.
+    /// The column remains relative, the row is fixed.
+    pub fn absolute_row(mut self) -> Self {
+        self.row_abs = true;
+        self
     }
 }
 
@@ -45,7 +76,7 @@ impl Display for CRow {
 
 /// Basic cell reference.
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct CCol {
+pub struct CCol {
     /// Column reference is fixed.
     col_abs: bool,
     /// Column.
@@ -53,14 +84,45 @@ pub(crate) struct CCol {
 }
 
 impl CCol {
+    /// Col
+    pub fn new(col: u32) -> Self {
+        Self {
+            col_abs: false,
+            col,
+        }
+    }
+
     /// Column
-    pub(crate) fn col(&self) -> u32 {
+    pub fn col(&self) -> u32 {
         self.col
     }
 
+    /// Column
+    pub fn set_col(&mut self, col: u32) {
+        self.col = col;
+    }
+
     /// "$" column reference
-    pub(crate) fn col_abs(&self) -> bool {
+    pub fn col_abs(&self) -> bool {
         self.col_abs
+    }
+
+    /// "$" column reference
+    pub fn set_col_abs(&mut self, abs: bool) {
+        self.col_abs = abs;
+    }
+
+    /// Makes this CellReference into an absolute reference.
+    pub fn absolute(mut self) -> Self {
+        self.col_abs = true;
+        self
+    }
+
+    /// Makes this CellReference into an absolute reference.
+    /// The row remains relative, the column is fixed.
+    pub fn absolute_col(mut self) -> Self {
+        self.col_abs = true;
+        self
     }
 }
 

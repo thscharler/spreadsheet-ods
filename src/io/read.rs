@@ -51,7 +51,7 @@ use std::str::from_utf8;
 type OdsXmlReader<'a> = quick_xml::Reader<&'a mut dyn BufRead>;
 
 /// Read options for ods-files.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct OdsOptions {
     // parse the content only.
     content_only: bool,
@@ -59,16 +59,6 @@ pub struct OdsOptions {
     use_repeat_for_cells: bool,
     // expand most duplicated cells.
     use_repeat_for_empty: bool,
-}
-
-impl Default for OdsOptions {
-    fn default() -> Self {
-        Self {
-            content_only: false,
-            use_repeat_for_cells: false,
-            use_repeat_for_empty: true,
-        }
-    }
 }
 
 impl OdsOptions {
@@ -1283,7 +1273,10 @@ fn read_table_cell(
     if let Some(mut cell) = cell {
         parse_value(tc, &mut cell)?;
         // cloning is not everything
-        if use_repeat(ctx, &cell, repeat) {
+        if cell.is_void() {
+            // don't add cells holding no data.
+            col += repeat;
+        } else if use_repeat(ctx, &cell, repeat) {
             cell.repeat = repeat;
             sheet.add_cell_data(row, col, cell);
             col += repeat;
@@ -1311,7 +1304,7 @@ fn use_repeat(ctx: &mut OdsContext, cell: &CellData, repeat: u32) -> bool {
     } else if ctx.use_repeat_for_cells {
         true
     } else if ctx.use_repeat_for_empty {
-        cell.value == Value::Empty && cell.formula.is_none()
+        cell.is_empty()
     } else {
         false
     }
