@@ -7,23 +7,81 @@ use spreadsheet_ods::{
     write_ods_buf, write_ods_buf_uncompressed, Length, OdsError, Sheet, WorkBook,
 };
 
+#[derive(Clone, Copy, Debug)]
+pub struct Timing {
+    pub skip: usize,
+    pub runs: usize,
+    pub divider: u64,
+}
+
 pub fn timingr<E, R>(
     name: &str,
-    divider: u64,
+    timing: Timing,
     mut fun: impl FnMut() -> Result<R, E>,
 ) -> Result<R, E> {
-    let now = Instant::now();
-    // println!("{}", name);
-    let result = fun()?;
-    let elapsed = now.elapsed();
-    println!(
-        "{} {:?} {:?}ns/{}",
-        name,
-        elapsed,
-        elapsed.as_nanos() / divider as u128,
-        divider
-    );
-    Ok(result)
+    assert!(timing.runs > 0);
+    assert!(timing.divider > 0);
+
+    let mut bench = move || {
+        let now = Instant::now();
+        let result = fun();
+        (now.elapsed(), result)
+    };
+
+    let mut elapsed_vec = Vec::with_capacity(timing.runs);
+    let mut n = 0;
+    let result = loop {
+        let (elapsed, result) = black_box(bench());
+        elapsed_vec.push(elapsed);
+        n += 1;
+        if n >= timing.runs + timing.skip {
+            break result;
+        }
+    };
+
+    let elapsed_vec = elapsed_vec
+        .iter()
+        .skip(timing.skip)
+        .map(|v| v.as_nanos() as f64 / timing.divider as f64)
+        .collect::<Vec<_>>();
+
+    let mean = elapsed_vec.iter().sum::<f64>() / timing.runs as f64;
+
+    let lin_sum = elapsed_vec.iter().map(|v| (*v - mean).abs()).sum::<f64>();
+    let lin_dev = lin_sum / timing.runs as f64;
+
+    let std_sum = elapsed_vec
+        .iter()
+        .map(|v| (*v - mean) * (*v - mean))
+        .sum::<f64>();
+    let std_dev = (std_sum / timing.runs as f64).sqrt();
+
+    println!();
+    println!("{}", name);
+    println!();
+    println!("| mean | lin_dev | std_dev |");
+    println!("|:---|:---|:---|");
+    println!("| {:.2} | {:.2} | {:.2} |", mean, lin_dev, std_dev);
+    println!();
+
+    for i in 0..elapsed_vec.len() {
+        print!("| {} ", i);
+    }
+    println!("|");
+    for _ in 0..elapsed_vec.len() {
+        print!("|:---");
+    }
+    println!("|");
+    for e in &elapsed_vec {
+        print!("| {:.2} ", e);
+    }
+    println!("|");
+    for e in &elapsed_vec {
+        print!("| {:.2} ", e - mean);
+    }
+    println!("|");
+
+    result
 }
 
 #[allow(dead_code)]
@@ -97,22 +155,15 @@ struct DummyRowHeader {
 fn test_b0() -> Result<(), OdsError> {
     const ROWS: u32 = 100;
     const COLS: u32 = 400;
-    const CELLS: u64 = ROWS as u64 * COLS as u64;
 
-    // println!("sizes {}", size_of::<Value>());
+    let t = Timing {
+        skip: 2,
+        runs: 30,
+        divider: ROWS as u64 * COLS as u64,
+    };
 
-    // println!("{}", ROWS * COLS);
-    let mut wb = timingr(
-        "create_wb",
-        ROWS as u64 * COLS as u64,
-        create_wb(ROWS, COLS),
-    )?;
-    timingr("write_wb", CELLS * 30, || {
-        for _ in 0..30 {
-            let _buf = black_box(write_ods_buf(&mut wb, Vec::new())?);
-        }
-        Ok::<(), OdsError>(())
-    })?;
+    let mut wb = timingr("create_wb", t, create_wb(ROWS, COLS))?;
+    let _ = timingr("write_wb", t, || write_ods_buf(&mut wb, Vec::new()));
 
     Ok(())
 }

@@ -1,4 +1,4 @@
-mod lib_test;
+pub mod lib_test;
 
 use lib_test::*;
 use spreadsheet_ods::sheet::SplitMode;
@@ -59,9 +59,9 @@ pub fn timingn<E>(name: &str, mut fun: impl FnMut()) -> Result<(), E> {
 fn read_rw_orders() -> Result<(), OdsError> {
     let mut wb = read_ods("tests/orders.ods")?;
     dbg!(2);
-    test_write_ods(&mut wb, "test_out/orders.ods")?;
+    test_write_ods(&mut wb, "test_out/orders1.ods")?;
     dbg!(3);
-    let _wb = read_ods("test_out/orders.ods")?;
+    let _wb = read_ods("test_out/orders1.ods")?;
     Ok(())
 }
 
@@ -76,7 +76,7 @@ fn read_orders() -> Result<(), OdsError> {
     cc.vert_split_pos = 2;
     cc.vert_split_mode = SplitMode::Heading;
 
-    test_write_ods(&mut wb, "test_out/orders.ods")?;
+    test_write_ods(&mut wb, "test_out/orders2.ods")?;
     Ok(())
 }
 
@@ -137,23 +137,35 @@ fn test_write_repeat_overlapped2() -> Result<(), OdsError> {
 
 #[test]
 fn test_write_buf() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new_empty();
-    let mut sh = Sheet::new("1");
+    let len_1 = {
+        let mut wb = WorkBook::new_empty();
+        let mut sh = Sheet::new("1");
 
-    sh.set_value(0, 0, "A");
-    wb.push_sheet(sh);
+        sh.set_value(0, 0, "A");
+        wb.push_sheet(sh);
 
-    let p = Path::new("test_out/bufnot.ods");
-    test_write_ods(&mut wb, p)?;
-    let len = p.to_path_buf().metadata()?.len() as usize;
+        let p = Path::new("test_out/buf_one.ods");
+        test_write_ods(&mut wb, p)?;
+        p.to_path_buf().metadata()?.len() as usize
+    };
 
-    let v = Vec::new();
-    let v = write_ods_buf(&mut wb, v)?;
+    let len_2 = {
+        let mut wb = WorkBook::new_empty();
+        let mut sh = Sheet::new("1");
 
-    assert_eq!(v.len(), len);
+        sh.set_value(0, 0, "A");
+        wb.push_sheet(sh);
 
-    let mut ff = File::create("test_out/bufbuf.ods")?;
-    ff.write_all(&v)?;
+        let v = Vec::new();
+        let v = write_ods_buf(&mut wb, v)?;
+
+        let mut ff = File::create("test_out/buf_two.ods")?;
+        ff.write_all(&v)?;
+
+        v.len()
+    };
+
+    assert_eq!(len_1, len_2);
 
     Ok(())
 }
@@ -173,7 +185,7 @@ fn test_read_buf() -> Result<(), OdsError> {
     cc.vert_split_pos = 2;
     cc.vert_split_mode = SplitMode::Heading;
 
-    test_write_ods(&mut wb, "test_out/orders.ods")?;
+    test_write_ods(&mut wb, "test_out/orders3.ods")?;
     Ok(())
 }
 

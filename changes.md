@@ -1,3 +1,10 @@
+# 0.20.2
+
+fix #47: method unescape_value for struct quick_xml::events::attributes::Attribute is only 
+available if "encoding" feature is disabled
+
+fix: Change the internal hashtables to indexmap implementations. makes the output more repeatable.
+
 # 0.20.1
 
 - Change OdsOptions.use_repeat_for_empty to default to false. The result of the
