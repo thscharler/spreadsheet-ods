@@ -137,25 +137,19 @@ fn test_write_repeat_overlapped2() -> Result<(), OdsError> {
 
 #[test]
 fn test_write_buf() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new_empty();
+    let mut sh = Sheet::new("1");
+
+    sh.set_value(0, 0, "A");
+    wb.push_sheet(sh);
+
     let len_1 = {
-        let mut wb = WorkBook::new_empty();
-        let mut sh = Sheet::new("1");
-
-        sh.set_value(0, 0, "A");
-        wb.push_sheet(sh);
-
         let p = Path::new("test_out/buf_one.ods");
         test_write_ods(&mut wb, p)?;
         p.to_path_buf().metadata()?.len() as usize
     };
 
     let len_2 = {
-        let mut wb = WorkBook::new_empty();
-        let mut sh = Sheet::new("1");
-
-        sh.set_value(0, 0, "A");
-        wb.push_sheet(sh);
-
         let v = Vec::new();
         let v = write_ods_buf(&mut wb, v)?;
 
