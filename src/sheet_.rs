@@ -893,6 +893,7 @@ impl Sheet {
     }
 
     /// Defines a range of rows as header rows.
+    /// These rows are repeated when printing on multiple pages.
     pub fn set_header_rows(&mut self, row_start: u32, row_end: u32) {
         self.header_rows = Some(RowRange::new(row_start, row_end));
     }
@@ -903,11 +904,13 @@ impl Sheet {
     }
 
     /// Returns the header rows.
+    /// These rows are repeated when printing on multiple pages.
     pub fn header_rows(&self) -> &Option<RowRange> {
         &self.header_rows
     }
 
     /// Defines a range of columns as header columns.
+    /// These columns are repeated when printing on multiple pages.
     pub fn set_header_cols(&mut self, col_start: u32, col_end: u32) {
         self.header_cols = Some(ColRange::new(col_start, col_end));
     }
@@ -918,6 +921,7 @@ impl Sheet {
     }
 
     /// Returns the header columns.
+    /// These columns are repeated when printing on multiple pages.
     pub fn header_cols(&self) -> &Option<ColRange> {
         &self.header_cols
     }
