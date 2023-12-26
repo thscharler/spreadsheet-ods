@@ -7,7 +7,7 @@ use crate::style::units::{
 use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, ParseStyleAttr,
 };
-use crate::{Length, OdsError};
+use crate::{Length, OdsError, OdsResult};
 use std::fmt::{Display, Formatter};
 
 style_ref!(PageStyleRef);
@@ -23,6 +23,7 @@ pub struct PageStyle {
     // Everywhere else this is a AttrMap2, but here is just this lonely.
     // We still need access to the string to read and write.
     pub(crate) master_page_usage: Option<String>,
+
     style: AttrMap2,
     header: HeaderFooterStyle,
     footer: HeaderFooterStyle,
@@ -77,13 +78,17 @@ impl PageStyle {
     /// * right: <style:header-left> or <style:footer-left> elements are ignored.
     ///
     /// The default value for this attribute is all.
-    pub fn set_page_usage(&mut self, usage: Option<MasterPageUsage>) {
-        self.master_page_usage = usage.map(|m| m.to_string());
+    pub fn set_page_usage(&mut self, usage: MasterPageUsage) {
+        self.master_page_usage = Some(usage.to_string());
+    }
+
+    pub fn clear_page_usage(&mut self) {
+        self.master_page_usage = None;
     }
 
     /// The style:page-usage attribute specifies the type of pages that a page master should
     /// generate.
-    pub fn page_usage(&self) -> Result<Option<MasterPageUsage>, OdsError> {
+    pub fn page_usage(&self) -> OdsResult<Option<MasterPageUsage>> {
         MasterPageUsage::parse_attr(self.master_page_usage.as_ref())
     }
 

@@ -2229,19 +2229,19 @@ fn read_headerfooter(
                 if xml_tag.name().as_ref() == b"style:region-left" =>
             {
                 let reg = read_xml(ctx, xml, xml_tag, empty_tag)?;
-                hf.set_left(reg.into_vec()?);
+                hf.set_left(reg);
             }
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"style:region-center" =>
             {
                 let reg = read_xml(ctx, xml, xml_tag, empty_tag)?;
-                hf.set_center(reg.into_vec()?);
+                hf.set_center(reg);
             }
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"style:region-right" =>
             {
                 let reg = read_xml(ctx, xml, xml_tag, empty_tag)?;
-                hf.set_right(reg.into_vec()?);
+                hf.set_right(reg);
             }
 
             Event::Start(xml_tag) | Event::Empty(xml_tag)

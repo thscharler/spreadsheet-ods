@@ -217,9 +217,9 @@ impl MasterPage {
 pub struct HeaderFooter {
     display: bool,
 
-    region_left: Vec<TextTag>,
-    region_center: Vec<TextTag>,
-    region_right: Vec<TextTag>,
+    region_left: Option<TextTag>,
+    region_center: Option<TextTag>,
+    region_right: Option<TextTag>,
 
     content: Vec<TextTag>,
 }
@@ -248,55 +248,79 @@ impl HeaderFooter {
 
     /// true if all regions of the header/footer are empty.
     pub fn is_empty(&self) -> bool {
-        self.region_left.is_empty()
-            && self.region_center.is_empty()
-            && self.region_right.is_empty()
+        self.region_left.is_none()
+            && self.region_center.is_none()
+            && self.region_right.is_none()
             && self.content.is_empty()
     }
 
-    /// Left region.
-    pub fn set_left(&mut self, txt: Vec<TextTag>) {
-        self.region_left = txt;
+    /// Set the content of the left region of the header.
+    ///
+    /// Attention:
+    /// This tag must be a text:p otherwise its ignored.
+    pub fn set_left(&mut self, txt: TextTag) {
+        self.region_left = Some(txt);
+    }
+
+    /// Clear left region.
+    pub fn clear_left(&mut self) {
+        self.region_left = None;
     }
 
     /// Left region.
-    pub fn left(&self) -> &Vec<TextTag> {
-        &self.region_left
+    pub fn left(&self) -> Option<&TextTag> {
+        self.region_left.as_ref()
     }
 
     /// Left region.
-    pub fn left_mut(&mut self) -> &mut Vec<TextTag> {
-        &mut self.region_left
+    pub fn left_mut(&mut self) -> Option<&mut TextTag> {
+        self.region_left.as_mut()
+    }
+
+    /// Set the content of the center region of the header.
+    ///
+    /// Attention:
+    /// This tag must be a text:p otherwise its ignored.
+    pub fn set_center(&mut self, txt: TextTag) {
+        self.region_center = Some(txt);
     }
 
     /// Center region.
-    pub fn set_center(&mut self, txt: Vec<TextTag>) {
-        self.region_center = txt;
+    pub fn clear_center(&mut self) {
+        self.region_center = None;
     }
 
     /// Center region.
-    pub fn center(&self) -> &Vec<TextTag> {
-        &self.region_center
+    pub fn center(&self) -> Option<&TextTag> {
+        self.region_center.as_ref()
     }
 
     /// Center region.
-    pub fn center_mut(&mut self) -> &mut Vec<TextTag> {
-        &mut self.region_center
+    pub fn center_mut(&mut self) -> Option<&mut TextTag> {
+        self.region_center.as_mut()
+    }
+
+    /// Set the content of the right region of the header.
+    ///
+    /// Attention:
+    /// This tag must be a text:p otherwise its ignored.
+    pub fn set_right(&mut self, txt: TextTag) {
+        self.region_right = Some(txt);
     }
 
     /// Right region.
-    pub fn set_right(&mut self, txt: Vec<TextTag>) {
-        self.region_right = txt;
+    pub fn clear_right(&mut self) {
+        self.region_right = None;
     }
 
     /// Right region.
-    pub fn right(&self) -> &Vec<TextTag> {
-        &self.region_right
+    pub fn right(&self) -> Option<&TextTag> {
+        self.region_right.as_ref()
     }
 
     /// Right region.
-    pub fn right_mut(&mut self) -> &mut Vec<TextTag> {
-        &mut self.region_right
+    pub fn right_mut(&mut self) -> Option<&mut TextTag> {
+        self.region_right.as_mut()
     }
 
     /// Header content, if there are no regions.

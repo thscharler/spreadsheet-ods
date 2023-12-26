@@ -2910,6 +2910,7 @@ fn write_masterpage(
         }
         xml_out.attr_esc("style:page-layout-name", style.pagestyle())?;
 
+        // header
         xml_out.elem("style:header")?;
         if !style.header().display() {
             xml_out.attr_str("style:display", "false")?;
@@ -2917,14 +2918,12 @@ fn write_masterpage(
         write_regions(style.header(), xml_out)?;
         xml_out.end_elem("style:header")?;
 
-        if !style.header_first().is_empty() {
-            xml_out.elem("style:header-first")?;
-            if !style.header_first().display() {
-                xml_out.attr_str("style:display", "false")?;
-            }
-            write_regions(style.header_first(), xml_out)?;
-            xml_out.end_elem("style:header-first")?;
+        xml_out.elem("style:header-first")?;
+        if !style.header_first().display() || style.header_first().is_empty() {
+            xml_out.attr_str("style:display", "false")?;
         }
+        write_regions(style.header_first(), xml_out)?;
+        xml_out.end_elem("style:header-first")?;
 
         xml_out.elem("style:header-left")?;
         if !style.header_left().display() || style.header_left().is_empty() {
@@ -2933,6 +2932,7 @@ fn write_masterpage(
         write_regions(style.header_left(), xml_out)?;
         xml_out.end_elem("style:header-left")?;
 
+        // footer
         xml_out.elem("style:footer")?;
         if !style.footer().display() {
             xml_out.attr_str("style:display", "false")?;
@@ -2940,14 +2940,12 @@ fn write_masterpage(
         write_regions(style.footer(), xml_out)?;
         xml_out.end_elem("style:footer")?;
 
-        if !style.footer_first().is_empty() {
-            xml_out.elem("style:footer-first")?;
-            if !style.footer_first().display() {
-                xml_out.attr_str("style:display", "false")?;
-            }
-            write_regions(style.footer_first(), xml_out)?;
-            xml_out.end_elem("style:footer-first")?;
+        xml_out.elem("style:footer-first")?;
+        if !style.footer_first().display() || style.footer_first().is_empty() {
+            xml_out.attr_str("style:display", "false")?;
         }
+        write_regions(style.footer_first(), xml_out)?;
+        xml_out.end_elem("style:footer-first")?;
 
         xml_out.elem("style:footer-left")?;
         if !style.footer_left().display() || style.footer_left().is_empty() {
@@ -2963,17 +2961,17 @@ fn write_masterpage(
 }
 
 fn write_regions(hf: &HeaderFooter, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
-    for left in hf.left() {
+    if let Some(left) = hf.left() {
         xml_out.elem("style:region-left")?;
         write_xmltag(left, xml_out)?;
         xml_out.end_elem("style:region-left")?;
     }
-    for center in hf.center() {
+    if let Some(center) = hf.center() {
         xml_out.elem("style:region-center")?;
         write_xmltag(center, xml_out)?;
         xml_out.end_elem("style:region-center")?;
     }
-    for right in hf.right() {
+    if let Some(right) = hf.right() {
         xml_out.elem("style:region-right")?;
         write_xmltag(right, xml_out)?;
         xml_out.end_elem("style:region-right")?;
