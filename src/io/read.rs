@@ -57,39 +57,73 @@ pub struct OdsOptions {
     content_only: bool,
     // expand duplicated cells
     use_repeat_for_cells: bool,
-    // expand most duplicated cells.
-    use_repeat_for_empty: bool,
+    // ignore empty cells.
+    ignore_empty_cells: bool,
 }
 
 impl OdsOptions {
-    /// Parse the content only. Doesn't buffer any extra files and ignores styles etc.
-    /// Shaves off some time and memory if only the data is required.
+    /// Parse the content only.
+    ///
+    /// Doesn't buffer any extra files and ignores styles etc.
+    /// This saves quite some time if only the cell-data is needed.
     pub fn content_only(mut self) -> Self {
         self.content_only = true;
         self
     }
 
-    /// Cells are duplicated based on their table:number-columns-repeated.
-    /// With this switch the behaviour is turned off, and the repeat-count is
-    /// stored with each cell.
+    /// Parse everything.
+    ///
+    /// Reads styles and buffers extra files.
+    /// This is the default. If the data will be written again this options
+    /// should be used.
+    pub fn read_styles(mut self) -> Self {
+        self.content_only = false;
+        self
+    }
+
+    /// The value of table:number-columns-repeated is stored as part of the
+    /// cell-data, and the cell-data is not duplicated. The cell-data can
+    /// only be found at the original row/col.
+    ///
+    /// This can save a bit of time when reading, but makes working with the
+    /// data harder. Keeping track of overlapping cells makes this tricky.
     pub fn use_repeat_for_cells(mut self) -> Self {
         self.use_repeat_for_cells = true;
         self
     }
 
-    /// Cells are duplicated based on their table:number-columns-repeated.
-    /// With this switch this duplications is turned off for cells with
-    /// no value and no formula. Instead these cells are stored with a repeat-count.
-    pub fn use_repeat_for_empty(mut self) -> Self {
-        self.use_repeat_for_empty = true;
+    /// Cells are cloned based on their table:number-columns-repeated.
+    ///
+    /// This is the default behaviour. The cell-data can be found at each row/col
+    /// that the repeat count includes.
+    ///
+    /// Most of the time the repeat-count is used for empty cells to fill the
+    /// required structure. These completely empty cells are always dumped.
+    ///
+    /// See: ignore_empty_cells().
+    pub fn use_clone_for_cells(mut self) -> Self {
+        self.use_repeat_for_cells = false;
         self
     }
 
-    /// Cells are always duplicated based on their table:number-columns-repeated.
-    /// Warning: This can blow up read times significantly.
-    pub fn use_clone_for_repeat(mut self) -> Self {
-        self.use_repeat_for_cells = false;
-        self.use_repeat_for_empty = false;
+    /// Ignores cells without value and formula.
+    ///
+    /// This can be useful, if only the data is needed. If you store such
+    /// a spreadsheet you will loose cell-formating, spans etc.
+    pub fn ignore_empty_cells(mut self) -> Self {
+        self.ignore_empty_cells = true;
+        self
+    }
+
+    /// Reads cells without value and formula.
+    ///
+    /// This is the default behaviour. As such cells can have a style,
+    /// annotations etc it is recommended to use this option.
+    ///
+    /// Cells without any information, that are only structural are always
+    /// ignored.
+    pub fn read_empty_cells(mut self) -> Self {
+        self.ignore_empty_cells = false;
         self
     }
 
@@ -153,7 +187,7 @@ struct OdsContext {
     book: WorkBook,
 
     use_repeat_for_cells: bool,
-    use_repeat_for_empty: bool,
+    ignore_empty_cells: bool,
 
     buffers: Vec<Vec<u8>>,
     xml_buffer: Vec<XmlTag>,
@@ -165,7 +199,7 @@ impl OdsContext {
     fn new(options: &OdsOptions) -> Self {
         Self {
             use_repeat_for_cells: options.use_repeat_for_cells,
-            use_repeat_for_empty: options.use_repeat_for_empty,
+            ignore_empty_cells: options.ignore_empty_cells,
             ..Default::default()
         }
     }
@@ -1281,11 +1315,11 @@ fn read_table_cell(
 
     if let Some(mut cell) = cell {
         parse_value(tc, &mut cell)?;
-        // cloning is not everything
-        if cell.is_void() {
-            // don't add cells holding no data.
+
+        // store cell-data
+        if ignore_cell(ctx, &cell) {
             col += repeat;
-        } else if use_repeat(ctx, &cell, repeat) {
+        } else if repeat_cell(ctx, repeat) {
             cell.repeat = repeat;
             sheet.add_cell_data(row, col, cell);
             col += repeat;
@@ -1295,6 +1329,7 @@ fn read_table_cell(
                 col += 1;
                 repeat -= 1;
             }
+            // don't waste a clone
             sheet.add_cell_data(row, col, cell);
             col += 1;
         }
@@ -1306,14 +1341,23 @@ fn read_table_cell(
 }
 
 #[inline]
-fn use_repeat(ctx: &mut OdsContext, cell: &CellData, repeat: u32) -> bool {
+fn ignore_cell(ctx: &mut OdsContext, cell: &CellData) -> bool {
+    if cell.is_void() {
+        true
+    } else if ctx.ignore_empty_cells && cell.is_empty() {
+        true
+    } else {
+        false
+    }
+}
+
+#[inline]
+fn repeat_cell(ctx: &mut OdsContext, repeat: u32) -> bool {
     #[allow(clippy::if_same_then_else)]
     if repeat == 1 {
         true
     } else if ctx.use_repeat_for_cells {
         true
-    } else if ctx.use_repeat_for_empty {
-        cell.is_empty()
     } else {
         false
     }
