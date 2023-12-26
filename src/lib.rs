@@ -3,7 +3,7 @@
 pub use color;
 
 pub use crate::cell_::{CellContent, CellContentRef};
-pub use crate::error::OdsError;
+pub use crate::error::{OdsError, OdsResult};
 pub use crate::format::{
     ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
     ValueFormatPercentage, ValueFormatRef, ValueFormatText, ValueFormatTimeDuration,
