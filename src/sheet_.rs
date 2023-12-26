@@ -630,14 +630,14 @@ impl Sheet {
     //     let r = self.data.range(range);
     // }
 
-    /// Returns a copy of the cell content.
+    /// Returns a clone of the cell content.
     pub fn cell(&self, row: u32, col: u32) -> Option<CellContent> {
         self.data
             .get(&(row, col))
             .map(CellData::cloned_cell_content)
     }
 
-    /// Returns a copy of the cell content.
+    /// Returns references to the cell data.
     pub fn cell_ref(&self, row: u32, col: u32) -> Option<CellContentRef<'_>> {
         self.data.get(&(row, col)).map(CellData::cell_content_ref)
     }

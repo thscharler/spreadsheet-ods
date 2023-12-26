@@ -1,17 +1,35 @@
+# 0.20.3
+
+- add some examples.
+
+- refined OdsOptions.
+    - BREAKING: remove use_repeat_for_empty() - this is almost unusable as it's
+      very difficult to avoid overlapping cells. especially empty cells you didn't
+      know where there now overlapping a newly added data-cell.
+      ignore_empty_cells() might be useful instead.
+    - BREAKING: rename use_clone_for_repeat() to use_clone_for_cells()
+    - add ignore_empty_cells() and read_empty_cells()
+    - add read_styles() as opposite to content_only()
+
+- fix: ValueFormatXXX now use the correct default values for StyleOrigin (Content) and
+  StyleUse (Automatic).
+- fix: create_number_format_fixed: must set integer-digits too, otherwise this doesn't work.
+- feat: add OdsResult<T>
+
 # 0.20.2
 
-fix #47: method unescape_value for struct quick_xml::events::attributes::Attribute is only 
+fix #47: method unescape_value for struct quick_xml::events::attributes::Attribute is only
 available if "encoding" feature is disabled
 
 # 0.20.1
 
 - Change OdsOptions.use_repeat_for_empty to default to false. The result of the
-former default of true was too surprising when editing spreadsheets. 
+  former default of true was too surprising when editing spreadsheets.
 - But add the behaviour to read to ignore any cell-data that contains no data
-except a repeat count. This accounts for most of the uses the flag was indented 
-for without the repercussions.
+  except a repeat count. This accounts for most of the uses the flag was indented
+  for without the repercussions.
 
-- Make CRow and CCol public and add the necessary functionality. 
+- Make CRow and CCol public and add the necessary functionality.
 
 # 0.20.0
 
