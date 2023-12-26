@@ -7,11 +7,18 @@ use icu_locid::locale;
 use spreadsheet_ods::condition::ValueCondition;
 use spreadsheet_ods::format::{ValueFormatTrait, ValueStyleMap};
 use spreadsheet_ods::*;
+use std::fs;
 
 ///
-///
-///
 pub fn main() -> Result<(), OdsError> {
+    let _ = fs::create_dir_all("examples_out");
+
+    negative_numbers_red()?;
+
+    Ok(())
+}
+
+fn negative_numbers_red() -> OdsResult<()> {
     let mut wb = WorkBook::new(locale!("de_AT"));
 
     // positive format
@@ -50,7 +57,7 @@ pub fn main() -> Result<(), OdsError> {
 
     wb.push_sheet(sheet);
 
-    write_ods(&mut wb, "examples/neg.ods")?;
+    write_ods(&mut wb, "examples_out/neg.ods")?;
 
     Ok(())
 }
