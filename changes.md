@@ -2,6 +2,12 @@
 
 - add some examples.
 
+- BREAKING: Masterpage regions changed type from Vec<> to Option<>. There is ever only
+  one tag as content.
+- BREAKING: Pagestyle.set_page_usage() changed.
+- BREAKING: rename the metadata tags to have a common prefix "Meta". This helps with
+  code completion, there are conflicts with some enums.
+
 - refined OdsOptions.
     - BREAKING: remove use_repeat_for_empty() - this is almost unusable as it's
       very difficult to avoid overlapping cells. especially empty cells you didn't
