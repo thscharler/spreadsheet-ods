@@ -6,7 +6,7 @@
 //! defined.
 //!
 //! ```
-//! use spreadsheet_ods::text::{TextP, TextTag, AuthorName, CreationDate, TextS};
+//! use spreadsheet_ods::text::{TextP, TextTag, MetaAuthorName, MetaCreationDate, TextS};
 //! use spreadsheet_ods::style::ParagraphStyleRef;
 //!
 //! let p1_ref = ParagraphStyleRef::from("p1");
@@ -14,9 +14,9 @@
 //! let txt = TextP::new()
 //!             .style_name(&p1_ref)
 //!             .text("some text")
-//!             .tag(AuthorName::new())
+//!             .tag(MetaAuthorName::new())
 //!             .tag(TextS::new())
-//!             .tag(CreationDate::new())
+//!             .tag(MetaCreationDate::new())
 //!             .tag(TextS::new())
 //!             .text("whatever");
 //! println!("{}", txt.into_xmltag());
@@ -267,156 +267,61 @@ impl TextTab {
     }
 }
 
-// TODO: more of this.
-
-// The <text:line-break> element represents a line break
-text_tag!(TextLineBreak, "text:line-break");
 // The <text:soft-page-break> element represents a soft page break within or between
 // paragraph elements. As a child element of a <table:table> element it represents a soft page break between two
 // table rows. It may appear in front of a <table:table-row> element.
 text_tag!(SoftPageBreak, "text:soft-page-break");
-// The <text:author-initials> element represents the initials of the author of a document.
-text_tag!(AuthorInitials, "text:author-initials");
-// The <text:author-name> element represents the full name of the author of a document.
-text_tag!(AuthorName, "text:author_name");
-//
-text_tag!(Chapter, "text:chapter");
-text_tag!(CharacterCount, "text:character-count");
-text_tag!(CreationDate, "text:creation-date");
-text_tag!(CreationTime, "text:creation-time");
-text_tag!(Creator, "text:creator");
+
 // The <text:date> element displays a date, by default this is the current date. The date can be
 // adjusted to display a date other than the current date.
-text_tag!(Date, "text:date");
-text_tag!(Description, "text:description");
-text_tag!(EditingCycles, "text:editing-cycles");
-text_tag!(EditingDuration, "text:editing-duration");
-text_tag!(FileName, "text:file-name");
-text_tag!(InitialCreator, "text:initial-creator");
-text_tag!(Keywords, "text:keywords");
-text_tag!(ModificationDate, "text:modification-date");
-text_tag!(ModificationTime, "text:modification-time");
-text_tag!(PageCount, "text:pagecount");
-text_tag!(PageNumber, "text:page-number");
-text_tag!(PrintDate, "text:print-date");
-text_tag!(PrintedBy, "text:printed-by");
-text_tag!(PrintTime, "text:print-time");
-text_tag!(SheetName, "text:sheet-name");
-text_tag!(Subject, "text:subject");
-text_tag!(TableCount, "text:table-count");
-text_tag!(Time, "text:time");
-text_tag!(Title, "text:title");
-
-// Child elements of text:p
-//
-// <office:annotation> 14.1
-// <office:annotation-end> 14.2
-// <presentation:datetime> 10.9.3.5
-// <presentation:footer> 10.9.3.3
-// <presentation:header> 10.9.3.1,
-// ok <text:a> 6.1.8
-// <text:alphabetical-index-mark> 8.1.10
-// <text:alphabeticalindex-mark-end> 8.1.9
-// <text:alphabetical-index-mark-start> 8.1.8,
-// ok <text:author-initials> 7.3.7.2
-// ok <text:author-name> 7.3.7.1,
-// <text:bibliography-mark> 8.1.11
-// <text:bookmark> 6.2.1.2
-// <text:bookmark-end> 6.2.1.4
-// <text:bookmark-ref> 7.7.6
-// <text:bookmark-start> 6.2.1.3
-// <text:change> 5.5.7.4
-// <text:change-end> 5.5.7.3
-// <text:change-start> 5.5.7.2
-// ok <text:chapter> 7.3.8
-// ok <text:character-count> 7.5.18.5
-// <text:conditional-text> 7.7.3,
-// ok <text:creation-date> 7.5.3
-// ok <text:creation-time> 7.5.4
-// ok <text:creator> 7.5.17,
-// <text:database-display> 7.6.3
-// <text:database-name> 7.6.7
-// <text:databasenext> 7.6.4
-// <text:database-row-number> 7.6.6
-// <text:database-row-select> 7.6.5
-// ok <text:date> 7.3.2
-// <text:dde-connection> 7.7.12
-// ok <text:description> 7.5.5,
-// ok <text:editing-cycles> 7.5.13
-// ok <text:editing-duration> 7.5.14
-// <text:executemacro> 7.7.10
-// <text:expression> 7.4.14
-// ok <text:file-name> 7.3.9
-// <text:hiddenparagraph> 7.7.11
-// <text:hidden-text> 7.7.4
-// <text:image-count> 7.5.18.7,
-// ok <text:initial-creator> 7.5.2
-// ok <text:keywords> 7.5.12
-// ok <text:line-break> 6.1.5,
-// <text:measure> 7.7.13
-// <text:meta> 6.1.9
-// <text:meta-field> 7.5.19,
-// ok <text:modification-date> 7.5.16
-// ok <text:modification-time> 7.5.15
-// <text:not_e> 6.3.2
-// <text:not_e-ref> 7.7.7
-// <text:object-count> 7.5.18.8
-// <text:pagecontinuation> 7.3.5
-// ok <text:page-count> 7.5.18.2
-// ok <text:page-number> 7.3.4,
-// <text:page-variable-get> 7.7.1.3
-// <text:page-variable-set> 7.7.1.2,
-// <text:paragraph-count> 7.5.18.3
-// <text:placeholder> 7.7.2
-// ok <text:print-date> 7.5.8
-// ok <text:printed-by> 7.5.9
-// ok <text:print-time> 7.5.7
-// <text:reference-mark> 6.2.2.2
-// <text:reference-mark-end> 6.2.2.4
-// <text:reference-mark-start> 6.2.2.3,
-// <text:reference-ref> 7.7.5
-// <text:ruby> 6.4
-// ok <text:s> 6.1.3
-// <text:script> 7.7.9,
-// <text:sender-city> 7.3.6.13
-// <text:sender-company> 7.3.6.10
-// <text:sendercountry> 7.3.6.15
-// <text:sender-email> 7.3.6.7
-// <text:sender-fax> 7.3.6.9,
-// <text:sender-firstname> 7.3.6.2
-// <text:sender-initials> 7.3.6.4
-// <text:senderlastname> 7.3.6.3
-// <text:sender-phone-private> 7.3.6.8
-// <text:sender-phonework> 7.3.6.11
-// <text:sender-position> 7.3.6.6
-// <text:sender-postal-code> 7.3.6.14
-// <text:sender-state-or-province> 7.3.6.16
-// <text:sender-street> 7.3.6.12
-// <text:sender-title> 7.3.6.5
-// <text:sequence> 7.4.13
-// <text:sequenceref> 7.7.8
-// ok <text:sheet-name> 7.3.11
-// <text:soft-page-break> 5.6
-// ok <text:span> 6.1.7
-// ok <text:subject> 7.5.11
-// ok <text:tab> 6.1.4
-// ok <text:table-count> 7.5.18.6,
-// <text:table-formula> 7.7.14
-// <text:template-name> 7.3.10
-// <text:text-input> 7.4.15
-// ok <text:time> 7.3.3
-// ok <text:title> 7.5.10
-// <text:toc-mark> 8.1.4
-// <text:tocmark-end> 8.1.3
-// <text:toc-mark-start> 8.1.2
-// <text:user-defined> 7.5.6,
-// <text:user-field-get> 7.4.9
-// <text:user-field-input> 7.4.10
-// <text:userindex-mark> 8.1.7
-// <text:user-index-mark-end> 8.1.6
-// <text:user-index-markstart> 8.1.5
-// <text:variable-get> 7.4.5
-// <text:variable-input> 7.4.6,
-// <text:variable-set> 7.4.4
-// <text:word-count> 7.5.18.4.
-//
+text_tag!(MetaDate, "text:date");
+text_tag!(MetaTime, "text:time");
+// text:page-continuation
+text_tag!(MetaPageNumber, "text:page-number");
+// text:sender-firstname
+// text:sender-lastname
+// text:sender-initials
+// text:sender-title
+// text:sender-position
+// text:sender-email
+// text:sender-phone-private
+// text:sender-fax
+// text:sender-company
+// text:sender-phone-work
+// text:sender-street
+// text:sender-city
+// text:sender-postal-code
+// text:sender-country
+// text:sender-state-or-province
+// The <text:author-name> element represents the full name of the author of a document.
+text_tag!(MetaAuthorName, "text:author-name");
+// The <text:author-initials> element represents the initials of the author of a document.
+text_tag!(MetaAuthorInitials, "text:author-initials");
+// text:chapter
+text_tag!(MetaFileName, "text:file-name");
+// text:template-name
+text_tag!(MetaSheetName, "text:sheet-name");
+text_tag!(MetaInitialCreator, "text:initial-creator");
+text_tag!(MetaCreationDate, "text:creation-date");
+text_tag!(MetaCreationTime, "text:creation-time");
+text_tag!(MetaDescription, "text:description");
+// text:user-defined
+text_tag!(MetaPrintTime, "text:print-time");
+text_tag!(MetaPrintDate, "text:print-date");
+text_tag!(MetaPrintedBy, "text:printed-by");
+text_tag!(MetaTitle, "text:title");
+text_tag!(MetaSubject, "text:subject");
+text_tag!(MetaKeywords, "text:keywords");
+text_tag!(MetaEditingCycles, "text:editing-cycles");
+text_tag!(MetaEditingDuration, "text:editing-duration");
+text_tag!(MetaModificationTime, "text:modification-time");
+text_tag!(MetaModificationDate, "text:modification-date");
+text_tag!(MetaCreator, "text:creator");
+text_tag!(MetaPageCount, "text:page-count");
+// text:paragraph-count
+// text:word-count
+text_tag!(MetaCharacterCount, "text:character-count");
+// text:table-count
+// text:image-count
+// text:object-count
+// text:meta-field
