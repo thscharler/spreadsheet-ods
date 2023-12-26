@@ -25,8 +25,8 @@ macro_rules! valueformat {
             pub fn new_empty() -> Self {
                 Self {
                     name: String::from(""),
-                    origin: StyleOrigin::Styles,
-                    styleuse: StyleUse::Default,
+                    origin: Default::default(),
+                    styleuse: Default::default(),
                     attr: Default::default(),
                     textstyle: Default::default(),
                     parts: Default::default(),
@@ -44,8 +44,8 @@ macro_rules! valueformat {
             pub fn new_named<S: Into<String>>(name: S) -> Self {
                 Self {
                     name: name.into(),
-                    origin: StyleOrigin::Styles,
-                    styleuse: StyleUse::Default,
+                    origin: Default::default(),
+                    styleuse: Default::default(),
                     attr: Default::default(),
                     textstyle: Default::default(),
                     parts: Default::default(),
@@ -57,8 +57,8 @@ macro_rules! valueformat {
             pub fn new_localized<S: Into<String>>(name: S, locale: Locale) -> Self {
                 let mut v = Self {
                     name: name.into(),
-                    origin: StyleOrigin::Styles,
-                    styleuse: StyleUse::Default,
+                    origin: Default::default(),
+                    styleuse: Default::default(),
                     attr: Default::default(),
                     textstyle: Default::default(),
                     parts: Default::default(),
