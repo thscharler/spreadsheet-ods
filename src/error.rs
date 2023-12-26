@@ -8,9 +8,14 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::from_utf8;
 
+/// For conversion of TokenizerError.
+/// Analog of AsRef with static lifetime.
 pub(crate) trait AsStatic<T: ?Sized> {
     fn as_static(&self) -> &'static T;
 }
+
+/// Result type.
+pub type OdsResult<T> = Result<T, OdsError>;
 
 #[derive(Debug)]
 #[allow(missing_docs)]
