@@ -36,6 +36,7 @@ pub fn create_loc_number_format_fixed<S: Into<String>>(
 ) -> ValueFormatNumber {
     let mut v = ValueFormatNumber::new_localized(name.into(), locale);
     v.part_number()
+        .min_integer_digits(1)
         .fixed_decimal_places(decimal)
         .if_then(grouping, |p| p.grouping())
         .build();
@@ -204,6 +205,7 @@ pub fn create_number_format_fixed<S: Into<String>>(
 ) -> ValueFormatNumber {
     let mut v = ValueFormatNumber::new_named(name.into());
     v.part_number()
+        .min_integer_digits(1)
         .fixed_decimal_places(decimal)
         .if_then(grouping, |p| p.grouping())
         .build();
