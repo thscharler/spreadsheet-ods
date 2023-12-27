@@ -1,15 +1,51 @@
 //! show some features of sheets
 use color::Rgb;
 use icu_locid::locale;
-use spreadsheet_ods::style::units::{Border, Margin, MasterPageUsage, PrintCentering};
+use spreadsheet_ods::style::units::{Border, Margin, PrintCentering};
 use spreadsheet_ods::style::{HeaderFooter, MasterPage, PageStyle, TableStyle};
 use spreadsheet_ods::text::{
-    MetaAuthorName, MetaDate, MetaPageCount, MetaPageNumber, MetaTime, TextH, TextP, TextS,
+    MetaAuthorName, MetaDate, MetaPageCount, MetaPageNumber, MetaTime, TextP, TextS,
 };
-use spreadsheet_ods::{cm, pt, text, write_ods, CellRange, Length, OdsResult, Sheet, WorkBook};
+use spreadsheet_ods::{cm, pt, write_ods, CellRange, Length, OdsResult, Sheet, WorkBook};
 
+///
 pub fn main() -> OdsResult<()> {
     printing()?;
+    cell_grid()?;
+
+    Ok(())
+}
+
+// visual stuff with a sheet
+fn cell_grid() -> OdsResult<()> {
+    let mut wb = WorkBook::new(locale!("de_AT"));
+
+    let mut sh = Sheet::new("grouping");
+    sheet_data(&mut sh);
+
+    // widths
+    sh.set_col_width(0, cm!(0.55));
+    sh.set_col_width(1, cm!(0.90));
+    sh.set_col_width(2, cm!(1.48));
+    sh.set_col_width(3, cm!(2.44));
+    sh.set_col_width(4, cm!(4));
+
+    // hide grid
+    sh.config_mut().show_grid = false;
+
+    // groups
+    sh.add_col_group(1, 2);
+    sh.add_col_group(3, 4);
+
+    // split header
+    sh.split_row_header(1);
+
+    // spans
+    sh.set_col_span(0, 0, 5);
+
+    wb.push_sheet(sh);
+
+    write_ods(&mut wb, "examples_out/visual.ods")?;
 
     Ok(())
 }
@@ -67,29 +103,29 @@ fn printing() -> OdsResult<()> {
 
     let mut sh = Sheet::new("one");
     sh.set_style(&s_table);
-
-    let heading = ["A", "B", "C", "D", "E"];
-    for c in 0..5 {
-        sh.set_value(0, c, heading[c as usize]);
-    }
-
-    for c in 0..5 {
-        for r in 0..1000 {
-            sh.set_value(r + 1, c, r * c);
-        }
-    }
+    sheet_data(&mut sh);
 
     // define print header
-    sh.set_header_rows(0, 0);
+    sh.set_header_rows(0, 1);
     // restriction on the print-data.
     sh.add_print_range(CellRange::local(1, 0, 1001, 3));
-
-    // show split sheet too
-    sh.split_row_header(0);
 
     wb.push_sheet(sh);
 
     write_ods(&mut wb, "examples_out/printing.ods")?;
 
     Ok(())
+}
+
+fn sheet_data(sh: &mut Sheet) {
+    sh.set_value(0, 0, "Heading");
+    let heading = ["A", "B", "C", "D", "E"];
+    for c in 0..5 {
+        sh.set_value(1, c, heading[c as usize]);
+    }
+    for c in 0..5 {
+        for r in 0..1000 {
+            sh.set_value(r + 2, c, r * c);
+        }
+    }
 }
