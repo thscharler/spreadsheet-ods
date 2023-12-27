@@ -1,10 +1,10 @@
 use spreadsheet_ods::style::ParagraphStyleRef;
-use spreadsheet_ods::text::{AuthorName, CreationDate, TextH, TextP, TextS, TextTag};
+use spreadsheet_ods::text::{MetaAuthorName, MetaCreationDate, TextH, TextP, TextS, TextTag};
 
 #[test]
 fn test_text() {
     let txt = TextTag::new("text:p")
-        .tag(AuthorName::new())
+        .tag(MetaAuthorName::new())
         .tag(TextH::new().style_name(&"style0".into()).text("wablawa"));
 
     assert_eq!(
@@ -26,9 +26,9 @@ fn test_text2() {
     let txt = TextP::new()
         .style_name(&p1_ref)
         .text("some text")
-        .tag(AuthorName::new())
+        .tag(MetaAuthorName::new())
         .tag(TextS::new())
-        .tag(CreationDate::new())
+        .tag(MetaCreationDate::new())
         .tag(TextS::new())
         .text("whatever");
     assert_eq!(
