@@ -7,7 +7,7 @@ use crate::style::units::{
 use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, ParseStyleAttr,
 };
-use crate::{Length, OdsError, OdsResult};
+use crate::{Length, OdsResult};
 use std::fmt::{Display, Formatter};
 
 style_ref!(PageStyleRef);
@@ -82,6 +82,7 @@ impl PageStyle {
         self.master_page_usage = Some(usage.to_string());
     }
 
+    /// Remove page-usage flag.
     pub fn clear_page_usage(&mut self) {
         self.master_page_usage = None;
     }
