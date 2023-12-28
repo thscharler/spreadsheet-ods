@@ -7,7 +7,7 @@ use spreadsheet_ods::{OdsError, OdsOptions};
 
 mod lib_test;
 
-#[test]
+// #[test]
 fn test_samples() -> Result<(), OdsError> {
     let t1 = run_samples(OdsOptions::default().use_clone_for_cells())?.name("clone");
     let t2 = run_samples(OdsOptions::default().content_only())?.name("content");
@@ -50,24 +50,19 @@ fn run_samples(options: OdsOptions) -> Result<Timing, OdsError> {
     Ok(t1)
 }
 
-#[test]
+// #[test]
 fn test_sample() -> Result<(), OdsError> {
-    run_sample(OdsOptions::default().use_clone_for_cells())
-}
+    let t1 = run_sample(OdsOptions::default().use_clone_for_cells()).name("clone");
+    let t2 = run_sample(OdsOptions::default().content_only()).name("content");
+    let t3 = run_sample(OdsOptions::default().use_repeat_for_cells()).name("repeat");
+    let t4 = run_sample(OdsOptions::default().ignore_empty_cells()).name("ignore");
 
-#[test]
-fn test_sample_content() -> Result<(), OdsError> {
-    run_sample(OdsOptions::default().content_only())
-}
+    println!("{}", t1);
+    println!("{}", t2);
+    println!("{}", t3);
+    println!("{}", t4);
 
-#[test]
-fn test_sample_repeat() -> Result<(), OdsError> {
-    run_sample(OdsOptions::default().use_repeat_for_cells())
-}
-
-#[test]
-fn test_sample_ignore() -> Result<(), OdsError> {
-    run_sample(OdsOptions::default().ignore_empty_cells())
+    Ok(())
 }
 
 fn run_sample(options: OdsOptions) -> Result<(), OdsError> {

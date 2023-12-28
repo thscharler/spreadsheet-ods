@@ -4,12 +4,49 @@ use spreadsheet_ods::{OdsError, WorkBook};
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::hint::black_box;
+use std::io::{stdout, Write};
 use std::path::Path;
 use std::time::Instant;
+
+pub fn init_test() -> Result<(), OdsError> {
+    fs::create_dir_all("test_out")?;
+    Ok(())
+}
 
 pub fn test_write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(), OdsError> {
     fs::create_dir_all("test_out")?;
     spreadsheet_ods::write_ods(book, ods_path)
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum Unit {
+    Nanosecond,
+    Microsecond,
+    Millisecond,
+    Second,
+}
+
+impl Unit {
+    pub fn conv(&self, nanos: f64) -> f64 {
+        match self {
+            Unit::Nanosecond => nanos,
+            Unit::Microsecond => nanos / 1000.0,
+            Unit::Millisecond => nanos / 1000000.0,
+            Unit::Second => nanos / 1000000000.0,
+        }
+    }
+}
+
+impl Display for Unit {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let v = match self {
+            Unit::Nanosecond => "ns",
+            Unit::Microsecond => "µs",
+            Unit::Millisecond => "ms",
+            Unit::Second => "s",
+        };
+        write!(f, "{}", v)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -18,6 +55,7 @@ pub struct Timing {
     pub skip: usize,
     pub runs: usize,
     pub divider: u64,
+    pub unit: Unit,
 
     /// samples in ns. already divided by divider.
     pub samples: Vec<f64>,
@@ -44,9 +82,16 @@ impl Timing {
         self
     }
 
+    pub fn unit(mut self, unit: Unit) -> Self {
+        self.unit = unit;
+        self
+    }
+
     pub fn run<E, R>(&mut self, mut fun: impl FnMut() -> Result<R, E>) -> Result<R, E> {
         assert!(self.runs > 0);
         assert!(self.divider > 0);
+
+        println!("run {}...", self.name);
 
         let mut bench = move || {
             let now = Instant::now();
@@ -63,6 +108,8 @@ impl Timing {
             if n >= self.runs + self.skip {
                 break result;
             }
+            print!(".");
+            let _ = stdout().flush();
         };
 
         self.samples.extend(
@@ -75,8 +122,26 @@ impl Timing {
         result
     }
 
+    pub fn n(&self) -> usize {
+        self.samples.len()
+    }
+
+    pub fn sum(&self) -> f64 {
+        self.samples.iter().sum()
+    }
+
     pub fn mean(&self) -> f64 {
         self.samples.iter().sum::<f64>() / self.samples.len() as f64
+    }
+
+    pub fn median(&self) -> (f64, f64, f64) {
+        let mut s = self.samples.clone();
+        s.sort_by(|v, w| v.total_cmp(w));
+        let m0 = s.len() * 1 / 10;
+        let m5 = s.len() / 2;
+        let m9 = s.len() * 9 / 10;
+
+        (s[m0], s[m5], s[m9])
     }
 
     pub fn lin_dev(&self) -> f64 {
@@ -103,6 +168,7 @@ impl Default for Timing {
             skip: 0,
             runs: 1,
             divider: 1,
+            unit: Unit::Nanosecond,
             samples: vec![],
         }
     }
@@ -113,14 +179,37 @@ impl Display for Timing {
         writeln!(f,)?;
         writeln!(f, "{}", self.name)?;
         writeln!(f,)?;
-        writeln!(f, "| mean | lin_dev | std_dev |")?;
-        writeln!(f, "|:---|:---|:---|")?;
         writeln!(
             f,
-            "| {:.2} | {:.2} | {:.2} |",
-            self.mean(),
-            self.lin_dev(),
-            self.std_dev()
+            "| n | sum | 1/10 | median | 9/10 | mean | lin_dev | std_dev |"
+        )?;
+        writeln!(f, "|:---|:---|:---|:---|:---|:---|:---|:---|")?;
+
+        let n = self.n();
+        let sum = self.sum();
+        let (m0, m5, m9) = self.median();
+        let mean = self.mean();
+        let lin = self.lin_dev();
+        let std = self.std_dev();
+
+        writeln!(
+            f,
+            "| {} | {:.2}{} | {:.2}{} | {:.2}{} | {:.2}{} | {:.2}{} | {:.2}{} | {:.2}{} |",
+            n,
+            self.unit.conv(sum),
+            self.unit,
+            self.unit.conv(m0),
+            self.unit,
+            self.unit.conv(m5),
+            self.unit,
+            self.unit.conv(m9),
+            self.unit,
+            self.unit.conv(mean),
+            self.unit,
+            self.unit.conv(lin),
+            self.unit,
+            self.unit.conv(std),
+            self.unit,
         )?;
         writeln!(f,)?;
 
