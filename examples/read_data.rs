@@ -7,11 +7,43 @@ use spreadsheet_ods::{OdsOptions, OdsResult};
 
 ///
 pub fn main() -> OdsResult<()> {
-    read_only()?;
+    // read_only()?;
+    iterate()?;
 
     Ok(())
 }
 
+/// value iteration
+fn iterate() -> OdsResult<()> {
+    let f = BufReader::new(File::open("examples/data2.ods").expect("sample"));
+    let wb = OdsOptions::default().read_ods(f)?;
+
+    let sh = wb.sheet(0);
+
+    // iterate
+    for (r, _d) in sh.iter().take(25) {
+        println!("it {},{}", r.0, r.1);
+    }
+
+    // range iterator in lexical order
+    for (r, _d) in sh.range((1, 1)..(4, 3)) {
+        println!("range {},{}", r.0, r.1);
+    }
+
+    // iter rows
+    for (r, _d) in sh.iter_rows((1, 1)..(4, 3)) {
+        println!("rows {},{}", r.0, r.1);
+    }
+
+    // iter cols
+    for (r, _d) in sh.iter_cols((1, 1)..(4, 3)) {
+        println!("cols {},{}", r.0, r.1);
+    }
+
+    Ok(())
+}
+
+/// only read data
 fn read_only() -> OdsResult<()> {
     let f = BufReader::new(File::open("examples/data.ods").expect("sample"));
 

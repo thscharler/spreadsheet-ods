@@ -9,9 +9,9 @@ use crate::validation::ValidationRef;
 use crate::value_::Value;
 use crate::xmltree::XmlTag;
 use crate::{CellRange, CellStyleRef, ColRange, Length, OdsError, RowRange};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, Bound};
 use std::fmt;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::iter::FusedIterator;
 use std::ops::RangeBounds;
 
@@ -195,7 +195,7 @@ impl<'a> IntoIterator for &'a Sheet {
 
     fn into_iter(self) -> Self::IntoIter {
         CellIter {
-            it_data: self.data.iter(),
+            iter: self.data.iter(),
             k_data: None,
             v_data: None,
         }
@@ -205,7 +205,7 @@ impl<'a> IntoIterator for &'a Sheet {
 /// Iterator over cells.
 #[derive(Clone, Debug)]
 pub struct CellIter<'a> {
-    it_data: std::collections::btree_map::Iter<'a, (u32, u32), CellData>,
+    iter: std::collections::btree_map::Iter<'a, (u32, u32), CellData>,
     k_data: Option<&'a (u32, u32)>,
     v_data: Option<&'a CellData>,
 }
@@ -217,7 +217,7 @@ impl CellIter<'_> {
     }
 
     fn load_next_data(&mut self) {
-        if let Some((k, v)) = self.it_data.next() {
+        if let Some((k, v)) = self.iter.next() {
             self.k_data = Some(k);
             self.v_data = Some(v);
         } else {
@@ -248,6 +248,145 @@ impl<'a> Iterator for CellIter<'a> {
         } else {
             None
         }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+struct IterRows<'a> {
+    iter: std::collections::btree_map::Range<'a, (u32, u32), CellData>,
+    start: (u32, u32),
+    end: (u32, u32),
+    hint: usize,
+}
+
+impl<'a> IterRows<'a> {
+    fn new<R: RangeBounds<(u32, u32)>>(sheet: &'a Sheet, range: R) -> Self {
+        let start = match range.start_bound() {
+            Bound::Included((r, c)) => (*r, *c),
+            Bound::Excluded((r, c)) => (r + 1, c + 1),
+            Bound::Unbounded => (0, 0),
+        };
+        let end = match range.end_bound() {
+            Bound::Included((r, c)) => (r + 1, c + 1),
+            Bound::Excluded((r, c)) => (*r, *c),
+            Bound::Unbounded => sheet.used_grid_size(),
+        };
+
+        Self {
+            iter: sheet.data.range(range),
+            start,
+            end,
+            hint: (end.0 - start.0) as usize * (end.1 * start.1) as usize,
+        }
+    }
+}
+
+impl FusedIterator for IterRows<'_> {}
+
+impl<'a> Iterator for IterRows<'a> {
+    type Item = ((u32, u32), CellContentRef<'a>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(((r, c), d)) = self.iter.next() {
+                if *r < self.end.0 && *c >= self.start.1 && *c < self.end.1 {
+                    return Some(((*r, *c), d.cell_content_ref()));
+                }
+            } else {
+                return None;
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (0, Some(self.hint))
+    }
+}
+
+struct IterCols<'a> {
+    sheet: &'a Sheet,
+    start: (u32, u32),
+    end: (u32, u32),
+    cell: (u32, u32),
+}
+
+impl Debug for IterCols<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("IterCols")
+            .field("start", &self.start)
+            .field("end", &self.end)
+            .field("cell", &self.cell)
+            .finish()
+    }
+}
+
+impl FusedIterator for IterCols<'_> {}
+
+impl<'a> IterCols<'a> {
+    fn new<R: RangeBounds<(u32, u32)>>(sheet: &'a Sheet, range: R) -> Self {
+        let start = match range.start_bound() {
+            Bound::Included((r, c)) => (*r, *c),
+            Bound::Excluded((r, c)) => (r + 1, c + 1),
+            Bound::Unbounded => (0, 0),
+        };
+        let end = match range.end_bound() {
+            Bound::Included((r, c)) => (r + 1, c + 1),
+            Bound::Excluded((r, c)) => (*r, *c),
+            Bound::Unbounded => sheet.used_grid_size(),
+        };
+
+        Self {
+            sheet,
+            start,
+            end,
+            cell: start,
+        }
+    }
+}
+
+impl<'a> Iterator for IterCols<'a> {
+    type Item = ((u32, u32), CellContentRef<'a>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cell.0 == self.end.0 && self.cell.1 == self.end.1 {
+            return None;
+        }
+
+        loop {
+            let r = self.cell.0;
+            let c = self.cell.1;
+            let d = self.sheet.cell_ref(self.cell.0, self.cell.1);
+
+            if self.cell.0 + 1 < self.end.0 {
+                self.cell.0 += 1;
+            } else if self.cell.0 + 1 == self.end.0 {
+                if self.cell.1 + 1 < self.end.1 {
+                    self.cell.0 = self.start.0;
+                    self.cell.1 += 1;
+                } else if self.cell.1 + 1 == self.end.1 {
+                    self.cell.0 += 1;
+                    self.cell.1 += 1;
+                } else {
+                    assert_eq!(self.cell, self.end);
+                }
+            } else {
+                assert_eq!(self.cell, self.end);
+            }
+
+            if let Some(d) = d {
+                return Some(((r, c), d));
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (
+            0,
+            Some((self.end.0 - self.start.0) as usize * (self.end.1 - self.start.1) as usize),
+        )
     }
 }
 
@@ -287,7 +426,7 @@ impl DoubleEndedIterator for Range<'_> {
 
 impl ExactSizeIterator for Range<'_> {}
 
-impl fmt::Debug for Sheet {
+impl Debug for Sheet {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln!(f, "name {:?} style {:?}", self.name, self.style)?;
         for (k, v) in self.data.iter() {
@@ -383,11 +522,33 @@ impl Sheet {
         self.data.len()
     }
 
-    /// Iterate a range of cells.
-    pub fn range<R>(&self, range: R) -> Range<'_>
-    where
-        R: RangeBounds<(u32, u32)>,
-    {
+    /// Iterate the range row-wise.
+    ///
+    /// If there is no upper bound this uses used_grid_size(), which
+    /// does an extra full iteration to find the bounds.
+    pub fn iter_rows<R: RangeBounds<(u32, u32)>>(
+        &self,
+        range: R,
+    ) -> impl Iterator<Item = ((u32, u32), CellContentRef<'_>)> {
+        IterRows::new(self, range)
+    }
+
+    /// Iterate the range column-wise.
+    ///
+    /// If there is no upper bound this uses used_grid_size(), which
+    /// does an extra full iteration to find the bounds.
+    pub fn iter_cols<R: RangeBounds<(u32, u32)>>(
+        &self,
+        range: R,
+    ) -> impl Iterator<Item = ((u32, u32), CellContentRef<'_>)> {
+        IterCols::new(self, range)
+    }
+
+    /// Iterate a range of cells in lexical order.
+    pub fn range<R: RangeBounds<(u32, u32)>>(
+        &self,
+        range: R,
+    ) -> impl Iterator<Item = ((u32, u32), CellContentRef<'_>)> {
         Range {
             range: self.data.range(range),
         }
@@ -816,7 +977,6 @@ impl Sheet {
 
     /// Sets the colspan of the cell. Must be greater than 0.
     pub fn set_matrix_col_span(&mut self, row: u32, col: u32, span: u32) {
-        assert!(span > 0);
         let cell = self.data.entry((row, col)).or_default();
         cell.extra_mut().matrix_span.set_col_span(span);
     }

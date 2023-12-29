@@ -246,7 +246,7 @@ impl CellData {
 
 /// Holds references to the combined content of a cell.
 /// A temporary to hold the data when iterating over a sheet.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct CellContentRef<'a> {
     /// Reference to the cell value.
     pub value: &'a Value,
@@ -349,6 +349,21 @@ impl<'a> CellContentRef<'a> {
     #[inline]
     pub fn draw_frames(&self) -> Option<&'a Vec<DrawFrame>> {
         self.draw_frames
+    }
+
+    /// Creates a owned CellContent.
+    pub fn to_owned(&self) -> CellContent {
+        CellContent {
+            value: self.value.clone(),
+            style: self.style.cloned(),
+            formula: self.formula.cloned(),
+            repeat: *self.repeat,
+            validation_name: self.validation_name.cloned(),
+            span: self.span.cloned().unwrap_or_default(),
+            matrix_span: self.matrix_span.cloned().unwrap_or_default(),
+            annotation: self.annotation.cloned(),
+            draw_frames: self.draw_frames.map(|v| v.clone()).unwrap_or_default(),
+        }
     }
 }
 
