@@ -31,8 +31,8 @@ use crate::sheet::{Grouped, SplitMode, Visibility};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
-    ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle, ParagraphStyle,
-    RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
+    ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, MasterPageRef, PageStyle,
+    ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
@@ -2142,6 +2142,10 @@ fn read_master_page(
             attr if attr.key.as_ref() == b"style:display-name" => {
                 masterpage.set_display_name(attr.decode_and_unescape_value(xml)?.as_ref().into());
             }
+            attr if attr.key.as_ref() == b"style:next-style-name" => {
+                let v = attr.decode_and_unescape_value(xml)?.to_string();
+                masterpage.set_next_masterpage(&MasterPageRef::from(v));
+            }
             attr => {
                 unused_attr("read_master_page", super_tag.name().as_ref(), &attr)?;
             }
@@ -2229,19 +2233,19 @@ fn read_headerfooter(
                 if xml_tag.name().as_ref() == b"style:region-left" =>
             {
                 let reg = read_xml(ctx, xml, xml_tag, empty_tag)?;
-                hf.set_left(reg);
+                hf.set_left(reg.into_vec()?);
             }
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"style:region-center" =>
             {
                 let reg = read_xml(ctx, xml, xml_tag, empty_tag)?;
-                hf.set_center(reg);
+                hf.set_center(reg.into_vec()?);
             }
             Event::Start(xml_tag) | Event::Empty(xml_tag)
                 if xml_tag.name().as_ref() == b"style:region-right" =>
             {
                 let reg = read_xml(ctx, xml, xml_tag, empty_tag)?;
-                hf.set_right(reg);
+                hf.set_right(reg.into_vec()?);
             }
 
             Event::Start(xml_tag) | Event::Empty(xml_tag)

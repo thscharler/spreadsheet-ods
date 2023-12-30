@@ -2909,6 +2909,9 @@ fn write_masterpage(
             xml_out.attr_esc("style:display-name", style.display_name())?;
         }
         xml_out.attr_esc("style:page-layout-name", style.pagestyle())?;
+        if !style.next_masterpage().is_empty() {
+            xml_out.attr_esc("style:next-style-name", style.next_masterpage())?;
+        }
 
         // header
         xml_out.elem("style:header")?;
@@ -2961,19 +2964,25 @@ fn write_masterpage(
 }
 
 fn write_regions(hf: &HeaderFooter, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
-    if let Some(left) = hf.left() {
+    if !hf.left().is_empty() {
         xml_out.elem("style:region-left")?;
-        write_xmltag(left, xml_out)?;
+        for v in hf.left() {
+            write_xmltag(v, xml_out)?;
+        }
         xml_out.end_elem("style:region-left")?;
     }
-    if let Some(center) = hf.center() {
+    if !hf.center().is_empty() {
         xml_out.elem("style:region-center")?;
-        write_xmltag(center, xml_out)?;
+        for v in hf.center() {
+            write_xmltag(v, xml_out)?;
+        }
         xml_out.end_elem("style:region-center")?;
     }
-    if let Some(right) = hf.right() {
+    if !hf.right().is_empty() {
         xml_out.elem("style:region-right")?;
-        write_xmltag(right, xml_out)?;
+        for v in hf.right() {
+            write_xmltag(v, xml_out)?;
+        }
         xml_out.end_elem("style:region-right")?;
     }
     for content in hf.content() {

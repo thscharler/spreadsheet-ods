@@ -35,13 +35,13 @@ style_ref!(MasterPageRef);
 ///
 /// let mut sheet = Sheet::new("sheet 1");
 /// sheet.set_style(&ts_ref);
-/// ```  
-///
+/// ```
 #[derive(Clone, Debug, Default)]
 pub struct MasterPage {
     name: String,
     display_name: String,
     pagestyle: String,
+    next_style_name: String,
 
     header: HeaderFooter,
     header_first: HeaderFooter,
@@ -56,9 +56,10 @@ impl MasterPage {
     /// Empty.
     pub fn new_empty() -> Self {
         Self {
-            name: "".to_string(),
-            display_name: "".to_string(),
-            pagestyle: "".to_string(),
+            name: Default::default(),
+            display_name: Default::default(),
+            pagestyle: Default::default(),
+            next_style_name: Default::default(),
             header: Default::default(),
             header_first: Default::default(),
             header_left: Default::default(),
@@ -72,8 +73,9 @@ impl MasterPage {
     pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
             name: name.into(),
-            display_name: "".to_string(),
-            pagestyle: "".to_string(),
+            display_name: Default::default(),
+            pagestyle: Default::default(),
+            next_style_name: Default::default(),
             header: Default::default(),
             header_first: Default::default(),
             header_left: Default::default(),
@@ -116,6 +118,19 @@ impl MasterPage {
     /// Reference to a page-style.
     pub fn pagestyle(&self) -> &String {
         &self.pagestyle
+    }
+
+    /// The style:next-style-name attribute specifies the name of the master page that is used for
+    /// the next page if the current page is entirely filled. If the next style name is not specified, the
+    /// current master page is used for the next page. The value of this attribute shall be the name of a
+    /// <style:master-page> element.
+    pub fn set_next_masterpage(&mut self, master: &MasterPageRef) {
+        self.next_style_name = master.to_string()
+    }
+
+    ///
+    pub fn next_masterpage(&self) -> &String {
+        &self.next_style_name
     }
 
     /// Left side header.
@@ -217,9 +232,9 @@ impl MasterPage {
 pub struct HeaderFooter {
     display: bool,
 
-    region_left: Option<TextTag>,
-    region_center: Option<TextTag>,
-    region_right: Option<TextTag>,
+    region_left: Vec<TextTag>,
+    region_center: Vec<TextTag>,
+    region_right: Vec<TextTag>,
 
     content: Vec<TextTag>,
 }
@@ -248,9 +263,9 @@ impl HeaderFooter {
 
     /// true if all regions of the header/footer are empty.
     pub fn is_empty(&self) -> bool {
-        self.region_left.is_none()
-            && self.region_center.is_none()
-            && self.region_right.is_none()
+        self.region_left.is_empty()
+            && self.region_center.is_empty()
+            && self.region_right.is_empty()
             && self.content.is_empty()
     }
 
@@ -258,22 +273,22 @@ impl HeaderFooter {
     ///
     /// Attention:
     /// This tag must be a text:p otherwise its ignored.
-    pub fn set_left(&mut self, txt: TextTag) {
-        self.region_left = Some(txt);
+    pub fn set_left(&mut self, txt: Vec<TextTag>) {
+        self.region_left = txt;
     }
 
     /// Clear left region.
     pub fn clear_left(&mut self) {
-        self.region_left = None;
+        self.region_left = Vec::new();
     }
 
     /// Left region.
-    pub fn left(&self) -> Option<&TextTag> {
+    pub fn left(&self) -> &Vec<TextTag> {
         self.region_left.as_ref()
     }
 
     /// Left region.
-    pub fn left_mut(&mut self) -> Option<&mut TextTag> {
+    pub fn left_mut(&mut self) -> &mut Vec<TextTag> {
         self.region_left.as_mut()
     }
 
@@ -281,22 +296,22 @@ impl HeaderFooter {
     ///
     /// Attention:
     /// This tag must be a text:p otherwise its ignored.
-    pub fn set_center(&mut self, txt: TextTag) {
-        self.region_center = Some(txt);
+    pub fn set_center(&mut self, txt: Vec<TextTag>) {
+        self.region_center = txt;
     }
 
     /// Center region.
     pub fn clear_center(&mut self) {
-        self.region_center = None;
+        self.region_center = Vec::new();
     }
 
     /// Center region.
-    pub fn center(&self) -> Option<&TextTag> {
+    pub fn center(&self) -> &Vec<TextTag> {
         self.region_center.as_ref()
     }
 
     /// Center region.
-    pub fn center_mut(&mut self) -> Option<&mut TextTag> {
+    pub fn center_mut(&mut self) -> &mut Vec<TextTag> {
         self.region_center.as_mut()
     }
 
@@ -304,22 +319,22 @@ impl HeaderFooter {
     ///
     /// Attention:
     /// This tag must be a text:p otherwise its ignored.
-    pub fn set_right(&mut self, txt: TextTag) {
-        self.region_right = Some(txt);
+    pub fn set_right(&mut self, txt: Vec<TextTag>) {
+        self.region_right = txt;
     }
 
     /// Right region.
     pub fn clear_right(&mut self) {
-        self.region_right = None;
+        self.region_right = Vec::new();
     }
 
     /// Right region.
-    pub fn right(&self) -> Option<&TextTag> {
+    pub fn right(&self) -> &Vec<TextTag> {
         self.region_right.as_ref()
     }
 
     /// Right region.
-    pub fn right_mut(&mut self) -> Option<&mut TextTag> {
+    pub fn right_mut(&mut self) -> &mut Vec<TextTag> {
         self.region_right.as_mut()
     }
 

@@ -9,25 +9,27 @@ use spreadsheet_ods::{cm, read_ods, OdsError, Sheet, WorkBook};
 
 #[test]
 fn test_pagelayout() -> Result<(), OdsError> {
-    let path = std::path::Path::new("test_out/format.ods");
-    let mut ods;
+    let path = std::path::Path::new("tests/test_pagelayout.ods");
+    let mut wb;
 
     if path.exists() {
-        ods = read_ods(path)?;
+        wb = read_ods(path)?;
     } else {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::File::create(path)?;
-        ods = read_ods(path)?;
+        wb = read_ods(path)?;
     }
-    //println!("{:?}", ods.pagelayout("Mpm1").unwrap().header().left());
-    let path = std::path::Path::new("test_out/rexp.ods");
 
+    let mb = wb.masterpage("Default").expect("masterpage");
+    assert_eq!(3, mb.footer().center().len());
+
+    let path = std::path::Path::new("test_out/test_pagelayout.ods");
     if path.exists() {
-        test_write_ods(&mut ods, path)?;
+        test_write_ods(&mut wb, path)?;
     } else {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::File::create(path)?;
-        test_write_ods(&mut ods, path)?;
+        test_write_ods(&mut wb, path)?;
     }
 
     Ok(())
@@ -58,7 +60,7 @@ fn test_crpagelayout() -> Result<(), OdsError> {
 
     wb.push_sheet(Sheet::new("1"));
 
-    test_write_ods(&mut wb, "test_out/hf0.ods")?;
+    test_write_ods(&mut wb, "test_out/test_crpagelayout.ods")?;
 
     Ok(())
 }
