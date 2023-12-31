@@ -737,14 +737,14 @@ impl Sheet {
         }
     }
 
-    /// Returns the maximum used column +1 in the column header
-    pub fn used_cols(&self) -> u32 {
-        *self.col_header.keys().max().unwrap_or(&0) + 1
+    /// Returns the maximum used column in the column header.
+    pub fn col_header_max(&self) -> u32 {
+        *self.col_header.keys().max().unwrap_or(&0)
     }
 
-    /// Returns the maximum used row +1 in the row header
-    pub fn used_rows(&self) -> u32 {
-        *self.row_header.keys().max().unwrap_or(&0) + 1
+    /// Returns the maximum used row in the row header.
+    pub fn row_header_max(&self) -> u32 {
+        *self.row_header.keys().max().unwrap_or(&0)
     }
 
     /// Returns a tuple of (max(row)+1, max(col)+1)
@@ -782,14 +782,6 @@ impl Sheet {
     pub fn is_empty(&self, row: u32, col: u32) -> bool {
         self.data.get(&(row, col)).is_none()
     }
-
-    /// Basic range operator.
-    // pub fn cell_range<R>(&self, range: R)
-    // where
-    //     R: RangeBounds<(ucell, ucell)>,
-    // {
-    //     let r = self.data.range(range);
-    // }
 
     /// Returns a clone of the cell content.
     pub fn cell(&self, row: u32, col: u32) -> Option<CellContent> {
