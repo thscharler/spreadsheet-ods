@@ -246,7 +246,7 @@ impl CellData {
 
 /// Holds references to the combined content of a cell.
 /// A temporary to hold the data when iterating over a sheet.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct CellContentRef<'a> {
     /// Reference to the cell value.
     pub value: &'a Value,
