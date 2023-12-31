@@ -23,7 +23,7 @@ fn test_annotation() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/annotation.ods")?;
+    test_write_ods(&mut wb, "test_out/test_annotation.ods")?;
 
     Ok(())
 }

@@ -6,7 +6,7 @@ use spreadsheet_ods::{read_ods, OdsError};
 
 #[test]
 fn read_orders() -> Result<(), OdsError> {
-    let mut wb = read_ods("tests/orders.ods")?;
+    let mut wb = read_ods("tests/test_config.ods")?;
 
     wb.config_mut().has_sheet_tabs = false;
 
@@ -15,6 +15,6 @@ fn read_orders() -> Result<(), OdsError> {
     cc.vert_split_pos = 2;
     cc.vert_split_mode = SplitMode::Heading;
 
-    test_write_ods(&mut wb, "test_out/orders.ods")?;
+    test_write_ods(&mut wb, "test_out/test_config.ods")?;
     Ok(())
 }

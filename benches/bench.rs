@@ -7,7 +7,7 @@ use spreadsheet_ods::{
 };
 
 fn read_orders() -> Result<(), OdsError> {
-    let _ = read_ods("tests/orders.ods")?;
+    let _ = read_ods("test_write_read_1.ods")?;
     Ok(())
 }
 

@@ -115,7 +115,7 @@ fn write_format() -> Result<(), OdsError> {
     sh.set_styled_value(8, 0, 1.234567f64, &f8);
 
     wb.push_sheet(sh);
-    let path = std::path::Path::new("test_out/format.ods");
+    let path = std::path::Path::new("test_out/test_format.ods");
     if path.exists() {
         test_write_ods(&mut wb, path)
     } else {

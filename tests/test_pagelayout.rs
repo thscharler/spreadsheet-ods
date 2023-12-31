@@ -10,27 +10,13 @@ use spreadsheet_ods::{cm, read_ods, OdsError, Sheet, WorkBook};
 #[test]
 fn test_pagelayout() -> Result<(), OdsError> {
     let path = std::path::Path::new("tests/test_pagelayout.ods");
-    let mut wb;
-
-    if path.exists() {
-        wb = read_ods(path)?;
-    } else {
-        std::fs::create_dir_all(path.parent().unwrap())?;
-        std::fs::File::create(path)?;
-        wb = read_ods(path)?;
-    }
+    let mut wb = read_ods(path)?;
 
     let mb = wb.masterpage("Default").expect("masterpage");
     assert_eq!(3, mb.footer().center().len());
 
-    let path = std::path::Path::new("test_out/test_pagelayout.ods");
-    if path.exists() {
-        test_write_ods(&mut wb, path)?;
-    } else {
-        std::fs::create_dir_all(path.parent().unwrap())?;
-        std::fs::File::create(path)?;
-        test_write_ods(&mut wb, path)?;
-    }
+    let path = std::path::Path::new("test_out/test_pagelayout_1.ods");
+    test_write_ods(&mut wb, path)?;
 
     Ok(())
 }
@@ -60,7 +46,7 @@ fn test_crpagelayout() -> Result<(), OdsError> {
 
     wb.push_sheet(Sheet::new("1"));
 
-    test_write_ods(&mut wb, "test_out/test_crpagelayout.ods")?;
+    test_write_ods(&mut wb, "test_out/test_pagelayout_2.ods")?;
 
     Ok(())
 }

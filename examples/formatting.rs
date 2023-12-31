@@ -8,7 +8,6 @@ use icu_locid::locale;
 use spreadsheet_ods::format::create_number_format_fixed;
 use spreadsheet_ods::{
     defaultstyles::{DefaultFormat, DefaultStyle},
-    format::create_loc_number_format_fixed,
     style::{units::TextAlign, StyleOrigin, StyleUse},
     write_ods, CellStyle, OdsResult, Sheet, ValueFormatNumber, WorkBook,
 };

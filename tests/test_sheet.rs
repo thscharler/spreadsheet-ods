@@ -15,9 +15,9 @@ fn test_colwidth() -> Result<(), OdsError> {
     sh.set_row_height(0, cm!(1.27));
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/colwidth.ods")?;
+    test_write_ods(&mut wb, "test_out/test_sheet_1.ods")?;
 
-    let wb = read_ods("test_out/colwidth.ods")?;
+    let wb = read_ods("test_out/test_sheet_1.ods")?;
     assert_eq!(wb.sheet(0).col_width(0), cm!(2.54));
     assert_eq!(wb.sheet(0).row_height(0), cm!(1.27));
 
@@ -52,9 +52,9 @@ fn test_row_repeat() -> Result<(), OdsError> {
     sh.set_row_repeat(4, 2);
 
     wb.push_sheet(sh);
-    test_write_ods(&mut wb, "test_out/row_repeat.ods")?;
+    test_write_ods(&mut wb, "test_out/test_sheet_2.ods")?;
 
-    let wb = read_ods("test_out/row_repeat.ods")?;
+    let wb = read_ods("test_out/test_sheet_2.ods")?;
     assert_eq!(wb.sheet(0).row_repeat(4), 2);
 
     Ok(())
@@ -119,8 +119,8 @@ fn test_span() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/test_span.ods")?;
-    let wi = read_ods("test_out/test_span.ods")?;
+    test_write_ods(&mut wb, "test_out/test_sheet_3.ods")?;
+    let wi = read_ods("test_out/test_sheet_3.ods")?;
 
     let si = wi.sheet(0);
 
@@ -149,9 +149,9 @@ fn test_print_range() -> Result<(), OdsError> {
     sh.add_print_range(CellRange::local(11, 11, 19, 19));
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/test_print_range.ods")?;
+    test_write_ods(&mut wb, "test_out/test_sheet_4.ods")?;
 
-    let wb = read_ods("test_out/test_print_range.ods")?;
+    let wb = read_ods("test_out/test_sheet_4.ods")?;
     let sh = wb.sheet(0);
 
     let r = sh.print_ranges().unwrap();
@@ -174,7 +174,7 @@ fn display_print() -> Result<(), OdsError> {
     s1.set_print(false);
     wb.push_sheet(s1);
 
-    test_write_ods(&mut wb, "test_out/display_print.ods")?;
+    test_write_ods(&mut wb, "test_out/test_sheet_5.ods")?;
 
     Ok(())
 }
@@ -199,7 +199,7 @@ fn split_table() -> Result<(), OdsError> {
     sh.split_horizontal(250);
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/split_table.ods")?;
+    test_write_ods(&mut wb, "test_out/test_sheet_6.ods")?;
 
     Ok(())
 }

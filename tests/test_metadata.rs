@@ -34,9 +34,9 @@ fn test_write_read() -> Result<(), OdsError> {
     sh.set_value(0, 0, "A");
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/meta0.ods")?;
+    test_write_ods(&mut wb, "test_out/test_metadata.ods")?;
 
-    let wi = read_ods("test_out/meta0.ods")?;
+    let wi = read_ods("test_out/test_metadata.ods")?;
 
     dbg!(wi.metadata());
 

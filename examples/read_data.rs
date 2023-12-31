@@ -7,7 +7,7 @@ use spreadsheet_ods::{OdsOptions, OdsResult};
 
 ///
 pub fn main() -> OdsResult<()> {
-    // read_only()?;
+    read_only()?;
     iterate()?;
 
     Ok(())

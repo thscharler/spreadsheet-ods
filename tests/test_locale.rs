@@ -24,7 +24,7 @@ pub fn test_locale1() -> Result<(), OdsError> {
 
     wb.push_sheet(sheet);
 
-    test_write_ods(&mut wb, "test_out/locale1.ods")?;
+    test_write_ods(&mut wb, "test_out/test_locale_1.ods")?;
 
     Ok(())
 }
@@ -45,9 +45,9 @@ pub fn test_locale2() -> Result<(), OdsError> {
 
     wb.push_sheet(sheet);
 
-    test_write_ods(&mut wb, "test_out/locale2.ods")?;
+    test_write_ods(&mut wb, "test_out/test_locale_2.ods")?;
 
-    let _wb = read_ods("test_out/locale2.ods")?;
+    let _wb = read_ods("test_out/test_locale_2.ods")?;
 
     Ok(())
 }
@@ -80,9 +80,9 @@ pub fn test_locale3() -> Result<(), OdsError> {
 
     wb.push_sheet(sheet);
 
-    test_write_ods(&mut wb, "test_out/locale3.ods")?;
+    test_write_ods(&mut wb, "test_out/test_locale_3.ods")?;
 
-    let _wb = read_ods("test_out/locale3.ods")?;
+    let _wb = read_ods("test_out/test_locale_3.ods")?;
 
     Ok(())
 }
@@ -148,9 +148,9 @@ pub fn test_locale4() -> Result<(), OdsError> {
 
     wb.push_sheet(sheet);
 
-    test_write_ods(&mut wb, "test_out/locale4.ods")?;
+    test_write_ods(&mut wb, "test_out/test_locale_4.ods")?;
 
-    let _wb = read_ods("test_out/locale4.ods")?;
+    let _wb = read_ods("test_out/test_locale_4.ods")?;
 
     Ok(())
 }

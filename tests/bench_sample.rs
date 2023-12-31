@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::fs::File;
 use std::io::{BufReader, Cursor, Read};
 use std::path::Path;
@@ -52,10 +54,10 @@ fn run_samples(options: OdsOptions) -> Result<Timing, OdsError> {
 
 // #[test]
 fn test_sample() -> Result<(), OdsError> {
-    let t1 = run_sample(OdsOptions::default().use_clone_for_cells()).name("clone");
-    let t2 = run_sample(OdsOptions::default().content_only()).name("content");
-    let t3 = run_sample(OdsOptions::default().use_repeat_for_cells()).name("repeat");
-    let t4 = run_sample(OdsOptions::default().ignore_empty_cells()).name("ignore");
+    let t1 = run_sample(OdsOptions::default().use_clone_for_cells())?.name("clone");
+    let t2 = run_sample(OdsOptions::default().content_only())?.name("content");
+    let t3 = run_sample(OdsOptions::default().use_repeat_for_cells())?.name("repeat");
+    let t4 = run_sample(OdsOptions::default().ignore_empty_cells())?.name("ignore");
 
     println!("{}", t1);
     println!("{}", t2);
@@ -65,15 +67,14 @@ fn test_sample() -> Result<(), OdsError> {
     Ok(())
 }
 
-fn run_sample(options: OdsOptions) -> Result<(), OdsError> {
+fn run_sample(options: OdsOptions) -> Result<Timing, OdsError> {
     let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
     let sample = "spanimals12-supptabs.ods";
 
     let f = path.join(sample);
 
+    let mut t1 = Timing::default();
     if f.exists() {
-        let mut t1 = Timing::default();
-
         println!();
         println!("{:?} {}", f.as_path(), f.metadata()?.len());
 
@@ -90,9 +91,12 @@ fn run_sample(options: OdsOptions) -> Result<(), OdsError> {
             cell_count += sh.cell_count();
         }
 
-        println!("cell_count {}", cell_count);
-        println!("{}", t1);
+        t1.divider = cell_count as u64;
+        t1.samples.iter_mut().all(|v| {
+            *v = *v / t1.divider as f64;
+            true
+        });
     }
 
-    Ok(())
+    Ok(t1)
 }

@@ -101,7 +101,7 @@ fn test_validation0() -> Result<(), OdsError> {
 
     book.push_sheet(sheet);
 
-    test_write_ods(&mut book, "test_out/validation0.ods")?;
+    test_write_ods(&mut book, "test_out/test_validation_1.ods")?;
 
     Ok(())
 }
@@ -133,7 +133,7 @@ fn test_validation1() -> Result<(), OdsError> {
 
     book.push_sheet(sheet);
 
-    test_write_ods(&mut book, "test_out/validation1.ods")?;
+    test_write_ods(&mut book, "test_out/test_validation_2.ods")?;
 
     Ok(())
 }

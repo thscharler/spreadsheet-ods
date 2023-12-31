@@ -33,9 +33,9 @@ fn test_write_group1() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/rowgroup1.ods")?;
+    test_write_ods(&mut wb, "test_out/test_grouped_1.ods")?;
 
-    let wb = read_ods("test_out/rowgroup1.ods")?;
+    let wb = read_ods("test_out/test_grouped_1.ods")?;
     let sh = wb.sheet(0);
 
     let v = sh.row_group_iter().cloned().collect::<Vec<_>>();
@@ -80,9 +80,9 @@ fn test_write_group2() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/colgroup2.ods")?;
+    test_write_ods(&mut wb, "test_out/test_grouped_2.ods")?;
 
-    let wb = read_ods("test_out/colgroup2.ods")?;
+    let wb = read_ods("test_out/test_grouped_2.ods")?;
     let sh = wb.sheet(0);
 
     let v = sh.col_group_iter().cloned().collect::<Vec<_>>();

@@ -15,9 +15,9 @@ fn test_write_first() -> Result<(), OdsError> {
     sh.set_value(0, 0, 1);
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/simple0.ods")?;
+    test_write_ods(&mut wb, "test_out/test_core_writing_loop_1.ods")?;
 
-    let wb = read_ods("test_out/simple0.ods")?;
+    let wb = read_ods("test_out/test_core_writing_loop_1.ods")?;
     let sh = wb.sheet(0);
 
     assert_eq!(sh.value(0, 0).as_i32_or(0), 1);
@@ -34,9 +34,9 @@ fn test_write_empty_before() -> Result<(), OdsError> {
     sh.set_value(5, 0, 1);
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/simple1.ods")?;
+    test_write_ods(&mut wb, "test_out/test_core_writing_loop_2.ods")?;
 
-    let wb = read_ods("test_out/simple1.ods")?;
+    let wb = read_ods("test_out/test_core_writing_loop_2.ods")?;
     let sh = wb.sheet(0);
 
     assert_eq!(sh.value(5, 0).as_i32_or(0), 1);
@@ -54,9 +54,9 @@ fn test_write_simple() -> Result<(), OdsError> {
     sh.set_value(5, 0, 1);
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/simple2.ods")?;
+    test_write_ods(&mut wb, "test_out/test_core_writing_loop_3.ods")?;
 
-    let wb = read_ods("test_out/simple2.ods")?;
+    let wb = read_ods("test_out/test_core_writing_loop_3.ods")?;
     let sh = wb.sheet(0);
 
     assert_eq!(sh.value(4, 0).as_i32_or(0), 1);
@@ -75,9 +75,9 @@ fn test_write_gap() -> Result<(), OdsError> {
     sh.set_value(5, 0, 1);
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/simple3.ods")?;
+    test_write_ods(&mut wb, "test_out/test_core_writing_loop_4.ods")?;
 
-    let wb = read_ods("test_out/simple3.ods")?;
+    let wb = read_ods("test_out/test_core_writing_loop_4.ods")?;
     let sh = wb.sheet(0);
 
     assert_eq!(sh.value(2, 0).as_i32_or(0), 1);
@@ -98,9 +98,9 @@ fn test_write_gap_repeat() -> Result<(), OdsError> {
     sh.set_value(5, 0, 1);
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/simple4.ods")?;
+    test_write_ods(&mut wb, "test_out/test_core_writing_loop_5.ods")?;
 
-    let wb = read_ods("test_out/simple4.ods")?;
+    let wb = read_ods("test_out/test_core_writing_loop_5.ods")?;
     let sh = wb.sheet(0);
 
     assert_eq!(sh.value(2, 0).as_i32_or(0), 1);
@@ -120,10 +120,10 @@ fn test_write_row_overlap() -> () {
     sh.set_value(3, 0, 1);
     wb.push_sheet(sh);
 
-    match test_write_ods(&mut wb, "test_out/simple5.ods") {
+    match test_write_ods(&mut wb, "test_out/test_core_writing_loop_6.ods") {
         Ok(_) => {}
         Err(_) => {
-            let _ = fs::remove_file("test_out/simple5.ods");
+            let _ = fs::remove_file("test_out/test_core_writing_loop_6.ods");
             panic!();
         }
     }
@@ -140,10 +140,10 @@ fn test_write_col_overlap() -> () {
     sh.set_value(3, 4, 101);
     wb.push_sheet(sh);
 
-    match test_write_ods(&mut wb, "test_out/simple6.ods") {
+    match test_write_ods(&mut wb, "test_out/test_core_writing_loop_7.ods") {
         Ok(_) => {}
         Err(_) => {
-            let _ = fs::remove_file("test_out/simple6.ods");
+            let _ = fs::remove_file("test_out/test_core_writing_loop_7.ods");
             panic!();
         }
     }
@@ -177,9 +177,9 @@ fn test_write_repeat() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/col_repeat.ods")?;
+    test_write_ods(&mut wb, "test_out/test_core_writing_loop_8.ods")?;
 
-    let read = BufReader::new(File::open("test_out/col_repeat.ods")?);
+    let read = BufReader::new(File::open("test_out/test_core_writing_loop_8.ods")?);
     let wb = OdsOptions::default()
         .use_repeat_for_cells()
         .read_ods(read)?;

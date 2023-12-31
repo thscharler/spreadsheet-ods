@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod lib_test;
 
 use crate::lib_test::{Timing, Unit};
@@ -9,7 +11,6 @@ use spreadsheet_ods::{
 const ROWS: u32 = 100;
 const COLS: u32 = 400;
 
-#[allow(dead_code)]
 fn create_wb(rows: u32, cols: u32) -> Result<WorkBook, OdsError> {
     let mut wb = WorkBook::new_empty();
     wb.locale_settings(locale!("en_US"));
@@ -47,16 +48,14 @@ fn create_wb(rows: u32, cols: u32) -> Result<WorkBook, OdsError> {
     Ok(wb)
 }
 
-#[allow(dead_code)]
 fn write_wb<'a>(wb: &'a mut WorkBook) -> impl FnMut() -> Result<(), OdsError> + 'a {
     move || {
-        let buf = write_ods_buf_uncompressed(wb, Vec::new())?;
+        let _buf = write_ods_buf_uncompressed(wb, Vec::new())?;
         Ok(())
     }
 }
 
-#[test]
-#[allow(dead_code)]
+// #[test]
 fn test_read_orders() -> Result<(), OdsError> {
     let mut t = Timing::default()
         .name("read_orders")
@@ -64,15 +63,14 @@ fn test_read_orders() -> Result<(), OdsError> {
         .runs(30)
         .unit(Unit::Millisecond);
 
-    let _ = t.run(|| read_ods("tests/orders.ods"))?;
+    let _ = t.run(|| read_ods("tests/bench_fast.ods"))?;
 
     println!("{}", t);
 
     Ok(())
 }
 
-#[test]
-#[allow(dead_code)]
+// #[test]
 fn test_create_wb() -> Result<(), OdsError> {
     let mut t = Timing::default()
         .name("create_wb")
@@ -87,8 +85,7 @@ fn test_create_wb() -> Result<(), OdsError> {
     Ok(())
 }
 
-#[test]
-#[allow(dead_code)]
+// #[test]
 fn test_write_wb() -> Result<(), OdsError> {
     let mut t = Timing::default()
         .name("write_wb")

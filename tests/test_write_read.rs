@@ -10,37 +10,6 @@ use std::io::{Cursor, Read, Write};
 use std::path::Path;
 use std::time::Instant;
 
-#[test]
-fn test_write_read() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new_empty();
-    let mut sh = Sheet::new("1");
-
-    sh.set_value(0, 0, "A");
-
-    wb.push_sheet(sh);
-
-    test_write_ods(&mut wb, "test_out/test_0.ods")?;
-
-    let wi = read_ods("test_out/test_0.ods")?;
-    let si = wi.sheet(0);
-
-    assert_eq!(si.value(0, 0).as_str_or(""), "A");
-
-    Ok(())
-}
-
-#[test]
-fn read_text() -> Result<(), OdsError> {
-    let wb = read_ods("tests/text.ods")?;
-    let sh = wb.sheet(0);
-
-    let v = sh.value(0, 0);
-
-    assert_eq!(v.value_type(), ValueType::TextXml);
-
-    Ok(())
-}
-
 pub fn timingr<E, R>(name: &str, mut fun: impl FnMut() -> Result<R, E>) -> Result<R, E> {
     let now = Instant::now();
     let result = fun()?;
@@ -57,17 +26,17 @@ pub fn timingn<E>(name: &str, mut fun: impl FnMut()) -> Result<(), E> {
 
 #[test]
 fn read_rw_orders() -> Result<(), OdsError> {
-    let mut wb = read_ods("tests/orders.ods")?;
+    let mut wb = read_ods("tests/test_write_read_1.ods")?;
     dbg!(2);
-    test_write_ods(&mut wb, "test_out/orders1.ods")?;
+    test_write_ods(&mut wb, "test_out/test_write_read_1.ods")?;
     dbg!(3);
-    let _wb = read_ods("test_out/orders1.ods")?;
+    let _wb = read_ods("test_out/test_write_read_1.ods")?;
     Ok(())
 }
 
 #[test]
 fn read_orders() -> Result<(), OdsError> {
-    let mut wb = read_ods("tests/orders.ods")?;
+    let mut wb = read_ods("tests/test_write_read_1.ods")?;
 
     wb.config_mut().has_sheet_tabs = false;
 
@@ -76,14 +45,14 @@ fn read_orders() -> Result<(), OdsError> {
     cc.vert_split_pos = 2;
     cc.vert_split_mode = SplitMode::Heading;
 
-    test_write_ods(&mut wb, "test_out/orders2.ods")?;
+    test_write_ods(&mut wb, "test_out/test_write_read_1_2.ods")?;
     Ok(())
 }
 
 #[test]
 fn test_write_read_write_read() -> Result<(), OdsError> {
-    let path = Path::new("tests/rw.ods");
-    let temp = Path::new("test_out/rw.ods");
+    let path = Path::new("tests/test_write_read_2.ods");
+    let temp = Path::new("test_out/test_write_read_2.ods");
 
     std::fs::copy(path, temp)?;
 
@@ -108,7 +77,7 @@ fn test_write_repeat_overlapped() {
 
     wb.push_sheet(sh);
 
-    let path = Path::new("test_out/overlap.ods");
+    let path = Path::new("test_out/test_write_read_3.ods");
     test_write_ods(&mut wb, path).unwrap();
 
     let _ods = read_ods(path).unwrap();
@@ -127,7 +96,7 @@ fn test_write_repeat_overlapped2() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    let path = Path::new("test_out/overlap2.ods");
+    let path = Path::new("test_out/test_write_read_4.ods");
     test_write_ods(&mut wb, path)?;
 
     let _ods = read_ods(path)?;
@@ -144,7 +113,7 @@ fn test_write_buf() -> Result<(), OdsError> {
     wb.push_sheet(sh);
 
     let len_1 = {
-        let p = Path::new("test_out/buf_one.ods");
+        let p = Path::new("test_out/test_write_read_5_1.ods");
         test_write_ods(&mut wb, p)?;
         p.to_path_buf().metadata()?.len() as usize
     };
@@ -153,7 +122,7 @@ fn test_write_buf() -> Result<(), OdsError> {
         let v = Vec::new();
         let v = write_ods_buf(&mut wb, v)?;
 
-        let mut ff = File::create("test_out/buf_two.ods")?;
+        let mut ff = File::create("test_out/test_write_read_5_2.ods")?;
         ff.write_all(&v)?;
 
         v.len()
@@ -167,7 +136,7 @@ fn test_write_buf() -> Result<(), OdsError> {
 #[test]
 fn test_read_buf() -> Result<(), OdsError> {
     let mut buf = Vec::new();
-    let mut f = File::open("tests/orders.ods")?;
+    let mut f = File::open("tests/test_write_read_1.ods")?;
     f.read_to_end(&mut buf)?;
 
     let mut wb = read_ods_buf(&buf)?;
@@ -179,7 +148,7 @@ fn test_read_buf() -> Result<(), OdsError> {
     cc.vert_split_pos = 2;
     cc.vert_split_mode = SplitMode::Heading;
 
-    test_write_ods(&mut wb, "test_out/orders3.ods")?;
+    test_write_ods(&mut wb, "test_out/test_write_read_6.ods")?;
     Ok(())
 }
 
@@ -193,6 +162,37 @@ fn test_write_write() -> Result<(), OdsError> {
 
     let v = Cursor::new(Vec::new());
     write_ods_to(&mut wb, v)?;
+
+    Ok(())
+}
+
+#[test]
+fn test_write_read() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new_empty();
+    let mut sh = Sheet::new("1");
+
+    sh.set_value(0, 0, "A");
+
+    wb.push_sheet(sh);
+
+    test_write_ods(&mut wb, "test_out/test_write_read_7.ods")?;
+
+    let wi = read_ods("test_out/test_write_read_7.ods")?;
+    let si = wi.sheet(0);
+
+    assert_eq!(si.value(0, 0).as_str_or(""), "A");
+
+    Ok(())
+}
+
+#[test]
+fn read_text() -> Result<(), OdsError> {
+    let wb = read_ods("tests/test_write_read_3.ods")?;
+    let sh = wb.sheet(0);
+
+    let v = sh.value(0, 0);
+
+    assert_eq!(v.value_type(), ValueType::TextXml);
 
     Ok(())
 }

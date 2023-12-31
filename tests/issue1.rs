@@ -6,7 +6,7 @@ use spreadsheet_ods::*;
 
 #[test]
 fn issue1() {
-    let output_file = std::path::Path::new("test_out/test.ods");
+    let output_file = std::path::Path::new("test_out/issue1.ods");
 
     let mut wb = WorkBook::new_empty();
 

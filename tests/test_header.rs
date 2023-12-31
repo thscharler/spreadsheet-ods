@@ -25,9 +25,9 @@ fn test_write_group1() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/header1.ods")?;
+    test_write_ods(&mut wb, "test_out/test_header_1.ods")?;
 
-    let wb = read_ods("test_out/header1.ods")?;
+    let wb = read_ods("test_out/test_header_1.ods")?;
     let sh = wb.sheet(0);
 
     let v = sh.row_group_iter().cloned().collect::<Vec<_>>();
@@ -63,9 +63,9 @@ fn test_write_group2() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/header2.ods")?;
+    test_write_ods(&mut wb, "test_out/test_header_2.ods")?;
 
-    let wb = read_ods("test_out/header2.ods")?;
+    let wb = read_ods("test_out/test_header_2.ods")?;
     let sh = wb.sheet(0);
 
     let v = sh.row_group_iter().cloned().collect::<Vec<_>>();
@@ -101,9 +101,9 @@ fn test_write_group3() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/header3.ods")?;
+    test_write_ods(&mut wb, "test_out/test_header_3.ods")?;
 
-    let wb = read_ods("test_out/header3.ods")?;
+    let wb = read_ods("test_out/test_header_3.ods")?;
     let sh = wb.sheet(0);
 
     let v = sh.row_group_iter().cloned().collect::<Vec<_>>();
@@ -139,9 +139,9 @@ fn test_write_group4() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/header4.ods")?;
+    test_write_ods(&mut wb, "test_out/test_header_4.ods")?;
 
-    let wb = read_ods("test_out/header4.ods")?;
+    let wb = read_ods("test_out/test_header_4.ods")?;
     let sh = wb.sheet(0);
 
     let v = sh.row_group_iter().cloned().collect::<Vec<_>>();
@@ -177,9 +177,9 @@ fn test_write_colgroup1() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/colheader1.ods")?;
+    test_write_ods(&mut wb, "test_out/test_header_5.ods")?;
 
-    let wb = read_ods("test_out/colheader1.ods")?;
+    let wb = read_ods("test_out/test_header_5.ods")?;
     let sh = wb.sheet(0);
 
     let v = sh.col_group_iter().cloned().collect::<Vec<_>>();
@@ -215,9 +215,9 @@ fn test_write_colgroup2() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/colheader2.ods")?;
+    test_write_ods(&mut wb, "test_out/test_header_6.ods")?;
 
-    let wb = read_ods("test_out/colheader2.ods")?;
+    let wb = read_ods("test_out/test_header_6.ods")?;
     let sh = wb.sheet(0);
 
     let v = sh.col_group_iter().cloned().collect::<Vec<_>>();
@@ -253,9 +253,9 @@ fn test_write_colgroup3() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/colheader3.ods")?;
+    test_write_ods(&mut wb, "test_out/test_header_7.ods")?;
 
-    let wb = read_ods("test_out/colheader3.ods")?;
+    let wb = read_ods("test_out/test_header_7.ods")?;
     let sh = wb.sheet(0);
 
     let v = sh.col_group_iter().cloned().collect::<Vec<_>>();
@@ -291,9 +291,9 @@ fn test_write_colgroup4() -> Result<(), OdsError> {
 
     wb.push_sheet(sh);
 
-    test_write_ods(&mut wb, "test_out/colheader4.ods")?;
+    test_write_ods(&mut wb, "test_out/test_header_8.ods")?;
 
-    let wb = read_ods("test_out/colheader4.ods")?;
+    let wb = read_ods("test_out/test_header_8.ods")?;
     let sh = wb.sheet(0);
 
     let v = sh.col_group_iter().cloned().collect::<Vec<_>>();

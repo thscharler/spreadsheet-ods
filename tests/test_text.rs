@@ -10,7 +10,7 @@ fn test_text() {
     assert_eq!(
         txt.to_string(),
         r#"<text:p>
-<text:author_name/>
+<text:author-name/>
 <text:h text:style-name="style0">
 wablawa
 </text:h>
@@ -35,7 +35,7 @@ fn test_text2() {
         txt.to_string(),
         r#"<text:p text:style-name="p1">
 some text
-<text:author_name/>
+<text:author-name/>
 <text:s/>
 <text:creation-date/>
 <text:s/>

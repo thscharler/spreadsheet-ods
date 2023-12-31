@@ -76,22 +76,22 @@ fn printing() -> OdsResult<()> {
     m_page.set_pagestyle(&s_page);
 
     let mut m_footer = HeaderFooter::new();
-    m_footer.set_left(TextP::new().tag(MetaAuthorName::new()).into());
-    m_footer.set_center(
+    m_footer.add_left(TextP::new().tag(MetaAuthorName::new()).into_xmltag());
+    m_footer.add_center(
         TextP::new()
             .tag(MetaPageNumber::new())
             .tag(TextS::new())
             .text("/")
             .tag(TextS::new())
             .tag(MetaPageCount::new())
-            .into(),
+            .into_xmltag(),
     );
-    m_footer.set_right(
+    m_footer.add_right(
         TextP::new()
             .tag(MetaDate::new())
             .tag(TextS::new())
             .tag(MetaTime::new())
-            .into(),
+            .into_xmltag(),
     );
     m_page.set_footer(m_footer);
     let m_page = wb.add_masterpage(m_page);
