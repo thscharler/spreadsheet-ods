@@ -812,6 +812,18 @@ impl Sheet {
         self.data.insert((row, col), cell);
     }
 
+    /// Sets a value for the specified cell and provides a style at the same time.
+    #[inline]
+    pub fn set_styled<V: Into<Value>>(
+        &mut self,
+        row: u32,
+        col: u32,
+        value: V,
+        style: &CellStyleRef,
+    ) {
+        self.set_styled_value(row, col, value, style)
+    }
+
     /// Sets a value for the specified cell. Creates a new cell if necessary.
     pub fn set_styled_value<V: Into<Value>>(
         &mut self,
