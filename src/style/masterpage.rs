@@ -277,6 +277,14 @@ impl HeaderFooter {
         self.region_left = txt;
     }
 
+    /// Adds to the content of the left region of the header.
+    ///
+    /// Attention:
+    /// This tag must be a text:p otherwise its ignored.
+    pub fn add_left(&mut self, txt: TextTag) {
+        self.region_left.push(txt);
+    }
+
     /// Clear left region.
     pub fn clear_left(&mut self) {
         self.region_left = Vec::new();
@@ -298,6 +306,14 @@ impl HeaderFooter {
     /// This tag must be a text:p otherwise its ignored.
     pub fn set_center(&mut self, txt: Vec<TextTag>) {
         self.region_center = txt;
+    }
+
+    /// Adds to the content of the center region of the header.
+    ///
+    /// Attention:
+    /// This tag must be a text:p otherwise its ignored.
+    pub fn add_center(&mut self, txt: TextTag) {
+        self.region_center.push(txt);
     }
 
     /// Center region.
@@ -323,6 +339,14 @@ impl HeaderFooter {
         self.region_right = txt;
     }
 
+    /// Adds to the content of the right region of the header.
+    ///
+    /// Attention:
+    /// This tag must be a text:p otherwise its ignored.
+    pub fn add_right(&mut self, txt: TextTag) {
+        self.region_right.push(txt);
+    }
+
     /// Right region.
     pub fn clear_right(&mut self) {
         self.region_right = Vec::new();
@@ -341,6 +365,11 @@ impl HeaderFooter {
     /// Header content, if there are no regions.
     pub fn set_content(&mut self, txt: Vec<TextTag>) {
         self.content = txt;
+    }
+
+    /// Adds header content, if there are no regions.
+    pub fn add_content(&mut self, txt: TextTag) {
+        self.content.push(txt);
     }
 
     /// Header content, if there are no regions.
