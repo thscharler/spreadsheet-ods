@@ -2,25 +2,32 @@
 
 - add some examples.
 
-- BREAKING: Masterpage regions changed type from Vec<> to Option<>. There is ever only
-  one tag as content.
-- BREAKING: Pagestyle.set_page_usage() changed.
+- breaking: Pagestyle.set_page_usage() changed. Don't use a Option<> parameter. Added clear_page_used().
 - BREAKING: rename the metadata tags to have a common prefix "Meta". This helps with
   code completion, there are conflicts with some enums.
-
-- refined OdsOptions.
+- BREAKING: Refined OdsOptions.
     - BREAKING: remove use_repeat_for_empty() - this is almost unusable as it's
-      very difficult to avoid overlapping cells. especially empty cells you didn't
+      very difficult to avoid overlapping cells. Especially with empty cells you didn't
       know where there now overlapping a newly added data-cell.
       ignore_empty_cells() might be useful instead.
     - BREAKING: rename use_clone_for_repeat() to use_clone_for_cells()
     - add ignore_empty_cells() and read_empty_cells()
     - add read_styles() as opposite to content_only()
+- breaking: rename misleading used_cols()/used_rows() to col_header_max()/row_header_max(). 
+  To get the fill-state of the sheet there has always been used_grid_size().
+
+- feat: add set_styled() as short name for set_styled_value(). Ease of use.
+- feat: add CellContentRef::to_owned() to get a CellContent
+- feat: iter_cols() and iter_rows() to Sheet. Implements column-wise/row-wise iteration
+  over a given Range.
+- feat: new functions add_left(), add_center(), add_right(), add_content() for HeaderFooter.
+  Ease of use.
+- feat: add OdsResult<T>
 
 - fix: ValueFormatXXX now use the correct default values for StyleOrigin (Content) and
   StyleUse (Automatic).
 - fix: create_number_format_fixed: must set integer-digits too, otherwise this doesn't work.
-- feat: add OdsResult<T>
+
 
 # 0.20.2
 
