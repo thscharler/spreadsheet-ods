@@ -912,11 +912,36 @@ fn read_table(
                 row_repeat = read_table_row_attr(xml, &mut sheet, row, xml_tag)?;
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
-                // todo: clone cells
+                // clone cell-data if necessary
+                if repeat_rows(ctx, row_repeat) {
+                    sheet.set_row_repeat(row, row_repeat);
+                    row += row_repeat;
+                    row_repeat = 1;
+                } else {
+                    let row_cells = sheet
+                        .data
+                        .range((row, 0)..(row + 1, 0))
+                        .map(|((r, c), d)| (*c, d.clone()))
+                        .collect::<Vec<_>>();
 
-                row += row_repeat;
+                    row += 1;
+                    row_repeat -= 1;
+
+                    while row_repeat > 1 {
+                        for (c, d) in row_cells.iter().cloned() {
+                            sheet.add_cell_data(row, c, d);
+                        }
+                        row += 1;
+                        row_repeat -= 1;
+                    }
+                    // don't waste a clone
+                    for (c, d) in row_cells {
+                        sheet.add_cell_data(row, c, d);
+                        row += 1;
+                    }
+                }
+
                 col = 0;
-                row_repeat = 1;
             }
 
             Event::Empty(xml_tag) | Event::Start(xml_tag)
@@ -988,9 +1013,9 @@ fn read_table_row_attr(
             // table:default-cell-style-name 19.615, table:visibility 19.749 and xml:id 19.914.
             attr if attr.key.as_ref() == b"table:number-rows-repeated" => {
                 row_repeat = parse_u32(&attr.value)?;
-                if row_repeat > 1 {
-                    sheet.set_row_repeat(row, row_repeat);
-                }
+                // if row_repeat > 1 {
+                //     sheet.set_row_repeat(row, row_repeat);
+                // }
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
                 let rowstyle = Some(attr.decode_and_unescape_value(xml)?.to_string());
@@ -1355,6 +1380,18 @@ fn ignore_cell(ctx: &mut OdsContext, cell: &CellData) -> bool {
 
 #[inline]
 fn repeat_cell(ctx: &mut OdsContext, repeat: u32) -> bool {
+    #[allow(clippy::if_same_then_else)]
+    if repeat == 1 {
+        true
+    } else if ctx.use_repeat_for_cells {
+        true
+    } else {
+        false
+    }
+}
+
+#[inline]
+fn repeat_rows(ctx: &mut OdsContext, repeat: u32) -> bool {
     #[allow(clippy::if_same_then_else)]
     if repeat == 1 {
         true
