@@ -8,10 +8,11 @@ use std::fmt::{Display, Formatter};
 use crate::condition::Condition;
 use crate::text::TextTag;
 use crate::{CellRef, OdsError};
+use loupe::MemoryUsage;
 use std::str::from_utf8;
 
 /// This defines how lists of entries are displayed to the user.
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, MemoryUsage)]
 pub enum ValidationDisplay {
     /// Don't show.
     NoDisplay,
@@ -55,7 +56,7 @@ impl TryFrom<&[u8]> for ValidationDisplay {
 }
 
 /// Help text for a validation.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MemoryUsage)]
 pub struct ValidationHelp {
     display: bool,
     title: Option<String>,
@@ -116,7 +117,7 @@ impl ValidationHelp {
 /// Determines the severity of a validation error.
 /// When this is error the entered value is discarded, otherwise
 /// the error is just shown as a warning or a hint.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, MemoryUsage)]
 pub enum MessageType {
     /// Hard error.
     Error,
@@ -137,7 +138,7 @@ impl Display for MessageType {
 }
 
 /// Error handling for content validations.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MemoryUsage)]
 pub struct ValidationError {
     display: bool,
     msg_type: MessageType,
@@ -213,7 +214,7 @@ style_ref!(ValidationRef);
 ///
 /// This defines a validity constraint via the contained condition.
 /// It can be applied to a cell by setting the validation name.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, MemoryUsage)]
 pub struct Validation {
     name: String,
     condition: String,

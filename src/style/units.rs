@@ -4,6 +4,7 @@
 
 use crate::style::ParseStyleAttr;
 use crate::OdsError;
+use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 
 /// An angle, as defined in §4.1 of SVG, is a double value that may be followed immediately by one
@@ -33,7 +34,7 @@ impl Display for Angle {
 
 /// A (positive or negative) length, consisting of magnitude and unit, in conformance with the Units of
 /// Measure defined in §5.9.13 of XSL.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, MemoryUsage)]
 pub enum Length {
     /// Unspecified length, the actual value is some default or whatever.
     #[default]

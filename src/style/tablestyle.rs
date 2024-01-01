@@ -5,13 +5,14 @@ use crate::style::units::{
     WritingMode,
 };
 use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
+use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 
 style_ref!(TableStyleRef);
 
 /// Describes the style information for a table.
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MemoryUsage)]
 pub struct TableStyle {
     /// From where did we get this style.
     origin: StyleOrigin,

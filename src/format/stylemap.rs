@@ -3,9 +3,10 @@
 //!
 
 use crate::condition::ValueCondition;
+use loupe::MemoryUsage;
 
 /// A style-map is one way for conditional formatting of value formats.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, MemoryUsage)]
 pub struct ValueStyleMap {
     condition: String,
     applied_style: String,

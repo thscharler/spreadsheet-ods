@@ -1,5 +1,6 @@
 use crate::attrmap2::AttrMap2;
 use crate::style::{StyleOrigin, StyleUse};
+use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 
 style_ref!(RubyStyleRef);
@@ -7,7 +8,7 @@ style_ref!(RubyStyleRef);
 /// Text style.
 /// This is not used for cell-formatting. Use CellStyle instead.
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MemoryUsage)]
 pub struct RubyStyle {
     /// From where did we get this style.
     origin: StyleOrigin,

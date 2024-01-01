@@ -2,21 +2,25 @@
 //! One sheet of the spreadsheet.
 //!
 
+use std::collections::{BTreeMap, Bound};
+use std::fmt::{Debug, Display, Formatter};
+use std::iter::FusedIterator;
+use std::ops::RangeBounds;
+use std::{fmt, mem};
+
+use loupe::{MemoryUsage, MemoryUsageTracker};
+
 use crate::cell_::{CellContent, CellContentRef, CellData};
 use crate::draw::{Annotation, DrawFrame};
+use crate::ds::size_of_btreemap;
 use crate::style::{ColStyleRef, RowStyleRef, TableStyleRef};
 use crate::validation::ValidationRef;
 use crate::value_::Value;
 use crate::xmltree::XmlTag;
 use crate::{CellRange, CellStyleRef, ColRange, Length, OdsError, RowRange};
-use std::collections::{BTreeMap, Bound};
-use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
-use std::iter::FusedIterator;
-use std::ops::RangeBounds;
 
 /// Visibility of a column or row.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default, MemoryUsage)]
 #[allow(missing_docs)]
 pub enum Visibility {
     #[default]
@@ -36,7 +40,7 @@ impl Display for Visibility {
 }
 
 /// Row data
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MemoryUsage)]
 pub(crate) struct RowHeader {
     pub(crate) style: Option<String>,
     pub(crate) cellstyle: Option<String>,
@@ -109,7 +113,7 @@ impl RowHeader {
 }
 
 /// Column data
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, MemoryUsage)]
 pub(crate) struct ColHeader {
     pub(crate) style: Option<String>,
     pub(crate) cellstyle: Option<String>,
@@ -187,6 +191,24 @@ pub struct Sheet {
     pub(crate) sheet_config: SheetConfig,
 
     pub(crate) extra: Vec<XmlTag>,
+}
+
+impl MemoryUsage for Sheet {
+    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
+        mem::size_of_val(self)
+            + self.name.size_of_val(tracker)
+            + self.style.size_of_val(tracker)
+            + size_of_btreemap(&self.data, tracker)
+            + size_of_btreemap(&self.col_header, tracker)
+            + size_of_btreemap(&self.row_header, tracker)
+            + self.header_rows.size_of_val(tracker)
+            + self.header_cols.size_of_val(tracker)
+            + self.print_ranges.size_of_val(tracker)
+            + self.group_rows.size_of_val(tracker)
+            + self.group_cols.size_of_val(tracker)
+            + self.sheet_config.size_of_val(tracker)
+            + self.extra.size_of_val(tracker)
+    }
 }
 
 impl<'a> IntoIterator for &'a Sheet {
@@ -458,6 +480,10 @@ impl Debug for Sheet {
 }
 
 impl Sheet {
+    pub fn extra(&self) -> &Vec<XmlTag> {
+        &self.extra
+    }
+
     /// Create an empty sheet.
     #[deprecated]
     pub fn new_with_name<S: Into<String>>(name: S) -> Self {
@@ -1274,7 +1300,7 @@ impl Sheet {
 }
 
 /// Describes a row/column group.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, MemoryUsage)]
 pub struct Grouped {
     /// Inclusive from row/col.
     pub from: u32,
@@ -1338,7 +1364,7 @@ impl Grouped {
 /// There are two ways a sheet can be split. There are fixed column/row header
 /// like splits, and there is a moveable split.
 ///
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MemoryUsage)]
 #[allow(missing_docs)]
 pub enum SplitMode {
     None = 0,
@@ -1360,7 +1386,7 @@ impl TryFrom<i16> for SplitMode {
 }
 
 /// Per sheet configurations.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MemoryUsage)]
 pub struct SheetConfig {
     /// Active column.
     pub cursor_x: u32,

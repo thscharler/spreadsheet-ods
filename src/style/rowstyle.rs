@@ -5,6 +5,7 @@ use crate::style::units::{Length, PageBreak, TextKeep};
 use crate::style::ParseStyleAttr;
 use crate::style::{color_string, StyleOrigin, StyleUse};
 use crate::OdsError;
+use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 
 style_ref!(RowStyleRef);
@@ -13,7 +14,7 @@ style_ref!(RowStyleRef);
 /// Hardly ever used. It's easier to set the row_height via
 /// Sheet::set_row_height.
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MemoryUsage)]
 pub struct RowStyle {
     /// From where did we get this style.
     origin: StyleOrigin,

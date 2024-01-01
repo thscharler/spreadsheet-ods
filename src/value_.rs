@@ -1,12 +1,14 @@
 use crate::text::TextTag;
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
+use loupe::{MemoryUsage, MemoryUsageTracker};
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use std::borrow::Cow;
+use std::mem;
 
 /// Datatypes for the values. Only the discriminants of the Value enum.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, MemoryUsage)]
 #[allow(missing_docs)]
 pub enum ValueType {
     Empty,
@@ -34,6 +36,23 @@ pub enum Value {
     TextXml(Vec<TextTag>),
     DateTime(NaiveDateTime),
     TimeDuration(Duration),
+}
+
+impl MemoryUsage for Value {
+    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
+        mem::size_of_val(self)
+            + match self {
+                Value::Empty => 0,
+                Value::Boolean(_) => 0,
+                Value::Number(_) => 0,
+                Value::Percentage(_) => 0,
+                Value::Currency(_, v) => v.size_of_val(tracker),
+                Value::Text(v) => v.size_of_val(tracker),
+                Value::TextXml(v) => v.size_of_val(tracker),
+                Value::DateTime(_) => 0,
+                Value::TimeDuration(_) => 0,
+            }
+    }
 }
 
 impl Value {

@@ -2,7 +2,7 @@
 macro_rules! valueformat {
     ($format:ident, $valuetype:expr) => {
         /// Formatting for Boolean.
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, MemoryUsage)]
         pub struct $format {
             /// Name
             name: String,

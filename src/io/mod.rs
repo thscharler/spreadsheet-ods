@@ -1,4 +1,5 @@
 use crate::HashMap;
+use loupe::{MemoryUsage, MemoryUsageTracker};
 use std::borrow::Cow;
 
 pub(crate) mod format;
@@ -14,6 +15,12 @@ const DUMP_UNUSED: bool = false;
 #[derive(Clone, Debug)]
 pub(crate) struct NamespaceMap {
     map: HashMap<Cow<'static, str>, Cow<'static, str>>,
+}
+
+impl MemoryUsage for NamespaceMap {
+    fn size_of_val(&self, _tracker: &mut dyn MemoryUsageTracker) -> usize {
+        0
+    }
 }
 
 impl NamespaceMap {

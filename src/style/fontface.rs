@@ -3,6 +3,7 @@ use crate::style::units::{
     FontFamilyGeneric, FontPitch, FontStretch, FontStyle, FontVariant, FontWeight,
 };
 use crate::style::StyleOrigin;
+use loupe::MemoryUsage;
 
 /// The <style:font-face> element represents a font face declaration which documents the
 /// properties of a font used in a document.
@@ -24,7 +25,7 @@ use crate::style::StyleOrigin;
 ///
 /// Font face declarations support the font descriptor attributes and elements described in §20.8.3 of
 /// SVG.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, MemoryUsage)]
 pub struct FontFaceDecl {
     name: String,
     /// From where did we get this style.

@@ -2,6 +2,8 @@
 
 use crate::xlink::{XLinkActuate, XLinkShow, XLinkType};
 use chrono::{Duration, NaiveDateTime};
+use loupe::{MemoryUsage, MemoryUsageTracker};
+use std::mem;
 
 /// Metadata
 #[derive(Debug, Clone)]
@@ -67,6 +69,27 @@ pub struct Metadata {
     pub user_defined: Vec<MetaUserDefined>,
 }
 
+impl MemoryUsage for Metadata {
+    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
+        mem::size_of_val(self)
+            + self.generator.size_of_val(tracker)
+            + self.title.size_of_val(tracker)
+            + self.description.size_of_val(tracker)
+            + self.subject.size_of_val(tracker)
+            + self.keyword.size_of_val(tracker)
+            + self.initial_creator.size_of_val(tracker)
+            + self.creator.size_of_val(tracker)
+            + self.printed_by.size_of_val(tracker)
+            + self.language.size_of_val(tracker)
+            + self.editing_cycles.size_of_val(tracker)
+            + self.template.size_of_val(tracker)
+            + self.auto_reload.size_of_val(tracker)
+            + self.hyperlink_behaviour.size_of_val(tracker)
+            + self.document_statistics.size_of_val(tracker)
+            + self.user_defined.size_of_val(tracker)
+    }
+}
+
 impl Default for Metadata {
     fn default() -> Self {
         Self {
@@ -110,6 +133,16 @@ pub struct MetaTemplate {
     pub link_type: Option<XLinkType>,
 }
 
+impl MemoryUsage for MetaTemplate {
+    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
+        mem::size_of_val(self)
+            + self.actuate.size_of_val(tracker)
+            + self.href.size_of_val(tracker)
+            + self.title.size_of_val(tracker)
+            + self.link_type.size_of_val(tracker)
+    }
+}
+
 impl MetaTemplate {
     /// Everything is None.
     pub fn is_empty(&self) -> bool {
@@ -137,6 +170,16 @@ pub struct MetaAutoReload {
     pub link_type: Option<XLinkType>,
 }
 
+impl MemoryUsage for MetaAutoReload {
+    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
+        mem::size_of_val(self)
+            + self.actuate.size_of_val(tracker)
+            + self.href.size_of_val(tracker)
+            + self.show.size_of_val(tracker)
+            + self.link_type.size_of_val(tracker)
+    }
+}
+
 impl MetaAutoReload {
     /// Everything is None.
     pub fn is_empty(&self) -> bool {
@@ -149,7 +192,7 @@ impl MetaAutoReload {
 }
 
 /// Specifies the default behavior for hyperlinks in a document.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, MemoryUsage)]
 pub struct MetaHyperlinkBehaviour {
     /// The office:target-frame-name attribute specifies the name of a target frame.
     /// The defined values for the office:target-frame-name attribute are:
@@ -177,7 +220,7 @@ impl MetaHyperlinkBehaviour {
 }
 
 /// Represents statistics about a document.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, MemoryUsage)]
 pub struct MetaDocumentStatistics {
     ///
     pub cell_count: u32,
@@ -190,7 +233,7 @@ pub struct MetaDocumentStatistics {
 }
 
 /// Specifies any additional user-defined metadata for a document.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MemoryUsage)]
 pub struct MetaUserDefined {
     /// Name
     pub name: String,
@@ -220,4 +263,17 @@ pub enum MetaValue {
     TimeDuration(Duration),
     ///
     String(String),
+}
+
+impl MemoryUsage for MetaValue {
+    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
+        mem::size_of_val(self)
+            + match self {
+                MetaValue::Boolean(_) => 0,
+                MetaValue::Datetime(_) => 0,
+                MetaValue::Float(_) => 0,
+                MetaValue::TimeDuration(_) => 0,
+                MetaValue::String(v) => v.size_of_val(tracker),
+            }
+    }
 }

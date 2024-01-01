@@ -12,6 +12,7 @@ use crate::style::{
 };
 use crate::style::{StyleOrigin, StyleUse, TextStyleRef};
 use icu_locid::Locale;
+use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 
 style_ref!(GraphicStyleRef);
@@ -19,7 +20,7 @@ style_ref!(GraphicStyleRef);
 /// Styles of this type can occur in an odt file.
 /// This is only used as a place to put this stuff when reading the ods.
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MemoryUsage)]
 pub struct GraphicStyle {
     /// From where did we get this style.
     origin: StyleOrigin,

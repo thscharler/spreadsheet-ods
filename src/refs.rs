@@ -10,6 +10,7 @@ use crate::refs::parser::{CRCode, KTokenizerError};
 use crate::OdsError;
 use kparse::provider::StdTracker;
 use kparse::Track;
+use loupe::MemoryUsage;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
@@ -17,7 +18,7 @@ mod format;
 mod parser;
 
 /// Basic cell reference.
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, MemoryUsage)]
 pub struct CRow {
     /// Row reference is fixed.
     row_abs: bool,
@@ -75,7 +76,7 @@ impl Display for CRow {
 }
 
 /// Basic cell reference.
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, MemoryUsage)]
 pub struct CCol {
     /// Column reference is fixed.
     col_abs: bool,
@@ -140,7 +141,7 @@ impl Display for CCol {
 /// let c3 = CellRef::remote("spreadsheet-2", 9,6);
 /// let c4 = CellRef::try_from(".A6");
 /// ```
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, MemoryUsage)]
 pub struct CellRef {
     /// External reference.
     iri: Option<String>,
@@ -321,7 +322,7 @@ impl Display for CellRef {
 /// // let r2 = CellRange::origin_span(5, 5, (3, 3));
 /// // ```
 ///
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, MemoryUsage)]
 pub struct CellRange {
     /// URI to an external source for this range.
     iri: Option<String>,
@@ -648,7 +649,7 @@ impl Display for CellRange {
 }
 
 /// A range over columns.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, MemoryUsage)]
 pub struct ColRange {
     /// External reference.
     iri: Option<String>,
@@ -818,7 +819,7 @@ impl Display for ColRange {
 }
 
 /// A range over rows.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, MemoryUsage)]
 pub struct RowRange {
     /// External reference
     iri: Option<String>,

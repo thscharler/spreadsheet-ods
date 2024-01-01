@@ -44,13 +44,16 @@
 //!
 //! ```
 
+use std::fmt::{Display, Formatter};
+
+use loupe::{MemoryUsage, MemoryUsageTracker};
+
 use crate::attrmap2::AttrMap2;
 use crate::text::TextP;
 use crate::OdsError;
-use std::fmt::{Display, Formatter};
 
 /// Defines a XML tag and it's children.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, MemoryUsage)]
 pub struct XmlTag {
     name: String,
     attr: AttrMap2,
@@ -260,4 +263,15 @@ pub enum XmlContent {
     Text(String),
     /// Contained xml-tags.
     Tag(XmlTag),
+}
+
+#[allow(dead_code)]
+impl MemoryUsage for XmlContent {
+    fn size_of_val(&self, visited: &mut dyn MemoryUsageTracker) -> usize {
+        std::mem::size_of_val(self)
+            + match self {
+                Self::Text(x0) => loupe::MemoryUsage::size_of_val(x0, visited),
+                Self::Tag(x0) => loupe::MemoryUsage::size_of_val(x0, visited),
+            }
+    }
 }

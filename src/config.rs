@@ -5,8 +5,10 @@
 /// SheetConfig which are more accessible.
 ///
 use crate::HashMap;
+use std::mem;
 
 use chrono::NaiveDateTime;
+use loupe::{MemoryUsage, MemoryUsageTracker};
 
 /// The possible value types for the configuration.
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
@@ -19,6 +21,22 @@ pub(crate) enum ConfigValue {
     Long(i64),
     Short(i16),
     String(String),
+}
+
+impl MemoryUsage for ConfigValue {
+    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
+        mem::size_of_val(self)
+            + match self {
+                ConfigValue::Base64Binary(v) => v.size_of_val(tracker),
+                ConfigValue::Boolean(_) => 0,
+                ConfigValue::DateTime(_) => 0,
+                ConfigValue::Double(_) => 0,
+                ConfigValue::Int(_) => 0,
+                ConfigValue::Long(_) => 0,
+                ConfigValue::Short(_) => 0,
+                ConfigValue::String(v) => v.size_of_val(tracker),
+            }
+    }
 }
 
 impl ConfigValue {}
@@ -80,7 +98,7 @@ impl From<i64> for ConfigValue {
 /// Configuration mappings.
 ///
 /// It behaves like a map, but the insertion order is retained.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, MemoryUsage)]
 pub(crate) struct ConfigMap {
     key_index: HashMap<String, usize>,
     values: Vec<(String, ConfigItem)>,
@@ -227,7 +245,7 @@ impl PartialEq<ConfigItemType> for ConfigItem {
 }
 
 /// Unifies values and sets of values. The branch structure of the tree.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, MemoryUsage)]
 pub(crate) enum ConfigItem {
     Value(ConfigValue),
     Set(ConfigMap),
@@ -465,7 +483,7 @@ impl ConfigItem {
 }
 
 /// Basic wrapper around a ConfigSet. Root of the config tree.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MemoryUsage)]
 pub(crate) struct Config {
     config: ConfigItem,
 }

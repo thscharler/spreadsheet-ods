@@ -8,6 +8,7 @@ use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, ParseStyleAttr,
 };
 use crate::{Length, OdsResult};
+use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 
 style_ref!(PageStyleRef);
@@ -17,7 +18,7 @@ style_ref!(PageStyleRef);
 ///
 /// For an example see MasterPage.
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MemoryUsage)]
 pub struct PageStyle {
     name: String,
     // Everywhere else this is a AttrMap2, but here is just this lonely.
@@ -149,7 +150,7 @@ impl PageStyle {
 }
 
 /// Style attributes for header/footer.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, MemoryUsage)]
 pub struct HeaderFooterStyle {
     style: AttrMap2,
 }

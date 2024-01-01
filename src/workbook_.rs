@@ -2,6 +2,12 @@
 //! Workbook
 //!
 
+use std::fmt;
+use std::fmt::Formatter;
+
+use icu_locid::{locale, Locale};
+use loupe::MemoryUsage;
+
 use crate::config::Config;
 use crate::defaultstyles::{DefaultFormat, DefaultStyle};
 use crate::ds::detach::{Detach, Detached};
@@ -25,12 +31,9 @@ use crate::{
     ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage, ValueFormatRef, ValueFormatText,
     ValueFormatTimeDuration,
 };
-use icu_locid::{locale, Locale};
-use std::fmt;
-use std::fmt::Formatter;
 
 /// Book is the main structure for the Spreadsheet.
-#[derive(Clone)]
+#[derive(Clone, MemoryUsage)]
 pub struct WorkBook {
     /// The data.
     pub(crate) sheets: Vec<Detach<Sheet>>,
@@ -208,6 +211,14 @@ impl Default for WorkBook {
 }
 
 impl WorkBook {
+    pub fn extra(&self) -> &Vec<XmlTag> {
+        &self.extra
+    }
+
+    pub fn workbook_config(&self) -> &WorkBookConfig {
+        &self.workbook_config
+    }
+
     /// Creates a new, completely empty workbook.
     ///
     /// WorkBook::locale_settings can be used to initialize default styles.
@@ -1139,7 +1150,7 @@ impl WorkBook {
 }
 
 /// Subset of the Workbook wide configurations.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MemoryUsage)]
 pub struct WorkBookConfig {
     /// Which table is active when opening.    
     pub active_table: String,
@@ -1163,7 +1174,7 @@ impl Default for WorkBookConfig {
 }
 
 /// Script.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, MemoryUsage)]
 pub struct Script {
     pub(crate) script_lang: String,
     pub(crate) script: Vec<XmlContent>,
@@ -1200,7 +1211,7 @@ impl Script {
 }
 
 /// Event-Listener.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MemoryUsage)]
 pub struct EventListener {
     pub(crate) event_name: String,
     pub(crate) script_lang: String,

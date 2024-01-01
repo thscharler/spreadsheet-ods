@@ -5,12 +5,24 @@
 //!
 
 use crate::{HashMap, HashMapIter};
+use loupe::{MemoryUsage, MemoryUsageTracker};
+use std::mem;
 use string_cache::DefaultAtom;
 
 /// Container type for attributes.
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct AttrMap2 {
     map: Option<HashMap<DefaultAtom, String>>,
+}
+
+impl MemoryUsage for AttrMap2 {
+    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
+        mem::size_of_val(self)
+            + self
+                .iter()
+                .map(|(key, value)| mem::size_of_val(key) + value.size_of_val(tracker))
+                .sum::<usize>()
+    }
 }
 
 impl AttrMap2 {
