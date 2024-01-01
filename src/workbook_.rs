@@ -211,14 +211,6 @@ impl Default for WorkBook {
 }
 
 impl WorkBook {
-    pub fn extra(&self) -> &Vec<XmlTag> {
-        &self.extra
-    }
-
-    pub fn workbook_config(&self) -> &WorkBookConfig {
-        &self.workbook_config
-    }
-
     /// Creates a new, completely empty workbook.
     ///
     /// WorkBook::locale_settings can be used to initialize default styles.

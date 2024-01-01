@@ -480,10 +480,6 @@ impl Debug for Sheet {
 }
 
 impl Sheet {
-    pub fn extra(&self) -> &Vec<XmlTag> {
-        &self.extra
-    }
-
     /// Create an empty sheet.
     #[deprecated]
     pub fn new_with_name<S: Into<String>>(name: S) -> Self {
