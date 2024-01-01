@@ -1,9 +1,13 @@
+use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Cursor, Read, Seek, Write};
+use std::mem;
 use std::path::Path;
+use std::str::from_utf8;
 
 use chrono::{Duration, NaiveDateTime};
+use quick_xml::events::attributes::Attribute;
 use quick_xml::events::{BytesStart, Event};
 use zip::ZipArchive;
 
@@ -43,10 +47,6 @@ use crate::{
     ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage, ValueFormatText,
     ValueFormatTimeDuration, ValueType, WorkBook,
 };
-use quick_xml::events::attributes::Attribute;
-use std::borrow::Cow;
-use std::mem;
-use std::str::from_utf8;
 
 type OdsXmlReader<'a> = quick_xml::Reader<&'a mut dyn BufRead>;
 
@@ -912,6 +912,8 @@ fn read_table(
                 row_repeat = read_table_row_attr(xml, &mut sheet, row, xml_tag)?;
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
+                // todo: clone cells
+
                 row += row_repeat;
                 col = 0;
                 row_repeat = 1;
@@ -1227,7 +1229,7 @@ fn read_table_cell(
                         return Err(OdsError::Parse(
                             "Unknown cell-type {:?}",
                             Some(from_utf8(other)?.into()),
-                        ))
+                        ));
                     }
                 }
             }
@@ -2022,7 +2024,7 @@ fn read_validation_error(
                         return Err(OdsError::Parse(
                             "unknown message-type",
                             Some(attr.decode_and_unescape_value(xml)?.into()),
-                        ))
+                        ));
                     }
                 };
                 ve.set_msg_type(mt);
@@ -2880,7 +2882,7 @@ fn read_style_style(
                         return Err(OdsError::Ods(format!(
                             "style:family unknown {} ",
                             from_utf8(value)?
-                        )))
+                        )));
                     }
                 };
             }
@@ -4795,12 +4797,12 @@ where
                 Event::Empty(xml_tag) | Event::Start(xml_tag) => {
                     return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
                         from_utf8(xml_tag.as_ref())?.to_string(),
-                    )))
+                    )));
                 }
                 Event::End(xml_tag) => {
                     return Err(OdsError::Xml(quick_xml::Error::UnexpectedToken(
                         from_utf8(xml_tag.as_ref())?.to_string(),
-                    )))
+                    )));
                 }
                 Event::Eof => {
                     break;
