@@ -447,8 +447,9 @@ fn read_ods_manifest(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
                     }
                 }
 
-                // mimetype shouldn't be in the manifest
-                if manifest.full_path != "mimetype" {
+                // some files shouldn't be in the manifest
+                if manifest.full_path != "mimetype" && manifest.full_path != "META-INF/manifest.xml"
+                {
                     ctx.book.add_manifest(manifest);
                 }
             }
