@@ -447,7 +447,10 @@ fn read_ods_manifest(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
                     }
                 }
 
-                ctx.book.add_manifest(manifest);
+                // mimetype shouldn't be in the manifest
+                if manifest.full_path != "mimetype" {
+                    ctx.book.add_manifest(manifest);
+                }
             }
             Event::Eof => {
                 break;
