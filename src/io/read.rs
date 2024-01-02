@@ -301,6 +301,9 @@ fn read_fods_impl(read: &mut dyn BufRead, options: &OdsOptions) -> Result<WorkBo
     }
     ctx.push_buf(buf);
 
+    // We do some data duplication here, to make everything easier to use.
+    calc_derived(&mut ctx.book)?;
+
     Ok(ctx.book)
 }
 
@@ -398,6 +401,7 @@ fn read_ods_impl_content_only<R: Read + Seek>(
     let read: &mut dyn BufRead = &mut read;
     let mut xml = quick_xml::Reader::from_reader(read);
 
+    // todo: this still reads styles etc from content.xml
     read_ods_content(&mut ctx, &mut xml)?;
 
     Ok(ctx.book)
