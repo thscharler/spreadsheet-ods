@@ -6,7 +6,7 @@ use std::hint::black_box;
 use std::str::from_utf8_unchecked;
 use std::time::Instant;
 
-#[test]
+// #[test]
 fn test_token() {
     let data: [&[u8]; 14] = [
         b"11929".as_bytes(),

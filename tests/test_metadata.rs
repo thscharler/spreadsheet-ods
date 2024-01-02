@@ -38,7 +38,7 @@ fn test_write_read() -> Result<(), OdsError> {
 
     let wi = read_ods("test_out/test_metadata.ods")?;
 
-    dbg!(wi.metadata());
+    // dbg!(wi.metadata());
 
     Ok(())
 }

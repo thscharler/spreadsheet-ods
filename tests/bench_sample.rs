@@ -10,7 +10,7 @@ use crate::lib_test::Timing;
 
 mod lib_test;
 
-// #[test]
+#[test]
 fn test_samples() -> Result<(), OdsError> {
     let mut t1 = run_samples(OdsOptions::default().use_clone_for_cells())?;
     t1.timing.name = "clone".to_string();

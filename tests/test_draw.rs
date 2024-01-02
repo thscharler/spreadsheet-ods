@@ -26,7 +26,7 @@ fn test_images() -> Result<(), OdsError> {
 
     for ((_r, _c), d) in sh.iter() {
         if let Some(draw_frames) = d.draw_frames {
-            dbg!(draw_frames);
+            // dbg!(draw_frames);
         }
     }
 
