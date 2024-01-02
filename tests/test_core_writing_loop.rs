@@ -1,10 +1,11 @@
-mod lib_test;
-
-use lib_test::*;
-use spreadsheet_ods::{read_ods, OdsError, OdsOptions, Sheet, WorkBook};
 use std::fs;
 use std::fs::File;
 use std::io::BufReader;
+
+use lib_test::*;
+use spreadsheet_ods::{read_ods, OdsError, OdsOptions, Sheet, WorkBook};
+
+mod lib_test;
 
 // basic case, data in the very first row
 #[test]
@@ -136,7 +137,7 @@ fn test_write_col_overlap() -> () {
 
     let mut sh = Sheet::new("Sheet1");
     sh.set_value(3, 0, 100);
-    sh.set_col_repeat(3, 0, 5);
+    sh.set_cell_repeat(3, 0, 5);
     sh.set_value(3, 4, 101);
     wb.push_sheet(sh);
 
@@ -158,13 +159,13 @@ fn test_write_repeat() -> Result<(), OdsError> {
     sh.set_value(9, 9, "X");
 
     sh.set_value(2, 0, 100);
-    sh.set_col_repeat(2, 0, 5);
+    sh.set_cell_repeat(2, 0, 5);
 
     sh.set_value(3, 0, 100);
-    sh.set_col_repeat(3, 0, 20);
+    sh.set_cell_repeat(3, 0, 20);
 
     sh.set_value(4, 0, 100);
-    sh.set_col_repeat(4, 0, 5);
+    sh.set_cell_repeat(4, 0, 5);
     sh.set_value(4, 5, 101);
 
     sh.set_value(5, 1, "V");
@@ -172,7 +173,7 @@ fn test_write_repeat() -> Result<(), OdsError> {
     sh.set_row_span(5, 1, 2);
 
     sh.set_value(6, 0, 100);
-    sh.set_col_repeat(6, 0, 5);
+    sh.set_cell_repeat(6, 0, 5);
     sh.set_value(6, 5, 101);
 
     wb.push_sheet(sh);
@@ -187,16 +188,16 @@ fn test_write_repeat() -> Result<(), OdsError> {
 
     assert_eq!(sh.value(9, 9).as_str_or(""), "X");
     assert_eq!(sh.value(2, 0).as_u32_or(0), 100);
-    assert_eq!(sh.col_repeat(2, 0), 5);
+    assert_eq!(sh.cell_repeat(2, 0), 5);
     assert_eq!(sh.value(4, 5).as_u32_or(0), 101);
     assert_eq!(sh.value(6, 0).as_u32_or(0), 100);
-    assert_eq!(sh.col_repeat(6, 0), 1);
+    assert_eq!(sh.cell_repeat(6, 0), 1);
     assert_eq!(sh.value(6, 1).as_u32_or(0), 100);
-    assert_eq!(sh.col_repeat(6, 1), 2);
+    assert_eq!(sh.cell_repeat(6, 1), 2);
     assert_eq!(sh.value(6, 3).as_u32_or(0), 100);
-    assert_eq!(sh.col_repeat(6, 3), 2);
+    assert_eq!(sh.cell_repeat(6, 3), 2);
     assert_eq!(sh.value(6, 5).as_u32_or(0), 101);
-    assert_eq!(sh.col_repeat(6, 5), 1);
+    assert_eq!(sh.cell_repeat(6, 5), 1);
 
     Ok(())
 }

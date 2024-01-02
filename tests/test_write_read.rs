@@ -128,6 +128,9 @@ fn test_write_buf() -> Result<(), OdsError> {
         v.len()
     };
 
+    // This can sporadically fail because of some instability in hashtable.
+    // Writing syncs a few structures and then *something* happens.
+    // A different ordering of some attributes occurs and this diff fails.
     assert_eq!(len_1, len_2);
 
     Ok(())

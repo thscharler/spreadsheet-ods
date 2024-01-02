@@ -2,8 +2,11 @@ mod lib_test;
 
 use lib_test::*;
 use spreadsheet_ods::{
-    cm, currency, percent, read_ods, CellRange, Length, OdsError, Sheet, Value, ValueType, WorkBook,
+    cm, currency, percent, read_ods, CellRange, Length, OdsError, OdsOptions, Sheet, Value,
+    ValueType, WorkBook,
 };
+use std::fs::File;
+use std::io::BufReader;
 
 #[test]
 fn test_colwidth() -> Result<(), OdsError> {
@@ -18,6 +21,7 @@ fn test_colwidth() -> Result<(), OdsError> {
     test_write_ods(&mut wb, "test_out/test_sheet_1.ods")?;
 
     let wb = read_ods("test_out/test_sheet_1.ods")?;
+
     assert_eq!(wb.sheet(0).col_width(0), cm!(2.54));
     assert_eq!(wb.sheet(0).row_height(0), cm!(1.27));
 
@@ -54,7 +58,9 @@ fn test_row_repeat() -> Result<(), OdsError> {
     wb.push_sheet(sh);
     test_write_ods(&mut wb, "test_out/test_sheet_2.ods")?;
 
-    let wb = read_ods("test_out/test_sheet_2.ods")?;
+    let r = BufReader::new(File::open("test_out/test_sheet_2.ods")?);
+    let wb = OdsOptions::default().use_repeat_for_cells().read_ods(r)?;
+
     assert_eq!(wb.sheet(0).row_repeat(4), 2);
 
     Ok(())

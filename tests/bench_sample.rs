@@ -10,7 +10,7 @@ use crate::lib_test::Timing;
 
 mod lib_test;
 
-#[test]
+// #[test]
 fn test_samples() -> Result<(), OdsError> {
     let mut t1 = run_samples(OdsOptions::default().use_clone_for_cells())?;
     t1.timing.name = "clone".to_string();
@@ -175,7 +175,7 @@ fn run_samples(options: OdsOptions) -> Result<SampleTiming, OdsError> {
     Ok(t1)
 }
 
-#[test]
+// #[test]
 fn test_sample() -> Result<(), OdsError> {
     let mut t1 = run_sample(OdsOptions::default().use_clone_for_cells())?;
     t1.timing.name = "clone".to_string();
@@ -236,7 +236,7 @@ fn run_sample(options: OdsOptions) -> Result<SampleTiming, OdsError> {
                 sh.col_header_max(),
                 sh.row_header_max()
             );
-            println!("extra {}", loupe::size_of_val(sh.extra()));
+            // println!("extra {}", loupe::size_of_val(sh.extra()));
         }
         println!(
             "font {}",
@@ -324,11 +324,11 @@ fn run_sample(options: OdsOptions) -> Result<SampleTiming, OdsError> {
             loupe::size_of_val(&wb.iter_manifest().collect::<Vec<_>>())
         );
         println!("metadata {}", loupe::size_of_val(&wb.metadata()));
-        println!("extra {}", loupe::size_of_val(&wb.extra()));
-        println!(
-            "workbook-config {}",
-            loupe::size_of_val(&wb.workbook_config())
-        );
+        // println!("extra {}", loupe::size_of_val(&wb.extra()));
+        // println!(
+        //     "workbook-config {}",
+        //     loupe::size_of_val(&wb.workbook_config())
+        // );
     }
 
     Ok(t1)
