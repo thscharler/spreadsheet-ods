@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::cmp::max;
 use std::convert::{TryFrom, TryInto};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Cursor, Read, Seek, Write};
@@ -32,8 +31,8 @@ use crate::metadata::{
     MetaValue,
 };
 use crate::refs::{parse_cellranges, parse_cellref};
-use crate::sheet::{Grouped, SplitMode, Visibility};
-use crate::sheet_::ColHeader;
+use crate::sheet::{Grouped, SplitMode};
+use crate::sheet_::{ColHeader, RowHeader};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
@@ -193,7 +192,6 @@ struct OdsContext {
 
     buffers: Vec<Vec<u8>>,
     xml_buffer: Vec<XmlTag>,
-    col_header_buffer: Vec<(u32, ColHeader)>,
     col_group_buffer: Vec<Grouped>,
     row_group_buffer: Vec<Grouped>,
 }
@@ -214,15 +212,6 @@ impl OdsContext {
     fn push_xml_buf(&mut self, mut buf: Vec<XmlTag>) {
         buf.clear();
         self.xml_buffer = buf;
-    }
-
-    fn pop_col_header_buf(&mut self) -> Vec<(u32, ColHeader)> {
-        mem::take(&mut self.col_header_buffer)
-    }
-
-    fn push_col_header_buf(&mut self, mut buf: Vec<(u32, ColHeader)>) {
-        buf.clear();
-        self.col_header_buffer = buf;
     }
 
     fn pop_colgroup_buf(&mut self) -> Vec<Grouped> {
@@ -784,11 +773,10 @@ fn read_table(
     // Cell position
     let mut row: u32 = 0;
     let mut col: u32 = 0;
-    let mut max_col: u32 = 0;
+    let mut col_data: bool = false;
 
     // Position within table-columns
     let mut table_col: u32 = 0;
-    let mut table_cols: Vec<(u32, ColHeader)> = ctx.pop_col_header_buf();
 
     // Rows can be repeated. In reality only empty ones ever are.
     let mut row_repeat: u32 = 1;
@@ -810,41 +798,6 @@ fn read_table(
         }
         match &evt {
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table" => {
-                // flatten col-header if necessary
-                if repeat_cols(ctx, row_repeat) {
-                    for (col, col_header) in table_cols.drain(..) {
-                        sheet.col_header.insert(col, col_header);
-                    }
-                } else {
-                    for (mut col, mut col_header) in table_cols.drain(..) {
-                        let mut col_repeat = col_header.repeat();
-                        col_header.repeat = 1;
-                        while col_repeat > 1 {
-                            sheet.col_header.insert(col, col_header.clone());
-                            col += 1;
-                            col_repeat -= 1;
-                        }
-                        // don't waste a clone.
-                        sheet.col_header.insert(col, col_header);
-                    }
-                }
-
-                // TODO: Maybe find a better fix for the repeat error.
-                // Reset the repeat count for the last two rows to one if it exceeds
-                // some arbitrary limit.
-                // fix: The "drop void cells" fix should do the trick.
-                //      haven't tested it enough, so leave this for now.
-                let mut it = sheet.row_header.iter_mut().rev();
-                if let Some((_row, last)) = it.next() {
-                    if last.repeat > 1000 {
-                        last.repeat = 1;
-                    }
-                }
-                if let Some((_row, last)) = it.next() {
-                    if last.repeat > 1000 {
-                        last.repeat = 1;
-                    }
-                }
                 break;
             }
 
@@ -920,11 +873,7 @@ fn read_table(
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-columns" => {}
 
             Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"table:table-column" => {
-                let col_header = read_table_col_attr(xml, xml_tag)?;
-                let col_repeat = col_header.repeat;
-
-                table_cols.push((table_col, col_header));
-
+                let col_repeat = read_table_col_attr(xml, &mut sheet, xml_tag, table_col)?;
                 table_col += col_repeat;
             }
 
@@ -958,50 +907,23 @@ fn read_table(
                 row_repeat = read_table_row_attr(xml, &mut sheet, row, xml_tag)?;
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
-                // clone cell-data if necessary
-                if repeat_rows(ctx, row_repeat) {
+                if col_data {
                     sheet.set_row_repeat(row, row_repeat);
-                    row += row_repeat;
-                    row_repeat = 1;
-                } else {
-                    let row_cells = sheet
-                        .data
-                        .range((row, 0)..(row + 1, 0))
-                        .map(|((_r, c), d)| (*c, d.clone()))
-                        .collect::<Vec<_>>();
-                    let row_header = sheet.row_header.get(&row).cloned();
-
-                    while row_repeat > 1 {
-                        row += 1;
-                        row_repeat -= 1;
-                        for (c, d) in row_cells.iter().cloned() {
-                            sheet.add_cell_data(row, c, d);
-                        }
-                        if let Some(row_header) = row_header.as_ref() {
-                            sheet.row_header.insert(row, row_header.clone());
-                        }
-                    }
-                    // don't waste a clone
-                    row += 1;
-                    row_repeat -= 1;
-                    for (c, d) in row_cells {
-                        sheet.add_cell_data(row, c, d);
-                    }
-                    if let Some(row_header) = row_header {
-                        sheet.row_header.insert(row, row_header.clone());
-                    }
                 }
-
+                row += row_repeat;
+                row_repeat = 1;
                 col = 0;
+                col_data = false;
             }
 
             Event::Empty(xml_tag) | Event::Start(xml_tag)
                 if xml_tag.name().as_ref() == b"table:table-cell"
                     || xml_tag.name().as_ref() == b"table:covered-table-cell" =>
             {
-                col = read_table_cell(ctx, xml, &mut sheet, row, col, xml_tag, empty_tag)?;
-
-                max_col = max(max_col, col);
+                let (cell_repeat, have_data) =
+                    read_table_cell(ctx, xml, &mut sheet, row, col, xml_tag, empty_tag)?;
+                col += cell_repeat;
+                col_data = have_data;
             }
 
             _ => {
@@ -1011,7 +933,6 @@ fn read_table(
         buf.clear();
     }
     ctx.push_buf(buf);
-    ctx.push_col_header_buf(table_cols);
     ctx.push_colgroup_buf(col_group);
     ctx.push_rowgroup_buf(row_group);
 
@@ -1061,38 +982,35 @@ fn read_table_row_attr(
     super_tag: &BytesStart<'_>,
 ) -> Result<u32, OdsError> {
     let mut row_repeat: u32 = 1;
+    let mut row_header = None;
 
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             // table:default-cell-style-name 19.615, table:visibility 19.749 and xml:id 19.914.
             attr if attr.key.as_ref() == b"table:number-rows-repeated" => {
                 row_repeat = parse_u32(&attr.value)?;
-                // if row_repeat > 1 {
-                //     sheet.set_row_repeat(row, row_repeat);
-                // }
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                let rowstyle = Some(attr.decode_and_unescape_value(xml)?.to_string());
-                if let Some(rowstyle) = rowstyle {
-                    sheet.set_rowstyle(row, &rowstyle.into());
-                }
+                let style = attr.decode_and_unescape_value(xml)?.to_string();
+                row_header.get_or_insert_with(RowHeader::default).style = Some(style);
             }
             attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
-                let row_cellstyle = Some(attr.decode_and_unescape_value(xml)?.to_string());
-                if let Some(row_cellstyle) = row_cellstyle {
-                    sheet.set_row_cellstyle(row, &row_cellstyle.into());
-                }
+                let cellstyle = attr.decode_and_unescape_value(xml)?.to_string();
+                row_header.get_or_insert_with(RowHeader::default).cellstyle = Some(cellstyle);
             }
             attr if attr.key.as_ref() == b"table:visibility" => {
-                let row_visible = parse_visibility(&attr.value)?;
-                if row_visible != Visibility::Visible {
-                    sheet.set_row_visible(row, row_visible);
-                }
+                let visible = parse_visibility(&attr.value)?;
+                row_header.get_or_insert_with(RowHeader::default).visible = visible;
             }
             attr => {
                 unused_attr("read_table_row_attr", super_tag.name().as_ref(), &attr)?;
             }
         }
+    }
+
+    if let Some(mut row_header) = row_header {
+        row_header.repeat = row_repeat;
+        sheet.row_header.insert(row, row_header);
     }
 
     Ok(row_repeat)
@@ -1156,30 +1074,42 @@ fn read_table_row_group_attr(row: u32, super_tag: &BytesStart<'_>) -> Result<Gro
 // Reads the table-column attributes. Creates as many copies as indicated.
 fn read_table_col_attr(
     xml: &mut OdsXmlReader<'_>,
+    sheet: &mut Sheet,
     super_tag: &BytesStart<'_>,
-) -> Result<ColHeader, OdsError> {
-    let mut col_header = ColHeader::default();
+    table_col: u32,
+) -> Result<u32, OdsError> {
+    let mut col_repeat = 1;
+    let mut col_header = None;
 
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"table:number-columns-repeated" => {
-                col_header.repeat = parse_u32(&attr.value)?;
+                col_repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                col_header.style = Some(attr.decode_and_unescape_value(xml)?.to_string());
+                let style = attr.decode_and_unescape_value(xml)?.to_string();
+                col_header.get_or_insert_with(ColHeader::default).style = Some(style);
             }
             attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
-                col_header.cellstyle = Some(attr.decode_and_unescape_value(xml)?.to_string());
+                let cellstyle = attr.decode_and_unescape_value(xml)?.to_string();
+                col_header.get_or_insert_with(ColHeader::default).cellstyle = Some(cellstyle);
             }
             attr if attr.key.as_ref() == b"table:visibility" => {
-                col_header.visible = parse_visibility(&attr.value)?;
+                let visible = parse_visibility(&attr.value)?;
+                col_header.get_or_insert_with(ColHeader::default).visible = visible;
             }
             attr => {
                 unused_attr("read_table_col_attr", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
-    Ok(col_header)
+
+    if let Some(mut col_header) = col_header {
+        col_header.repeat = col_repeat;
+        sheet.col_header.insert(table_col, col_header);
+    }
+
+    Ok(col_repeat)
 }
 
 #[derive(Debug)]
@@ -1209,10 +1139,10 @@ fn read_table_cell(
     xml: &mut OdsXmlReader<'_>,
     sheet: &mut Sheet,
     row: u32,
-    mut col: u32,
+    col: u32,
     super_tag: &BytesStart<'_>,
     empty_tag: bool,
-) -> Result<u32, OdsError> {
+) -> Result<(u32, bool), OdsError> {
     let mut cell = None;
     let mut repeat = 1;
 
@@ -1376,31 +1306,23 @@ fn read_table_cell(
         ctx.push_buf(buf);
     }
 
-    if let Some(mut cell) = cell {
-        parse_value(tc, &mut cell)?;
+    let have_data = if let Some(mut cell) = cell {
+        // composes a Value
+        set_value(tc, &mut cell)?;
 
         // store cell-data
         if ignore_cell(ctx, &cell) {
-            col += repeat;
-        } else if repeat_cell(ctx, repeat) {
+            false
+        } else {
             cell.repeat = repeat;
             sheet.add_cell_data(row, col, cell);
-            col += repeat;
-        } else {
-            while repeat > 1 {
-                sheet.add_cell_data(row, col, cell.clone());
-                col += 1;
-                repeat -= 1;
-            }
-            // don't waste a clone
-            sheet.add_cell_data(row, col, cell);
-            col += 1;
+            true
         }
     } else {
-        col += repeat;
-    }
+        false
+    };
 
-    Ok(col)
+    Ok((repeat, have_data))
 }
 
 #[inline]
@@ -1513,7 +1435,8 @@ fn append_text(new_txt: TextContent, mut content: TextContent) -> TextContent {
     content
 }
 
-fn parse_value(tc: ReadTableCell, cell: &mut CellData) -> Result<(), OdsError> {
+#[inline]
+fn set_value(tc: ReadTableCell, cell: &mut CellData) -> Result<(), OdsError> {
     match tc.val_type {
         ValueType::Empty => {
             // noop
