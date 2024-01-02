@@ -1,4 +1,4 @@
-# 0.20.3
+# 0.21.0
 
 - add some examples.
 
@@ -23,11 +23,17 @@
 - feat: new functions add_left(), add_center(), add_right(), add_content() for HeaderFooter.
   Ease of use.
 - feat: add OdsResult<T>
+- feat: add loupe::MemoryUsage
+- feat: use the repeat-flags for table:number-rows-repeated too. in clone-mode rows of cells 
+  are duplicated.
+- feat: use the repeat-flags for table:number-columns-repeated too. in clone-mode the column-headers
+  are duplicated.
 
 - fix: ValueFormatXXX now use the correct default values for StyleOrigin (Content) and
   StyleUse (Automatic).
 - fix: create_number_format_fixed: must set integer-digits too, otherwise this doesn't work.
-
+- fix: If "mimetype" or "META-INF/manifest.xml" occurs in the manifest they were duplicated
+  in the output. which creates an invalid zip archive. 
 
 # 0.20.2
 
