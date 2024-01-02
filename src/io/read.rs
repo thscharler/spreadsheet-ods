@@ -832,6 +832,8 @@ fn read_table(
                 // TODO: Maybe find a better fix for the repeat error.
                 // Reset the repeat count for the last two rows to one if it exceeds
                 // some arbitrary limit.
+                // fix: The "drop void cells" fix should do the trick.
+                //      haven't tested it enough, so leave this for now.
                 let mut it = sheet.row_header.iter_mut().rev();
                 if let Some((_row, last)) = it.next() {
                     if last.repeat > 1000 {
@@ -965,23 +967,28 @@ fn read_table(
                     let row_cells = sheet
                         .data
                         .range((row, 0)..(row + 1, 0))
-                        .map(|((r, c), d)| (*c, d.clone()))
+                        .map(|((_r, c), d)| (*c, d.clone()))
                         .collect::<Vec<_>>();
-
-                    row += 1;
-                    row_repeat -= 1;
+                    let row_header = sheet.row_header.get(&row).cloned();
 
                     while row_repeat > 1 {
+                        row += 1;
+                        row_repeat -= 1;
                         for (c, d) in row_cells.iter().cloned() {
                             sheet.add_cell_data(row, c, d);
                         }
-                        row += 1;
-                        row_repeat -= 1;
+                        if let Some(row_header) = row_header.as_ref() {
+                            sheet.row_header.insert(row, row_header.clone());
+                        }
                     }
                     // don't waste a clone
+                    row += 1;
+                    row_repeat -= 1;
                     for (c, d) in row_cells {
                         sheet.add_cell_data(row, c, d);
-                        row += 1;
+                    }
+                    if let Some(row_header) = row_header {
+                        sheet.row_header.insert(row, row_header.clone());
                     }
                 }
 
