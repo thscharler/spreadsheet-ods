@@ -113,12 +113,25 @@ impl RowHeader {
 }
 
 /// Column data
-#[derive(Debug, Clone, Default, MemoryUsage)]
+#[derive(Debug, Clone, MemoryUsage)]
 pub(crate) struct ColHeader {
+    pub(crate) repeat: u32,
     pub(crate) style: Option<String>,
     pub(crate) cellstyle: Option<String>,
     pub(crate) visible: Visibility,
     pub(crate) width: Length,
+}
+
+impl Default for ColHeader {
+    fn default() -> Self {
+        Self {
+            repeat: 1,
+            style: None,
+            cellstyle: None,
+            visible: Default::default(),
+            width: Default::default(),
+        }
+    }
 }
 
 impl ColHeader {
@@ -160,6 +173,14 @@ impl ColHeader {
 
     pub(crate) fn width(&self) -> Length {
         self.width
+    }
+
+    pub(crate) fn set_repeat(&mut self, repeat: u32) {
+        self.repeat = repeat;
+    }
+
+    pub(crate) fn repeat(&self) -> u32 {
+        self.repeat
     }
 }
 
@@ -658,6 +679,24 @@ impl Sheet {
         }
     }
 
+    /// Sets the repeat count for this colum-header. Doesn't repeat the actual cells.
+    ///
+    /// Panics
+    ///
+    /// Panics if the repeat is 0.
+    pub fn set_col_repeat(&mut self, col: u32, repeat: u32) {
+        self.col_header.entry(col).or_default().set_repeat(repeat)
+    }
+
+    /// Returns the repeat count for this row.
+    pub fn col_repeat(&self, col: u32) -> u32 {
+        if let Some(col_header) = self.col_header.get(&col) {
+            col_header.repeat()
+        } else {
+            Default::default()
+        }
+    }
+
     /// Sets the column width for this column.
     pub fn set_col_width(&mut self, col: u32, width: Length) {
         self.col_header.entry(col).or_default().set_width(width);
@@ -897,13 +936,13 @@ impl Sheet {
     }
 
     /// Sets a repeat counter for the cell.
-    pub fn set_col_repeat(&mut self, row: u32, col: u32, repeat: u32) {
+    pub fn set_cell_repeat(&mut self, row: u32, col: u32, repeat: u32) {
         let cell = self.data.entry((row, col)).or_default();
         cell.repeat = repeat;
     }
 
-    /// Returns the repeat counter for the cell.
-    pub fn col_repeat(&self, row: u32, col: u32) -> u32 {
+    /// Returns the repeat counter for the cell within one row.
+    pub fn cell_repeat(&self, row: u32, col: u32) -> u32 {
         if let Some(c) = self.data.get(&(row, col)) {
             c.repeat
         } else {

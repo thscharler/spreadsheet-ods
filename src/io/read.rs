@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::cmp::max;
 use std::convert::{TryFrom, TryInto};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Cursor, Read, Seek, Write};
@@ -32,6 +33,7 @@ use crate::metadata::{
 };
 use crate::refs::{parse_cellranges, parse_cellref};
 use crate::sheet::{Grouped, SplitMode, Visibility};
+use crate::sheet_::ColHeader;
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
@@ -191,6 +193,7 @@ struct OdsContext {
 
     buffers: Vec<Vec<u8>>,
     xml_buffer: Vec<XmlTag>,
+    col_header_buffer: Vec<(u32, ColHeader)>,
     col_group_buffer: Vec<Grouped>,
     row_group_buffer: Vec<Grouped>,
 }
@@ -211,6 +214,15 @@ impl OdsContext {
     fn push_xml_buf(&mut self, mut buf: Vec<XmlTag>) {
         buf.clear();
         self.xml_buffer = buf;
+    }
+
+    fn pop_col_header_buf(&mut self) -> Vec<(u32, ColHeader)> {
+        mem::take(&mut self.col_header_buffer)
+    }
+
+    fn push_col_header_buf(&mut self, mut buf: Vec<(u32, ColHeader)>) {
+        buf.clear();
+        self.col_header_buffer = buf;
     }
 
     fn pop_colgroup_buf(&mut self) -> Vec<Grouped> {
@@ -769,15 +781,19 @@ fn read_table(
 
     read_table_attr(xml, &mut sheet, super_tag)?;
 
-    // Position within table-columns
-    let mut table_col: u32 = 0;
-
     // Cell position
     let mut row: u32 = 0;
     let mut col: u32 = 0;
+    let mut max_col: u32 = 0;
+
+    // Position within table-columns
+    let mut table_col: u32 = 0;
+    let mut table_cols: Vec<(u32, ColHeader)> = ctx.pop_col_header_buf();
+
     // Rows can be repeated. In reality only empty ones ever are.
     let mut row_repeat: u32 = 1;
 
+    // Header rows/columns
     let mut col_range_from = 0;
     let mut row_range_from = 0;
 
@@ -794,6 +810,25 @@ fn read_table(
         }
         match &evt {
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table" => {
+                // flatten col-header if necessary
+                if repeat_cols(ctx, row_repeat) {
+                    for (col, col_header) in table_cols.drain(..) {
+                        sheet.col_header.insert(col, col_header);
+                    }
+                } else {
+                    for (mut col, mut col_header) in table_cols.drain(..) {
+                        let mut col_repeat = col_header.repeat();
+                        col_header.repeat = 1;
+                        while col_repeat > 1 {
+                            sheet.col_header.insert(col, col_header.clone());
+                            col += 1;
+                            col_repeat -= 1;
+                        }
+                        // don't waste a clone.
+                        sheet.col_header.insert(col, col_header);
+                    }
+                }
+
                 // TODO: Maybe find a better fix for the repeat error.
                 // Reset the repeat count for the last two rows to one if it exceeds
                 // some arbitrary limit.
@@ -883,7 +918,12 @@ fn read_table(
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-columns" => {}
 
             Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"table:table-column" => {
-                table_col = read_table_col_attr(xml, &mut sheet, table_col, xml_tag)?;
+                let col_header = read_table_col_attr(xml, xml_tag)?;
+                let col_repeat = col_header.repeat;
+
+                table_cols.push((table_col, col_header));
+
+                table_col += col_repeat;
             }
 
             //
@@ -953,6 +993,8 @@ fn read_table(
                     || xml_tag.name().as_ref() == b"table:covered-table-cell" =>
             {
                 col = read_table_cell(ctx, xml, &mut sheet, row, col, xml_tag, empty_tag)?;
+
+                max_col = max(max_col, col);
             }
 
             _ => {
@@ -962,6 +1004,7 @@ fn read_table(
         buf.clear();
     }
     ctx.push_buf(buf);
+    ctx.push_col_header_buf(table_cols);
     ctx.push_colgroup_buf(col_group);
     ctx.push_rowgroup_buf(row_group);
 
@@ -1106,48 +1149,30 @@ fn read_table_row_group_attr(row: u32, super_tag: &BytesStart<'_>) -> Result<Gro
 // Reads the table-column attributes. Creates as many copies as indicated.
 fn read_table_col_attr(
     xml: &mut OdsXmlReader<'_>,
-    sheet: &mut Sheet,
-    mut table_col: u32,
     super_tag: &BytesStart<'_>,
-) -> Result<u32, OdsError> {
-    let mut style = None;
-    let mut cellstyle = None;
-    let mut repeat: u32 = 1;
-    let mut visible: Visibility = Default::default();
+) -> Result<ColHeader, OdsError> {
+    let mut col_header = ColHeader::default();
 
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"table:number-columns-repeated" => {
-                repeat = parse_u32(&attr.value)?;
+                col_header.repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                style = Some(attr.decode_and_unescape_value(xml)?);
+                col_header.style = Some(attr.decode_and_unescape_value(xml)?.to_string());
             }
             attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
-                cellstyle = Some(attr.decode_and_unescape_value(xml)?);
+                col_header.cellstyle = Some(attr.decode_and_unescape_value(xml)?.to_string());
             }
             attr if attr.key.as_ref() == b"table:visibility" => {
-                visible = parse_visibility(&attr.value)?;
+                col_header.visible = parse_visibility(&attr.value)?;
             }
             attr => {
                 unused_attr("read_table_col_attr", super_tag.name().as_ref(), &attr)?;
             }
         }
     }
-
-    while repeat > 0 {
-        if let Some(style) = &style {
-            sheet.set_colstyle(table_col, &style.as_ref().into());
-        }
-        if let Some(cellstyle) = &cellstyle {
-            sheet.set_col_cellstyle(table_col, &cellstyle.as_ref().into());
-        }
-        sheet.set_col_visible(table_col, visible);
-        table_col += 1;
-        repeat -= 1;
-    }
-
-    Ok(table_col)
+    Ok(col_header)
 }
 
 #[derive(Debug)]
@@ -1396,6 +1421,18 @@ fn repeat_cell(ctx: &mut OdsContext, repeat: u32) -> bool {
 
 #[inline]
 fn repeat_rows(ctx: &mut OdsContext, repeat: u32) -> bool {
+    #[allow(clippy::if_same_then_else)]
+    if repeat == 1 {
+        true
+    } else if ctx.use_repeat_for_cells {
+        true
+    } else {
+        false
+    }
+}
+
+#[inline]
+fn repeat_cols(ctx: &mut OdsContext, repeat: u32) -> bool {
     #[allow(clippy::if_same_then_else)]
     if repeat == 1 {
         true
