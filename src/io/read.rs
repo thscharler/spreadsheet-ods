@@ -24,7 +24,7 @@ use crate::io::parse::{
     parse_i64, parse_string, parse_u32, parse_visibility, parse_xlink_actuate, parse_xlink_show,
     parse_xlink_type,
 };
-use crate::io::{NamespaceMap, DUMP_UNUSED, DUMP_XML};
+use crate::io::NamespaceMap;
 use crate::manifest::Manifest;
 use crate::metadata::{
     MetaAutoReload, MetaDocumentStatistics, MetaHyperlinkBehaviour, MetaTemplate, MetaUserDefined,
@@ -251,7 +251,7 @@ fn read_fods_impl(read: &mut dyn BufRead, options: &OdsOptions) -> Result<WorkBo
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!("read_fods_content {:?}", evt);
         }
 
@@ -317,7 +317,7 @@ fn read_fods_impl_content_only(
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!("read_fods_content_only {:?}", evt);
         }
 
@@ -591,7 +591,7 @@ fn read_ods_content(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_ods_content {:?}", evt);
         }
         match &evt {
@@ -647,7 +647,7 @@ fn read_office_body(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!("read_office_body {:?}", evt);
         }
         match &evt {
@@ -797,7 +797,7 @@ fn read_table(
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_table {:?}", evt);
         }
         match &evt {
@@ -1270,7 +1270,7 @@ fn read_table_cell(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_table_cell {:?}", evt);
             }
             match &evt {
@@ -1546,7 +1546,7 @@ fn read_annotation(
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!("read_annotation {:?}", evt);
         }
         match &evt {
@@ -1599,7 +1599,7 @@ fn read_draw_frame(
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!("read_draw_frame {:?}", evt);
         }
         match &evt {
@@ -1655,7 +1655,7 @@ fn read_image(
         loop {
             let evt = xml.read_event_into(&mut buf)?;
             let empty_tag = matches!(evt, Event::Empty(_));
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!("read_image {:?}", evt);
             }
             match &evt {
@@ -1695,7 +1695,7 @@ fn read_scripts(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), 
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!("read_scripts {:?}", evt);
         }
         match &evt {
@@ -1795,7 +1795,7 @@ fn read_office_font_face_decls(
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_fonts {:?}", evt);
         }
         match &evt {
@@ -1854,7 +1854,7 @@ fn read_page_style(
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_page_layout {:?}", evt);
         }
         match &evt {
@@ -1928,7 +1928,7 @@ fn read_validations(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_validations {:?}", evt);
         }
         match &evt {
@@ -2110,7 +2110,7 @@ fn read_office_master_styles(
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_master_styles {:?}", evt);
         }
         match &evt {
@@ -2169,7 +2169,7 @@ fn read_master_page(
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_master_page {:?}", evt);
         }
         match &evt {
@@ -2239,7 +2239,7 @@ fn read_headerfooter(
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_headerfooter {:?}", evt);
         }
         match &evt {
@@ -2310,7 +2310,7 @@ fn read_office_styles(
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_styles_tag {:?}", evt);
         }
         match &evt {
@@ -2362,7 +2362,7 @@ fn read_office_automatic_styles(
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_auto_styles {:?}", evt);
         }
         match &evt {
@@ -2451,7 +2451,7 @@ fn read_value_format(
             ctx.book.add_text_format(valuestyle);
         }
         _ => {
-            if DUMP_UNUSED {
+            if cfg!(feature = "dump_unused") {
                 println!(
                     " read_value_format unused {}",
                     from_utf8(super_tag.name().as_ref())?
@@ -2482,7 +2482,7 @@ fn read_value_format_parts<T: ValueFormatTrait>(
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         let empty_tag = matches!(evt, Event::Empty(_));
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_value_format_parts {:?}", evt);
         }
         match &evt {
@@ -2740,7 +2740,7 @@ fn read_part(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_part {:?}", evt);
             }
             match &evt {
@@ -2776,7 +2776,7 @@ fn read_part_text(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_part_text {:?}", evt);
             }
             match &evt {
@@ -2814,7 +2814,7 @@ fn read_part_number(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_part_embedded_text {:?}", evt);
             }
             match &evt {
@@ -2931,7 +2931,7 @@ fn read_tablestyle(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_table_style {:?}", evt);
             }
             match &evt {
@@ -2987,7 +2987,7 @@ fn read_rowstyle(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_rowstyle {:?}", evt);
             }
             match &evt {
@@ -3044,7 +3044,7 @@ fn read_colstyle(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_colstyle {:?}", evt);
             }
             match &evt {
@@ -3101,7 +3101,7 @@ fn read_cellstyle(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_cellstyle {:?}", evt);
             }
             match &evt {
@@ -3180,7 +3180,7 @@ fn read_paragraphstyle(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_paragraphstyle {:?}", evt);
             }
             match &evt {
@@ -3251,7 +3251,7 @@ fn read_textstyle(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_textstyle {:?}", evt);
             }
             match &evt {
@@ -3301,7 +3301,7 @@ fn read_rubystyle(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_rubystyle {:?}", evt);
             }
             match &evt {
@@ -3351,7 +3351,7 @@ fn read_graphicstyle(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_graphicstyle {:?}", evt);
             }
             match &evt {
@@ -3485,7 +3485,7 @@ fn read_ods_styles(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_styles {:?}", evt);
         }
         match &evt {
@@ -3620,7 +3620,7 @@ fn read_ods_metadata(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
 
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!("read_ods_metadata {:?}", evt);
         }
 
@@ -3656,7 +3656,7 @@ fn read_office_meta(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<
 
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!("read_metadata {:?}", evt);
         }
 
@@ -4003,7 +4003,7 @@ fn read_metadata_user_defined(
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!("read_meta_user_defined {:?}", evt);
         }
 
@@ -4053,7 +4053,7 @@ fn read_metadata_value<T>(
     let mut value = None;
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!("read_metadata_value {:?}", evt);
         }
 
@@ -4083,7 +4083,7 @@ fn read_ods_settings(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_settings {:?}", evt);
         }
 
@@ -4122,7 +4122,7 @@ fn read_office_settings(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Res
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_office_settings {:?}", evt);
         }
         match &evt {
@@ -4178,7 +4178,7 @@ fn read_config_item_set(
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_office_item_set {:?}", evt);
         }
         match &evt {
@@ -4254,7 +4254,7 @@ fn read_config_item_map_indexed(
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_office_item_set {:?}", evt);
         }
         match &evt {
@@ -4314,7 +4314,7 @@ fn read_config_item_map_named(
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_config_item_map_named {:?}", evt);
         }
         match &evt {
@@ -4374,7 +4374,7 @@ fn read_config_item_map_entry(
     let mut buf = ctx.pop_buf();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_config_item_map_entry {:?}", evt);
         }
         match &evt {
@@ -4532,7 +4532,7 @@ fn read_config_item(
             }
         }
 
-        if DUMP_XML {
+        if cfg!(feature = "dump_xml") {
             println!(" read_config_item {:?}", evt);
         }
         buf.clear();
@@ -4566,7 +4566,7 @@ fn read_xml(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_xml {:?}", evt);
             }
             match &evt {
@@ -4649,7 +4649,7 @@ fn read_text_or_tag(
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_xml {:?}", evt);
             }
             match &evt {
@@ -4796,7 +4796,7 @@ where
         let mut buf = ctx.pop_buf();
         loop {
             let evt = xml.read_event_into(&mut buf)?;
-            if DUMP_XML {
+            if cfg!(feature = "dump_xml") {
                 println!(" read_text {:?}", evt);
             }
             match &evt {
@@ -4835,7 +4835,7 @@ where
 
 #[inline(always)]
 fn unused_attr(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsError> {
-    if DUMP_UNUSED {
+    if cfg!(feature = "dump_unused") {
         let tag = from_utf8(tag)?;
         let key = from_utf8(attr.key.as_ref())?;
         let value = from_utf8(attr.value.as_ref())?;
@@ -4846,7 +4846,7 @@ fn unused_attr(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsEr
 
 #[inline(always)]
 fn unused_event(func: &str, evt: &Event<'_>) -> Result<(), OdsError> {
-    if DUMP_UNUSED {
+    if cfg!(feature = "dump_unused") {
         match &evt {
             Event::Text(xml_text) => {
                 if !xml_text.unescape()?.trim().is_empty() {

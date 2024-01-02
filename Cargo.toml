@@ -54,6 +54,11 @@ all_locales = ["locale_de_AT", "locale_en_US"]
 locale_de_AT = []
 locale_en_US = []
 
+# Debug: dump all xml
+dump_xml = []
+# Debug: dump unused tags/attributes
+dump_unused = []
+
 [dependencies]
 indexmap = "2.1.0"
 rust_decimal = "1.32"
