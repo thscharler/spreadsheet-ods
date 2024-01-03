@@ -539,19 +539,85 @@ impl Sheet {
         self.style.as_ref()
     }
 
+    // find the col-header with the correct data.
+    pub(crate) fn valid_col_header(&self, col: u32) -> Option<&ColHeader> {
+        if let Some((base_col, col_header)) = self.col_header.range(..=col).last() {
+            if (*base_col..*base_col + col_header.span).contains(&col) {
+                Some(col_header)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    // find the col-header with the correct data and do a three-way-split
+    // to allow setting a value for a single col.
+    // Create the col-header if necessary.
+    fn create_split_col_header(&mut self, col: u32) -> &mut ColHeader {
+        let mut cloned = Vec::new();
+
+        if let Some((base_col, col_header)) = self.col_header.range_mut(..=col).last() {
+            dbg!(col, base_col, &col_header);
+            if (*base_col..*base_col + col_header.span).contains(&col) {
+                let base_span = col_header.span;
+
+                // three-way split:
+                //      base_col .. col
+                //      col
+                //      col +1 .. base_col+span
+
+                // front + target
+                if *base_col < col {
+                    col_header.span = col - *base_col;
+
+                    let mut clone = col_header.clone();
+                    clone.span = 1;
+                    cloned.push((col, clone));
+                } else if *base_col == col {
+                    col_header.span = 1;
+                } else {
+                    unreachable!();
+                }
+
+                // back
+                if *base_col + base_span > col {
+                    let mut clone = col_header.clone();
+                    clone.span = *base_col + base_span - (col + 1);
+                    cloned.push((col + 1, clone));
+                } else if *base_col + base_span == col {
+                    // noop
+                } else {
+                    unreachable!();
+                }
+            } else {
+                self.col_header.insert(col, ColHeader::default());
+            }
+        } else {
+            self.col_header.insert(col, ColHeader::default());
+        }
+
+        for (r, ch) in cloned {
+            self.col_header.insert(r, ch);
+        }
+
+        self.col_header.get_mut(&col).expect("col-header")
+    }
+
     /// Column style.
     pub fn set_colstyle(&mut self, col: u32, style: &ColStyleRef) {
-        self.col_header.entry(col).or_default().style = Some(style.to_string());
+        self.create_split_col_header(col).style = Some(style.to_string());
     }
 
     /// Remove the style.
     pub fn clear_colstyle(&mut self, col: u32) {
-        self.col_header.entry(col).or_default().style = None;
+        self.create_split_col_header(col).style = None;
     }
 
     /// Returns the column style.
     pub fn colstyle(&self, col: u32) -> Option<&String> {
-        if let Some(col_header) = self.col_header.get(&col) {
+        if let Some(col_header) = self.valid_col_header(col) {
             col_header.style.as_ref()
         } else {
             None
@@ -560,17 +626,17 @@ impl Sheet {
 
     /// Default cell style for this column.
     pub fn set_col_cellstyle(&mut self, col: u32, style: &CellStyleRef) {
-        self.col_header.entry(col).or_default().cellstyle = Some(style.to_string());
+        self.create_split_col_header(col).cellstyle = Some(style.to_string());
     }
 
     /// Remove the style.
     pub fn clear_col_cellstyle(&mut self, col: u32) {
-        self.col_header.entry(col).or_default().cellstyle = None;
+        self.create_split_col_header(col).cellstyle = None;
     }
 
     /// Returns the default cell style for this column.
     pub fn col_cellstyle(&self, col: u32) -> Option<&String> {
-        if let Some(col_header) = self.col_header.get(&col) {
+        if let Some(col_header) = self.valid_col_header(col) {
             col_header.cellstyle.as_ref()
         } else {
             None
@@ -579,12 +645,12 @@ impl Sheet {
 
     /// Visibility of the column
     pub fn set_col_visible(&mut self, col: u32, visible: Visibility) {
-        self.col_header.entry(col).or_default().visible = visible;
+        self.create_split_col_header(col).visible = visible;
     }
 
     /// Returns the default cell style for this column.
     pub fn col_visible(&self, col: u32) -> Visibility {
-        if let Some(col_header) = self.col_header.get(&col) {
+        if let Some(col_header) = self.valid_col_header(col) {
             col_header.visible
         } else {
             Default::default()
@@ -593,12 +659,12 @@ impl Sheet {
 
     /// unstable internal method
     pub fn _set_col_header_span(&mut self, col: u32, span: u32) {
-        self.col_header.entry(col).or_default().span = span
+        self.create_split_col_header(col).span = span
     }
 
     /// Returns the repeat count for this row.
     pub fn _col_header_span(&self, col: u32) -> u32 {
-        if let Some(col_header) = self.col_header.get(&col) {
+        if let Some(col_header) = self.valid_col_header(col) {
             col_header.span
         } else {
             Default::default()
@@ -607,12 +673,12 @@ impl Sheet {
 
     /// Sets the column width for this column.
     pub fn set_col_width(&mut self, col: u32, width: Length) {
-        self.col_header.entry(col).or_default().width = width;
+        self.create_split_col_header(col).width = width;
     }
 
     /// Returns the column-width.
     pub fn col_width(&self, col: u32) -> Length {
-        if let Some(ch) = self.col_header.get(&col) {
+        if let Some(ch) = self.valid_col_header(col) {
             ch.width
         } else {
             Length::Default

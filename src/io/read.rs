@@ -1201,12 +1201,8 @@ fn read_table_cell(
     let mut repeat = 1;
 
     // find default-cell-style for this column.
-    let default_cellstyle = if let Some((c, h)) = sheet.col_header.range(..=col).last() {
-        if (*c..*c + h.span).contains(&col) {
-            h.cellstyle.as_ref()
-        } else {
-            None
-        }
+    let default_cellstyle = if let Some(ch) = sheet.valid_col_header(col) {
+        ch.cellstyle.as_ref()
     } else {
         None
     };
