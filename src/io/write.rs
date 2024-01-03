@@ -1972,6 +1972,9 @@ fn write_table_columns(
 
         xml_out.empty("table:table-column")?;
         if let Some(col_header) = sheet.col_header.get(&c) {
+            if col_header.repeat > 1 {
+                xml_out.attr_esc("table:number-columns-repeated", &col_header.repeat)?;
+            }
             if let Some(style) = col_header.style() {
                 xml_out.attr_esc("table:style-name", style)?;
             }

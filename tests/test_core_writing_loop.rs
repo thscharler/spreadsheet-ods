@@ -3,7 +3,8 @@ use std::fs::File;
 use std::io::BufReader;
 
 use lib_test::*;
-use spreadsheet_ods::{read_ods, OdsError, OdsOptions, Sheet, WorkBook};
+use spreadsheet_ods::defaultstyles::DefaultFormat;
+use spreadsheet_ods::{read_ods, CellStyle, OdsError, OdsOptions, Sheet, Value, WorkBook};
 
 mod lib_test;
 
@@ -198,6 +199,64 @@ fn test_write_repeat() -> Result<(), OdsError> {
     assert_eq!(sh.cell_repeat(6, 3), 2);
     assert_eq!(sh.value(6, 5).as_u32_or(0), 101);
     assert_eq!(sh.cell_repeat(6, 5), 1);
+
+    Ok(())
+}
+
+#[test]
+fn test_row_repeat() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new_empty();
+
+    let mut sh = Sheet::new("Sheet1");
+    sh.set_value(2, 0, 1);
+    sh.set_row_repeat(2, 2);
+    sh.set_value(5, 0, 1);
+    sh.set_value(5, 1, Value::Empty);
+    sh.set_row_repeat(5, 5);
+    wb.push_sheet(sh);
+
+    test_write_ods(&mut wb, "test_out/test_core_writing_loop_9.ods")?;
+
+    let f = BufReader::new(File::open("test_out/test_core_writing_loop_9.ods")?);
+    let wb = OdsOptions::default().use_repeat_for_cells().read_ods(f)?;
+    let sh = wb.sheet(0);
+
+    assert_eq!(sh.row_repeat(2), 2);
+    assert_eq!(sh.row_repeat(5), 5);
+
+    Ok(())
+}
+
+#[test]
+fn test_void() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new_empty();
+
+    let mut s_0 = CellStyle::new("", &DefaultFormat::number());
+    s_0.set_font_bold();
+    let s_0 = wb.add_cellstyle(s_0);
+
+    let mut sh = Sheet::new("Sheet1");
+
+    // empty should be ignored
+    sh.set_value(1, 0, Value::Empty);
+
+    // default-cellstyle should be ignored
+    sh.set_col_cellstyle(1, &s_0);
+    sh.set_styled(1, 1, "text", &s_0);
+    sh.set_cellstyle(2, 1, &s_0);
+
+    wb.push_sheet(sh);
+
+    test_write_ods(&mut wb, "test_out/test_core_writing_loop_10.ods")?;
+
+    let f = BufReader::new(File::open("test_out/test_core_writing_loop_10.ods")?);
+    let wb = OdsOptions::default().use_repeat_for_cells().read_ods(f)?;
+    let sh = wb.sheet(0);
+
+    dbg!(sh);
+
+    assert!(sh.cell_ref(1, 0).is_none());
+    assert!(sh.cell_ref(2, 1).is_none());
 
     Ok(())
 }

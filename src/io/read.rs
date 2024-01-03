@@ -927,7 +927,7 @@ fn read_table(
                 let (cell_repeat, have_data) =
                     read_table_cell(ctx, xml, &mut sheet, row, col, xml_tag, empty_tag)?;
                 col += cell_repeat;
-                col_data = have_data;
+                col_data |= have_data;
             }
 
             _ => {
@@ -1150,6 +1150,17 @@ fn read_table_cell(
     let mut cell = None;
     let mut repeat = 1;
 
+    // find default-cell-style for this column.
+    let default_cellstyle = if let Some((c, h)) = sheet.col_header.range(..=col).last() {
+        if (*c..*c + h.repeat).contains(&col) {
+            h.cellstyle.as_ref()
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     let mut tc = ReadTableCell {
         val_type: ValueType::Empty,
         val_datetime: None,
@@ -1315,7 +1326,7 @@ fn read_table_cell(
         set_value(tc, &mut cell)?;
 
         // store cell-data
-        if ignore_cell(ctx, &cell) {
+        if ignore_cell(ctx, default_cellstyle, &cell) {
             false
         } else {
             cell.repeat = repeat;
@@ -1330,8 +1341,8 @@ fn read_table_cell(
 }
 
 #[inline]
-fn ignore_cell(ctx: &mut OdsContext, cell: &CellData) -> bool {
-    if cell.is_void() {
+fn ignore_cell(ctx: &mut OdsContext, default_cellstyle: Option<&String>, cell: &CellData) -> bool {
+    if cell.is_void(default_cellstyle) {
         true
     } else if ctx.ignore_empty_cells && cell.is_empty() {
         true
@@ -1439,7 +1450,7 @@ fn append_text(new_txt: TextContent, mut content: TextContent) -> TextContent {
     content
 }
 
-#[inline]
+#[inline(always)]
 fn set_value(tc: ReadTableCell, cell: &mut CellData) -> Result<(), OdsError> {
     match tc.val_type {
         ValueType::Empty => {

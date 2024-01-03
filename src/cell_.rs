@@ -129,19 +129,34 @@ impl CellData {
     }
 
     /// Holds no useful data at all.
-    pub(crate) fn is_void(&self) -> bool {
-        self.value == Value::Empty
-            && self.formula.is_none()
-            && self.style.is_none()
-            // repeated nothing is still nothing: && self.repeat == 1
-            && (self.extra.is_none()
-                || self.extra.as_ref().is_some_and(|v| {
-                    v.validation_name.is_none()
-                        && v.span.is_empty()
-                        && v.matrix_span.is_empty()
-                        && v.annotation.is_none()
-                        && v.draw_frames.is_empty()
-                }))
+    pub(crate) fn is_void(&self, default_cellstyle: Option<&String>) -> bool {
+        if self.value != Value::Empty {
+            return false;
+        }
+        if self.formula.is_some() {
+            return false;
+        }
+        if self.style.is_some() && self.style.as_ref() != default_cellstyle {
+            return false;
+        }
+        if let Some(extra) = &self.extra {
+            if !extra.span.is_empty() {
+                return false;
+            }
+            if extra.validation_name.is_some() {
+                return false;
+            }
+            if extra.annotation.is_some() {
+                return false;
+            }
+            if !extra.draw_frames.is_empty() {
+                return false;
+            }
+            if !extra.matrix_span.is_empty() {
+                return false;
+            }
+        }
+        true
     }
 
     pub(crate) fn extra_mut(&mut self) -> &mut CellDataExt {
