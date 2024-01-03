@@ -50,7 +50,7 @@ impl Display for Unit {
 }
 
 #[derive(Clone, Debug)]
-pub struct Timing {
+pub struct Timing<X = ()> {
     pub name: String,
     pub skip: usize,
     pub runs: usize,
@@ -59,9 +59,10 @@ pub struct Timing {
 
     /// samples in ns. already divided by divider.
     pub samples: Vec<f64>,
+    pub extra: Vec<X>,
 }
 
-impl Timing {
+impl<X> Timing<X> {
     pub fn name<S: Into<String>>(mut self, name: S) -> Self {
         self.name = name.into();
         self
@@ -161,7 +162,7 @@ impl Timing {
     }
 }
 
-impl Default for Timing {
+impl<X> Default for Timing<X> {
     fn default() -> Self {
         Self {
             name: "".to_string(),
@@ -170,11 +171,12 @@ impl Default for Timing {
             divider: 1,
             unit: Unit::Nanosecond,
             samples: vec![],
+            extra: vec![],
         }
     }
 }
 
-impl Display for Timing {
+impl<X> Display for Timing<X> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f,)?;
         writeln!(f, "{}", self.name)?;

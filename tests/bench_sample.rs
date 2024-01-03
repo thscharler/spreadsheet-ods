@@ -10,140 +10,155 @@ use crate::lib_test::Timing;
 
 mod lib_test;
 
-#[test]
-fn test_samples() -> Result<(), OdsError> {
-    let mut t1 = run_samples(OdsOptions::default().use_clone_for_cells())?;
-    t1.timing.name = "clone".to_string();
-    let mut t2 = run_samples(OdsOptions::default().content_only())?;
-    t2.timing.name = "content".to_string();
-    let mut t3 = run_samples(OdsOptions::default().use_repeat_for_cells())?;
-    t3.timing.name = "repeat".to_string();
-    let mut t4 = run_samples(OdsOptions::default().ignore_empty_cells())?;
-    t4.timing.name = "ignore".to_string();
-
-    print_t(&t1, &t2, &t3, &t4);
-
-    Ok(())
-}
-
-fn print_accu(t: &SampleTiming) {
+fn print_accu(t: &Timing<Sample>) {
     println!();
-    println!("{}", t.timing.name);
+    println!("{}", t.name);
     println!();
     println!(
         "| n | sum | 1/10 | median | 9/10 | mean | lin_dev | std_dev | mem-size | size | cells "
     );
     println!("|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|");
 
-    let n = t.timing.n();
-    let sum = t.timing.sum();
-    let (m0, m5, m9) = t.timing.median();
-    let mean = t.timing.mean();
-    let lin = t.timing.lin_dev();
-    let std = t.timing.std_dev();
+    let n = t.n();
+    let sum = t.sum();
+    let (m0, m5, m9) = t.median();
+    let mean = t.mean();
+    let lin = t.lin_dev();
+    let std = t.std_dev();
 
     println!(
         "| {} | {:.2}{} | {:.2}{} | {:.2}{} | {:.2}{} | {:.2}{} | {:.2}{} | {:.2}{} | {} | {} | {} |",
         n,
-        t.timing.unit.conv(sum),
-        t.timing.unit,
-        t.timing.unit.conv(m0),
-        t.timing.unit,
-        t.timing.unit.conv(m5),
-        t.timing.unit,
-        t.timing.unit.conv(m9),
-        t.timing.unit,
-        t.timing.unit.conv(mean),
-        t.timing.unit,
-        t.timing.unit.conv(lin),
-        t.timing.unit,
-        t.timing.unit.conv(std),
-        t.timing.unit,
-        t.mem_size.iter().sum::<usize>(),
-        t.file_size.iter().sum::<u64>(),
-        t.cell_count.iter().sum::<usize>(),
+        t.unit.conv(sum),
+        t.unit,
+        t.unit.conv(m0),
+        t.unit,
+        t.unit.conv(m5),
+        t.unit,
+        t.unit.conv(m9),
+        t.unit,
+        t.unit.conv(mean),
+        t.unit,
+        t.unit.conv(lin),
+        t.unit,
+        t.unit.conv(std),
+        t.unit,
+        t.extra.iter().fold(0, |s, v| s + v.mem_size),
+        t.extra.iter().fold(0, |s, v| s+ v.file_size),
+        t.extra.iter().fold(0, |s, v| s+ v.cell_count),
     );
     println!();
 }
 
-fn print_t(t0: &SampleTiming, t1: &SampleTiming, t2: &SampleTiming, t3: &SampleTiming) {
+fn print_t(t0: &Timing<Sample>) {
     print_accu(t0);
-    print_accu(t1);
-    print_accu(t2);
-    print_accu(t3);
 
     println!();
-    println!("{}", t0.timing.name);
+    println!("{}", t0.name);
     println!();
-    println!("| name | file-size | cells {} | cells {} | cells {} | cells {} | time {} | time {} | time {} | time {} | mem-size {} | mem-size {} | mem-size {} | mem-size {} |",
-             t0.timing.name,
-             t1.timing.name,
-             t2.timing.name,
-             t3.timing.name,
-             t0.timing.name,
-             t1.timing.name,
-             t2.timing.name,
-             t3.timing.name,
-             t0.timing.name,
-             t1.timing.name,
-             t2.timing.name,
-             t3.timing.name,
-    );
-    for i in 0..t0.timing.samples.len() {
+    println!("| cat | name | file-size | time | cells | mem-size | sheet | colh | rowh | font | table-styles | row-styles | col-styles | cell-styles | para-styles | text-styles | ruby-styles | graphic-styles | bool-format | number-format | perc-format | currency-format | text-format | datetime-format | timeduration-format | page-styles | masterpages | validations | config | manifest | metadata |");
+    for i in 0..t0.samples.len() {
+        let extra = t0.extra.get(i).expect("b");
         println!(
-            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
-            t0.name[i],
-            t0.file_size[i],
-            t0.cell_count[i],
-            t1.cell_count[i],
-            t2.cell_count[i],
-            t3.cell_count[i],
-            t0.timing.samples[i],
-            t1.timing.samples[i],
-            t2.timing.samples[i],
-            t3.timing.samples[i],
-            t0.mem_size[i],
-            t1.mem_size[i],
-            t2.mem_size[i],
-            t3.mem_size[i],
+            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
+            extra.category,
+            extra.name,
+            extra.file_size,
+            t0.samples[i],
+            extra.cell_count,
+            extra.mem_size,
+            extra.sheet_size,
+            extra.col_header,
+            extra.row_header,
+            extra.font_size,
+            extra.table_styles_size,
+            extra.row_styles_size,
+            extra.col_styles_size,
+            extra.cell_styles_size,
+            extra.paragraph_styles_size,
+            extra.text_styles_size,
+            extra.ruby_styles_size,
+            extra.graphic_styles_size,
+            extra.boolean_formats,
+            extra.number_formats,
+            extra.percentage_formats,
+            extra.currency_formats,
+            extra.text_formats,
+            extra.datetime_formats_size,
+            extra.timeduration_formats_size,
+            extra.number_formats_size,
+            extra.page_styles_size,
+            extra.masterpages_size,
+            extra.validations_size,
+            extra.config_size,
+            extra.manifest_size,
+            extra.metadata_size
         );
     }
-    // for i in 0..t0.timing.samples.len() {
-    //     println!(
-    //         "| {} | {} | {} | {} | {} | {} | {} | {} | {} |",
-    //         t0.file_size[i],
-    //         t0.timing.samples[i] / t0.timing.samples[i],
-    //         t1.timing.samples[i] / t0.timing.samples[i],
-    //         t2.timing.samples[i] / t0.timing.samples[i],
-    //         t3.timing.samples[i] / t0.timing.samples[i],
-    //         t0.mem_size[i] / t0.mem_size[i],
-    //         t1.mem_size[i] / t0.mem_size[i],
-    //         t2.mem_size[i] / t0.mem_size[i],
-    //         t3.mem_size[i] / t0.mem_size[i],
-    //     );
-    // }
 }
 
 #[derive(Default)]
-struct SampleTiming {
-    timing: Timing,
-    name: Vec<String>,
-    file_size: Vec<u64>,
-    cell_count: Vec<usize>,
-    mem_size: Vec<usize>,
+struct Sample {
+    category: String,
+    name: String,
+    file_size: u64,
+    cell_count: usize,
+    mem_size: usize,
+    sheet_size: usize,
+    col_header: usize,
+    row_header: usize,
+    font_size: usize,
+    table_styles_size: usize,
+    row_styles_size: usize,
+    col_styles_size: usize,
+    cell_styles_size: usize,
+    paragraph_styles_size: usize,
+    text_styles_size: usize,
+    ruby_styles_size: usize,
+    graphic_styles_size: usize,
+    boolean_formats: usize,
+    number_formats: usize,
+    percentage_formats: usize,
+    currency_formats: usize,
+    text_formats: usize,
+    datetime_formats_size: usize,
+    timeduration_formats_size: usize,
+    number_formats_size: usize,
+    page_styles_size: usize,
+    masterpages_size: usize,
+    validations_size: usize,
+    config_size: usize,
+    manifest_size: usize,
+    metadata_size: usize,
 }
 
-fn run_samples(options: OdsOptions) -> Result<SampleTiming, OdsError> {
-    let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
-    let mut t1 = SampleTiming::default();
+#[test]
+fn test_samples() -> Result<(), OdsError> {
+    let mut t = Timing::default();
 
+    run_samples(&mut t, "clone", OdsOptions::default().use_clone_for_cells())?;
+    run_samples(&mut t, "content", OdsOptions::default().content_only())?;
+    run_samples(
+        &mut t,
+        "repeat",
+        OdsOptions::default().use_repeat_for_cells(),
+    )?;
+    run_samples(&mut t, "ignore", OdsOptions::default().ignore_empty_cells())?;
+
+    print_t(&t);
+
+    Ok(())
+}
+
+fn run_samples(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Result<(), OdsError> {
+    let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
     if path.exists() {
         for f in path.read_dir()? {
             let f = f?;
 
             if f.metadata()?.is_file() {
                 if f.file_name().to_string_lossy().ends_with(".ods") {
-                    t1.timing.name = f
+                    t1.name = f
                         .path()
                         .file_name()
                         .unwrap_or_default()
@@ -153,7 +168,7 @@ fn run_samples(options: OdsOptions) -> Result<SampleTiming, OdsError> {
                     let mut buf = Vec::new();
                     File::open(f.path())?.read_to_end(&mut buf)?;
 
-                    let wb = t1.timing.run(|| {
+                    let wb = t1.run(|| {
                         let read = BufReader::new(Cursor::new(&buf));
                         options.read_ods(read)
                     })?;
@@ -163,44 +178,46 @@ fn run_samples(options: OdsOptions) -> Result<SampleTiming, OdsError> {
                         cell_count += sh.cell_count();
                     }
 
-                    t1.name.push(t1.timing.name.clone());
-                    t1.cell_count.push(cell_count);
-                    t1.file_size.push(f.metadata()?.len());
-                    t1.mem_size.push(loupe::size_of_val(&wb));
+                    t1.extra.push(Sample {
+                        category: cat.to_string(),
+                        name: t1.name.clone(),
+                        file_size: f.metadata()?.len(),
+                        cell_count,
+                        mem_size: loupe::size_of_val(&wb),
+                        ..Sample::default()
+                    });
                 }
             }
         }
     }
 
-    Ok(t1)
+    Ok(())
 }
 
-// #[test]
+#[test]
 fn test_sample() -> Result<(), OdsError> {
-    let mut t1 = run_sample(OdsOptions::default().use_clone_for_cells())?;
-    t1.timing.name = "clone".to_string();
-    let mut t2 = run_sample(OdsOptions::default().content_only())?;
-    t2.timing.name = "content".to_string();
-    let mut t3 = run_sample(OdsOptions::default().use_repeat_for_cells())?;
-    t3.timing.name = "repeat".to_string();
-    let mut t4 = run_sample(OdsOptions::default().ignore_empty_cells())?;
-    t4.timing.name = "ignore".to_string();
+    let mut t = Timing::default();
+    run_sample(&mut t, "clone", OdsOptions::default().use_clone_for_cells())?;
+    run_sample(&mut t, "content", OdsOptions::default().content_only())?;
+    run_sample(
+        &mut t,
+        "repeat",
+        OdsOptions::default().use_repeat_for_cells(),
+    )?;
+    run_sample(&mut t, "ignore", OdsOptions::default().ignore_empty_cells())?;
 
-    print_t(&t1, &t2, &t3, &t4);
+    print_t(&t);
 
     Ok(())
 }
 
-fn run_sample(options: OdsOptions) -> Result<SampleTiming, OdsError> {
+fn run_sample(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Result<(), OdsError> {
     let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
-    let sample = "1694400557247FBqBqBMJ.ods";
+    let sample = "1_2_ogrenim_durumlarina_gore_personel_sayisi_2022.ods";
 
     let f = path.join(sample);
-
-    let mut t1 = SampleTiming::default();
     if f.exists() {
-        t1.timing.name = f
-            .as_path()
+        t1.name = f
             .file_name()
             .unwrap_or_default()
             .to_string_lossy()
@@ -209,7 +226,7 @@ fn run_sample(options: OdsOptions) -> Result<SampleTiming, OdsError> {
         let mut buf = Vec::new();
         File::open(&f)?.read_to_end(&mut buf)?;
 
-        let wb = t1.timing.run(|| {
+        let wb = t1.run(|| {
             let read = BufReader::new(Cursor::new(&buf));
             options.read_ods(read)
         })?;
@@ -219,117 +236,48 @@ fn run_sample(options: OdsOptions) -> Result<SampleTiming, OdsError> {
             cell_count += sh.cell_count();
         }
 
-        t1.cell_count.push(cell_count);
-        t1.name.push(t1.timing.name.clone());
-        t1.cell_count.push(cell_count);
-        t1.file_size.push(f.metadata()?.len());
-        t1.mem_size.push(loupe::size_of_val(&wb));
-
-        println!("cells {}", cell_count);
-        println!(
-            "sheet {}",
-            loupe::size_of_val(&wb.iter_sheets().collect::<Vec<_>>())
-        );
-        for sh in wb.iter_sheets() {
-            println!(
-                "col|row header {} | {}",
-                sh.col_header_max(),
-                sh.row_header_max()
-            );
-            // println!("extra {}", loupe::size_of_val(sh.extra()));
-        }
-        println!(
-            "font {}",
-            loupe::size_of_val(&wb.iter_fonts().collect::<Vec<_>>())
-        );
-        println!(
-            "table-styles {}",
-            loupe::size_of_val(&wb.iter_table_styles().collect::<Vec<_>>())
-        );
-        println!(
-            "row-styles {}",
-            loupe::size_of_val(&wb.iter_rowstyles().collect::<Vec<_>>())
-        );
-        println!(
-            "col-styles {}",
-            loupe::size_of_val(&wb.iter_colstyles().collect::<Vec<_>>())
-        );
-        println!(
-            "cell-styles {}",
-            loupe::size_of_val(&wb.iter_cellstyles().collect::<Vec<_>>())
-        );
-        println!(
-            "paragraph-styles {}",
-            loupe::size_of_val(&wb.iter_paragraphstyles().collect::<Vec<_>>())
-        );
-        println!(
-            "text-styles {}",
-            loupe::size_of_val(&wb.iter_textstyles().collect::<Vec<_>>())
-        );
-        println!(
-            "ruby-styles {}",
-            loupe::size_of_val(&wb.iter_rubystyles().collect::<Vec<_>>())
-        );
-        println!(
-            "graphic-styles {}",
-            loupe::size_of_val(&wb.iter_graphicstyles().collect::<Vec<_>>())
-        );
-        println!(
-            "boolean-formats {}",
-            loupe::size_of_val(&wb.iter_boolean_formats().collect::<Vec<_>>())
-        );
-        println!(
-            "number-formats {}",
-            loupe::size_of_val(&wb.iter_number_formats().collect::<Vec<_>>())
-        );
-        println!(
-            "percentage-formats {}",
-            loupe::size_of_val(&wb.iter_percentage_formats().collect::<Vec<_>>())
-        );
-        println!(
-            "currency-formats {}",
-            loupe::size_of_val(&wb.iter_currency_formats().collect::<Vec<_>>())
-        );
-        println!(
-            "text-formats {}",
-            loupe::size_of_val(&wb.iter_text_formats().collect::<Vec<_>>())
-        );
-        println!(
-            "datetime-formats {}",
-            loupe::size_of_val(&wb.iter_datetime_formats().collect::<Vec<_>>())
-        );
-        println!(
-            "timeduration-formats {}",
-            loupe::size_of_val(&wb.iter_timeduration_formats().collect::<Vec<_>>())
-        );
-        println!(
-            "number-formats {}",
-            loupe::size_of_val(&wb.iter_number_formats().collect::<Vec<_>>())
-        );
-        println!(
-            "page-styles {}",
-            loupe::size_of_val(&wb.iter_pagestyles().collect::<Vec<_>>())
-        );
-        println!(
-            "masterpages {}",
-            loupe::size_of_val(&wb.iter_masterpages().collect::<Vec<_>>())
-        );
-        println!(
-            "validations {}",
-            loupe::size_of_val(&wb.iter_validations().collect::<Vec<_>>())
-        );
-        println!("config {}", loupe::size_of_val(&wb.config()));
-        println!(
-            "manifest {}",
-            loupe::size_of_val(&wb.iter_manifest().collect::<Vec<_>>())
-        );
-        println!("metadata {}", loupe::size_of_val(&wb.metadata()));
-        // println!("extra {}", loupe::size_of_val(&wb.extra()));
-        // println!(
-        //     "workbook-config {}",
-        //     loupe::size_of_val(&wb.workbook_config())
-        // );
+        t1.extra.push(Sample {
+            category: cat.to_string(),
+            name: t1.name.clone(),
+            file_size: f.metadata()?.len(),
+            cell_count,
+            mem_size: loupe::size_of_val(&wb),
+            sheet_size: loupe::size_of_val(&wb.iter_sheets().collect::<Vec<_>>()),
+            col_header: wb.iter_sheets().map(|v| v._col_header_len()).sum(),
+            row_header: wb.iter_sheets().map(|v| v._row_header_len()).sum(),
+            font_size: loupe::size_of_val(&wb.iter_fonts().collect::<Vec<_>>()),
+            table_styles_size: loupe::size_of_val(&wb.iter_table_styles().collect::<Vec<_>>()),
+            row_styles_size: loupe::size_of_val(&wb.iter_rowstyles().collect::<Vec<_>>()),
+            col_styles_size: loupe::size_of_val(&wb.iter_colstyles().collect::<Vec<_>>()),
+            cell_styles_size: loupe::size_of_val(&wb.iter_cellstyles().collect::<Vec<_>>()),
+            paragraph_styles_size: loupe::size_of_val(
+                &wb.iter_paragraphstyles().collect::<Vec<_>>(),
+            ),
+            text_styles_size: loupe::size_of_val(&wb.iter_textstyles().collect::<Vec<_>>()),
+            ruby_styles_size: loupe::size_of_val(&wb.iter_rubystyles().collect::<Vec<_>>()),
+            graphic_styles_size: loupe::size_of_val(&wb.iter_graphicstyles().collect::<Vec<_>>()),
+            boolean_formats: loupe::size_of_val(&wb.iter_boolean_formats().collect::<Vec<_>>()),
+            number_formats: loupe::size_of_val(&wb.iter_number_formats().collect::<Vec<_>>()),
+            percentage_formats: loupe::size_of_val(
+                &wb.iter_percentage_formats().collect::<Vec<_>>(),
+            ),
+            currency_formats: loupe::size_of_val(&wb.iter_currency_formats().collect::<Vec<_>>()),
+            text_formats: loupe::size_of_val(&wb.iter_text_formats().collect::<Vec<_>>()),
+            datetime_formats_size: loupe::size_of_val(
+                &wb.iter_datetime_formats().collect::<Vec<_>>(),
+            ),
+            timeduration_formats_size: loupe::size_of_val(
+                &wb.iter_timeduration_formats().collect::<Vec<_>>(),
+            ),
+            number_formats_size: loupe::size_of_val(&wb.iter_number_formats().collect::<Vec<_>>()),
+            page_styles_size: loupe::size_of_val(&wb.iter_pagestyles().collect::<Vec<_>>()),
+            masterpages_size: loupe::size_of_val(&wb.iter_masterpages().collect::<Vec<_>>()),
+            validations_size: loupe::size_of_val(&wb.iter_validations().collect::<Vec<_>>()),
+            config_size: loupe::size_of_val(&wb.config()),
+            manifest_size: loupe::size_of_val(&wb.iter_manifest().collect::<Vec<_>>()),
+            metadata_size: loupe::size_of_val(&wb.metadata()),
+        });
     }
 
-    Ok(t1)
+    Ok(())
 }

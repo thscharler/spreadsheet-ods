@@ -705,7 +705,6 @@ impl Sheet {
         let mut cloned = Vec::new();
 
         if let Some((base_row, row_header)) = self.row_header.range_mut(..=row).last() {
-            dbg!(row, base_row, &row_header);
             if (*base_row..*base_row + row_header.span).contains(&row) {
                 let base_span = row_header.span;
 
@@ -853,6 +852,16 @@ impl Sheet {
         } else {
             Length::Default
         }
+    }
+
+    /// Returns the maximum used column in the column header.
+    pub fn _col_header_len(&self) -> usize {
+        self.col_header.len()
+    }
+
+    /// Returns the maximum used row in the row header.
+    pub fn _row_header_len(&self) -> usize {
+        self.row_header.len()
     }
 
     /// Returns the maximum used column in the column header.
