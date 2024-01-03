@@ -72,57 +72,6 @@ impl Default for RowHeader {
     }
 }
 
-impl RowHeader {
-    pub(crate) fn set_style(&mut self, style: &RowStyleRef) {
-        self.style = Some(style.to_string());
-    }
-
-    pub(crate) fn clear_style(&mut self) {
-        self.style = None;
-    }
-
-    pub(crate) fn style(&self) -> Option<&String> {
-        self.style.as_ref()
-    }
-
-    pub(crate) fn set_cellstyle(&mut self, style: &CellStyleRef) {
-        self.cellstyle = Some(style.to_string());
-    }
-
-    pub(crate) fn clear_cellstyle(&mut self) {
-        self.cellstyle = None;
-    }
-
-    pub(crate) fn cellstyle(&self) -> Option<&String> {
-        self.cellstyle.as_ref()
-    }
-
-    pub(crate) fn set_visible(&mut self, visible: Visibility) {
-        self.visible = visible;
-    }
-
-    pub(crate) fn visible(&self) -> Visibility {
-        self.visible
-    }
-
-    pub(crate) fn set_repeat(&mut self, repeat: u32) {
-        assert!(repeat > 0);
-        self.repeat = repeat;
-    }
-
-    pub(crate) fn repeat(&self) -> u32 {
-        self.repeat
-    }
-
-    pub(crate) fn set_height(&mut self, height: Length) {
-        self.height = height;
-    }
-
-    pub(crate) fn height(&self) -> Length {
-        self.height
-    }
-}
-
 /// Column data
 #[derive(Debug, Clone, MemoryUsage)]
 pub(crate) struct ColHeader {
@@ -130,70 +79,20 @@ pub(crate) struct ColHeader {
     pub(crate) cellstyle: Option<String>,
     pub(crate) visible: Visibility,
     pub(crate) width: Length,
-    /// Doesn't repeat the cells.
-    /// TODO: rename to span and apply span logic.
-    pub(crate) repeat: u32,
+    /// Logical valid range for all the header values. Avoids duplication
+    /// on reading.
+    pub(crate) span: u32,
 }
 
 impl Default for ColHeader {
     fn default() -> Self {
         Self {
-            repeat: 1,
             style: None,
             cellstyle: None,
             visible: Default::default(),
             width: Default::default(),
+            span: 1,
         }
-    }
-}
-
-impl ColHeader {
-    pub(crate) fn set_style(&mut self, style: &ColStyleRef) {
-        self.style = Some(style.to_string());
-    }
-
-    pub(crate) fn clear_style(&mut self) {
-        self.style = None;
-    }
-
-    pub(crate) fn style(&self) -> Option<&String> {
-        self.style.as_ref()
-    }
-
-    pub(crate) fn set_cellstyle(&mut self, style: &CellStyleRef) {
-        self.cellstyle = Some(style.to_string());
-    }
-
-    pub(crate) fn clear_cellstyle(&mut self) {
-        self.cellstyle = None;
-    }
-
-    pub(crate) fn cellstyle(&self) -> Option<&String> {
-        self.cellstyle.as_ref()
-    }
-
-    pub(crate) fn set_visible(&mut self, visible: Visibility) {
-        self.visible = visible;
-    }
-
-    pub(crate) fn visible(&self) -> Visibility {
-        self.visible
-    }
-
-    pub(crate) fn set_width(&mut self, width: Length) {
-        self.width = width;
-    }
-
-    pub(crate) fn width(&self) -> Length {
-        self.width
-    }
-
-    pub(crate) fn set_repeat(&mut self, repeat: u32) {
-        self.repeat = repeat;
-    }
-
-    pub(crate) fn repeat(&self) -> u32 {
-        self.repeat
     }
 }
 
@@ -642,18 +541,18 @@ impl Sheet {
 
     /// Column style.
     pub fn set_colstyle(&mut self, col: u32, style: &ColStyleRef) {
-        self.col_header.entry(col).or_default().set_style(style);
+        self.col_header.entry(col).or_default().style = Some(style.to_string());
     }
 
     /// Remove the style.
     pub fn clear_colstyle(&mut self, col: u32) {
-        self.col_header.entry(col).or_default().clear_style();
+        self.col_header.entry(col).or_default().style = None;
     }
 
     /// Returns the column style.
     pub fn colstyle(&self, col: u32) -> Option<&String> {
         if let Some(col_header) = self.col_header.get(&col) {
-            col_header.style()
+            col_header.style.as_ref()
         } else {
             None
         }
@@ -661,18 +560,18 @@ impl Sheet {
 
     /// Default cell style for this column.
     pub fn set_col_cellstyle(&mut self, col: u32, style: &CellStyleRef) {
-        self.col_header.entry(col).or_default().set_cellstyle(style);
+        self.col_header.entry(col).or_default().cellstyle = Some(style.to_string());
     }
 
     /// Remove the style.
     pub fn clear_col_cellstyle(&mut self, col: u32) {
-        self.col_header.entry(col).or_default().clear_cellstyle();
+        self.col_header.entry(col).or_default().cellstyle = None;
     }
 
     /// Returns the default cell style for this column.
     pub fn col_cellstyle(&self, col: u32) -> Option<&String> {
         if let Some(col_header) = self.col_header.get(&col) {
-            col_header.cellstyle()
+            col_header.cellstyle.as_ref()
         } else {
             None
         }
@@ -680,31 +579,27 @@ impl Sheet {
 
     /// Visibility of the column
     pub fn set_col_visible(&mut self, col: u32, visible: Visibility) {
-        self.col_header.entry(col).or_default().set_visible(visible);
+        self.col_header.entry(col).or_default().visible = visible;
     }
 
     /// Returns the default cell style for this column.
     pub fn col_visible(&self, col: u32) -> Visibility {
         if let Some(col_header) = self.col_header.get(&col) {
-            col_header.visible()
+            col_header.visible
         } else {
             Default::default()
         }
     }
 
-    /// Sets the repeat count for this colum-header. Doesn't repeat the actual cells.
-    ///
-    /// Panics
-    ///
-    /// Panics if the repeat is 0.
-    pub fn set_col_repeat(&mut self, col: u32, repeat: u32) {
-        self.col_header.entry(col).or_default().set_repeat(repeat)
+    /// unstable internal method
+    pub fn _set_col_header_span(&mut self, col: u32, span: u32) {
+        self.col_header.entry(col).or_default().span = span
     }
 
     /// Returns the repeat count for this row.
-    pub fn col_repeat(&self, col: u32) -> u32 {
+    pub fn _col_header_span(&self, col: u32) -> u32 {
         if let Some(col_header) = self.col_header.get(&col) {
-            col_header.repeat()
+            col_header.span
         } else {
             Default::default()
         }
@@ -712,13 +607,13 @@ impl Sheet {
 
     /// Sets the column width for this column.
     pub fn set_col_width(&mut self, col: u32, width: Length) {
-        self.col_header.entry(col).or_default().set_width(width);
+        self.col_header.entry(col).or_default().width = width;
     }
 
     /// Returns the column-width.
     pub fn col_width(&self, col: u32) -> Length {
         if let Some(ch) = self.col_header.get(&col) {
-            ch.width()
+            ch.width
         } else {
             Length::Default
         }
@@ -808,18 +703,18 @@ impl Sheet {
 
     /// Row style.
     pub fn set_rowstyle(&mut self, row: u32, style: &RowStyleRef) {
-        self.create_split_row_header(row).set_style(style);
+        self.create_split_row_header(row).style = Some(style.to_string());
     }
 
     /// Remove the style.
     pub fn clear_rowstyle(&mut self, row: u32) {
-        self.create_split_row_header(row).clear_style();
+        self.create_split_row_header(row).style = None;
     }
 
     /// Returns the row style.
     pub fn rowstyle(&self, row: u32) -> Option<&String> {
         if let Some(row_header) = self.valid_row_header(row) {
-            row_header.style()
+            row_header.style.as_ref()
         } else {
             None
         }
@@ -827,18 +722,18 @@ impl Sheet {
 
     /// Default cell style for this row.
     pub fn set_row_cellstyle(&mut self, row: u32, style: &CellStyleRef) {
-        self.create_split_row_header(row).set_cellstyle(style);
+        self.create_split_row_header(row).cellstyle = Some(style.to_string());
     }
 
     /// Remove the style.
     pub fn clear_row_cellstyle(&mut self, row: u32) {
-        self.create_split_row_header(row).clear_cellstyle();
+        self.create_split_row_header(row).cellstyle = None;
     }
 
     /// Returns the default cell style for this row.
     pub fn row_cellstyle(&self, row: u32) -> Option<&String> {
         if let Some(row_header) = self.valid_row_header(row) {
-            row_header.cellstyle()
+            row_header.cellstyle.as_ref()
         } else {
             None
         }
@@ -846,13 +741,13 @@ impl Sheet {
 
     /// Visibility of the row
     pub fn set_row_visible(&mut self, row: u32, visible: Visibility) {
-        self.create_split_row_header(row).set_visible(visible);
+        self.create_split_row_header(row).visible = visible;
     }
 
     /// Returns the default cell style for this row.
     pub fn row_visible(&self, row: u32) -> Visibility {
         if let Some(row_header) = self.valid_row_header(row) {
-            row_header.visible()
+            row_header.visible
         } else {
             Default::default()
         }
@@ -867,13 +762,14 @@ impl Sheet {
     ///
     /// Panics if the repeat is 0.
     pub fn set_row_repeat(&mut self, row: u32, repeat: u32) {
-        self.create_split_row_header(row).set_repeat(repeat)
+        assert!(repeat > 0);
+        self.create_split_row_header(row).repeat = repeat
     }
 
     /// Returns the repeat count for this row.
     pub fn row_repeat(&self, row: u32) -> u32 {
         if let Some(row_header) = self.valid_row_header(row) {
-            row_header.repeat()
+            row_header.repeat
         } else {
             Default::default()
         }
@@ -881,13 +777,13 @@ impl Sheet {
 
     /// Sets the row-height.
     pub fn set_row_height(&mut self, row: u32, height: Length) {
-        self.create_split_row_header(row).set_height(height);
+        self.create_split_row_header(row).height = height;
     }
 
     /// Returns the row-height
     pub fn row_height(&self, row: u32) -> Length {
         if let Some(rh) = self.valid_row_header(row) {
-            rh.height()
+            rh.height
         } else {
             Length::Default
         }

@@ -77,7 +77,7 @@ macro_rules! style_ref {
 
         impl From<$l> for String {
             fn from(name: $l) -> Self {
-                name.to_string()
+                name.name
             }
         }
 

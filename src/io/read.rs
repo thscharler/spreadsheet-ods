@@ -556,9 +556,9 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
             if let Some(style_name) = &ch.style {
                 if let Some(style) = book.colstyle(style_name) {
                     if style.use_optimal_col_width()? {
-                        ch.set_width(Length::Default);
+                        ch.width = Length::Default;
                     } else {
-                        ch.set_width(style.col_width()?);
+                        ch.width = style.col_width()?;
                     }
                 }
             }
@@ -569,9 +569,9 @@ fn calc_derived(book: &mut WorkBook) -> Result<(), OdsError> {
             if let Some(style_name) = &rh.style {
                 if let Some(style) = book.rowstyle(style_name) {
                     if style.use_optimal_row_height()? {
-                        rh.set_height(Length::Default);
+                        rh.height = Length::Default;
                     } else {
-                        rh.set_height(style.row_height()?);
+                        rh.height = style.row_height()?;
                     }
                 }
             }
@@ -1159,7 +1159,7 @@ fn read_table_col_attr(
     }
 
     if let Some(mut col_header) = col_header {
-        col_header.repeat = col_repeat;
+        col_header.span = col_repeat;
         sheet.col_header.insert(table_col, col_header);
     }
 
@@ -1202,7 +1202,7 @@ fn read_table_cell(
 
     // find default-cell-style for this column.
     let default_cellstyle = if let Some((c, h)) = sheet.col_header.range(..=col).last() {
-        if (*c..*c + h.repeat).contains(&col) {
+        if (*c..*c + h.span).contains(&col) {
             h.cellstyle.as_ref()
         } else {
             None

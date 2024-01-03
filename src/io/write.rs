@@ -419,41 +419,41 @@ fn sync(book: &mut WorkBook) -> Result<(), OdsError> {
         // Set the column widths.
         for ch in sheet.col_header.values_mut() {
             // Any non default values?
-            if ch.width() != Length::Default {
-                if ch.style().is_none() {
+            if ch.width != Length::Default {
+                if ch.style.is_none() {
                     let colstyle = book.add_colstyle(ColStyle::new_empty());
-                    ch.set_style(&colstyle);
+                    ch.style = Some(colstyle.into());
                 }
             }
 
             // Write back to the style.
-            if let Some(style_name) = ch.style() {
+            if let Some(style_name) = ch.style.as_ref() {
                 if let Some(style) = book.colstyle_mut(style_name) {
-                    if ch.width() == Length::Default {
+                    if ch.width == Length::Default {
                         style.set_use_optimal_col_width(true);
                         style.set_col_width(Length::Default);
                     } else {
-                        style.set_col_width(ch.width());
+                        style.set_col_width(ch.width);
                     }
                 }
             }
         }
 
         for rh in sheet.row_header.values_mut() {
-            if rh.height() != Length::Default {
-                if rh.style().is_none() {
+            if rh.height != Length::Default {
+                if rh.style.is_none() {
                     let rowstyle = book.add_rowstyle(RowStyle::new_empty());
-                    rh.set_style(&rowstyle);
+                    rh.style = Some(rowstyle.into());
                 }
             }
 
-            if let Some(style_name) = rh.style() {
+            if let Some(style_name) = rh.style.as_ref() {
                 if let Some(style) = book.rowstyle_mut(style_name) {
-                    if rh.height() == Length::Default {
+                    if rh.height == Length::Default {
                         style.set_use_optimal_row_height(true);
                         style.set_row_height(Length::Default);
                     } else {
-                        style.set_row_height(rh.height());
+                        style.set_row_height(rh.height);
                     }
                 }
             }
@@ -1769,14 +1769,14 @@ fn write_start_current_row(
         if row_header.repeat > 1 {
             xml_out.attr_esc("table:number-rows-repeated", &row_header.repeat)?;
         }
-        if let Some(rowstyle) = row_header.style() {
+        if let Some(rowstyle) = row_header.style.as_ref() {
             xml_out.attr_esc("table:style-name", rowstyle)?;
         }
-        if let Some(cellstyle) = row_header.cellstyle() {
+        if let Some(cellstyle) = row_header.cellstyle.as_ref() {
             xml_out.attr_esc("table:default-cell-style-name", cellstyle)?;
         }
-        if row_header.visible() != Visibility::Visible {
-            xml_out.attr_esc("table:visibility", &row_header.visible())?;
+        if row_header.visible != Visibility::Visible {
+            xml_out.attr_esc("table:visibility", &row_header.visible)?;
         }
     }
 
@@ -1922,14 +1922,14 @@ fn write_empty_row(
     xml_out.elem("table:table-row")?;
     xml_out.attr("table:number-rows-repeated", &row_repeat)?;
     if let Some(row_header) = sheet.valid_row_header(cur_row) {
-        if let Some(rowstyle) = row_header.style() {
+        if let Some(rowstyle) = row_header.style.as_ref() {
             xml_out.attr_esc("table:style-name", rowstyle)?;
         }
-        if let Some(cellstyle) = row_header.cellstyle() {
+        if let Some(cellstyle) = row_header.cellstyle.as_ref() {
             xml_out.attr_esc("table:default-cell-style-name", cellstyle)?;
         }
-        if row_header.visible() != Visibility::Visible {
-            xml_out.attr_esc("table:visibility", &row_header.visible())?;
+        if row_header.visible != Visibility::Visible {
+            xml_out.attr_esc("table:visibility", &row_header.visible)?;
         }
     }
 
@@ -1972,17 +1972,17 @@ fn write_table_columns(
 
         xml_out.empty("table:table-column")?;
         if let Some(col_header) = sheet.col_header.get(&c) {
-            if col_header.repeat > 1 {
-                xml_out.attr_esc("table:number-columns-repeated", &col_header.repeat)?;
+            if col_header.span > 1 {
+                xml_out.attr_esc("table:number-columns-repeated", &col_header.span)?;
             }
-            if let Some(style) = col_header.style() {
+            if let Some(style) = col_header.style.as_ref() {
                 xml_out.attr_esc("table:style-name", style)?;
             }
-            if let Some(cellstyle) = col_header.cellstyle() {
+            if let Some(cellstyle) = col_header.cellstyle.as_ref() {
                 xml_out.attr_esc("table:default-cell-style-name", cellstyle)?;
             }
-            if col_header.visible() != Visibility::Visible {
-                xml_out.attr_esc("table:visibility", &col_header.visible())?;
+            if col_header.visible != Visibility::Visible {
+                xml_out.attr_esc("table:visibility", &col_header.visible)?;
             }
         }
 
