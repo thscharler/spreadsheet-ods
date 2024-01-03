@@ -45,7 +45,17 @@ pub(crate) struct RowHeader {
     pub(crate) style: Option<String>,
     pub(crate) cellstyle: Option<String>,
     pub(crate) visible: Visibility,
+    /// Value of the table:number-rows-repeated.
+    ///
+    /// This value is moved to span if use_repeat_for_cells is set.
+    /// This way a programmatic set_repeat() is possible without cloning
+    /// all the row-data. When writing the necessary data is found via
+    /// the range row..row+span and doesn't interfere with any calculated
+    /// repeat-values.
     pub(crate) repeat: u32,
+    /// Logical valid range for all the header values. Avoids duplication
+    /// on reading.
+    pub(crate) span: u32,
     pub(crate) height: Length,
 }
 
@@ -56,6 +66,7 @@ impl Default for RowHeader {
             cellstyle: None,
             visible: Default::default(),
             repeat: 1,
+            span: 1,
             height: Default::default(),
         }
     }
@@ -115,11 +126,13 @@ impl RowHeader {
 /// Column data
 #[derive(Debug, Clone, MemoryUsage)]
 pub(crate) struct ColHeader {
-    pub(crate) repeat: u32,
     pub(crate) style: Option<String>,
     pub(crate) cellstyle: Option<String>,
     pub(crate) visible: Visibility,
     pub(crate) width: Length,
+    /// Doesn't repeat the cells.
+    /// TODO: rename to span and apply span logic.
+    pub(crate) repeat: u32,
 }
 
 impl Default for ColHeader {
@@ -711,19 +724,101 @@ impl Sheet {
         }
     }
 
+    // find the row-header with the correct data.
+    pub(crate) fn valid_row_header(&self, row: u32) -> Option<&RowHeader> {
+        if let Some((base_row, row_header)) = self.row_header.range(..=row).last() {
+            if (*base_row..*base_row + row_header.span).contains(&row) {
+                Some(row_header)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    // find the row-header with the correct data and do a three-way-split
+    // to allow setting a value for a single row.
+    // Create the row-header if necessary.
+    fn create_split_row_header(&mut self, row: u32) -> &mut RowHeader {
+        let mut cloned = Vec::new();
+
+        if let Some((base_row, row_header)) = self.row_header.range_mut(..=row).last() {
+            dbg!(row, base_row, &row_header);
+            if (*base_row..*base_row + row_header.span).contains(&row) {
+                let base_span = row_header.span;
+
+                // three-way split:
+                //      base_row .. row
+                //      row
+                //      row +1 .. base_row+span
+
+                // front + target
+                if *base_row < row {
+                    row_header.span = row - *base_row;
+
+                    let mut clone = row_header.clone();
+                    clone.span = 1;
+                    cloned.push((row, clone));
+                } else if *base_row == row {
+                    row_header.span = 1;
+                } else {
+                    unreachable!();
+                }
+
+                // back
+                if *base_row + base_span > row {
+                    let mut clone = row_header.clone();
+                    clone.span = *base_row + base_span - (row + 1);
+                    cloned.push((row + 1, clone));
+                } else if *base_row + base_span == row {
+                    // noop
+                } else {
+                    unreachable!();
+                }
+            } else {
+                self.row_header.insert(row, RowHeader::default());
+            }
+        } else {
+            self.row_header.insert(row, RowHeader::default());
+        }
+
+        for (r, rh) in cloned {
+            self.row_header.insert(r, rh);
+        }
+
+        self.row_header.get_mut(&row).expect("row-header")
+    }
+
+    /// unstable internal method.
+    pub fn _row_header_span(&self, row: u32) -> Option<u32> {
+        if let Some(row_header) = self.row_header.get(&row) {
+            Some(row_header.span)
+        } else {
+            None
+        }
+    }
+
+    /// unstable internal method.
+    pub fn _set_row_header_span(&mut self, row: u32, span: u32) {
+        if let Some(row_header) = self.row_header.get_mut(&row) {
+            row_header.span = span;
+        }
+    }
+
     /// Row style.
     pub fn set_rowstyle(&mut self, row: u32, style: &RowStyleRef) {
-        self.row_header.entry(row).or_default().set_style(style);
+        self.create_split_row_header(row).set_style(style);
     }
 
     /// Remove the style.
     pub fn clear_rowstyle(&mut self, row: u32) {
-        self.row_header.entry(row).or_default().clear_style();
+        self.create_split_row_header(row).clear_style();
     }
 
     /// Returns the row style.
     pub fn rowstyle(&self, row: u32) -> Option<&String> {
-        if let Some(row_header) = self.row_header.get(&row) {
+        if let Some(row_header) = self.valid_row_header(row) {
             row_header.style()
         } else {
             None
@@ -732,17 +827,17 @@ impl Sheet {
 
     /// Default cell style for this row.
     pub fn set_row_cellstyle(&mut self, row: u32, style: &CellStyleRef) {
-        self.row_header.entry(row).or_default().set_cellstyle(style);
+        self.create_split_row_header(row).set_cellstyle(style);
     }
 
     /// Remove the style.
     pub fn clear_row_cellstyle(&mut self, row: u32) {
-        self.row_header.entry(row).or_default().clear_cellstyle();
+        self.create_split_row_header(row).clear_cellstyle();
     }
 
     /// Returns the default cell style for this row.
     pub fn row_cellstyle(&self, row: u32) -> Option<&String> {
-        if let Some(row_header) = self.row_header.get(&row) {
+        if let Some(row_header) = self.valid_row_header(row) {
             row_header.cellstyle()
         } else {
             None
@@ -751,12 +846,12 @@ impl Sheet {
 
     /// Visibility of the row
     pub fn set_row_visible(&mut self, row: u32, visible: Visibility) {
-        self.row_header.entry(row).or_default().set_visible(visible);
+        self.create_split_row_header(row).set_visible(visible);
     }
 
     /// Returns the default cell style for this row.
     pub fn row_visible(&self, row: u32) -> Visibility {
-        if let Some(row_header) = self.row_header.get(&row) {
+        if let Some(row_header) = self.valid_row_header(row) {
             row_header.visible()
         } else {
             Default::default()
@@ -772,12 +867,12 @@ impl Sheet {
     ///
     /// Panics if the repeat is 0.
     pub fn set_row_repeat(&mut self, row: u32, repeat: u32) {
-        self.row_header.entry(row).or_default().set_repeat(repeat)
+        self.create_split_row_header(row).set_repeat(repeat)
     }
 
     /// Returns the repeat count for this row.
     pub fn row_repeat(&self, row: u32) -> u32 {
-        if let Some(row_header) = self.row_header.get(&row) {
+        if let Some(row_header) = self.valid_row_header(row) {
             row_header.repeat()
         } else {
             Default::default()
@@ -786,12 +881,12 @@ impl Sheet {
 
     /// Sets the row-height.
     pub fn set_row_height(&mut self, row: u32, height: Length) {
-        self.row_header.entry(row).or_default().set_height(height);
+        self.create_split_row_header(row).set_height(height);
     }
 
     /// Returns the row-height
     pub fn row_height(&self, row: u32) -> Length {
-        if let Some(rh) = self.row_header.get(&row) {
+        if let Some(rh) = self.valid_row_header(row) {
             rh.height()
         } else {
             Length::Default

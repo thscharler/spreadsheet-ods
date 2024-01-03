@@ -384,6 +384,8 @@ fn read_ods_impl<R: Read + Seek>(
         read_ods_content(&mut ctx, &mut xml)?;
     }
 
+    calc_repeat(&mut ctx)?;
+
     // We do some data duplication here, to make everything easier to use.
     calc_derived(&mut ctx.book)?;
 
@@ -468,6 +470,54 @@ fn read_ods_manifest(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
         buf.clear();
     }
     ctx.push_buf(buf);
+    Ok(())
+}
+
+// Clone cell-data.
+fn calc_repeat(ctx: &mut OdsContext) -> Result<(), OdsError> {
+    if ctx.use_repeat_for_cells {
+        return Ok(());
+    }
+    for i in 0..ctx.book.num_sheets() {
+        calc_repeat_sheet(ctx.book.sheet_mut(i))?;
+    }
+    Ok(())
+}
+
+// Clone cell-data.
+fn calc_repeat_sheet(sheet: &mut Sheet) -> Result<(), OdsError> {
+    let mut cloned = Vec::new();
+
+    // clone by row
+    for ((row, col), data) in sheet.data.iter_mut() {
+        if let Some(rh) = sheet.row_header.get_mut(&row) {
+            for i in 1..rh.repeat {
+                cloned.push((*row + i, *col, data.clone()));
+            }
+        }
+    }
+    // after the previous operation the repeat value is reduced to a span
+    // where the header-values are valid. no longer denotes repeated row-data.
+    for (_row, rh) in sheet.row_header.iter_mut() {
+        mem::swap(&mut rh.repeat, &mut rh.span);
+    }
+    for (row, col, data) in cloned.drain(..) {
+        sheet.data.insert((row, col), data);
+    }
+
+    // clone by cell
+    for ((row, col), data) in sheet.data.iter_mut() {
+        if data.repeat > 1 {
+            let repeat = mem::replace(&mut data.repeat, 1);
+            for i in 1..repeat {
+                cloned.push((*row, *col + i, data.clone()));
+            }
+        }
+    }
+    for (row, col, data) in cloned {
+        sheet.data.insert((row, col), data);
+    }
+
     Ok(())
 }
 

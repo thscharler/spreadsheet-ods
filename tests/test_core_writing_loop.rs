@@ -261,3 +261,42 @@ fn test_void() -> Result<(), OdsError> {
 
     Ok(())
 }
+
+#[test]
+fn test_header_span() -> Result<(), OdsError> {
+    let mut sh = Sheet::new("Sheet1");
+
+    sh.set_row_visible(0, Visibility::Collapsed);
+    sh._set_row_header_span(0, 10);
+
+    assert_eq!(sh.row_visible(0), Visibility::Collapsed);
+    assert_eq!(sh.row_visible(9), Visibility::Collapsed);
+
+    sh.set_row_visible(0, Visibility::Filtered);
+
+    assert_eq!(sh.row_visible(0), Visibility::Filtered);
+    assert_eq!(sh.row_visible(1), Visibility::Collapsed);
+    assert_eq!(sh.row_visible(9), Visibility::Collapsed);
+    assert_eq!(sh.row_visible(10), Visibility::default());
+
+    sh.set_row_visible(5, Visibility::Filtered);
+
+    assert_eq!(sh.row_visible(0), Visibility::Filtered);
+    assert_eq!(sh.row_visible(1), Visibility::Collapsed);
+    assert_eq!(sh.row_visible(5), Visibility::Filtered);
+    assert_eq!(sh.row_visible(9), Visibility::Collapsed);
+    assert_eq!(sh.row_visible(10), Visibility::default());
+
+    sh.set_row_visible(9, Visibility::Filtered);
+
+    assert_eq!(sh.row_visible(0), Visibility::Filtered);
+    assert_eq!(sh.row_visible(1), Visibility::Collapsed);
+    assert_eq!(sh.row_visible(5), Visibility::Filtered);
+    assert_eq!(sh.row_visible(8), Visibility::Collapsed);
+    assert_eq!(sh.row_visible(9), Visibility::Filtered);
+    assert_eq!(sh.row_visible(10), Visibility::default());
+
+    dbg!(&sh);
+
+    Ok(())
+}

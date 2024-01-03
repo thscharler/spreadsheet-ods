@@ -1765,7 +1765,7 @@ fn write_start_current_row(
 
     // row
     xml_out.elem("table:table-row")?;
-    if let Some(row_header) = sheet.row_header.get(&cur_row) {
+    if let Some(row_header) = sheet.valid_row_header(cur_row) {
         if row_header.repeat > 1 {
             xml_out.attr_esc("table:number-rows-repeated", &row_header.repeat)?;
         }
@@ -1921,7 +1921,7 @@ fn write_empty_row(
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table-row")?;
     xml_out.attr("table:number-rows-repeated", &row_repeat)?;
-    if let Some(row_header) = sheet.row_header.get(&cur_row) {
+    if let Some(row_header) = sheet.valid_row_header(cur_row) {
         if let Some(rowstyle) = row_header.style() {
             xml_out.attr_esc("table:style-name", rowstyle)?;
         }
