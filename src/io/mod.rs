@@ -9,9 +9,6 @@ pub(crate) mod write;
 
 mod xmlwriter;
 
-const DUMP_XML: bool = false;
-const DUMP_UNUSED: bool = false;
-
 #[derive(Clone, Debug)]
 pub(crate) struct NamespaceMap {
     map: HashMap<Cow<'static, str>, Cow<'static, str>>,

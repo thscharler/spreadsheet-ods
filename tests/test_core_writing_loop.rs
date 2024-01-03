@@ -4,6 +4,7 @@ use std::io::BufReader;
 
 use lib_test::*;
 use spreadsheet_ods::defaultstyles::DefaultFormat;
+use spreadsheet_ods::sheet::Visibility;
 use spreadsheet_ods::{read_ods, CellStyle, OdsError, OdsOptions, Sheet, Value, WorkBook};
 
 mod lib_test;

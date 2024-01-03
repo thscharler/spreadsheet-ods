@@ -1351,42 +1351,6 @@ fn ignore_cell(ctx: &mut OdsContext, default_cellstyle: Option<&String>, cell: &
     }
 }
 
-#[inline]
-fn repeat_cell(ctx: &mut OdsContext, repeat: u32) -> bool {
-    #[allow(clippy::if_same_then_else)]
-    if repeat == 1 {
-        true
-    } else if ctx.use_repeat_for_cells {
-        true
-    } else {
-        false
-    }
-}
-
-#[inline]
-fn repeat_rows(ctx: &mut OdsContext, repeat: u32) -> bool {
-    #[allow(clippy::if_same_then_else)]
-    if repeat == 1 {
-        true
-    } else if ctx.use_repeat_for_cells {
-        true
-    } else {
-        false
-    }
-}
-
-#[inline]
-fn repeat_cols(ctx: &mut OdsContext, repeat: u32) -> bool {
-    #[allow(clippy::if_same_then_else)]
-    if repeat == 1 {
-        true
-    } else if ctx.use_repeat_for_cells {
-        true
-    } else {
-        false
-    }
-}
-
 fn append_text(new_txt: TextContent, mut content: TextContent) -> TextContent {
     // There can be multiple text:p elements within the cell.
     content = match content {
