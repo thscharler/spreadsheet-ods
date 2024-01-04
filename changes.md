@@ -2,38 +2,56 @@
 
 - add some examples.
 
-- breaking: Pagestyle.set_page_usage() changed. Don't use a Option<> parameter. Added clear_page_used().
-- BREAKING: rename the metadata tags to have a common prefix "Meta". This helps with
-  code completion, there are conflicts with some enums.
-- BREAKING: Refined OdsOptions.
-    - BREAKING: remove use_repeat_for_empty() - this is almost unusable as it's
+## Breaking changes
+
+- small: ```Pagestyle.set_page_usage()``` changed.
+  There has been an unusual Option<> parameter. This is replaced with a direct set+clear.
+- medium: rename the metadata xml-tags to have a common prefix "Meta". This helps with
+  code completion, there were conflicts with some enums.
+- large: Refined OdsOptions.
+    - remove ```use_repeat_for_empty()``` - this is almost unusable as it's
       very difficult to avoid overlapping cells. Especially with empty cells you didn't
       know where there now overlapping a newly added data-cell.
-      ignore_empty_cells() might be useful instead.
-    - BREAKING: rename use_clone_for_repeat() to use_clone_for_cells()
-    - add ignore_empty_cells() and read_empty_cells()
-    - add read_styles() as opposite to content_only()
-- breaking: rename misleading used_cols()/used_rows() to col_header_max()/row_header_max(). 
+      ```ignore_empty_cells()``` might be useful instead.
+    - rename ```use_clone_for_repeat()``` to ```use_clone_for_cells()```
+    - add ```ignore_empty_cells()``` and ```read_empty_cells()```
+    - add ```read_styles()``` as opposite to ```content_only()```
+- small: rename misleading ```used_cols()```/```used_rows()``` to
+  ```col_header_max()```/```row_header_max()```.
   To get the fill-state of the sheet there has always been used_grid_size().
 
-- feat: add set_styled() as short name for set_styled_value(). Ease of use.
-- feat: add CellContentRef::to_owned() to get a CellContent
-- feat: iter_cols() and iter_rows() to Sheet. Implements column-wise/row-wise iteration
+## Features
+
+- add ```set_styled()``` as short name for ```set_styled_value()```. Ease of use addition.
+- add ```CellContentRef::to_owned()``` to get a CellContent instance.
+- add ```iter_cols()``` and ```iter_rows()``` to Sheet. Implements column-wise/row-wise iteration
   over a given Range.
-- feat: new functions add_left(), add_center(), add_right(), add_content() for HeaderFooter.
-  Ease of use.
-- feat: add OdsResult<T>
-- feat: add loupe::MemoryUsage
-- feat: use the repeat-flags for table:number-rows-repeated too. in clone-mode rows of cells 
-  are duplicated.
-- feat: use the repeat-flags for table:number-columns-repeated too. in clone-mode the column-headers
-  are duplicated.
+- new functions ```add_left()```, ```add_center()```, ```add_right()```, ```add_content()``` for HeaderFooter.
+  Ease of use addition.
+- add ```OdsResult<T>```
+- add ```loupe::MemoryUsage```
+
+## Performance/memory usage
+
+- Store the row/column header data in a compacted format that avoids duplication.
+- The cell duplication code has been moved to a separate stage. This makes the task a lot easier.
+- The repeat value for a whole row is now used to repeat the cells for this row.
+  This has not been done so far.
+- The last two rows often use insane repeat values. If the repeat-value for these rows is greater 1000
+  it's simply ignored.
+- The last column of a row often only has a style and a big repeat value. These usually are only
+  editing artifacts and not consciously added. These columns are now ignored and dropped.
+  If a style for such columns is needed, setting a default-cell-style for the column should handle
+  this case.
+- These changes have reduced memory usage for my test-set by a factor of 28.
+
+## Bugfix
 
 - fix: ValueFormatXXX now use the correct default values for StyleOrigin (Content) and
   StyleUse (Automatic).
 - fix: create_number_format_fixed: must set integer-digits too, otherwise this doesn't work.
 - fix: If "mimetype" or "META-INF/manifest.xml" occurs in the manifest they were duplicated
-  in the output. which creates an invalid zip archive. 
+  in the output. which creates an invalid zip archive.
 
 # 0.20.2
 
