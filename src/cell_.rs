@@ -125,7 +125,14 @@ impl Default for CellData {
 impl CellData {
     /// Holds no value and no formula.
     pub(crate) fn is_empty(&self) -> bool {
-        self.value == Value::Empty && self.formula.is_none()
+        if self.value != Value::Empty {
+            return false;
+        }
+        if self.formula.is_some() {
+            return false;
+        }
+        // no style check
+        self.is_void_extra()
     }
 
     /// Holds no useful data at all.
@@ -139,6 +146,10 @@ impl CellData {
         if self.style.is_some() && self.style.as_ref() != default_cellstyle {
             return false;
         }
+        self.is_void_extra()
+    }
+
+    fn is_void_extra(&self) -> bool {
         if let Some(extra) = &self.extra {
             if !extra.span.is_empty() {
                 return false;

@@ -32,7 +32,7 @@ use crate::metadata::{
 };
 use crate::refs::{parse_cellranges, parse_cellref};
 use crate::sheet::{Grouped, SplitMode};
-use crate::sheet_::{ColHeader, RowHeader};
+use crate::sheet_::{CellDataIter, CellDataIterMut, ColHeader, RowHeader};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
@@ -475,44 +475,117 @@ fn read_ods_manifest(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
 
 // Clone cell-data.
 fn calc_repeat(ctx: &mut OdsContext) -> Result<(), OdsError> {
-    if ctx.use_repeat_for_cells {
-        return Ok(());
-    }
     for i in 0..ctx.book.num_sheets() {
-        calc_repeat_sheet(ctx.book.sheet_mut(i))?;
+        if ctx.use_repeat_for_cells {
+            calc_repeat_sheet(ctx.book.sheet_mut(i))?;
+        } else {
+            calc_cloned_sheet(ctx.book.sheet_mut(i))?;
+        }
     }
     Ok(())
 }
 
-// Clone cell-data.
+// Cleanup repeat cell-data.
 fn calc_repeat_sheet(sheet: &mut Sheet) -> Result<(), OdsError> {
-    let mut cloned = Vec::new();
+    let mut dropped = Vec::new();
 
-    // clone by row
-    for ((row, col), data) in sheet.data.iter_mut() {
-        if let Some(rh) = sheet.row_header.get_mut(&row) {
-            for i in 1..rh.repeat {
-                cloned.push((*row + i, *col, data.clone()));
+    // clone by row-repeat
+
+    // last two rows often have insane repeat values. clear now.
+    for (_row, rh) in sheet.row_header.iter_mut().rev().take(5) {
+        if rh.repeat > 1000 {
+            rh.repeat = 1;
+        }
+    }
+
+    // clone by cell-repeat
+    let mut it = CellDataIterMut::new(sheet.data.range_mut(..));
+    loop {
+        let Some(((row, col), data)) = it.next() else {
+            break;
+        };
+
+        if data.repeat > 1 {
+            let last_in_row = if let Some((next_row, _next_col)) = it.peek_cell() {
+                row != next_row
+            } else {
+                true
+            };
+            if last_in_row && data.is_empty() {
+                // skip on empty last cell. this is just an editing artifact.
+                dropped.push((row, col));
+                continue;
             }
         }
     }
-    // after the previous operation the repeat value is reduced to a span
-    // where the header-values are valid. no longer denotes repeated row-data.
-    for (_row, rh) in sheet.row_header.iter_mut() {
-        mem::swap(&mut rh.repeat, &mut rh.span);
+    for (row, col) in dropped {
+        sheet.data.remove(&(row, col));
+    }
+
+    Ok(())
+}
+
+// Clone cell-data.
+fn calc_cloned_sheet(sheet: &mut Sheet) -> Result<(), OdsError> {
+    let mut cloned = Vec::new();
+    let mut dropped = Vec::new();
+
+    // clone by row-repeat
+
+    // last two rows often have insane repeat values. clear now.
+    for (_row, rh) in sheet.row_header.iter_mut().rev().take(5) {
+        if rh.repeat > 1000 {
+            rh.repeat = 1;
+        }
+    }
+    // duplicate by row-repeat
+    for (row, rh) in sheet.row_header.iter().filter(|(_, v)| v.repeat > 1) {
+        // get one row
+        let cit = CellDataIter::new(sheet.data.range((*row, 0)..(row + 1, 0)));
+        for ((row, col), data) in cit {
+            for i in 1..rh.repeat {
+                cloned.push((row + i, col, data.clone()));
+            }
+        }
     }
     for (row, col, data) in cloned.drain(..) {
         sheet.data.insert((row, col), data);
     }
+    // after the previous operation the repeat value is reduced to a span where
+    // the header-values are valid. no longer denotes repeated row-data.
+    for (_row, rh) in sheet.row_header.iter_mut() {
+        mem::swap(&mut rh.repeat, &mut rh.span);
+    }
 
-    // clone by cell
-    for ((row, col), data) in sheet.data.iter_mut() {
+    // clone by cell-repeat
+
+    let mut it = CellDataIterMut::new(sheet.data.range_mut(..));
+    loop {
+        let Some(((row, col), data)) = it.next() else {
+            break;
+        };
+
         if data.repeat > 1 {
             let repeat = mem::replace(&mut data.repeat, 1);
+
+            let last_in_row = if let Some((next_row, _next_col)) = it.peek_cell() {
+                row != next_row
+            } else {
+                true
+            };
+            if last_in_row && data.is_empty() {
+                // skip on empty last cell. this is just an editing artifact.
+                dropped.push((row, col));
+                continue;
+            }
+
             for i in 1..repeat {
-                cloned.push((*row, *col + i, data.clone()));
+                cloned.push((row, col + i, data.clone()));
             }
         }
+    }
+    for (row, col) in dropped {
+        sheet.data.remove(&(row, col));
     }
     for (row, col, data) in cloned {
         sheet.data.insert((row, col), data);
@@ -827,7 +900,6 @@ fn read_table(
     // Cell position
     let mut row: u32 = 0;
     let mut col: u32 = 0;
-    let mut col_data: bool = false;
 
     // Position within table-columns
     let mut table_col: u32 = 0;
@@ -961,23 +1033,18 @@ fn read_table(
                 row_repeat = read_table_row_attr(xml, &mut sheet, row, xml_tag)?;
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
-                if col_data {
-                    sheet.set_row_repeat(row, row_repeat);
-                }
                 row += row_repeat;
                 row_repeat = 1;
                 col = 0;
-                col_data = false;
             }
 
             Event::Empty(xml_tag) | Event::Start(xml_tag)
                 if xml_tag.name().as_ref() == b"table:table-cell"
                     || xml_tag.name().as_ref() == b"table:covered-table-cell" =>
             {
-                let (cell_repeat, have_data) =
+                let cell_repeat =
                     read_table_cell(ctx, xml, &mut sheet, row, col, xml_tag, empty_tag)?;
                 col += cell_repeat;
-                col_data |= have_data;
             }
 
             _ => {
@@ -1196,7 +1263,7 @@ fn read_table_cell(
     col: u32,
     super_tag: &BytesStart<'_>,
     empty_tag: bool,
-) -> Result<(u32, bool), OdsError> {
+) -> Result<u32, OdsError> {
     let mut cell = None;
     let mut repeat = 1;
 
@@ -1367,23 +1434,20 @@ fn read_table_cell(
         ctx.push_buf(buf);
     }
 
-    let have_data = if let Some(mut cell) = cell {
+    if let Some(mut cell) = cell {
         // composes a Value
         set_value(tc, &mut cell)?;
 
         // store cell-data
         if ignore_cell(ctx, default_cellstyle, &cell) {
-            false
+            // noop
         } else {
             cell.repeat = repeat;
             sheet.add_cell_data(row, col, cell);
-            true
         }
-    } else {
-        false
-    };
+    }
 
-    Ok((repeat, have_data))
+    Ok(repeat)
 }
 
 #[inline]

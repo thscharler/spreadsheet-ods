@@ -158,6 +158,131 @@ impl<'a> IntoIterator for &'a Sheet {
 }
 
 /// Iterator over cells.
+#[derive(Debug)]
+pub(crate) struct CellDataIter<'a> {
+    iter: std::collections::btree_map::Range<'a, (u32, u32), CellData>,
+    k_data: Option<&'a (u32, u32)>,
+    v_data: Option<&'a CellData>,
+}
+
+impl<'a> CellDataIter<'a> {
+    pub(crate) fn new(iter: std::collections::btree_map::Range<'a, (u32, u32), CellData>) -> Self {
+        Self {
+            iter,
+            k_data: None,
+            v_data: None,
+        }
+    }
+
+    /// Returns the (row,col) of the next cell.
+    #[allow(dead_code)]
+    pub(crate) fn peek_cell(&mut self) -> Option<(u32, u32)> {
+        self.k_data.copied()
+    }
+
+    fn load_next_data(&mut self) {
+        if let Some((k, v)) = self.iter.next() {
+            self.k_data = Some(k);
+            self.v_data = Some(v);
+        } else {
+            self.k_data = None;
+            self.v_data = None;
+        }
+    }
+}
+
+impl FusedIterator for CellDataIter<'_> {}
+
+impl<'a> Iterator for CellDataIter<'a> {
+    type Item = ((u32, u32), &'a CellData);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.k_data.is_none() {
+            self.load_next_data();
+        }
+
+        if let Some(k_data) = self.k_data {
+            if let Some(v_data) = self.v_data {
+                let r = Some((*k_data, v_data));
+                self.load_next_data();
+                r
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+/// Iterator over cells.
+#[derive(Debug)]
+pub(crate) struct CellDataIterMut<'a> {
+    iter: std::collections::btree_map::RangeMut<'a, (u32, u32), CellData>,
+    k_data: Option<&'a (u32, u32)>,
+    v_data: Option<&'a mut CellData>,
+}
+
+impl<'a> CellDataIterMut<'a> {
+    pub(crate) fn new(
+        iter: std::collections::btree_map::RangeMut<'a, (u32, u32), CellData>,
+    ) -> Self {
+        Self {
+            iter,
+            k_data: None,
+            v_data: None,
+        }
+    }
+
+    /// Returns the (row,col) of the next cell.
+    pub(crate) fn peek_cell(&mut self) -> Option<(u32, u32)> {
+        self.k_data.copied()
+    }
+
+    fn load_next_data(&mut self) {
+        if let Some((k, v)) = self.iter.next() {
+            self.k_data = Some(k);
+            self.v_data = Some(v);
+        } else {
+            self.k_data = None;
+            self.v_data = None;
+        }
+    }
+}
+
+impl FusedIterator for CellDataIterMut<'_> {}
+
+impl<'a> Iterator for CellDataIterMut<'a> {
+    type Item = ((u32, u32), &'a mut CellData);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.k_data.is_none() {
+            self.load_next_data();
+        }
+
+        if let Some(k_data) = self.k_data {
+            if let Some(v_data) = self.v_data.take() {
+                let r = Some((*k_data, v_data));
+                self.load_next_data();
+                r
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+/// Iterator over cells.
 #[derive(Clone, Debug)]
 pub struct CellIter<'a> {
     iter: std::collections::btree_map::Iter<'a, (u32, u32), CellData>,
