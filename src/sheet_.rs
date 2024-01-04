@@ -787,7 +787,7 @@ impl Sheet {
         self.create_split_col_header(col).span = span
     }
 
-    /// Returns the repeat count for this row.
+    /// unstable internal method
     pub fn _col_header_span(&self, col: u32) -> u32 {
         if let Some(col_header) = self.valid_col_header(col) {
             col_header.span

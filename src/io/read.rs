@@ -187,6 +187,7 @@ pub fn read_fods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
 struct OdsContext {
     book: WorkBook,
 
+    content_only: bool,
     use_repeat_for_cells: bool,
     ignore_empty_cells: bool,
 
@@ -199,6 +200,7 @@ struct OdsContext {
 impl OdsContext {
     fn new(options: &OdsOptions) -> Self {
         Self {
+            content_only: options.content_only,
             use_repeat_for_cells: options.use_repeat_for_cells,
             ignore_empty_cells: options.ignore_empty_cells,
             ..Default::default()
@@ -301,6 +303,8 @@ fn read_fods_impl(read: &mut dyn BufRead, options: &OdsOptions) -> Result<WorkBo
     }
     ctx.push_buf(buf);
 
+    calc_repeat(&mut ctx)?;
+
     // We do some data duplication here, to make everything easier to use.
     calc_derived(&mut ctx.book)?;
 
@@ -334,6 +338,8 @@ fn read_fods_impl_content_only(
         }
     }
     ctx.push_buf(buf);
+
+    calc_repeat(&mut ctx)?;
 
     Ok(ctx.book)
 }
@@ -405,6 +411,8 @@ fn read_ods_impl_content_only<R: Read + Seek>(
 
     // todo: this still reads styles etc from content.xml
     read_ods_content(&mut ctx, &mut xml)?;
+
+    calc_repeat(&mut ctx)?;
 
     Ok(ctx.book)
 }
