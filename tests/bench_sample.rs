@@ -56,11 +56,11 @@ fn print_t(t0: &Timing<Sample>) {
     println!();
     println!("{}", t0.name);
     println!();
-    println!("| cat | name | file-size | time | cells | mem-size | sheet | colh | rowh | font | table-styles | row-styles | col-styles | cell-styles | para-styles | text-styles | ruby-styles | graphic-styles | bool-format | number-format | perc-format | currency-format | text-format | datetime-format | timeduration-format | page-styles | masterpages | validations | config | manifest | metadata |");
+    println!("| cat | name | file-size | time | cells | mem-size | sheet | colh | rowh | meta |");
     for i in 0..t0.samples.len() {
         let extra = t0.extra.get(i).expect("b");
         println!(
-            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
+            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
             extra.category,
             extra.name,
             extra.file_size,
@@ -70,29 +70,7 @@ fn print_t(t0: &Timing<Sample>) {
             extra.sheet_size,
             extra.col_header,
             extra.row_header,
-            extra.font_size,
-            extra.table_styles_size,
-            extra.row_styles_size,
-            extra.col_styles_size,
-            extra.cell_styles_size,
-            extra.paragraph_styles_size,
-            extra.text_styles_size,
-            extra.ruby_styles_size,
-            extra.graphic_styles_size,
-            extra.boolean_formats,
-            extra.number_formats,
-            extra.percentage_formats,
-            extra.currency_formats,
-            extra.text_formats,
-            extra.datetime_formats_size,
-            extra.timeduration_formats_size,
-            extra.number_formats_size,
-            extra.page_styles_size,
-            extra.masterpages_size,
-            extra.validations_size,
-            extra.config_size,
-            extra.manifest_size,
-            extra.metadata_size
+            extra.metadata,
         );
     }
 }
@@ -107,29 +85,7 @@ struct Sample {
     sheet_size: usize,
     col_header: usize,
     row_header: usize,
-    font_size: usize,
-    table_styles_size: usize,
-    row_styles_size: usize,
-    col_styles_size: usize,
-    cell_styles_size: usize,
-    paragraph_styles_size: usize,
-    text_styles_size: usize,
-    ruby_styles_size: usize,
-    graphic_styles_size: usize,
-    boolean_formats: usize,
-    number_formats: usize,
-    percentage_formats: usize,
-    currency_formats: usize,
-    text_formats: usize,
-    datetime_formats_size: usize,
-    timeduration_formats_size: usize,
-    number_formats_size: usize,
-    page_styles_size: usize,
-    masterpages_size: usize,
-    validations_size: usize,
-    config_size: usize,
-    manifest_size: usize,
-    metadata_size: usize,
+    metadata: usize,
 }
 
 #[test]
@@ -137,7 +93,7 @@ fn test_samples() -> Result<(), OdsError> {
     let mut t = Timing::default();
 
     run_samples(&mut t, "clone", OdsOptions::default().use_clone_for_cells())?;
-    run_samples(&mut t, "content", OdsOptions::default().content_only())?;
+    // run_samples(&mut t, "content", OdsOptions::default().content_only())?;
     run_samples(
         &mut t,
         "repeat",
@@ -198,13 +154,13 @@ fn run_samples(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Resul
 fn test_sample() -> Result<(), OdsError> {
     let mut t = Timing::default();
     run_sample(&mut t, "clone", OdsOptions::default().use_clone_for_cells())?;
-    run_sample(&mut t, "content", OdsOptions::default().content_only())?;
-    run_sample(
-        &mut t,
-        "repeat",
-        OdsOptions::default().use_repeat_for_cells(),
-    )?;
-    run_sample(&mut t, "ignore", OdsOptions::default().ignore_empty_cells())?;
+    // run_sample(&mut t, "content", OdsOptions::default().content_only())?;
+    // run_sample(
+    //     &mut t,
+    //     "repeat",
+    //     OdsOptions::default().use_repeat_for_cells(),
+    // )?;
+    // run_sample(&mut t, "ignore", OdsOptions::default().ignore_empty_cells())?;
 
     print_t(&t);
 
@@ -213,7 +169,7 @@ fn test_sample() -> Result<(), OdsError> {
 
 fn run_sample(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Result<(), OdsError> {
     let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
-    let sample = "1_2_ogrenim_durumlarina_gore_personel_sayisi_2022.ods";
+    let sample = "2d0d3aca0b2ddd244ad34f2b11f5625cd2835141ca98ec025a54c2f2d10118.ods";
 
     let f = path.join(sample);
     if f.exists() {
@@ -245,39 +201,51 @@ fn run_sample(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Result
             sheet_size: loupe::size_of_val(&wb.iter_sheets().collect::<Vec<_>>()),
             col_header: wb.iter_sheets().map(|v| v._col_header_len()).sum(),
             row_header: wb.iter_sheets().map(|v| v._row_header_len()).sum(),
-            font_size: loupe::size_of_val(&wb.iter_fonts().collect::<Vec<_>>()),
-            table_styles_size: loupe::size_of_val(&wb.iter_table_styles().collect::<Vec<_>>()),
-            row_styles_size: loupe::size_of_val(&wb.iter_rowstyles().collect::<Vec<_>>()),
-            col_styles_size: loupe::size_of_val(&wb.iter_colstyles().collect::<Vec<_>>()),
-            cell_styles_size: loupe::size_of_val(&wb.iter_cellstyles().collect::<Vec<_>>()),
-            paragraph_styles_size: loupe::size_of_val(
-                &wb.iter_paragraphstyles().collect::<Vec<_>>(),
-            ),
-            text_styles_size: loupe::size_of_val(&wb.iter_textstyles().collect::<Vec<_>>()),
-            ruby_styles_size: loupe::size_of_val(&wb.iter_rubystyles().collect::<Vec<_>>()),
-            graphic_styles_size: loupe::size_of_val(&wb.iter_graphicstyles().collect::<Vec<_>>()),
-            boolean_formats: loupe::size_of_val(&wb.iter_boolean_formats().collect::<Vec<_>>()),
-            number_formats: loupe::size_of_val(&wb.iter_number_formats().collect::<Vec<_>>()),
-            percentage_formats: loupe::size_of_val(
-                &wb.iter_percentage_formats().collect::<Vec<_>>(),
-            ),
-            currency_formats: loupe::size_of_val(&wb.iter_currency_formats().collect::<Vec<_>>()),
-            text_formats: loupe::size_of_val(&wb.iter_text_formats().collect::<Vec<_>>()),
-            datetime_formats_size: loupe::size_of_val(
-                &wb.iter_datetime_formats().collect::<Vec<_>>(),
-            ),
-            timeduration_formats_size: loupe::size_of_val(
-                &wb.iter_timeduration_formats().collect::<Vec<_>>(),
-            ),
-            number_formats_size: loupe::size_of_val(&wb.iter_number_formats().collect::<Vec<_>>()),
-            page_styles_size: loupe::size_of_val(&wb.iter_pagestyles().collect::<Vec<_>>()),
-            masterpages_size: loupe::size_of_val(&wb.iter_masterpages().collect::<Vec<_>>()),
-            validations_size: loupe::size_of_val(&wb.iter_validations().collect::<Vec<_>>()),
-            config_size: loupe::size_of_val(&wb.config()),
-            manifest_size: loupe::size_of_val(&wb.iter_manifest().collect::<Vec<_>>()),
-            metadata_size: loupe::size_of_val(&wb.metadata()),
+            metadata: loupe::size_of_val(&wb.iter_fonts().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_table_styles().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_rowstyles().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_colstyles().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_cellstyles().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_paragraphstyles().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_textstyles().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_rubystyles().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_graphicstyles().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_boolean_formats().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_number_formats().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_percentage_formats().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_currency_formats().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_text_formats().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_datetime_formats().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_timeduration_formats().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_number_formats().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_pagestyles().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_masterpages().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.iter_validations().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.config())
+                + loupe::size_of_val(&wb.iter_manifest().collect::<Vec<_>>())
+                + loupe::size_of_val(&wb.metadata()),
         });
     }
+
+    Ok(())
+}
+
+#[test]
+fn run_dump() -> Result<(), OdsError> {
+    let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
+    let sample = "2d0d3aca0b2ddd244ad34f2b11f5625cd2835141ca98ec025a54c2f2d10118.ods";
+
+    let mut buf = Vec::new();
+
+    let f = path.join(sample);
+    File::open(&f)?.read_to_end(&mut buf)?;
+
+    let read = BufReader::new(Cursor::new(&buf));
+    let wb = OdsOptions::default().read_ods(read)?;
+
+    let sh = wb.sheet(0);
+
+    dbg!(sh);
 
     Ok(())
 }
