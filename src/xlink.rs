@@ -1,10 +1,11 @@
 //! Enums for XLink.
 
-use loupe::MemoryUsage;
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use std::fmt::{Display, Formatter};
 
 /// See §5.6.2 of XLink.
-#[derive(Debug, Clone, Copy, MemoryUsage)]
+#[derive(Debug, Clone, Copy, GetSize)]
 pub enum XLinkActuate {
     ///
     OnLoad,
@@ -22,7 +23,7 @@ impl Display for XLinkActuate {
 }
 
 /// See §5.6.1 of XLink.
-#[derive(Debug, Clone, Copy, MemoryUsage)]
+#[derive(Debug, Clone, Copy, GetSize)]
 pub enum XLinkShow {
     ///
     New,
@@ -40,7 +41,7 @@ impl Display for XLinkShow {
 }
 
 /// See §3.2 of XLink.
-#[derive(Debug, Clone, Copy, Default, MemoryUsage)]
+#[derive(Debug, Clone, Copy, Default, GetSize)]
 pub enum XLinkType {
     ///
     #[default]

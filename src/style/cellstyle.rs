@@ -15,8 +15,9 @@ use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, text_position,
     StyleOrigin, StyleUse, TextStyleRef,
 };
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use icu_locid::Locale;
-use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 
 style_ref!(CellStyleRef);
@@ -46,7 +47,7 @@ style_ref!(CellStyleRef);
 ///
 /// ```
 ///
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub struct CellStyle {
     /// From where did we get this style.
     origin: StyleOrigin,

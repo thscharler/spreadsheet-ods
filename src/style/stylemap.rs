@@ -4,14 +4,15 @@
 
 use crate::condition::Condition;
 use crate::CellRef;
-use loupe::MemoryUsage;
+use get_size::GetSize;
+use get_size_derive::GetSize;
 
 /// A style-map is one way for conditional formatting of cells.
 ///
 /// It seems this is always translated into calcext:conditional-formats
 /// which seem to be the preferred way to deal with this. But it still
 /// works somewhat.
-#[derive(Clone, Debug, Default, MemoryUsage)]
+#[derive(Clone, Debug, Default, GetSize)]
 pub struct StyleMap {
     condition: String,
     applied_style: String,

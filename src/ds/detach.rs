@@ -1,17 +1,11 @@
-use loupe::{MemoryUsage, MemoryUsageTracker};
-use std::mem;
+use get_size::GetSize;
+use get_size_derive::GetSize;
 /// Allows to detach data and reattach it later.
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug)]
+#[derive(Debug, GetSize)]
 pub(crate) struct Detach<T> {
     val: Option<Box<T>>,
-}
-
-impl<T: MemoryUsage> MemoryUsage for Detach<T> {
-    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
-        mem::size_of_val(self) + self.val.size_of_val(tracker)
-    }
 }
 
 impl<T> Default for Detach<T> {

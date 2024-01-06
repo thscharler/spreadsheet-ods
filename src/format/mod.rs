@@ -55,9 +55,10 @@ use crate::style::{
     color_string, shadow_string, text_position, StyleOrigin, StyleUse, TextStyleRef,
 };
 use crate::{OdsError, ValueType};
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use icu_locid::subtags::{Language, Region, Script};
 use icu_locid::{LanguageIdentifier, Locale};
-use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -249,7 +250,7 @@ impl ValueFormatTimeDuration {
 }
 
 /// Identifies the structural parts of a value format.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, MemoryUsage)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, GetSize)]
 #[allow(missing_docs)]
 pub enum FormatPartType {
     Number,
@@ -274,7 +275,7 @@ pub enum FormatPartType {
 }
 
 /// One structural part of a value format.
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub struct FormatPart {
     /// What kind of format part is this?
     part_type: FormatPartType,

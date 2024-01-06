@@ -2,8 +2,8 @@
 
 use crate::xlink::{XLinkActuate, XLinkShow, XLinkType};
 use chrono::{Duration, NaiveDateTime};
-use loupe::{MemoryUsage, MemoryUsageTracker};
-use std::mem;
+use get_size::GetSize;
+use get_size_derive::GetSize;
 
 /// Metadata
 #[derive(Debug, Clone)]
@@ -69,24 +69,23 @@ pub struct Metadata {
     pub user_defined: Vec<MetaUserDefined>,
 }
 
-impl MemoryUsage for Metadata {
-    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
-        mem::size_of_val(self)
-            + self.generator.size_of_val(tracker)
-            + self.title.size_of_val(tracker)
-            + self.description.size_of_val(tracker)
-            + self.subject.size_of_val(tracker)
-            + self.keyword.size_of_val(tracker)
-            + self.initial_creator.size_of_val(tracker)
-            + self.creator.size_of_val(tracker)
-            + self.printed_by.size_of_val(tracker)
-            + self.language.size_of_val(tracker)
-            + self.editing_cycles.size_of_val(tracker)
-            + self.template.size_of_val(tracker)
-            + self.auto_reload.size_of_val(tracker)
-            + self.hyperlink_behaviour.size_of_val(tracker)
-            + self.document_statistics.size_of_val(tracker)
-            + self.user_defined.size_of_val(tracker)
+impl GetSize for Metadata {
+    fn get_heap_size(&self) -> usize {
+        self.generator.get_heap_size()
+            + self.title.get_heap_size()
+            + self.description.get_heap_size()
+            + self.subject.get_heap_size()
+            + self.keyword.get_heap_size()
+            + self.initial_creator.get_heap_size()
+            + self.creator.get_heap_size()
+            + self.printed_by.get_heap_size()
+            + self.language.get_heap_size()
+            + self.editing_cycles.get_heap_size()
+            + self.template.get_heap_size()
+            + self.auto_reload.get_heap_size()
+            + self.hyperlink_behaviour.get_heap_size()
+            + self.document_statistics.get_heap_size()
+            + self.user_defined.get_heap_size()
     }
 }
 
@@ -133,13 +132,12 @@ pub struct MetaTemplate {
     pub link_type: Option<XLinkType>,
 }
 
-impl MemoryUsage for MetaTemplate {
-    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
-        mem::size_of_val(self)
-            + self.actuate.size_of_val(tracker)
-            + self.href.size_of_val(tracker)
-            + self.title.size_of_val(tracker)
-            + self.link_type.size_of_val(tracker)
+impl GetSize for MetaTemplate {
+    fn get_heap_size(&self) -> usize {
+        self.actuate.get_heap_size()
+            + self.href.get_heap_size()
+            + self.title.get_heap_size()
+            + self.link_type.get_heap_size()
     }
 }
 
@@ -170,13 +168,12 @@ pub struct MetaAutoReload {
     pub link_type: Option<XLinkType>,
 }
 
-impl MemoryUsage for MetaAutoReload {
-    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
-        mem::size_of_val(self)
-            + self.actuate.size_of_val(tracker)
-            + self.href.size_of_val(tracker)
-            + self.show.size_of_val(tracker)
-            + self.link_type.size_of_val(tracker)
+impl GetSize for MetaAutoReload {
+    fn get_heap_size(&self) -> usize {
+        self.actuate.get_heap_size()
+            + self.href.get_heap_size()
+            + self.show.get_heap_size()
+            + self.link_type.get_heap_size()
     }
 }
 
@@ -192,7 +189,7 @@ impl MetaAutoReload {
 }
 
 /// Specifies the default behavior for hyperlinks in a document.
-#[derive(Debug, Default, Clone, MemoryUsage)]
+#[derive(Debug, Default, Clone, GetSize)]
 pub struct MetaHyperlinkBehaviour {
     /// The office:target-frame-name attribute specifies the name of a target frame.
     /// The defined values for the office:target-frame-name attribute are:
@@ -220,7 +217,7 @@ impl MetaHyperlinkBehaviour {
 }
 
 /// Represents statistics about a document.
-#[derive(Debug, Default, Clone, MemoryUsage)]
+#[derive(Debug, Default, Clone, GetSize)]
 pub struct MetaDocumentStatistics {
     ///
     pub cell_count: u32,
@@ -233,7 +230,7 @@ pub struct MetaDocumentStatistics {
 }
 
 /// Specifies any additional user-defined metadata for a document.
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub struct MetaUserDefined {
     /// Name
     pub name: String,
@@ -265,15 +262,14 @@ pub enum MetaValue {
     String(String),
 }
 
-impl MemoryUsage for MetaValue {
-    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
-        mem::size_of_val(self)
-            + match self {
-                MetaValue::Boolean(_) => 0,
-                MetaValue::Datetime(_) => 0,
-                MetaValue::Float(_) => 0,
-                MetaValue::TimeDuration(_) => 0,
-                MetaValue::String(v) => v.size_of_val(tracker),
-            }
+impl GetSize for MetaValue {
+    fn get_heap_size(&self) -> usize {
+        match self {
+            MetaValue::Boolean(_) => 0,
+            MetaValue::Datetime(_) => 0,
+            MetaValue::Float(_) => 0,
+            MetaValue::TimeDuration(_) => 0,
+            MetaValue::String(v) => v.get_heap_size(),
+        }
     }
 }

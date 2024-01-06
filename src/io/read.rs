@@ -187,6 +187,7 @@ pub fn read_fods<P: AsRef<Path>>(path: P) -> Result<WorkBook, OdsError> {
 struct OdsContext {
     book: WorkBook,
 
+    #[allow(dead_code)]
     content_only: bool,
     use_repeat_for_cells: bool,
     ignore_empty_cells: bool,
