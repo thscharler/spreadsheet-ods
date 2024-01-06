@@ -37,7 +37,8 @@ use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
     ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, MasterPageRef, PageStyle,
-    ParagraphStyle, RowStyle, RubyStyle, Style, StyleOrigin, StyleUse, TableStyle, TextStyle,
+    ParagraphStyle, RowStyle, RubyStyle, Style, StyleOrigin, StyleRef, StyleUse, TableStyle,
+    TextStyle,
 };
 use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
@@ -1094,7 +1095,7 @@ fn read_table_attr(
             attr if attr.key.as_ref() == b"table:style-name" => {
                 let n = attr.decode_and_unescape_value(xml)?;
                 if let Some(r) = ctx.book.tablestyle_ref(n.as_ref()) {
-                    sheet.set_style(r)
+                    sheet.set_style(&r)
                 } else {
                     // todo:
                 }
@@ -1294,9 +1295,9 @@ fn read_table_cell(
 
     // find default-cell-style for this column.
     let default_cellstyle = if let Some(ch) = sheet.valid_col_header(col) {
-        ch.cellstyle
+        ch.cellstyle.as_option()
     } else {
-        Default::default()
+        None
     };
 
     let mut tc = ReadTableCell {
@@ -1407,8 +1408,8 @@ fn read_table_cell(
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
                 let name = attr.decode_and_unescape_value(xml)?;
-                let sref = ctx.book.cellstyle_ref(name.as_ref());
-                cell.get_or_insert_with(CellData::default).style = sref.into();
+                let sref = ctx.book.cellstyle_ref(name.as_ref()).expect("style");
+                cell.get_or_insert_with(CellData::default).style = sref;
             }
             attr => {
                 unused_attr("read_table_cell2", super_tag.name().as_ref(), &attr)?;
@@ -1480,7 +1481,11 @@ fn read_table_cell(
 }
 
 #[inline]
-fn ignore_cell(ctx: &mut OdsContext, default_cellstyle: CellStyleRef, cell: &CellData) -> bool {
+fn ignore_cell(
+    ctx: &mut OdsContext,
+    default_cellstyle: Option<&CellStyleRef>,
+    cell: &CellData,
+) -> bool {
     if cell.is_void(default_cellstyle) {
         true
     } else if ctx.ignore_empty_cells && cell.is_empty() {

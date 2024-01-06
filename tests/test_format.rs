@@ -99,20 +99,20 @@ fn write_format() -> Result<(), OdsError> {
     let f8 = wb.add_cellstyle(CellStyle::new("f8", &v8));
 
     let mut sh = Sheet::new("1");
-    sh.set_styled_value(0, 0, 1.234567f64, f1);
-    sh.set_styled_value(1, 0, 1.234567f64, f2);
-    sh.set_styled_value(2, 0, 1.234567f64, f3);
-    sh.set_styled_value(2, 1, 1.234567f64, f31);
-    sh.set_styled_value(3, 0, 1.234567f64, f4);
-    sh.set_styled_value(4, 0, 1.234567f64, f5);
-    sh.set_styled_value(6, 0, 1.234567f64, f6);
+    sh.set_styled_value(0, 0, 1.234567f64, &f1);
+    sh.set_styled_value(1, 0, 1.234567f64, &f2);
+    sh.set_styled_value(2, 0, 1.234567f64, &f3);
+    sh.set_styled_value(2, 1, 1.234567f64, &f31);
+    sh.set_styled_value(3, 0, 1.234567f64, &f4);
+    sh.set_styled_value(4, 0, 1.234567f64, &f5);
+    sh.set_styled_value(6, 0, 1.234567f64, &f6);
     sh.set_styled_value(
         7,
         0,
         NaiveDateTime::from_timestamp_opt(1_223_222_222, 22992).unwrap(),
-        f7,
+        &f7,
     );
-    sh.set_styled_value(8, 0, 1.234567f64, f8);
+    sh.set_styled_value(8, 0, 1.234567f64, &f8);
 
     wb.push_sheet(sh);
     let path = std::path::Path::new("test_out/test_format.ods");

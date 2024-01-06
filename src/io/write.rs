@@ -1479,8 +1479,9 @@ fn write_sheet(
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table")?;
     xml_out.attr_esc("table:name", &sheet.name)?;
-    if let Some(style) = &sheet.style {
-        xml_out.attr_esc("table:style-name", style)?;
+    if !sheet.style.is_empty() {
+        let style = book.tablestyle(sheet.style).expect("style");
+        xml_out.attr_esc("table:style-name", style.name())?;
     }
     if let Some(print_ranges) = &sheet.print_ranges {
         xml_out.attr_esc("table:print-ranges", &format_cellranges(print_ranges))?;
@@ -2045,7 +2046,8 @@ fn write_cell(
     if !cell.style.is_empty() {
         let style = book.cellstyle(*cell.style).expect("style");
         xml_out.attr_esc("table:style-name", style.name())?;
-    } else if let Some(style) = book.def_style(cell.value.value_type()) {
+    } else if let Some(style_ref) = book.def_style(cell.value.value_type()) {
+        let style = book.cellstyle(*style_ref).expect("style");
         xml_out.attr_esc("table:style-name", style.name())?;
     }
 

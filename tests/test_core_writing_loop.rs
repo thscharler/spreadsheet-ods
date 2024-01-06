@@ -242,9 +242,9 @@ fn test_void() -> Result<(), OdsError> {
     sh.set_value(1, 0, Value::Empty);
 
     // default-cellstyle should be ignored
-    sh.set_col_cellstyle(1, s_0);
-    sh.set_styled(1, 1, "text", s_0);
-    sh.set_cellstyle(2, 1, s_0);
+    sh.set_col_cellstyle(1, &s_0);
+    sh.set_styled(1, 1, "text", &s_0);
+    sh.set_cellstyle(2, 1, &s_0);
 
     wb.push_sheet(sh);
 

@@ -112,7 +112,7 @@ impl fmt::Debug for WorkBook {
         for s in self.fonts.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.tablestyles.iter() {
+        for s in self.tablestyles.values() {
             writeln!(f, "{:?}", s)?;
         }
         for s in self.rowstyles.values() {
@@ -121,7 +121,7 @@ impl fmt::Debug for WorkBook {
         for s in self.colstyles.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.cellstyles.iter() {
+        for s in self.cellstyles.values() {
             writeln!(f, "{:?}", s)?;
         }
         for s in self.paragraphstyles.values() {
@@ -217,7 +217,7 @@ fn auto_complete<S>(
     style_refs: &HashMap<String, S::RefType>,
 ) where
     S: Style,
-    S::RefType: From<u32> + Copy,
+    S::RefType: Copy,
 {
     if style.name().is_empty() {
         let mut cnt = if let Some(n) = autonum.get(prefix) {
@@ -243,7 +243,7 @@ fn auto_complete<S>(
             .or_insert_with(|| 1);
 
         style.set_name(style_name);
-        style.set_style_ref(<S::RefType as From<u32>>::from(*nid));
+        style.set_style_ref(S::RefType::from_u32(*nid));
     } else if style.style_ref().is_empty() {
         // replace by style-name.
         let sref = if let Some(sref) = style_refs.get(style.name()) {
@@ -255,7 +255,7 @@ fn auto_complete<S>(
                 .and_modify(|v| *v = *v + 1)
                 .or_insert_with(|| 1);
 
-            <S::RefType as From<u32>>::from(*nid)
+            S::RefType::from_u32(*nid)
         };
         style.set_style_ref(sref);
     }
@@ -535,12 +535,8 @@ impl WorkBook {
     }
 
     /// Returns the default style name.
-    pub fn def_style(&self, value_type: ValueType) -> Option<&CellStyle> {
-        if let Some(sref) = self.def_styles.get(&value_type) {
-            self.cellstyle(*sref)
-        } else {
-            None
-        }
+    pub fn def_style(&self, value_type: ValueType) -> Option<&CellStyleRef> {
+        self.def_styles.get(&value_type)
     }
 
     /// Adds a font.

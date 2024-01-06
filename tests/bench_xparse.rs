@@ -6,6 +6,7 @@ use std::hint::black_box;
 use std::str::from_utf8_unchecked;
 use std::time::Instant;
 
+#[allow(dead_code)]
 // #[test]
 fn test_token() {
     let data: [&[u8]; 14] = [

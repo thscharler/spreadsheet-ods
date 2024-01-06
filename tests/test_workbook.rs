@@ -1,4 +1,3 @@
-use spreadsheet_ods::style::Style;
 use spreadsheet_ods::{CellStyle, Sheet, ValueType, WorkBook};
 
 #[test]
@@ -27,9 +26,6 @@ fn test_def_style() {
     let s_0 = wb.add_cellstyle(s_0);
 
     wb.add_def_style(ValueType::Number, s_0);
-    assert_eq!(
-        wb.def_style(ValueType::Number).map(|v| v.style_ref()),
-        Some(s_0)
-    );
+    assert_eq!(wb.def_style(ValueType::Number), Some(&s_0));
     assert!(wb.def_style(ValueType::Text).is_none());
 }

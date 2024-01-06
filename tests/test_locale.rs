@@ -20,7 +20,7 @@ pub fn test_locale1() -> Result<(), OdsError> {
     let s0 = CellStyle::new("s0", v0.as_ref());
     let s0 = wb.add_cellstyle(s0);
 
-    sheet.set_styled_value(1, 1, 47.11f64, s0);
+    sheet.set_styled_value(1, 1, 47.11f64, &s0);
 
     wb.push_sheet(sheet);
 
@@ -34,14 +34,14 @@ pub fn test_locale2() -> Result<(), OdsError> {
     let mut wb = WorkBook::new(Locale::UND);
     let mut sheet = Sheet::new("sheet1");
 
-    sheet.set_styled_value(1, 1, 1234, DefaultStyle::bool(&wb));
-    sheet.set_styled_value(2, 1, 1234, DefaultStyle::number(&wb));
-    sheet.set_styled_value(3, 1, 1234, DefaultStyle::percent(&wb));
-    sheet.set_styled_value(4, 1, 1234, DefaultStyle::currency(&wb));
-    sheet.set_styled_value(5, 1, 1234, DefaultStyle::date(&wb));
-    sheet.set_styled_value(6, 1, 1234, DefaultStyle::datetime(&wb));
-    sheet.set_styled_value(7, 1, 1234, DefaultStyle::time_of_day(&wb));
-    sheet.set_styled_value(8, 1, 1234, DefaultStyle::time_interval(&wb));
+    sheet.set_styled_value(1, 1, 1234, &DefaultStyle::bool(&wb));
+    sheet.set_styled_value(2, 1, 1234, &DefaultStyle::number(&wb));
+    sheet.set_styled_value(3, 1, 1234, &DefaultStyle::percent(&wb));
+    sheet.set_styled_value(4, 1, 1234, &DefaultStyle::currency(&wb));
+    sheet.set_styled_value(5, 1, 1234, &DefaultStyle::date(&wb));
+    sheet.set_styled_value(6, 1, 1234, &DefaultStyle::datetime(&wb));
+    sheet.set_styled_value(7, 1, 1234, &DefaultStyle::time_of_day(&wb));
+    sheet.set_styled_value(8, 1, 1234, &DefaultStyle::time_interval(&wb));
 
     wb.push_sheet(sheet);
 
@@ -92,19 +92,24 @@ pub fn test_locale4() -> Result<(), OdsError> {
     let mut wb = WorkBook::new(locale!("en_GB"));
     let mut sheet = Sheet::new("sheet1");
 
-    sheet.set_styled_value(1, 1, Value::Boolean(true), DefaultStyle::bool(&wb));
-    sheet.set_styled_value(2, 1, Value::Number(1234.5678f64), DefaultStyle::number(&wb));
+    sheet.set_styled_value(1, 1, Value::Boolean(true), &DefaultStyle::bool(&wb));
+    sheet.set_styled_value(
+        2,
+        1,
+        Value::Number(1234.5678f64),
+        &DefaultStyle::number(&wb),
+    );
     sheet.set_styled_value(
         3,
         1,
         Value::Percentage(1234.5678f64),
-        DefaultStyle::percent(&wb),
+        &DefaultStyle::percent(&wb),
     );
     sheet.set_styled_value(
         4,
         1,
         Value::new_currency("GBP", 1234.5678f64),
-        DefaultStyle::currency(&wb),
+        &DefaultStyle::currency(&wb),
     );
     sheet.set_styled_value(
         5,
@@ -115,7 +120,7 @@ pub fn test_locale4() -> Result<(), OdsError> {
                 .and_hms_opt(0, 0, 0)
                 .unwrap(),
         ),
-        DefaultStyle::date(&wb),
+        &DefaultStyle::date(&wb),
     );
     sheet.set_styled_value(
         6,
@@ -126,7 +131,7 @@ pub fn test_locale4() -> Result<(), OdsError> {
                 .and_hms_opt(1, 2, 3)
                 .unwrap(),
         ),
-        DefaultStyle::datetime(&wb),
+        &DefaultStyle::datetime(&wb),
     );
     sheet.set_styled_value(
         7,
@@ -137,13 +142,13 @@ pub fn test_locale4() -> Result<(), OdsError> {
                 .and_hms_opt(1, 2, 3)
                 .unwrap(),
         ),
-        DefaultStyle::time_of_day(&wb),
+        &DefaultStyle::time_of_day(&wb),
     );
     sheet.set_styled_value(
         8,
         1,
         Value::TimeDuration(Duration::hours(1234)),
-        DefaultStyle::time_interval(&wb),
+        &DefaultStyle::time_interval(&wb),
     );
 
     wb.push_sheet(sheet);

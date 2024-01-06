@@ -171,22 +171,6 @@ macro_rules! style_ref2 {
             }
         }
 
-        impl From<u32> for $l {
-            fn from(id: u32) -> $l {
-                Self { id }
-            }
-        }
-
-        impl From<Option<$l>> for $l {
-            fn from(sref: Option<$l>) -> $l {
-                if let Some(sref) = sref {
-                    sref
-                } else {
-                    Default::default()
-                }
-            }
-        }
-
         impl Display for $l {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{}", self.id)
@@ -196,6 +180,19 @@ macro_rules! style_ref2 {
         impl StyleRef for $l {
             fn is_empty(&self) -> bool {
                 self.id == 0
+            }
+
+            /// Express is_empty as Option
+            fn as_option(&self) -> Option<&Self> {
+                if !self.is_empty() {
+                    Some(self)
+                } else {
+                    None
+                }
+            }
+
+            fn from_u32(id: u32) -> Self {
+                Self { id }
             }
 
             fn as_usize(&self) -> usize {

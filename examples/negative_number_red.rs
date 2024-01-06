@@ -52,8 +52,8 @@ fn negative_numbers_red() -> OdsResult<()> {
 
     let mut sheet = Sheet::new("sample");
 
-    sheet.set_styled_value(0, 0, 723, s_number);
-    sheet.set_styled_value(1, 0, -723, s_number);
+    sheet.set_styled_value(0, 0, 723, &s_number);
+    sheet.set_styled_value(1, 0, -723, &s_number);
 
     wb.push_sheet(sheet);
 

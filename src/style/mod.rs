@@ -145,6 +145,12 @@ pub trait StyleRef: Sized {
     /// undefined reference
     fn is_empty(&self) -> bool;
 
+    ///
+    fn as_option(&self) -> Option<&Self>;
+
+    ///
+    fn from_u32(id: u32) -> Self;
+
     /// get the base index.
     fn as_usize(&self) -> usize;
 }

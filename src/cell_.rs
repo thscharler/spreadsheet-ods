@@ -138,15 +138,24 @@ impl CellData {
     }
 
     /// Holds no useful data at all.
-    pub(crate) fn is_void(&self, default_cellstyle: CellStyleRef) -> bool {
+    pub(crate) fn is_void(&self, default_cellstyle: Option<&CellStyleRef>) -> bool {
         if self.value != Value::Empty {
             return false;
         }
         if self.formula.is_some() {
             return false;
         }
-        if !self.style.is_empty() && self.style != default_cellstyle {
-            return false;
+        if !self.style.is_empty() {
+            if let Some(default) = default_cellstyle {
+                if &self.style != default {
+                    return false;
+                } else {
+                    // equal default
+                }
+            } else {
+                // not the default (None)
+                return false;
+            }
         }
         self.is_void_extra()
     }
@@ -312,8 +321,8 @@ impl<'a> CellContentRef<'a> {
 
     /// Returns the cell style.
     #[inline]
-    pub fn style(&self) -> CellStyleRef {
-        *self.style
+    pub fn style(&self) -> &'a CellStyleRef {
+        self.style
     }
 
     /// Returns the repeat count.
@@ -491,14 +500,14 @@ impl CellContent {
 
     /// Returns the cell style.
     #[inline]
-    pub fn style(&self) -> CellStyleRef {
-        self.style
+    pub fn style(&self) -> &CellStyleRef {
+        &self.style
     }
 
     /// Sets the cell style.
     #[inline]
-    pub fn set_style(&mut self, style: CellStyleRef) {
-        self.style = style;
+    pub fn set_style(&mut self, style: &CellStyleRef) {
+        self.style = style.clone();
     }
 
     /// Removes the style.

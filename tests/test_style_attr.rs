@@ -365,9 +365,9 @@ fn test_stylemap() -> Result<(), OdsError> {
     let ce13 = wb.add_cellstyle(ce13);
 
     let mut sh = Sheet::new("s0");
-    sh.set_styled_value(4, 3, "AA", ce13);
-    sh.set_styled_value(5, 3, "BB", ce13);
-    sh.set_styled_value(6, 3, "CC", ce13);
+    sh.set_styled_value(4, 3, "AA", &ce13);
+    sh.set_styled_value(5, 3, "BB", &ce13);
+    sh.set_styled_value(6, 3, "CC", &ce13);
 
     wb.push_sheet(sh);
 
