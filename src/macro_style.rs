@@ -160,7 +160,7 @@ macro_rules! styles_styles2 {
 macro_rules! style_ref2 {
     ($l:ident) => {
         /// Reference
-        #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, MemoryUsage)]
+        #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, GetSize)]
         pub struct $l {
             id: u32,
         }
@@ -170,40 +170,6 @@ macro_rules! style_ref2 {
                 Self { id: 0 }
             }
         }
-
-        // impl From<String> for $l {
-        //     fn from(name: String) -> Self {
-        //         Self { name }
-        //     }
-        // }
-        //
-        // impl From<&String> for $l {
-        //     fn from(name: &String) -> Self {
-        //         Self {
-        //             name: name.to_string(),
-        //         }
-        //     }
-        // }
-        //
-        // impl From<&str> for $l {
-        //     fn from(name: &str) -> Self {
-        //         Self {
-        //             name: name.to_string(),
-        //         }
-        //     }
-        // }
-        //
-        // impl From<$l> for String {
-        //     fn from(name: $l) -> Self {
-        //         name.name
-        //     }
-        // }
-        //
-        // impl AsRef<$l> for $l {
-        //     fn as_ref(&self) -> &$l {
-        //         self
-        //     }
-        // }
 
         impl From<u32> for $l {
             fn from(id: u32) -> $l {

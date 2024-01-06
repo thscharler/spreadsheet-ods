@@ -1,14 +1,14 @@
 use crate::text::TextTag;
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
-use loupe::{MemoryUsage, MemoryUsageTracker};
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use std::borrow::Cow;
-use std::mem;
 
 /// Datatypes for the values. Only the discriminants of the Value enum.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, MemoryUsage)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, GetSize)]
 #[allow(missing_docs)]
 pub enum ValueType {
     Empty,
@@ -38,20 +38,19 @@ pub enum Value {
     TimeDuration(Duration),
 }
 
-impl MemoryUsage for Value {
-    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
-        mem::size_of_val(self)
-            + match self {
-                Value::Empty => 0,
-                Value::Boolean(_) => 0,
-                Value::Number(_) => 0,
-                Value::Percentage(_) => 0,
-                Value::Currency(_, v) => v.size_of_val(tracker),
-                Value::Text(v) => v.size_of_val(tracker),
-                Value::TextXml(v) => v.size_of_val(tracker),
-                Value::DateTime(_) => 0,
-                Value::TimeDuration(_) => 0,
-            }
+impl GetSize for Value {
+    fn get_heap_size(&self) -> usize {
+        match self {
+            Value::Empty => 0,
+            Value::Boolean(_) => 0,
+            Value::Number(_) => 0,
+            Value::Percentage(_) => 0,
+            Value::Currency(_, v) => v.get_heap_size(),
+            Value::Text(v) => v.get_heap_size(),
+            Value::TextXml(v) => v.get_heap_size(),
+            Value::DateTime(_) => 0,
+            Value::TimeDuration(_) => 0,
+        }
     }
 }
 

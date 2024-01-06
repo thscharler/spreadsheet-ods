@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use get_size::GetSize;
 use std::fs::File;
 use std::io::{BufReader, Cursor, Read};
 use std::path::Path;
@@ -139,7 +140,7 @@ fn run_samples(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Resul
                         name: t1.name.clone(),
                         file_size: f.metadata()?.len(),
                         cell_count,
-                        mem_size: loupe::size_of_val(&wb),
+                        mem_size: wb.get_size(),
                         ..Sample::default()
                     });
                 }
@@ -197,33 +198,11 @@ fn run_sample(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Result
             name: t1.name.clone(),
             file_size: f.metadata()?.len(),
             cell_count,
-            mem_size: loupe::size_of_val(&wb),
-            sheet_size: loupe::size_of_val(&wb.iter_sheets().collect::<Vec<_>>()),
+            mem_size: wb.get_size(),
+            sheet_size: wb.iter_sheets().collect::<Vec<_>>().get_size(),
             col_header: wb.iter_sheets().map(|v| v._col_header_len()).sum(),
             row_header: wb.iter_sheets().map(|v| v._row_header_len()).sum(),
-            metadata: loupe::size_of_val(&wb.iter_fonts().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_table_styles().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_rowstyles().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_colstyles().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_cellstyles().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_paragraphstyles().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_textstyles().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_rubystyles().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_graphicstyles().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_boolean_formats().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_number_formats().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_percentage_formats().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_currency_formats().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_text_formats().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_datetime_formats().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_timeduration_formats().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_number_formats().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_pagestyles().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_masterpages().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.iter_validations().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.config())
-                + loupe::size_of_val(&wb.iter_manifest().collect::<Vec<_>>())
-                + loupe::size_of_val(&wb.metadata()),
+            metadata: 0,
         });
     }
 
@@ -243,9 +222,9 @@ fn run_dump() -> Result<(), OdsError> {
     let read = BufReader::new(Cursor::new(&buf));
     let wb = OdsOptions::default().read_ods(read)?;
 
-    let sh = wb.sheet(0);
+    let _sh = wb.sheet(0);
 
-    dbg!(sh);
+    // dbg!(sh);
 
     Ok(())
 }

@@ -7,14 +7,15 @@ use crate::color::Rgb;
 use crate::style::color_string;
 use crate::style::units::{Length, LineStyle, LineType, LineWidth, TabStopType};
 use crate::style::TextStyleRef;
-use loupe::MemoryUsage;
+use get_size::GetSize;
+use get_size_derive::GetSize;
 
 /// The <style:tab-stops> element is a container for <style:tab-stop> elements.
 /// If a style contains a <style:tab-stops> element, it overrides the entire <style:tab-stops>
 /// element of the parent style such that no <style:tab-stop> children are inherited; otherwise,
 /// the style inherits the entire <style:tab-stops> element as specified in section 16.2
 /// <style:style>.
-#[derive(Clone, Debug, Default, MemoryUsage)]
+#[derive(Clone, Debug, Default, GetSize)]
 pub struct TabStop {
     attr: AttrMap2,
 }

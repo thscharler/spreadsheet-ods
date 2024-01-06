@@ -1,4 +1,5 @@
-use loupe::MemoryUsage;
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use std::fmt::{Display, Formatter};
 
 use crate::attrmap2::AttrMap2;
@@ -13,7 +14,7 @@ style_ref!(ColStyleRef);
 /// Hardly ever used. It's easier to set the col_width via
 /// Sheet::set_col_width
 ///
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub struct ColStyle {
     /// From where did we get this style.
     origin: StyleOrigin,

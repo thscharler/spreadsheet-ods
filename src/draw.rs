@@ -10,8 +10,8 @@ use crate::xlink::{XLinkActuate, XLinkShow, XLinkType};
 use crate::{CellRef, Length, OdsError};
 use base64::Engine;
 use chrono::NaiveDateTime;
-use loupe::{MemoryUsage, MemoryUsageTracker};
-use std::mem;
+use get_size::GetSize;
+use get_size_derive::GetSize;
 
 /// The <office:annotation> element specifies an OpenDocument annotation. The annotation's
 /// text is contained in <text:p> and <text:list> elements.
@@ -29,13 +29,12 @@ pub struct Annotation {
     attr: AttrMap2,
 }
 
-impl MemoryUsage for Annotation {
-    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
-        mem::size_of_val(self)
-            + self.name.size_of_val(tracker)
-            + self.creator.size_of_val(tracker)
-            + self.text.size_of_val(tracker)
-            + self.attr.size_of_val(tracker)
+impl GetSize for Annotation {
+    fn get_heap_size(&self) -> usize {
+        self.name.get_heap_size()
+            + self.creator.get_heap_size()
+            + self.text.get_heap_size()
+            + self.attr.get_heap_size()
     }
 }
 
@@ -226,7 +225,7 @@ impl Annotation {
 /// The <draw:frame> element represents a frame and serves as the container for elements that
 /// may occur in a frame.
 /// Frame formatting properties are stored in styles belonging to the graphic family.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, GetSize)]
 pub struct DrawFrame {
     /// The <svg:title> element specifies a name for a graphic object.
     title: Option<String>,
@@ -239,18 +238,8 @@ pub struct DrawFrame {
     content: Vec<DrawFrameContent>,
 }
 
-impl MemoryUsage for DrawFrame {
-    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
-        mem::size_of_val(self)
-            + self.title.size_of_val(tracker)
-            + self.desc.size_of_val(tracker)
-            + self.attr.size_of_val(tracker)
-            + self.content.size_of_val(tracker)
-    }
-}
-
 /// Draw-frame content data.
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub enum DrawFrameContent {
     /// Image
     Image(DrawImage),
@@ -359,7 +348,7 @@ impl DrawFrame {
 /// image data.
 /// Note: While the image data may have an arbitrary format, vector graphics should
 /// be stored in the SVG format and bitmap graphics in the PNG format.
-#[derive(Debug, Clone, Default, MemoryUsage)]
+#[derive(Debug, Clone, Default, GetSize)]
 pub struct DrawImage {
     attr: AttrMap2,
     binary_data: Option<String>,

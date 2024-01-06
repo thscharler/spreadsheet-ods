@@ -2,10 +2,11 @@
 //!
 //! For unprocessed zip entries this also contains the actual bytes.
 
-use loupe::MemoryUsage;
+use get_size::GetSize;
+use get_size_derive::GetSize;
 
 /// A manifest entry.
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub struct Manifest {
     /// Path in the zip
     pub full_path: String,

@@ -254,7 +254,7 @@ fn test_void() -> Result<(), OdsError> {
     let wb = OdsOptions::default().use_repeat_for_cells().read_ods(f)?;
     let sh = wb.sheet(0);
 
-    dbg!(sh);
+    // dbg!(sh);
 
     assert!(sh.cell_ref(1, 0).is_none());
     assert!(sh.cell_ref(2, 1).is_none());
@@ -296,7 +296,7 @@ fn test_header_span() -> Result<(), OdsError> {
     assert_eq!(sh.row_visible(9), Visibility::Filtered);
     assert_eq!(sh.row_visible(10), Visibility::default());
 
-    dbg!(&sh);
+    // dbg!(&sh);
 
     Ok(())
 }

@@ -3,11 +3,12 @@ use crate::style::StyleRef;
 use crate::validation::ValidationRef;
 use crate::value_::Value;
 use crate::CellStyleRef;
-use loupe::MemoryUsage;
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use std::fmt::{Display, Formatter};
 
 /// A cell can span multiple rows/columns.
-#[derive(Debug, Clone, Copy, MemoryUsage)]
+#[derive(Debug, Clone, Copy, GetSize)]
 pub struct CellSpan {
     pub(crate) row_span: u32,
     pub(crate) col_span: u32,
@@ -82,7 +83,7 @@ impl CellSpan {
 }
 
 /// One Cell of the spreadsheet.
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub(crate) struct CellData {
     pub(crate) value: Value,
     // Unparsed formula string.
@@ -96,7 +97,7 @@ pub(crate) struct CellData {
 }
 
 /// Extra cell data.
-#[derive(Debug, Clone, Default, MemoryUsage)]
+#[derive(Debug, Clone, Default, GetSize)]
 pub(crate) struct CellDataExt {
     // Content validation name.
     pub(crate) validation_name: Option<String>,

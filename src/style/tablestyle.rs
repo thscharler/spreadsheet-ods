@@ -4,17 +4,18 @@ use crate::style::units::{
     Length, Margin, PageBreak, PageNumber, RelativeScale, TableAlign, TableBorderModel, TextKeep,
     WritingMode,
 };
-use crate::style::{
-    color_string, shadow_string, MasterPageRef, Style, StyleOrigin, StyleRef, StyleUse,
-};
-use loupe::MemoryUsage;
+use crate::style::Style;
+use crate::style::StyleRef;
+use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use std::fmt::{Display, Formatter};
 
 style_ref2!(TableStyleRef);
 
 /// Describes the style information for a table.
 ///
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub struct TableStyle {
     id: TableStyleRef,
     /// From where did we get this style.

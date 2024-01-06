@@ -3,10 +3,11 @@
 //!
 
 use crate::condition::ValueCondition;
-use loupe::MemoryUsage;
+use get_size::GetSize;
+use get_size_derive::GetSize;
 
 /// A style-map is one way for conditional formatting of value formats.
-#[derive(Clone, Debug, Default, MemoryUsage)]
+#[derive(Clone, Debug, Default, GetSize)]
 pub struct ValueStyleMap {
     condition: String,
     applied_style: String,
