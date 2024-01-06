@@ -102,7 +102,7 @@ fn printing() -> OdsResult<()> {
     let s_table = wb.add_tablestyle(s_table);
 
     let mut sh = Sheet::new("one");
-    sh.set_style(&s_table);
+    sh.set_style(s_table);
     sheet_data(&mut sh);
 
     // define print header

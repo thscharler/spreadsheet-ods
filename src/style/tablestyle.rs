@@ -4,16 +4,19 @@ use crate::style::units::{
     Length, Margin, PageBreak, PageNumber, RelativeScale, TableAlign, TableBorderModel, TextKeep,
     WritingMode,
 };
-use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
+use crate::style::{
+    color_string, shadow_string, MasterPageRef, Style, StyleOrigin, StyleRef, StyleUse,
+};
 use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 
-style_ref!(TableStyleRef);
+style_ref2!(TableStyleRef);
 
 /// Describes the style information for a table.
 ///
 #[derive(Debug, Clone, MemoryUsage)]
 pub struct TableStyle {
+    id: TableStyleRef,
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
@@ -26,12 +29,13 @@ pub struct TableStyle {
     tablestyle: AttrMap2,
 }
 
-styles_styles!(TableStyle, TableStyleRef);
+styles_styles2!(TableStyle, TableStyleRef);
 
 impl TableStyle {
     /// empty
     pub fn new_empty() -> Self {
         Self {
+            id: Default::default(),
             origin: Default::default(),
             styleuse: Default::default(),
             name: Default::default(),
@@ -43,6 +47,7 @@ impl TableStyle {
     /// Creates a new Style.
     pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
+            id: Default::default(),
             origin: Default::default(),
             styleuse: Default::default(),
             name: name.into(),

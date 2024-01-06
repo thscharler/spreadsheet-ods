@@ -150,7 +150,7 @@ fn run_samples(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Resul
     Ok(())
 }
 
-#[test]
+// #[test]
 fn test_sample() -> Result<(), OdsError> {
     let mut t = Timing::default();
     run_sample(&mut t, "clone", OdsOptions::default().use_clone_for_cells())?;

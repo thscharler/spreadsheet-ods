@@ -31,11 +31,11 @@ fn default_format() -> OdsResult<()> {
 
     // use predefined styles.
     // see: WorkBook::locale_settings() for details.
-    sheet.set_styled_value(0, 0, 1234, &DefaultStyle::number());
-    sheet.set_styled_value(1, 0, 1234, &DefaultStyle::bool());
-    sheet.set_styled_value(2, 0, 1234, &DefaultStyle::date());
-    sheet.set_styled_value(3, 0, 1234, &DefaultStyle::time_of_day());
-    sheet.set_styled_value(4, 0, 1234, &DefaultStyle::currency());
+    sheet.set_styled_value(0, 0, 1234, DefaultStyle::number(&wb));
+    sheet.set_styled_value(1, 0, 1234, DefaultStyle::bool(&wb));
+    sheet.set_styled_value(2, 0, 1234, DefaultStyle::date(&wb));
+    sheet.set_styled_value(3, 0, 1234, DefaultStyle::time_of_day(&wb));
+    sheet.set_styled_value(4, 0, 1234, DefaultStyle::currency(&wb));
 
     wb.push_sheet(sheet);
 
@@ -57,7 +57,7 @@ fn cell_style() -> OdsResult<()> {
 
     let mut sheet = Sheet::new("one");
 
-    sheet.set_styled_value(0, 0, 1234, &style_bold);
+    sheet.set_styled_value(0, 0, 1234, style_bold);
 
     wb.push_sheet(sheet);
 
@@ -102,9 +102,9 @@ fn number_format() -> OdsResult<()> {
     let s_2 = wb.add_cellstyle(s_2);
 
     let mut sheet = Sheet::new("one");
-    sheet.set_styled_value(0, 0, 12.34, &s_0);
-    sheet.set_styled_value(1, 0, 12.3456, &s_3);
-    sheet.set_styled_value(2, 0, 12.3456, &s_2);
+    sheet.set_styled_value(0, 0, 12.34, s_0);
+    sheet.set_styled_value(1, 0, 12.3456, s_3);
+    sheet.set_styled_value(2, 0, 12.3456, s_2);
 
     wb.push_sheet(sheet);
 

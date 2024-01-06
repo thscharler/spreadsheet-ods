@@ -216,7 +216,7 @@ fn test_iterator() {
     for r in 1..100 {
         for c in 1..10 {
             if r % c == 0 {
-                sh.set_styled_value(r, c, 4711, &"foo".into());
+                sh.set_value(r, c, 4711);
             }
         }
     }

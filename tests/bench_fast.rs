@@ -4,6 +4,7 @@ mod lib_test;
 
 use crate::lib_test::{Timing, Unit};
 use icu_locid::locale;
+use spreadsheet_ods::defaultstyles::DefaultStyle;
 use spreadsheet_ods::{
     read_ods, write_ods_buf, write_ods_buf_uncompressed, OdsError, Sheet, WorkBook,
 };
@@ -27,8 +28,9 @@ fn create_wb(rows: u32, cols: u32) -> Result<WorkBook, OdsError> {
             }
         }
         if r % 2 == 0 {
+            let s_0 = DefaultStyle::number(&wb);
             for c in 0..cols {
-                sh.set_cellstyle(r, c, &"s0".into());
+                sh.set_cellstyle(r, c, s_0);
             }
         }
         if r % 10 == 0 {

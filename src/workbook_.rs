@@ -20,7 +20,7 @@ use crate::sheet_::Sheet;
 use crate::style::{
     ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
     PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, RubyStyle,
-    RubyStyleRef, TableStyle, TableStyleRef, TextStyle, TextStyleRef,
+    RubyStyleRef, Style, StyleRef, TableStyle, TableStyleRef, TextStyle, TextStyleRef,
 };
 use crate::validation::{Validation, ValidationRef};
 use crate::value_::ValueType;
@@ -52,10 +52,12 @@ pub struct WorkBook {
     pub(crate) event_listener: HashMap<String, EventListener>,
 
     /// Styles hold the style:style elements.
-    pub(crate) tablestyles: HashMap<String, TableStyle>,
+    pub(crate) tablestyle_ref: HashMap<String, TableStyleRef>,
+    pub(crate) tablestyles: HashMap<TableStyleRef, TableStyle>,
     pub(crate) rowstyles: HashMap<String, RowStyle>,
     pub(crate) colstyles: HashMap<String, ColStyle>,
-    pub(crate) cellstyles: HashMap<String, CellStyle>,
+    pub(crate) cellstyle_ref: HashMap<String, CellStyleRef>,
+    pub(crate) cellstyles: HashMap<CellStyleRef, CellStyle>,
     pub(crate) paragraphstyles: HashMap<String, ParagraphStyle>,
     pub(crate) textstyles: HashMap<String, TextStyle>,
     pub(crate) rubystyles: HashMap<String, RubyStyle>,
@@ -73,7 +75,7 @@ pub struct WorkBook {
 
     /// Default-styles per Type.
     /// This is only used when writing the ods file.
-    pub(crate) def_styles: HashMap<ValueType, String>,
+    pub(crate) def_styles: HashMap<ValueType, CellStyleRef>,
 
     /// Page-layout data.
     pub(crate) pagestyles: HashMap<String, PageStyle>,
@@ -109,7 +111,7 @@ impl fmt::Debug for WorkBook {
         for s in self.fonts.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.tablestyles.values() {
+        for s in self.tablestyles.iter() {
             writeln!(f, "{:?}", s)?;
         }
         for s in self.rowstyles.values() {
@@ -118,7 +120,7 @@ impl fmt::Debug for WorkBook {
         for s in self.colstyles.values() {
             writeln!(f, "{:?}", s)?;
         }
-        for s in self.cellstyles.values() {
+        for s in self.cellstyles.iter() {
             writeln!(f, "{:?}", s)?;
         }
         for s in self.paragraphstyles.values() {
@@ -204,6 +206,60 @@ fn auto_style_name<T>(
     style_name
 }
 
+// Auto generate the style-name if missing.
+// Tries to find the style-id via the name, replacing the old style.
+// Otherwise creates a new id.
+fn auto_complete<S>(
+    autonum: &mut HashMap<String, u32>,
+    prefix: &'static str,
+    style: &mut S,
+    style_refs: &HashMap<String, S::RefType>,
+) where
+    S: Style,
+    S::RefType: From<u32> + Copy,
+{
+    if style.name().is_empty() {
+        let mut cnt = if let Some(n) = autonum.get(prefix) {
+            n + 1
+        } else {
+            0
+        };
+        // autonum is not perfect, there can always be preexisting styles with
+        // the generated name.
+        let style_name = loop {
+            let style_name = format!("{}{}", prefix, cnt);
+            if !style_refs.contains_key(&style_name) {
+                break style_name;
+            }
+            cnt += 1;
+        };
+        autonum.insert(prefix.to_string(), cnt);
+
+        let key_id = format!("{}_id", prefix);
+        let nid = autonum
+            .entry(key_id)
+            .and_modify(|v| *v = *v + 1)
+            .or_insert_with(|| 1);
+
+        style.set_name(style_name);
+        style.set_style_ref(<S::RefType as From<u32>>::from(*nid));
+    } else if style.style_ref().is_empty() {
+        // replace by style-name.
+        let sref = if let Some(sref) = style_refs.get(style.name()) {
+            *sref
+        } else {
+            let key_id = format!("{}_id", prefix);
+            let nid = autonum
+                .entry(key_id)
+                .and_modify(|v| *v = *v + 1)
+                .or_insert_with(|| 1);
+
+            <S::RefType as From<u32>>::from(*nid)
+        };
+        style.set_style_ref(sref);
+    }
+}
+
 impl Default for WorkBook {
     fn default() -> Self {
         WorkBook::new(locale!("en"))
@@ -222,9 +278,11 @@ impl WorkBook {
             autonum: Default::default(),
             scripts: Default::default(),
             event_listener: Default::default(),
+            tablestyle_ref: Default::default(),
             tablestyles: Default::default(),
             rowstyles: Default::default(),
             colstyles: Default::default(),
+            cellstyle_ref: Default::default(),
             cellstyles: Default::default(),
             paragraphstyles: Default::default(),
             textstyles: Default::default(),
@@ -281,45 +339,44 @@ impl WorkBook {
             self.add_timeduration_format(lf.time_interval_format());
         }
 
-        self.add_cellstyle(CellStyle::new(
-            DefaultStyle::bool().to_string(),
+        let sref = self.add_cellstyle(CellStyle::new(
+            DefaultStyle::BOOL.to_string(),
             &DefaultFormat::bool(),
         ));
-        self.add_cellstyle(CellStyle::new(
-            DefaultStyle::number().to_string(),
+        self.add_def_style(ValueType::Boolean, sref);
+        let sref = self.add_cellstyle(CellStyle::new(
+            DefaultStyle::NUMBER.to_string(),
             &DefaultFormat::number(),
         ));
-        self.add_cellstyle(CellStyle::new(
-            DefaultStyle::percent().to_string(),
+        self.add_def_style(ValueType::Number, sref);
+        let sref = self.add_cellstyle(CellStyle::new(
+            DefaultStyle::PERCENT.to_string(),
             &DefaultFormat::percent(),
         ));
-        self.add_cellstyle(CellStyle::new(
-            DefaultStyle::currency().to_string(),
+        self.add_def_style(ValueType::Percentage, sref);
+        let sref = self.add_cellstyle(CellStyle::new(
+            DefaultStyle::CURRENCY.to_string(),
             &DefaultFormat::currency(),
         ));
-        self.add_cellstyle(CellStyle::new(
-            DefaultStyle::date().to_string(),
+        self.add_def_style(ValueType::Currency, sref);
+        let sref = self.add_cellstyle(CellStyle::new(
+            DefaultStyle::DATE.to_string(),
             &DefaultFormat::date(),
         ));
-        self.add_cellstyle(CellStyle::new(
-            DefaultStyle::datetime().to_string(),
+        self.add_def_style(ValueType::DateTime, sref);
+        let _sref = self.add_cellstyle(CellStyle::new(
+            DefaultStyle::DATETIME.to_string(),
             &DefaultFormat::datetime(),
         ));
-        self.add_cellstyle(CellStyle::new(
-            DefaultStyle::time_of_day().to_string(),
+        let _sref = self.add_cellstyle(CellStyle::new(
+            DefaultStyle::TIME_OF_DAY.to_string(),
             &DefaultFormat::time_of_day(),
         ));
-        self.add_cellstyle(CellStyle::new(
-            DefaultStyle::time_interval().to_string(),
+        let sref = self.add_cellstyle(CellStyle::new(
+            DefaultStyle::TIME_INTERVAL.to_string(),
             &DefaultFormat::time_interval(),
         ));
-
-        self.add_def_style(ValueType::Boolean, &DefaultStyle::bool());
-        self.add_def_style(ValueType::Number, &DefaultStyle::number());
-        self.add_def_style(ValueType::Percentage, &DefaultStyle::percent());
-        self.add_def_style(ValueType::Currency, &DefaultStyle::currency());
-        self.add_def_style(ValueType::DateTime, &DefaultStyle::date());
-        self.add_def_style(ValueType::TimeDuration, &DefaultStyle::time_interval());
+        self.add_def_style(ValueType::TimeDuration, sref);
     }
 
     /// ODS version. Defaults to 1.3.
@@ -472,13 +529,17 @@ impl WorkBook {
 
     /// Adds a default-style for all new values.
     /// This information is only used when writing the data to the ODS file.
-    pub fn add_def_style(&mut self, value_type: ValueType, style: &CellStyleRef) {
-        self.def_styles.insert(value_type, style.to_string());
+    pub fn add_def_style(&mut self, value_type: ValueType, style: CellStyleRef) {
+        self.def_styles.insert(value_type, style);
     }
 
     /// Returns the default style name.
-    pub fn def_style(&self, value_type: ValueType) -> Option<&String> {
-        self.def_styles.get(&value_type)
+    pub fn def_style(&self, value_type: ValueType) -> Option<&CellStyle> {
+        if let Some(sref) = self.def_styles.get(&value_type) {
+            self.cellstyle(*sref)
+        } else {
+            None
+        }
     }
 
     /// Adds a font.
@@ -509,17 +570,19 @@ impl WorkBook {
     /// Adds a style.
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_tablestyle(&mut self, mut style: TableStyle) -> TableStyleRef {
-        if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "ta", &self.tablestyles));
-        }
+        auto_complete(&mut self.autonum, "ta", &mut style, &self.tablestyle_ref);
+
         let sref = style.style_ref();
-        self.tablestyles.insert(style.name().to_string(), style);
+        assert!(!sref.is_empty());
+        self.tablestyle_ref.insert(style.name().to_string(), sref);
+        self.tablestyles.insert(sref, style);
+
         sref
     }
 
     /// Removes a style.
-    pub fn remove_tablestyle(&mut self, name: &str) -> Option<TableStyle> {
-        self.tablestyles.remove(name)
+    pub fn remove_tablestyle(&mut self, style_ref: TableStyleRef) -> Option<TableStyle> {
+        self.tablestyles.remove(&style_ref)
     }
 
     /// Iterates the table-styles.
@@ -527,14 +590,19 @@ impl WorkBook {
         self.tablestyles.values()
     }
 
+    /// Gets the tablestyleref for the stylename
+    pub fn tablestyle_ref(&self, name: &str) -> Option<TableStyleRef> {
+        self.tablestyle_ref.get(name).copied()
+    }
+
     /// Returns the style.
-    pub fn tablestyle(&self, name: &str) -> Option<&TableStyle> {
-        self.tablestyles.get(name)
+    pub fn tablestyle(&self, style_ref: TableStyleRef) -> Option<&TableStyle> {
+        self.tablestyles.get(&style_ref)
     }
 
     /// Returns the mutable style.
-    pub fn tablestyle_mut(&mut self, name: &str) -> Option<&mut TableStyle> {
-        self.tablestyles.get_mut(name)
+    pub fn tablestyle_mut(&mut self, style_ref: TableStyleRef) -> Option<&mut TableStyle> {
+        self.tablestyles.get_mut(&style_ref)
     }
 
     /// Adds a style.
@@ -602,17 +670,19 @@ impl WorkBook {
     /// Adds a style.
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_cellstyle(&mut self, mut style: CellStyle) -> CellStyleRef {
-        if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "ce", &self.cellstyles));
-        }
+        auto_complete(&mut self.autonum, "ce", &mut style, &self.cellstyle_ref);
+
         let sref = style.style_ref();
-        self.cellstyles.insert(style.name().to_string(), style);
+        assert!(!sref.is_empty());
+        self.cellstyle_ref.insert(style.name().to_string(), sref);
+        self.cellstyles.insert(sref, style);
+
         sref
     }
 
     /// Removes a style.
-    pub fn remove_cellstyle(&mut self, name: &str) -> Option<CellStyle> {
-        self.cellstyles.remove(name)
+    pub fn remove_cellstyle(&mut self, style_ref: CellStyleRef) -> Option<CellStyle> {
+        self.cellstyles.remove(&style_ref)
     }
 
     /// Returns iterator over styles.
@@ -620,14 +690,19 @@ impl WorkBook {
         self.cellstyles.values()
     }
 
+    /// Gets the cellstyle-ref for the style name.
+    pub fn cellstyle_ref(&self, name: &str) -> Option<CellStyleRef> {
+        self.cellstyle_ref.get(name).copied()
+    }
+
     /// Returns the style.
-    pub fn cellstyle(&self, name: &str) -> Option<&CellStyle> {
-        self.cellstyles.get(name)
+    pub fn cellstyle(&self, style_ref: CellStyleRef) -> Option<&CellStyle> {
+        self.cellstyles.get(&style_ref)
     }
 
     /// Returns the mutable style.
-    pub fn cellstyle_mut(&mut self, name: &str) -> Option<&mut CellStyle> {
-        self.cellstyles.get_mut(name)
+    pub fn cellstyle_mut(&mut self, style_ref: CellStyleRef) -> Option<&mut CellStyle> {
+        self.cellstyles.get_mut(&style_ref)
     }
 
     /// Adds a style.

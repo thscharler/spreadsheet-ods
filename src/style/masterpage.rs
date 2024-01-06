@@ -35,7 +35,7 @@ style_ref!(MasterPageRef);
 /// let ts_ref = wb.add_tablestyle(ts);
 ///
 /// let mut sheet = Sheet::new("sheet 1");
-/// sheet.set_style(&ts_ref);
+/// sheet.set_style(ts_ref);
 /// ```
 #[derive(Clone, Debug, Default, MemoryUsage)]
 pub struct MasterPage {

@@ -12,14 +12,14 @@ use crate::style::units::{
     WritingDirection, WritingMode,
 };
 use crate::style::{
-    border_line_width_string, border_string, color_string, shadow_string, text_position,
-    StyleOrigin, StyleUse, TextStyleRef,
+    border_line_width_string, border_string, color_string, shadow_string, text_position, Style,
+    StyleOrigin, StyleRef, StyleUse, TextStyleRef,
 };
 use icu_locid::Locale;
 use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 
-style_ref!(CellStyleRef);
+style_ref2!(CellStyleRef);
 
 /// Describes the style information for a cell.
 ///
@@ -38,16 +38,18 @@ style_ref!(CellStyleRef);
 /// let ref_header = book.add_cellstyle(st_header);
 ///
 /// let mut sheet0 = Sheet::new("sheet 1");
-/// sheet0.set_styled_value(0,0, "title", &ref_header);
+/// sheet0.set_styled(0,0, "title", ref_header);
 ///
 /// // use a style defined later or elsewhere:
-/// let ref_some = CellStyleRef::from("some_else");
-/// sheet0.set_styled_value(1,0, "some", &ref_some);
+/// // panics if "some_else" is not defined.
+/// let ref_some = book.cellstyle_ref("some_else").expect("style");
+/// sheet0.set_styled(1,0, "some", ref_some);
 ///
 /// ```
 ///
 #[derive(Debug, Clone, MemoryUsage)]
 pub struct CellStyle {
+    id: CellStyleRef,
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
@@ -66,12 +68,13 @@ pub struct CellStyle {
     stylemaps: Option<Vec<StyleMap>>,
 }
 
-styles_styles!(CellStyle, CellStyleRef);
+styles_styles2!(CellStyle, CellStyleRef);
 
 impl CellStyle {
     /// Creates an empty style.
     pub fn new_empty() -> Self {
         Self {
+            id: Default::default(),
             origin: Default::default(),
             styleuse: Default::default(),
             name: Default::default(),
@@ -87,6 +90,7 @@ impl CellStyle {
     /// value format.
     pub fn new<S: Into<String>>(name: S, value_format: &ValueFormatRef) -> Self {
         let mut s = Self {
+            id: Default::default(),
             origin: Default::default(),
             styleuse: Default::default(),
             name: name.into(),

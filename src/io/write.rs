@@ -11,7 +11,8 @@ use crate::refs::{format_cellranges, CellRange};
 use crate::sheet::Visibility;
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
-    ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
+    ParagraphStyle, RowStyle, RubyStyle, Style, StyleOrigin, StyleRef, StyleUse, TableStyle,
+    TextStyle,
 };
 use crate::validation::ValidationDisplay;
 use crate::workbook::{EventListener, Script};
@@ -1506,7 +1507,7 @@ fn write_sheet(
 
     let max_cell = sheet.used_grid_size();
 
-    write_table_columns(sheet, max_cell, xml_out)?;
+    write_table_columns(book, sheet, max_cell, xml_out)?;
 
     // list of current spans
     let mut spans = Vec::<CellRange>::new();
@@ -1943,6 +1944,7 @@ fn write_empty_row(
 }
 
 fn write_table_columns(
+    book: &WorkBook,
     sheet: &Sheet,
     max_cell: (u32, u32),
     xml_out: &mut OdsXmlWriter<'_>,
@@ -1978,8 +1980,9 @@ fn write_table_columns(
             if let Some(style) = col_header.style.as_ref() {
                 xml_out.attr_esc("table:style-name", style)?;
             }
-            if let Some(cellstyle) = col_header.cellstyle.as_ref() {
-                xml_out.attr_esc("table:default-cell-style-name", cellstyle)?;
+            if !col_header.cellstyle.is_empty() {
+                let style = book.cellstyle(col_header.cellstyle).expect("style");
+                xml_out.attr_esc("table:default-cell-style-name", style.name())?;
             }
             if col_header.visible != Visibility::Visible {
                 xml_out.attr_esc("table:visibility", &col_header.visible)?;
@@ -2039,10 +2042,11 @@ fn write_cell(
     }
 
     // Direct style oder value based default style.
-    if let Some(style) = cell.style {
-        xml_out.attr_esc("table:style-name", style)?;
+    if !cell.style.is_empty() {
+        let style = book.cellstyle(*cell.style).expect("style");
+        xml_out.attr_esc("table:style-name", style.name())?;
     } else if let Some(style) = book.def_style(cell.value.value_type()) {
-        xml_out.attr_esc("table:style-name", style)?;
+        xml_out.attr_esc("table:style-name", style.name())?;
     }
 
     // Content validation
