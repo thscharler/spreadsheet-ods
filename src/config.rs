@@ -5,10 +5,10 @@
 /// SheetConfig which are more accessible.
 ///
 use crate::HashMap;
-use std::mem;
+use get_size::GetSize;
 
 use chrono::NaiveDateTime;
-use loupe::{MemoryUsage, MemoryUsageTracker};
+use get_size_derive::GetSize;
 
 /// The possible value types for the configuration.
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
@@ -23,19 +23,18 @@ pub(crate) enum ConfigValue {
     String(String),
 }
 
-impl MemoryUsage for ConfigValue {
-    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
-        mem::size_of_val(self)
-            + match self {
-                ConfigValue::Base64Binary(v) => v.size_of_val(tracker),
-                ConfigValue::Boolean(_) => 0,
-                ConfigValue::DateTime(_) => 0,
-                ConfigValue::Double(_) => 0,
-                ConfigValue::Int(_) => 0,
-                ConfigValue::Long(_) => 0,
-                ConfigValue::Short(_) => 0,
-                ConfigValue::String(v) => v.size_of_val(tracker),
-            }
+impl GetSize for ConfigValue {
+    fn get_heap_size(&self) -> usize {
+        match self {
+            ConfigValue::Base64Binary(v) => v.get_heap_size(),
+            ConfigValue::Boolean(_) => 0,
+            ConfigValue::DateTime(_) => 0,
+            ConfigValue::Double(_) => 0,
+            ConfigValue::Int(_) => 0,
+            ConfigValue::Long(_) => 0,
+            ConfigValue::Short(_) => 0,
+            ConfigValue::String(v) => v.get_heap_size(),
+        }
     }
 }
 
@@ -98,7 +97,7 @@ impl From<i64> for ConfigValue {
 /// Configuration mappings.
 ///
 /// It behaves like a map, but the insertion order is retained.
-#[derive(Debug, Clone, PartialEq, MemoryUsage)]
+#[derive(Debug, Clone, PartialEq, GetSize)]
 pub(crate) struct ConfigMap {
     key_index: HashMap<String, usize>,
     values: Vec<(String, ConfigItem)>,
@@ -245,7 +244,7 @@ impl PartialEq<ConfigItemType> for ConfigItem {
 }
 
 /// Unifies values and sets of values. The branch structure of the tree.
-#[derive(Debug, Clone, PartialEq, MemoryUsage)]
+#[derive(Debug, Clone, PartialEq, GetSize)]
 pub(crate) enum ConfigItem {
     Value(ConfigValue),
     Set(ConfigMap),
@@ -483,7 +482,7 @@ impl ConfigItem {
 }
 
 /// Basic wrapper around a ConfigSet. Root of the config tree.
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub(crate) struct Config {
     config: ConfigItem,
 }

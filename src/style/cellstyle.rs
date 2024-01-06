@@ -16,12 +16,12 @@ use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, text_position,
     StyleOrigin, StyleUse, TextStyleRef,
 };
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use icu_locid::Locale;
-use loupe::{MemoryUsage, MemoryUsageTracker};
 use smol_str::SmolStr;
 use std::borrow::Borrow;
 use std::fmt::{Display, Formatter};
-use std::mem;
 
 style_ref2!(CellStyleRef);
 
@@ -50,13 +50,14 @@ style_ref2!(CellStyleRef);
 ///
 /// ```
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, GetSize)]
 pub struct CellStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
     styleuse: StyleUse,
     /// Style name.
+    #[get_size(size_fn = size_of_smolstr)]
     name: SmolStr,
     /// General attributes.
     attr: AttrMap2,
@@ -68,18 +69,6 @@ pub struct CellStyle {
     textstyle: AttrMap2,
     /// Style maps
     stylemaps: Option<Vec<StyleMap>>,
-}
-
-impl MemoryUsage for CellStyle {
-    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
-        mem::size_of_val(self)
-            + size_of_smolstr(&self.name)
-            + self.attr.size_of_val(tracker)
-            + self.cellstyle.size_of_val(tracker)
-            + self.paragraphstyle.size_of_val(tracker)
-            + self.textstyle.size_of_val(tracker)
-            + self.stylemaps.size_of_val(tracker)
-    }
 }
 
 styles_styles2!(CellStyle, CellStyleRef);

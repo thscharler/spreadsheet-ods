@@ -6,8 +6,9 @@ use crate::style::units::{
     TextDisplay, TextEmphasize, TextEmphasizePosition, TextPosition, TextRelief, TextTransform,
 };
 use crate::style::{color_string, shadow_string, text_position, StyleOrigin, StyleUse};
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use icu_locid::Locale;
-use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 
 style_ref!(TextStyleRef);
@@ -15,7 +16,7 @@ style_ref!(TextStyleRef);
 /// Text style.
 /// This is not used for cell-formatting. Use CellStyle instead.
 ///
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub struct TextStyle {
     /// From where did we get this style.
     origin: StyleOrigin,

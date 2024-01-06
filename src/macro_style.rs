@@ -157,8 +157,8 @@ macro_rules! style_ref2 {
             id: SmolStr,
         }
 
-        impl MemoryUsage for $l {
-            fn size_of_val(&self, _tracker: &mut dyn MemoryUsageTracker) -> usize {
+        impl GetSize for $l {
+            fn get_heap_size(&self) -> usize {
                 size_of_smolstr(&self.id)
             }
         }

@@ -36,7 +36,7 @@ fn test_write_read() -> Result<(), OdsError> {
 
     test_write_ods(&mut wb, "test_out/test_metadata.ods")?;
 
-    let wi = read_ods("test_out/test_metadata.ods")?;
+    let _wi = read_ods("test_out/test_metadata.ods")?;
 
     // dbg!(wi.metadata());
 

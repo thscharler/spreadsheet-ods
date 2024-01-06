@@ -6,37 +6,29 @@ use crate::style::units::{
     WritingMode,
 };
 use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
-use loupe::{MemoryUsage, MemoryUsageTracker};
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use smol_str::SmolStr;
 use std::borrow::Borrow;
 use std::fmt::{Display, Formatter};
-use std::mem;
 
 style_ref2!(TableStyleRef);
 
 /// Describes the style information for a table.
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, GetSize)]
 pub struct TableStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
     styleuse: StyleUse,
     /// Style name
+    #[get_size(size_fn = size_of_smolstr)]
     name: SmolStr,
     /// General attributes
     attr: AttrMap2,
     /// Table style properties
     tablestyle: AttrMap2,
-}
-
-impl MemoryUsage for TableStyle {
-    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
-        mem::size_of_val(self)
-            + size_of_smolstr(&self.name)
-            + MemoryUsage::size_of_val(&self.attr, tracker)
-            + MemoryUsage::size_of_val(&self.tablestyle, tracker)
-    }
 }
 
 styles_styles2!(TableStyle, TableStyleRef);

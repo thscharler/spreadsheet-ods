@@ -1,6 +1,7 @@
 use crate::style::pagestyle::PageStyleRef;
 use crate::text::TextTag;
-use loupe::MemoryUsage;
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use std::fmt::{Display, Formatter};
 
 style_ref!(MasterPageRef);
@@ -37,7 +38,7 @@ style_ref!(MasterPageRef);
 /// let mut sheet = Sheet::new("sheet 1");
 /// sheet.set_style(&ts_ref);
 /// ```
-#[derive(Clone, Debug, Default, MemoryUsage)]
+#[derive(Clone, Debug, Default, GetSize)]
 pub struct MasterPage {
     name: String,
     display_name: String,
@@ -229,7 +230,7 @@ impl MasterPage {
 /// Can be seen as three regions left/center/right or as one region.
 /// In the first case region* contains the data, in the second it's content.
 /// Each is a TextTag of parsed XML-tags.
-#[derive(Clone, Debug, Default, MemoryUsage)]
+#[derive(Clone, Debug, Default, GetSize)]
 pub struct HeaderFooter {
     display: bool,
 

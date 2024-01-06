@@ -14,8 +14,9 @@ use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, text_position,
     StyleOrigin, StyleUse, TextStyleRef,
 };
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use icu_locid::Locale;
-use loupe::MemoryUsage;
 use std::fmt::{Display, Formatter};
 
 style_ref!(ParagraphStyleRef);
@@ -25,7 +26,7 @@ style_ref!(ParagraphStyleRef);
 /// This is not used for cell-formatting. Use [crate::style::CellStyle] instead.
 /// This kind of style is used for complex text formatting. See [crate::text].
 ///
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub struct ParagraphStyle {
     /// From where did we get this style.
     origin: StyleOrigin,

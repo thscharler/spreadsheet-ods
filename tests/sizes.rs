@@ -5,6 +5,8 @@ use std::mem::size_of;
 use std::sync::Arc;
 
 use chrono::{Duration, NaiveDateTime};
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use smol_str::SmolStr;
 
 use spreadsheet_ods::metadata::Metadata;
@@ -37,43 +39,73 @@ pub fn sizes() {
     println!("Duration {}", size_of::<Duration>());
 }
 
+struct S0 {
+    v0: SmolStr,
+    v1: SmolStr,
+}
+
+impl GetSize for S0 {
+    fn get_heap_size(&self) -> usize {
+        heap_size_of_smolstr(&self.v0) + heap_size_of_smolstr(&self.v1)
+    }
+}
+
+struct S1 {
+    v0: String,
+    v1: String,
+}
+
+impl GetSize for S1 {
+    fn get_heap_size(&self) -> usize {
+        let mut total = 0;
+        total += GetSize::get_heap_size(&self.v0);
+        total += GetSize::get_heap_size(&self.v1);
+        total
+    }
+}
+
 #[test]
 pub fn smol() {
     println!("SmolStr {}", size_of::<SmolStr>());
     println!("Option<SmolStr> {}", size_of::<Option<SmolStr>>());
     println!(
-        "mem value len 10 {}",
-        mem::size_of_val(&SmolStr::from("1234567890"))
-    );
-    println!(
-        "mem value len 30 {}",
-        mem::size_of_val(&SmolStr::from("123456789012345678901234567890"))
-    );
-    println!(
-        "loupe value len 10 {}",
+        "loupe SmolStr len 10 {}",
         size_of_smolstr(&SmolStr::from("1234567890"))
     );
     println!(
-        "loupe value len 30 {}",
+        "loupe SmolStr len 30 {}",
         size_of_smolstr(&SmolStr::from("123456789012345678901234567890"))
     );
     println!(
-        "loupe arc len 30 {}",
-        loupe::size_of_val(&Arc::new("123456789012345678901234567890"))
+        "loupe Arc len 30 {}",
+        Arc::new("123456789012345678901234567890").get_size()
     );
     println!(
-        "mem arc len 30 {}",
-        mem::size_of_val(&Arc::new("123456789012345678901234567890"))
+        "loupe String len 30 {}",
+        String::from("123456789012345678901234567890").get_size()
     );
 
-    let layout = Layout::new::<Arc<str>>().pad_to_align();
-    println!("layout {:?}", layout);
+    let v0 = S0 {
+        v0: SmolStr::from("123456789012345678901234567890"),
+        v1: SmolStr::from("123456789012345678901234567890"),
+    };
+    println!("v0 {}", v0.get_size() / 2);
+    let v1 = S1 {
+        v0: "123456789012345678901234567890".to_string(),
+        v1: "123456789012345678901234567890".to_string(),
+    };
+    println!("v1 {}", v1.get_size() / 2);
 
-    let layout = Layout::new::<SmolStr>().pad_to_align();
-    println!("layout {:?}", layout);
-
-    let layout = Layout::new::<[u8; 30]>().pad_to_align();
-    println!("layout {:?}", layout);
+    let v0 = S0 {
+        v0: SmolStr::from("1234567890"),
+        v1: SmolStr::from("1234567890"),
+    };
+    println!("v0 {}", v0.get_size() / 2);
+    let v1 = S1 {
+        v0: "1234567890".to_string(),
+        v1: "1234567890".to_string(),
+    };
+    println!("v1 {}", v1.get_size() / 2);
 }
 
 pub(crate) fn size_of_smolstr(str: &SmolStr) -> usize {
@@ -81,5 +113,13 @@ pub(crate) fn size_of_smolstr(str: &SmolStr) -> usize {
         mem::size_of_val(str) + str.len()
     } else {
         mem::size_of_val(str)
+    }
+}
+
+pub(crate) fn heap_size_of_smolstr(str: &SmolStr) -> usize {
+    if str.is_heap_allocated() {
+        str.len()
+    } else {
+        0
     }
 }

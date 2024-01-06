@@ -2,13 +2,14 @@
 //! Workbook
 //!
 
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use std::borrow::Borrow;
 use std::fmt;
 use std::fmt::Formatter;
 use std::hash::Hash;
 
 use icu_locid::{locale, Locale};
-use loupe::MemoryUsage;
 use smol_str::SmolStr;
 
 use crate::config::Config;
@@ -36,7 +37,7 @@ use crate::{
 };
 
 /// Book is the main structure for the Spreadsheet.
-#[derive(Clone, MemoryUsage)]
+#[derive(Clone, GetSize)]
 pub struct WorkBook {
     /// The data.
     pub(crate) sheets: Vec<Detach<Sheet>>,
@@ -1174,7 +1175,7 @@ impl WorkBook {
 }
 
 /// Subset of the Workbook wide configurations.
-#[derive(Clone, Debug, MemoryUsage)]
+#[derive(Clone, Debug, GetSize)]
 pub struct WorkBookConfig {
     /// Which table is active when opening.    
     pub active_table: String,
@@ -1198,7 +1199,7 @@ impl Default for WorkBookConfig {
 }
 
 /// Script.
-#[derive(Debug, Default, Clone, MemoryUsage)]
+#[derive(Debug, Default, Clone, GetSize)]
 pub struct Script {
     pub(crate) script_lang: String,
     pub(crate) script: Vec<XmlContent>,
@@ -1235,7 +1236,7 @@ impl Script {
 }
 
 /// Event-Listener.
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone, GetSize)]
 pub struct EventListener {
     pub(crate) event_name: String,
     pub(crate) script_lang: String,
