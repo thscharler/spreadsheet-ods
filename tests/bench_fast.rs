@@ -57,7 +57,7 @@ fn write_wb<'a>(wb: &'a mut WorkBook) -> impl FnMut() -> Result<(), OdsError> + 
 
 // #[test]
 fn test_read_orders() -> Result<(), OdsError> {
-    let mut t = Timing::default()
+    let mut t = Timing::<()>::default()
         .name("read_orders")
         .skip(2)
         .runs(30)
@@ -72,7 +72,7 @@ fn test_read_orders() -> Result<(), OdsError> {
 
 // #[test]
 fn test_create_wb() -> Result<(), OdsError> {
-    let mut t = Timing::default()
+    let mut t = Timing::<()>::default()
         .name("create_wb")
         .skip(2)
         .runs(30)
@@ -87,7 +87,7 @@ fn test_create_wb() -> Result<(), OdsError> {
 
 // #[test]
 fn test_write_wb() -> Result<(), OdsError> {
-    let mut t = Timing::default()
+    let mut t = Timing::<()>::default()
         .name("write_wb")
         .skip(2)
         .runs(30)

@@ -908,6 +908,7 @@ fn read_table(
     // Cell position
     let mut row: u32 = 0;
     let mut col: u32 = 0;
+    let mut col_data: bool = false;
 
     // Position within table-columns
     let mut table_col: u32 = 0;
@@ -1041,18 +1042,24 @@ fn read_table(
                 row_repeat = read_table_row_attr(xml, &mut sheet, row, xml_tag)?;
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
+                if col_data {
+                    // row-repeat is ignored unless there is any cell-data in that row.
+                    sheet.set_row_repeat(row, row_repeat);
+                }
                 row += row_repeat;
                 row_repeat = 1;
                 col = 0;
+                col_data = false;
             }
 
             Event::Empty(xml_tag) | Event::Start(xml_tag)
                 if xml_tag.name().as_ref() == b"table:table-cell"
                     || xml_tag.name().as_ref() == b"table:covered-table-cell" =>
             {
-                let cell_repeat =
+                let (cell_repeat, have_data) =
                     read_table_cell(ctx, xml, &mut sheet, row, col, xml_tag, empty_tag)?;
                 col += cell_repeat;
+                col_data |= have_data;
             }
 
             _ => {
@@ -1271,7 +1278,7 @@ fn read_table_cell(
     col: u32,
     super_tag: &BytesStart<'_>,
     empty_tag: bool,
-) -> Result<u32, OdsError> {
+) -> Result<(u32, bool), OdsError> {
     let mut cell = None;
     let mut repeat = 1;
 
@@ -1442,20 +1449,23 @@ fn read_table_cell(
         ctx.push_buf(buf);
     }
 
-    if let Some(mut cell) = cell {
+    let have_data = if let Some(mut cell) = cell {
         // composes a Value
         set_value(tc, &mut cell)?;
 
         // store cell-data
         if ignore_cell(ctx, default_cellstyle, &cell) {
-            // noop
+            false
         } else {
             cell.repeat = repeat;
             sheet.add_cell_data(row, col, cell);
+            true
         }
-    }
+    } else {
+        false
+    };
 
-    Ok(repeat)
+    Ok((repeat, have_data))
 }
 
 #[inline]
