@@ -2,8 +2,8 @@ mod lib_test;
 
 use lib_test::*;
 use spreadsheet_ods::{
-    cm, currency, percent, read_ods, CellRange, Length, OdsError, OdsOptions, Sheet, Value,
-    ValueType, WorkBook,
+    cm, currency, percent, read_ods, CellRange, CellStyleRef, Length, OdsError, OdsOptions, Sheet,
+    Value, ValueType, WorkBook,
 };
 use std::fs::File;
 use std::io::BufReader;
@@ -216,7 +216,7 @@ fn test_iterator() {
     for r in 1..100 {
         for c in 1..10 {
             if r % c == 0 {
-                sh.set_styled_value(r, c, 4711, &"foo".into());
+                sh.set_styled_value(r, c, 4711, &CellStyleRef::from_str("foo"));
             }
         }
     }

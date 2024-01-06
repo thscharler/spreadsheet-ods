@@ -1,32 +1,45 @@
 use crate::attrmap2::AttrMap2;
 use crate::color::Rgb;
+use crate::ds::size_of_smolstr;
 use crate::style::units::{
     Length, Margin, PageBreak, PageNumber, RelativeScale, TableAlign, TableBorderModel, TextKeep,
     WritingMode,
 };
 use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
-use loupe::MemoryUsage;
+use loupe::{MemoryUsage, MemoryUsageTracker};
+use smol_str::SmolStr;
+use std::borrow::Borrow;
 use std::fmt::{Display, Formatter};
+use std::mem;
 
-style_ref!(TableStyleRef);
+style_ref2!(TableStyleRef);
 
 /// Describes the style information for a table.
 ///
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone)]
 pub struct TableStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
     styleuse: StyleUse,
     /// Style name
-    name: String,
+    name: SmolStr,
     /// General attributes
     attr: AttrMap2,
     /// Table style properties
     tablestyle: AttrMap2,
 }
 
-styles_styles!(TableStyle, TableStyleRef);
+impl MemoryUsage for TableStyle {
+    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
+        mem::size_of_val(self)
+            + size_of_smolstr(&self.name)
+            + MemoryUsage::size_of_val(&self.attr, tracker)
+            + MemoryUsage::size_of_val(&self.tablestyle, tracker)
+    }
+}
+
+styles_styles2!(TableStyle, TableStyleRef);
 
 impl TableStyle {
     /// empty
@@ -41,11 +54,11 @@ impl TableStyle {
     }
 
     /// Creates a new Style.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: SmolStr::new(name.as_ref()),
             attr: Default::default(),
             tablestyle: Default::default(),
         }

@@ -87,7 +87,7 @@ pub(crate) struct CellData {
     // Unparsed formula string.
     pub(crate) formula: Option<String>,
     // Cell style name.
-    pub(crate) style: Option<String>,
+    pub(crate) style: CellStyleRef,
     // Cell repeated.
     pub(crate) repeat: u32,
     // Scarcely used extra data.
@@ -115,7 +115,7 @@ impl Default for CellData {
         Self {
             value: Default::default(),
             formula: None,
-            style: None,
+            style: Default::default(),
             repeat: 1,
             extra: None,
         }
@@ -136,15 +136,24 @@ impl CellData {
     }
 
     /// Holds no useful data at all.
-    pub(crate) fn is_void(&self, default_cellstyle: Option<&String>) -> bool {
+    pub(crate) fn is_void(&self, default_cellstyle: Option<&CellStyleRef>) -> bool {
         if self.value != Value::Empty {
             return false;
         }
         if self.formula.is_some() {
             return false;
         }
-        if self.style.is_some() && self.style.as_ref() != default_cellstyle {
-            return false;
+        if !self.style.is_empty() {
+            if let Some(default) = default_cellstyle {
+                if &self.style != default {
+                    return false;
+                } else {
+                    // equal default
+                }
+            } else {
+                // not the default (None)
+                return false;
+            }
         }
         self.is_void_extra()
     }
@@ -259,7 +268,7 @@ impl CellData {
 
         CellContentRef {
             value: &self.value,
-            style: self.style.as_ref(),
+            style: &self.style,
             formula: self.formula.as_ref(),
             repeat: &self.repeat,
             validation_name,
@@ -278,7 +287,7 @@ pub struct CellContentRef<'a> {
     /// Reference to the cell value.
     pub value: &'a Value,
     /// Reference to the stylename.
-    pub style: Option<&'a String>,
+    pub style: &'a CellStyleRef,
     /// Reference to the cell formula.
     pub formula: Option<&'a String>,
     /// Reference to the repeat count.
@@ -310,7 +319,7 @@ impl<'a> CellContentRef<'a> {
 
     /// Returns the cell style.
     #[inline]
-    pub fn style(&self) -> Option<&'a String> {
+    pub fn style(&self) -> &'a CellStyleRef {
         self.style
     }
 
@@ -382,7 +391,7 @@ impl<'a> CellContentRef<'a> {
     pub fn to_owned(&self) -> CellContent {
         CellContent {
             value: self.value.clone(),
-            style: self.style.cloned(),
+            style: self.style.clone(),
             formula: self.formula.cloned(),
             repeat: *self.repeat,
             validation_name: self.validation_name.cloned(),
@@ -400,7 +409,7 @@ pub struct CellContent {
     /// Cell value.
     pub value: Value,
     /// Cell stylename.
-    pub style: Option<String>,
+    pub style: CellStyleRef,
     /// Cell formula.
     pub formula: Option<String>,
     /// Cell repeat count.
@@ -489,20 +498,20 @@ impl CellContent {
 
     /// Returns the cell style.
     #[inline]
-    pub fn style(&self) -> Option<&String> {
-        self.style.as_ref()
+    pub fn style(&self) -> &CellStyleRef {
+        &self.style
     }
 
     /// Sets the cell style.
     #[inline]
     pub fn set_style(&mut self, style: &CellStyleRef) {
-        self.style = Some(style.to_string());
+        self.style = style.clone();
     }
 
     /// Removes the style.
     #[inline]
     pub fn clear_style(&mut self) {
-        self.style = None;
+        self.style = Default::default();
     }
 
     /// Sets the repeat count for the cell.

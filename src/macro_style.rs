@@ -102,6 +102,117 @@ macro_rules! style_ref {
     };
 }
 
+macro_rules! styles_styles2 {
+    ($style:ident, $styleref:ident) => {
+        impl $style {
+            /// Origin of the style, either styles.xml oder content.xml
+            pub fn origin(&self) -> StyleOrigin {
+                self.origin
+            }
+
+            /// Changes the origin.
+            pub fn set_origin(&mut self, origin: StyleOrigin) {
+                self.origin = origin;
+            }
+
+            /// Usage for the style.
+            pub fn styleuse(&self) -> StyleUse {
+                self.styleuse
+            }
+
+            /// Usage for the style.
+            pub fn set_styleuse(&mut self, styleuse: StyleUse) {
+                self.styleuse = styleuse;
+            }
+
+            /// Stylename
+            pub fn name(&self) -> &str {
+                &self.name
+            }
+
+            /// Stylename
+            pub fn set_name<S: AsRef<str>>(&mut self, name: S) {
+                self.name = SmolStr::new(name.as_ref());
+            }
+
+            /// Returns the name as a style reference.
+            pub fn style_ref(&self) -> $styleref {
+                $styleref::from_str(self.name.as_str())
+            }
+
+            style_auto_update!(attr);
+            style_class!(attr);
+            style_display_name!(attr);
+            style_parent_style_name!(attr, $styleref);
+        }
+    };
+}
+
+/// Generates a name reference for a style.
+macro_rules! style_ref2 {
+    ($l:ident) => {
+        /// Reference
+        #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+        pub struct $l {
+            id: SmolStr,
+        }
+
+        impl MemoryUsage for $l {
+            fn size_of_val(&self, _tracker: &mut dyn MemoryUsageTracker) -> usize {
+                size_of_smolstr(&self.id)
+            }
+        }
+
+        impl Default for $l {
+            fn default() -> Self {
+                Self {
+                    id: SmolStr::default(),
+                }
+            }
+        }
+
+        impl Borrow<str> for $l {
+            fn borrow(&self) -> &str {
+                self.id.borrow()
+            }
+        }
+
+        impl Display for $l {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.id)
+            }
+        }
+
+        impl $l {
+            /// Empty reference
+            pub fn is_empty(&self) -> bool {
+                self.id.is_empty()
+            }
+
+            /// Express is_empty as Option
+            pub fn as_option(&self) -> Option<&Self> {
+                if !self.is_empty() {
+                    Some(self)
+                } else {
+                    None
+                }
+            }
+
+            /// Create from str.
+            pub fn from_str(str: &str) -> Self {
+                Self {
+                    id: SmolStr::new(str),
+                }
+            }
+
+            /// Reference as str.
+            pub fn as_str(&self) -> &str {
+                self.id.as_str()
+            }
+        }
+    };
+}
+
 macro_rules! xml_id {
     ($acc:ident) => {
         /// The table:end-y attribute specifies the y-coordinate of the end position of a shape relative to

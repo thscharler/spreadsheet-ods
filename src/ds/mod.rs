@@ -1,4 +1,5 @@
 use loupe::{MemoryUsage, MemoryUsageTracker};
+use smol_str::SmolStr;
 use std::mem;
 
 pub(crate) mod detach;
@@ -28,4 +29,12 @@ pub(crate) fn size_of_btreemap<K: MemoryUsage, V: MemoryUsage>(
     let overhead = mem::size_of::<(usize, u16, u16, [(K, V); BTREE_MAX], [usize; BTREE_B])>();
 
     element_size + map.len() * overhead * 2 / (BTREE_MAX + BTREE_MIN)
+}
+
+pub(crate) fn size_of_smolstr(str: &SmolStr) -> usize {
+    if str.is_heap_allocated() {
+        mem::size_of_val(str) + str.len()
+    } else {
+        mem::size_of_val(str)
+    }
 }

@@ -1,5 +1,6 @@
 use crate::attrmap2::AttrMap2;
 use crate::color::Rgb;
+use crate::ds::size_of_smolstr;
 use crate::format::ValueFormatRef;
 use crate::style::stylemap::StyleMap;
 use crate::style::units::{
@@ -16,10 +17,13 @@ use crate::style::{
     StyleOrigin, StyleUse, TextStyleRef,
 };
 use icu_locid::Locale;
-use loupe::MemoryUsage;
+use loupe::{MemoryUsage, MemoryUsageTracker};
+use smol_str::SmolStr;
+use std::borrow::Borrow;
 use std::fmt::{Display, Formatter};
+use std::mem;
 
-style_ref!(CellStyleRef);
+style_ref2!(CellStyleRef);
 
 /// Describes the style information for a cell.
 ///
@@ -41,19 +45,19 @@ style_ref!(CellStyleRef);
 /// sheet0.set_styled_value(0,0, "title", &ref_header);
 ///
 /// // use a style defined later or elsewhere:
-/// let ref_some = CellStyleRef::from("some_else");
+/// let ref_some = CellStyleRef::from_str("some_else");
 /// sheet0.set_styled_value(1,0, "some", &ref_some);
 ///
 /// ```
 ///
-#[derive(Debug, Clone, MemoryUsage)]
+#[derive(Debug, Clone)]
 pub struct CellStyle {
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.
     styleuse: StyleUse,
     /// Style name.
-    name: String,
+    name: SmolStr,
     /// General attributes.
     attr: AttrMap2,
     /// Cell style attributes.
@@ -66,7 +70,19 @@ pub struct CellStyle {
     stylemaps: Option<Vec<StyleMap>>,
 }
 
-styles_styles!(CellStyle, CellStyleRef);
+impl MemoryUsage for CellStyle {
+    fn size_of_val(&self, tracker: &mut dyn MemoryUsageTracker) -> usize {
+        mem::size_of_val(self)
+            + size_of_smolstr(&self.name)
+            + self.attr.size_of_val(tracker)
+            + self.cellstyle.size_of_val(tracker)
+            + self.paragraphstyle.size_of_val(tracker)
+            + self.textstyle.size_of_val(tracker)
+            + self.stylemaps.size_of_val(tracker)
+    }
+}
+
+styles_styles2!(CellStyle, CellStyleRef);
 
 impl CellStyle {
     /// Creates an empty style.
@@ -85,11 +101,11 @@ impl CellStyle {
 
     /// Creates an empty style with the given name and a reference to a
     /// value format.
-    pub fn new<S: Into<String>>(name: S, value_format: &ValueFormatRef) -> Self {
+    pub fn new<S: AsRef<str>>(name: S, value_format: &ValueFormatRef) -> Self {
         let mut s = Self {
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: SmolStr::new(name),
             attr: Default::default(),
             cellstyle: Default::default(),
             paragraphstyle: Default::default(),

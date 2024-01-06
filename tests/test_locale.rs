@@ -20,7 +20,7 @@ pub fn test_locale1() -> Result<(), OdsError> {
     let s0 = CellStyle::new("s0", v0.as_ref());
     let s0 = wb.add_cellstyle(s0);
 
-    sheet.set_styled_value(1, 1, 47.11f64, s0.as_ref());
+    sheet.set_styled_value(1, 1, 47.11f64, &s0);
 
     wb.push_sheet(sheet);
 

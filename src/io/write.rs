@@ -1478,8 +1478,8 @@ fn write_sheet(
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table")?;
     xml_out.attr_esc("table:name", &sheet.name)?;
-    if let Some(style) = &sheet.style {
-        xml_out.attr_esc("table:style-name", style)?;
+    if !sheet.style.is_empty() {
+        xml_out.attr_esc("table:style-name", sheet.style.as_str())?;
     }
     if let Some(print_ranges) = &sheet.print_ranges {
         xml_out.attr_esc("table:print-ranges", &format_cellranges(print_ranges))?;
@@ -1978,8 +1978,11 @@ fn write_table_columns(
             if let Some(style) = col_header.style.as_ref() {
                 xml_out.attr_esc("table:style-name", style)?;
             }
-            if let Some(cellstyle) = col_header.cellstyle.as_ref() {
-                xml_out.attr_esc("table:default-cell-style-name", cellstyle)?;
+            if !col_header.cellstyle.is_empty() {
+                xml_out.attr_esc(
+                    "table:default-cell-style-name",
+                    col_header.cellstyle.as_str(),
+                )?;
             }
             if col_header.visible != Visibility::Visible {
                 xml_out.attr_esc("table:visibility", &col_header.visible)?;
@@ -2039,8 +2042,8 @@ fn write_cell(
     }
 
     // Direct style oder value based default style.
-    if let Some(style) = cell.style {
-        xml_out.attr_esc("table:style-name", style)?;
+    if !cell.style.is_empty() {
+        xml_out.attr_esc("table:style-name", cell.style.as_str())?;
     } else if let Some(style) = book.def_style(cell.value.value_type()) {
         xml_out.attr_esc("table:style-name", style)?;
     }

@@ -76,7 +76,7 @@ impl Default for RowHeader {
 #[derive(Debug, Clone, MemoryUsage)]
 pub(crate) struct ColHeader {
     pub(crate) style: Option<String>,
-    pub(crate) cellstyle: Option<String>,
+    pub(crate) cellstyle: CellStyleRef,
     pub(crate) visible: Visibility,
     pub(crate) width: Length,
     /// Logical valid range for all the header values. Avoids duplication
@@ -88,7 +88,7 @@ impl Default for ColHeader {
     fn default() -> Self {
         Self {
             style: None,
-            cellstyle: None,
+            cellstyle: Default::default(),
             visible: Default::default(),
             width: Default::default(),
             span: 1,
@@ -104,7 +104,7 @@ impl Default for ColHeader {
 #[derive(Clone, Default)]
 pub struct Sheet {
     pub(crate) name: String,
-    pub(crate) style: Option<String>,
+    pub(crate) style: TableStyleRef,
 
     pub(crate) data: BTreeMap<(u32, u32), CellData>,
 
@@ -558,7 +558,7 @@ impl Sheet {
             name: name.into(),
             data: BTreeMap::new(),
             col_header: Default::default(),
-            style: None,
+            style: Default::default(),
             header_rows: None,
             header_cols: None,
             print_ranges: None,
@@ -656,12 +656,17 @@ impl Sheet {
 
     /// Sets the table-style
     pub fn set_style(&mut self, style: &TableStyleRef) {
-        self.style = Some(style.to_string());
+        self.style = style.clone()
     }
 
     /// Returns the table-style.
-    pub fn style(&self) -> Option<&String> {
-        self.style.as_ref()
+    //todo: option or not?
+    pub fn style(&self) -> Option<&TableStyleRef> {
+        if !self.style.is_empty() {
+            Some(&self.style)
+        } else {
+            None
+        }
     }
 
     // find the col-header with the correct data.
@@ -751,18 +756,18 @@ impl Sheet {
 
     /// Default cell style for this column.
     pub fn set_col_cellstyle(&mut self, col: u32, style: &CellStyleRef) {
-        self.create_split_col_header(col).cellstyle = Some(style.to_string());
+        self.create_split_col_header(col).cellstyle = style.clone();
     }
 
     /// Remove the style.
     pub fn clear_col_cellstyle(&mut self, col: u32) {
-        self.create_split_col_header(col).cellstyle = None;
+        self.create_split_col_header(col).cellstyle = Default::default();
     }
 
     /// Returns the default cell style for this column.
-    pub fn col_cellstyle(&self, col: u32) -> Option<&String> {
+    pub fn col_cellstyle(&self, col: u32) -> Option<&CellStyleRef> {
         if let Some(col_header) = self.valid_col_header(col) {
-            col_header.cellstyle.as_ref()
+            col_header.cellstyle.as_option()
         } else {
             None
         }
@@ -1086,7 +1091,7 @@ impl Sheet {
     ) {
         let cell = self.data.entry((row, col)).or_default();
         cell.value = value.into();
-        cell.style = Some(style.to_string());
+        cell.style = style.clone();
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
@@ -1144,20 +1149,20 @@ impl Sheet {
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
     pub fn set_cellstyle(&mut self, row: u32, col: u32, style: &CellStyleRef) {
         let cell = self.data.entry((row, col)).or_default();
-        cell.style = Some(style.to_string());
+        cell.style = style.clone();
     }
 
     /// Removes the cell-style.
     pub fn clear_cellstyle(&mut self, row: u32, col: u32) {
         if let Some(cell) = self.data.get_mut(&(row, col)) {
-            cell.style = None;
+            cell.style = Default::default();
         }
     }
 
     /// Returns a value
-    pub fn cellstyle(&self, row: u32, col: u32) -> Option<&String> {
+    pub fn cellstyle(&self, row: u32, col: u32) -> Option<&CellStyleRef> {
         if let Some(c) = self.data.get(&(row, col)) {
-            c.style.as_ref()
+            c.style.as_option()
         } else {
             None
         }
