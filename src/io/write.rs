@@ -11,8 +11,7 @@ use crate::refs::{format_cellranges, CellRange};
 use crate::sheet::Visibility;
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
-    ParagraphStyle, RowStyle, RubyStyle, Style, StyleOrigin, StyleRef, StyleUse, TableStyle,
-    TextStyle,
+    ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::validation::ValidationDisplay;
 use crate::workbook::{EventListener, Script};
@@ -1479,8 +1478,8 @@ fn write_sheet(
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table")?;
     xml_out.attr_esc("table:name", &sheet.name)?;
-    if !sheet.style.is_empty() {
-        let style = book.tablestyle(sheet.style).expect("style");
+    if let Some(sref) = sheet.style {
+        let style = book.tablestyle(sref).expect("style");
         xml_out.attr_esc("table:style-name", style.name())?;
     }
     if let Some(print_ranges) = &sheet.print_ranges {
@@ -1981,8 +1980,8 @@ fn write_table_columns(
             if let Some(style) = col_header.style.as_ref() {
                 xml_out.attr_esc("table:style-name", style)?;
             }
-            if !col_header.cellstyle.is_empty() {
-                let style = book.cellstyle(col_header.cellstyle).expect("style");
+            if let Some(sref) = col_header.cellstyle {
+                let style = book.cellstyle(sref).expect("style");
                 xml_out.attr_esc("table:default-cell-style-name", style.name())?;
             }
             if col_header.visible != Visibility::Visible {
@@ -2043,11 +2042,11 @@ fn write_cell(
     }
 
     // Direct style oder value based default style.
-    if !cell.style.is_empty() {
-        let style = book.cellstyle(*cell.style).expect("style");
+    if let Some(sref) = cell.style {
+        let style = book.cellstyle(*sref).expect("style");
         xml_out.attr_esc("table:style-name", style.name())?;
-    } else if let Some(style_ref) = book.def_style(cell.value.value_type()) {
-        let style = book.cellstyle(*style_ref).expect("style");
+    } else if let Some(sref) = book.def_style(cell.value.value_type()) {
+        let style = book.cellstyle(*sref).expect("style");
         xml_out.attr_esc("table:style-name", style.name())?;
     }
 

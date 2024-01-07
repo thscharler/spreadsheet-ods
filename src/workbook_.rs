@@ -6,6 +6,7 @@ use get_size::GetSize;
 use get_size_derive::GetSize;
 use std::fmt;
 use std::fmt::Formatter;
+use std::num::NonZeroU32;
 
 use icu_locid::{locale, Locale};
 
@@ -21,7 +22,7 @@ use crate::sheet_::Sheet;
 use crate::style::{
     ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, GraphicStyleRef, MasterPage, MasterPageRef,
     PageStyle, PageStyleRef, ParagraphStyle, ParagraphStyleRef, RowStyle, RowStyleRef, RubyStyle,
-    RubyStyleRef, Style, StyleRef, TableStyle, TableStyleRef, TextStyle, TextStyleRef,
+    RubyStyleRef, TableStyle, TableStyleRef, TextStyle, TextStyleRef,
 };
 use crate::validation::{Validation, ValidationRef};
 use crate::value_::ValueType;
@@ -181,84 +182,32 @@ impl fmt::Debug for WorkBook {
     }
 }
 
+fn gen_autonum(autonum: &mut HashMap<String, u32>, key: &str) -> NonZeroU32 {
+    if let Some(num) = autonum.get_mut(key) {
+        *num = *num + 1;
+        NonZeroU32::new(*num).expect("non-zero")
+    } else {
+        autonum.insert(key.to_string(), 1);
+        NonZeroU32::new(1).expect("non-zero")
+    }
+}
+
 /// Autogenerate a stylename. Runs a counter with the prefix and
 /// checks for existence.
-fn auto_style_name<T>(
+fn auto_style<T>(
     autonum: &mut HashMap<String, u32>,
     prefix: &str,
     styles: &HashMap<String, T>,
 ) -> String {
-    let mut cnt = if let Some(n) = autonum.get(prefix) {
-        n + 1
-    } else {
-        0
-    };
-
     let style_name = loop {
-        let style_name = format!("{}{}", prefix, cnt);
+        let num = gen_autonum(autonum, prefix);
+        let style_name = format!("{}{}", prefix, num);
         if !styles.contains_key(&style_name) {
             break style_name;
         }
-        cnt += 1;
     };
 
-    autonum.insert(prefix.to_string(), cnt);
-
     style_name
-}
-
-// Auto generate the style-name if missing.
-// Tries to find the style-id via the name, replacing the old style.
-// Otherwise creates a new id.
-fn auto_complete<S>(
-    autonum: &mut HashMap<String, u32>,
-    prefix: &'static str,
-    style: &mut S,
-    style_refs: &HashMap<String, S::RefType>,
-) where
-    S: Style,
-    S::RefType: Copy,
-{
-    if style.name().is_empty() {
-        let mut cnt = if let Some(n) = autonum.get(prefix) {
-            n + 1
-        } else {
-            0
-        };
-        // autonum is not perfect, there can always be preexisting styles with
-        // the generated name.
-        let style_name = loop {
-            let style_name = format!("{}{}", prefix, cnt);
-            if !style_refs.contains_key(&style_name) {
-                break style_name;
-            }
-            cnt += 1;
-        };
-        autonum.insert(prefix.to_string(), cnt);
-
-        let key_id = format!("{}_id", prefix);
-        let nid = autonum
-            .entry(key_id)
-            .and_modify(|v| *v = *v + 1)
-            .or_insert_with(|| 1);
-
-        style.set_name(style_name);
-        style.set_style_ref(S::RefType::from_u32(*nid));
-    } else if style.style_ref().is_empty() {
-        // replace by style-name.
-        let sref = if let Some(sref) = style_refs.get(style.name()) {
-            *sref
-        } else {
-            let key_id = format!("{}_id", prefix);
-            let nid = autonum
-                .entry(key_id)
-                .and_modify(|v| *v = *v + 1)
-                .or_insert_with(|| 1);
-
-            S::RefType::from_u32(*nid)
-        };
-        style.set_style_ref(sref);
-    }
 }
 
 impl Default for WorkBook {
@@ -567,10 +516,19 @@ impl WorkBook {
     /// Adds a style.
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_tablestyle(&mut self, mut style: TableStyle) -> TableStyleRef {
-        auto_complete(&mut self.autonum, "ta", &mut style, &self.tablestyle_ref);
+        let anum = &mut self.autonum;
+        if style.name().is_empty() {
+            style.set_name(auto_style(anum, "ta", &self.tablestyle_ref));
+        }
+        if style.style_ref().is_none() {
+            if let Some(sref) = self.tablestyle_ref.get(style.name()) {
+                style.set_style_ref(*sref);
+            } else {
+                style.set_style_ref(TableStyleRef::new(gen_autonum(anum, "ta-id")));
+            }
+        }
 
-        let sref = style.style_ref();
-        assert!(!sref.is_empty());
+        let sref = style.style_ref().expect("style");
         self.tablestyle_ref.insert(style.name().to_string(), sref);
         self.tablestyles.insert(sref, style);
 
@@ -606,7 +564,7 @@ impl WorkBook {
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_rowstyle(&mut self, mut style: RowStyle) -> RowStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "ro", &self.rowstyles));
+            style.set_name(auto_style(&mut self.autonum, "ro", &self.rowstyles));
         }
         let sref = style.style_ref();
         self.rowstyles.insert(style.name().to_string(), style);
@@ -637,7 +595,7 @@ impl WorkBook {
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_colstyle(&mut self, mut style: ColStyle) -> ColStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "co", &self.colstyles));
+            style.set_name(auto_style(&mut self.autonum, "co", &self.colstyles));
         }
         let sref = style.style_ref();
         self.colstyles.insert(style.name().to_string(), style);
@@ -667,10 +625,19 @@ impl WorkBook {
     /// Adds a style.
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_cellstyle(&mut self, mut style: CellStyle) -> CellStyleRef {
-        auto_complete(&mut self.autonum, "ce", &mut style, &self.cellstyle_ref);
+        let anum = &mut self.autonum;
+        if style.name().is_empty() {
+            style.set_name(auto_style(anum, "ce", &self.cellstyle_ref));
+        }
+        if style.style_ref().is_none() {
+            if let Some(sref) = self.cellstyle_ref.get(style.name()) {
+                style.set_style_ref(*sref);
+            } else {
+                style.set_style_ref(CellStyleRef::new(gen_autonum(anum, "ce-id")));
+            }
+        }
 
-        let sref = style.style_ref();
-        assert!(!sref.is_empty());
+        let sref = style.style_ref().expect("style");
         self.cellstyle_ref.insert(style.name().to_string(), sref);
         self.cellstyles.insert(sref, style);
 
@@ -706,11 +673,7 @@ impl WorkBook {
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_paragraphstyle(&mut self, mut style: ParagraphStyle) -> ParagraphStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(
-                &mut self.autonum,
-                "para",
-                &self.paragraphstyles,
-            ));
+            style.set_name(auto_style(&mut self.autonum, "pa", &self.paragraphstyles));
         }
         let sref = style.style_ref();
         self.paragraphstyles.insert(style.name().to_string(), style);
@@ -741,7 +704,7 @@ impl WorkBook {
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_textstyle(&mut self, mut style: TextStyle) -> TextStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "txt", &self.textstyles));
+            style.set_name(auto_style(&mut self.autonum, "tx", &self.textstyles));
         }
         let sref = style.style_ref();
         self.textstyles.insert(style.name().to_string(), style);
@@ -772,7 +735,7 @@ impl WorkBook {
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_rubystyle(&mut self, mut style: RubyStyle) -> RubyStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "ruby", &self.rubystyles));
+            style.set_name(auto_style(&mut self.autonum, "rb", &self.rubystyles));
         }
         let sref = style.style_ref();
         self.rubystyles.insert(style.name().to_string(), style);
@@ -803,11 +766,7 @@ impl WorkBook {
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_graphicstyle(&mut self, mut style: GraphicStyle) -> GraphicStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(
-                &mut self.autonum,
-                "gr",
-                &self.graphicstyles,
-            ));
+            style.set_name(auto_style(&mut self.autonum, "gr", &self.graphicstyles));
         }
         let sref = style.style_ref();
         self.graphicstyles.insert(style.name().to_string(), style);
@@ -838,9 +797,7 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_boolean_format(&mut self, mut vstyle: ValueFormatBoolean) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(
-                auto_style_name(&mut self.autonum, "val_boolean", &self.formats_boolean).as_str(),
-            );
+            vstyle.set_name(auto_style(&mut self.autonum, "vb", &self.formats_boolean).as_str());
         }
         let sref = vstyle.format_ref();
         self.formats_boolean
@@ -872,9 +829,7 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_number_format(&mut self, mut vstyle: ValueFormatNumber) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(
-                auto_style_name(&mut self.autonum, "val_number", &self.formats_number).as_str(),
-            );
+            vstyle.set_name(auto_style(&mut self.autonum, "vn", &self.formats_number).as_str());
         }
         let sref = vstyle.format_ref();
         self.formats_number
@@ -906,14 +861,7 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_percentage_format(&mut self, mut vstyle: ValueFormatPercentage) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(
-                auto_style_name(
-                    &mut self.autonum,
-                    "val_percentage",
-                    &self.formats_percentage,
-                )
-                .as_str(),
-            );
+            vstyle.set_name(auto_style(&mut self.autonum, "vp", &self.formats_percentage).as_str());
         }
         let sref = vstyle.format_ref();
         self.formats_percentage
@@ -945,9 +893,7 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_currency_format(&mut self, mut vstyle: ValueFormatCurrency) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(
-                auto_style_name(&mut self.autonum, "val_currency", &self.formats_currency).as_str(),
-            );
+            vstyle.set_name(auto_style(&mut self.autonum, "vc", &self.formats_currency).as_str());
         }
         let sref = vstyle.format_ref();
         self.formats_currency
@@ -979,9 +925,7 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_text_format(&mut self, mut vstyle: ValueFormatText) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(
-                auto_style_name(&mut self.autonum, "val_text", &self.formats_text).as_str(),
-            );
+            vstyle.set_name(auto_style(&mut self.autonum, "vt", &self.formats_text).as_str());
         }
         let sref = vstyle.format_ref();
         self.formats_text.insert(vstyle.name().to_string(), vstyle);
@@ -1012,9 +956,7 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_datetime_format(&mut self, mut vstyle: ValueFormatDateTime) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(
-                auto_style_name(&mut self.autonum, "val_datetime", &self.formats_datetime).as_str(),
-            );
+            vstyle.set_name(auto_style(&mut self.autonum, "vd", &self.formats_datetime).as_str());
         }
         let sref = vstyle.format_ref();
         self.formats_datetime
@@ -1049,14 +991,8 @@ impl WorkBook {
         mut vstyle: ValueFormatTimeDuration,
     ) -> ValueFormatRef {
         if vstyle.name().is_empty() {
-            vstyle.set_name(
-                auto_style_name(
-                    &mut self.autonum,
-                    "val_timeduration",
-                    &self.formats_timeduration,
-                )
-                .as_str(),
-            );
+            vstyle
+                .set_name(auto_style(&mut self.autonum, "vu", &self.formats_timeduration).as_str());
         }
         let sref = vstyle.format_ref();
         self.formats_timeduration
@@ -1088,7 +1024,7 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_pagestyle(&mut self, mut pstyle: PageStyle) -> PageStyleRef {
         if pstyle.name().is_empty() {
-            pstyle.set_name(auto_style_name(&mut self.autonum, "page", &self.pagestyles));
+            pstyle.set_name(auto_style(&mut self.autonum, "pg", &self.pagestyles));
         }
         let sref = pstyle.style_ref();
         self.pagestyles.insert(pstyle.name().to_string(), pstyle);
@@ -1119,7 +1055,7 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_masterpage(&mut self, mut mpage: MasterPage) -> MasterPageRef {
         if mpage.name().is_empty() {
-            mpage.set_name(auto_style_name(&mut self.autonum, "mp", &self.masterpages));
+            mpage.set_name(auto_style(&mut self.autonum, "mp", &self.masterpages));
         }
         let sref = mpage.masterpage_ref();
         self.masterpages.insert(mpage.name().to_string(), mpage);
@@ -1150,7 +1086,7 @@ impl WorkBook {
     /// Nameless validations will be assigned a name.
     pub fn add_validation(&mut self, mut valid: Validation) -> ValidationRef {
         if valid.name().is_empty() {
-            valid.set_name(auto_style_name(&mut self.autonum, "val", &self.validations));
+            valid.set_name(auto_style(&mut self.autonum, "va", &self.validations));
         }
         let vref = valid.validation_ref();
         self.validations.insert(valid.name().to_string(), valid);

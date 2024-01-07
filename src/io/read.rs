@@ -37,8 +37,7 @@ use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
     ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, MasterPageRef, PageStyle,
-    ParagraphStyle, RowStyle, RubyStyle, Style, StyleOrigin, StyleRef, StyleUse, TableStyle,
-    TextStyle,
+    ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
 };
 use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
@@ -1238,7 +1237,7 @@ fn read_table_col_attr(
             }
             attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
                 let name = attr.decode_and_unescape_value(xml)?;
-                let sref = ctx.book.cellstyle_ref(name.as_ref()).expect("style");
+                let sref = ctx.book.cellstyle_ref(name.as_ref());
                 col_header.get_or_insert_with(ColHeader::default).cellstyle = sref;
             }
             attr if attr.key.as_ref() == b"table:visibility" => {
@@ -1295,7 +1294,7 @@ fn read_table_cell(
 
     // find default-cell-style for this column.
     let default_cellstyle = if let Some(ch) = sheet.valid_col_header(col) {
-        ch.cellstyle.as_option()
+        ch.cellstyle.as_ref()
     } else {
         None
     };
@@ -1409,7 +1408,7 @@ fn read_table_cell(
             attr if attr.key.as_ref() == b"table:style-name" => {
                 let name = attr.decode_and_unescape_value(xml)?;
                 let sref = ctx.book.cellstyle_ref(name.as_ref()).expect("style");
-                cell.get_or_insert_with(CellData::default).style = sref;
+                cell.get_or_insert_with(CellData::default).style = Some(sref);
             }
             attr => {
                 unused_attr("read_table_cell2", super_tag.name().as_ref(), &attr)?;

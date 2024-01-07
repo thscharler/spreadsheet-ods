@@ -12,13 +12,14 @@ use crate::style::units::{
     WritingDirection, WritingMode,
 };
 use crate::style::{
-    border_line_width_string, border_string, color_string, shadow_string, text_position, Style,
-    StyleOrigin, StyleRef, StyleUse, TextStyleRef,
+    border_line_width_string, border_string, color_string, shadow_string, text_position,
+    StyleOrigin, StyleUse, TextStyleRef,
 };
 use get_size::GetSize;
 use get_size_derive::GetSize;
 use icu_locid::Locale;
 use std::fmt::{Display, Formatter};
+use std::num::NonZeroU32;
 
 style_ref2!(CellStyleRef);
 
@@ -50,7 +51,7 @@ style_ref2!(CellStyleRef);
 ///
 #[derive(Debug, Clone, GetSize)]
 pub struct CellStyle {
-    id: CellStyleRef,
+    id: Option<CellStyleRef>,
     /// From where did we get this style.
     origin: StyleOrigin,
     /// Which tag contains this style.

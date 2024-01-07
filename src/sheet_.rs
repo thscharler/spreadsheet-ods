@@ -12,7 +12,7 @@ use std::ops::RangeBounds;
 
 use crate::cell_::{CellContent, CellContentRef, CellData};
 use crate::draw::{Annotation, DrawFrame};
-use crate::style::{ColStyleRef, RowStyleRef, StyleRef, TableStyleRef};
+use crate::style::{ColStyleRef, RowStyleRef, TableStyleRef};
 use crate::validation::ValidationRef;
 use crate::value_::Value;
 use crate::xmltree::XmlTag;
@@ -75,7 +75,7 @@ impl Default for RowHeader {
 #[derive(Debug, Clone, GetSize)]
 pub(crate) struct ColHeader {
     pub(crate) style: Option<String>,
-    pub(crate) cellstyle: CellStyleRef,
+    pub(crate) cellstyle: Option<CellStyleRef>,
     pub(crate) visible: Visibility,
     pub(crate) width: Length,
     /// Logical valid range for all the header values. Avoids duplication
@@ -103,7 +103,7 @@ impl Default for ColHeader {
 #[derive(Clone, Default, GetSize)]
 pub struct Sheet {
     pub(crate) name: String,
-    pub(crate) style: TableStyleRef,
+    pub(crate) style: Option<TableStyleRef>,
 
     pub(crate) data: BTreeMap<(u32, u32), CellData>,
 
@@ -637,12 +637,12 @@ impl Sheet {
 
     /// Sets the table-style
     pub fn set_style(&mut self, style: &TableStyleRef) {
-        self.style = *style;
+        self.style = Some(*style);
     }
 
     /// Returns the table-style.
     pub fn style(&self) -> Option<&TableStyleRef> {
-        self.style.as_option()
+        self.style.as_ref()
     }
 
     // find the col-header with the correct data.
@@ -731,18 +731,18 @@ impl Sheet {
 
     /// Default cell style for this column.
     pub fn set_col_cellstyle(&mut self, col: u32, style: &CellStyleRef) {
-        self.create_split_col_header(col).cellstyle = *style;
+        self.create_split_col_header(col).cellstyle = Some(*style);
     }
 
     /// Remove the style.
     pub fn clear_col_cellstyle(&mut self, col: u32) {
-        self.create_split_col_header(col).cellstyle = Default::default();
+        self.create_split_col_header(col).cellstyle = None;
     }
 
     /// Returns the default cell style for this column.
     pub fn col_cellstyle(&self, col: u32) -> Option<&CellStyleRef> {
         if let Some(col_header) = self.valid_col_header(col) {
-            col_header.cellstyle.as_option()
+            col_header.cellstyle.as_ref()
         } else {
             None
         }
@@ -1066,7 +1066,7 @@ impl Sheet {
     ) {
         let cell = self.data.entry((row, col)).or_default();
         cell.value = value.into();
-        cell.style = *style;
+        cell.style = Some(*style);
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
@@ -1124,7 +1124,7 @@ impl Sheet {
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
     pub fn set_cellstyle(&mut self, row: u32, col: u32, style: &CellStyleRef) {
         let cell = self.data.entry((row, col)).or_default();
-        cell.style = *style;
+        cell.style = Some(*style);
     }
 
     /// Removes the cell-style.
@@ -1137,7 +1137,7 @@ impl Sheet {
     /// Returns a value
     pub fn cellstyle(&self, row: u32, col: u32) -> Option<&CellStyleRef> {
         if let Some(c) = self.data.get(&(row, col)) {
-            c.style.as_option()
+            c.style.as_ref()
         } else {
             None
         }

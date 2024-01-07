@@ -104,29 +104,6 @@ macro_rules! style_ref {
 
 macro_rules! styles_styles2 {
     ($style:ident, $styleref:ident) => {
-        impl Style for $style {
-            type RefType = $styleref;
-
-            /// Stylename
-            fn name(&self) -> &str {
-                &self.name
-            }
-
-            /// Stylename
-            fn set_name<S: Into<String>>(&mut self, name: S) {
-                self.name = name.into();
-            }
-
-            /// Returns the name as a style reference.
-            fn style_ref(&self) -> $styleref {
-                self.id
-            }
-
-            fn set_style_ref(&mut self, style_ref: $styleref) {
-                self.id = style_ref;
-            }
-        }
-
         impl $style {
             /// Origin of the style, either styles.xml oder content.xml
             pub fn origin(&self) -> StyleOrigin {
@@ -148,6 +125,25 @@ macro_rules! styles_styles2 {
                 self.styleuse = styleuse;
             }
 
+            /// Stylename
+            pub fn name(&self) -> &str {
+                &self.name
+            }
+
+            /// Stylename
+            pub fn set_name<S: Into<String>>(&mut self, name: S) {
+                self.name = name.into();
+            }
+
+            /// Returns the name as a style reference.
+            pub fn style_ref(&self) -> Option<$styleref> {
+                self.id
+            }
+
+            pub(crate) fn set_style_ref(&mut self, style_ref: $styleref) {
+                self.id = Some(style_ref);
+            }
+
             style_auto_update!(attr);
             style_class!(attr);
             style_display_name!(attr);
@@ -161,42 +157,17 @@ macro_rules! style_ref2 {
     ($l:ident) => {
         /// Reference
         #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, GetSize)]
-        pub struct $l {
-            id: u32,
-        }
-
-        impl Default for $l {
-            fn default() -> Self {
-                Self { id: 0 }
-            }
-        }
+        pub struct $l(NonZeroU32);
 
         impl Display for $l {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}", self.id)
+                write!(f, "{}", self.0)
             }
         }
 
-        impl StyleRef for $l {
-            fn is_empty(&self) -> bool {
-                self.id == 0
-            }
-
-            /// Express is_empty as Option
-            fn as_option(&self) -> Option<&Self> {
-                if !self.is_empty() {
-                    Some(self)
-                } else {
-                    None
-                }
-            }
-
-            fn from_u32(id: u32) -> Self {
-                Self { id }
-            }
-
-            fn as_usize(&self) -> usize {
-                self.id as usize
+        impl $l {
+            pub(crate) fn new(id: NonZeroU32) -> Self {
+                Self(id.into())
             }
         }
     };
