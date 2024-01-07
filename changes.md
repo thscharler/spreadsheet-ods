@@ -53,6 +53,21 @@
 - fix: If "mimetype" or "META-INF/manifest.xml" occurs in the manifest they were duplicated
   in the output. which creates an invalid zip archive.
 
+## Experiments
+
+Tried three different implementations for xxxStyleRef. 
+- Current String implementation. 
+- Using smol_str:
+  - Memory usage goes down only 1-2%. Time is in the same range. Not worth the effort.
+- Using handles with u32:
+  - Memory usage goes down 10%. Time is in the same range. 
+  - This can't get rid of the style-name completely, so there would be two ways of 
+    indirection. Which only leads to insanity.
+
+Conclusion 1: It's not worth the effort. 
+Conclusion 2: Using xxStyleRef instead of String helps readability. Implementing 
+  Borrow<str> and AsRef<str> for xxStyleRef might be helpful.
+
 # 0.20.2
 
 fix #47: method unescape_value for struct quick_xml::events::attributes::Attribute is only
