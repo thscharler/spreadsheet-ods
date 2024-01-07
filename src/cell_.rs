@@ -144,7 +144,7 @@ impl CellData {
         if self.formula.is_some() {
             return false;
         }
-        if self.style.as_ref() != default_cellstyle {
+        if self.style.is_some() && self.style.as_ref() != default_cellstyle {
             return false;
         }
         self.is_void_extra()
