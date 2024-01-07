@@ -75,7 +75,7 @@ impl Default for RowHeader {
 #[derive(Debug, Clone, GetSize)]
 pub(crate) struct ColHeader {
     pub(crate) style: Option<String>,
-    pub(crate) cellstyle: Option<String>,
+    pub(crate) cellstyle: Option<CellStyleRef>,
     pub(crate) visible: Visibility,
     pub(crate) width: Length,
     /// Logical valid range for all the header values. Avoids duplication
@@ -103,7 +103,7 @@ impl Default for ColHeader {
 #[derive(Clone, Default, GetSize)]
 pub struct Sheet {
     pub(crate) name: String,
-    pub(crate) style: Option<String>,
+    pub(crate) style: Option<TableStyleRef>,
 
     pub(crate) data: BTreeMap<(u32, u32), CellData>,
 
@@ -637,11 +637,11 @@ impl Sheet {
 
     /// Sets the table-style
     pub fn set_style(&mut self, style: &TableStyleRef) {
-        self.style = Some(style.to_string());
+        self.style = Some(style.clone())
     }
 
     /// Returns the table-style.
-    pub fn style(&self) -> Option<&String> {
+    pub fn style(&self) -> Option<&TableStyleRef> {
         self.style.as_ref()
     }
 
@@ -731,7 +731,7 @@ impl Sheet {
 
     /// Default cell style for this column.
     pub fn set_col_cellstyle(&mut self, col: u32, style: &CellStyleRef) {
-        self.create_split_col_header(col).cellstyle = Some(style.to_string());
+        self.create_split_col_header(col).cellstyle = Some(style.clone());
     }
 
     /// Remove the style.
@@ -740,7 +740,7 @@ impl Sheet {
     }
 
     /// Returns the default cell style for this column.
-    pub fn col_cellstyle(&self, col: u32) -> Option<&String> {
+    pub fn col_cellstyle(&self, col: u32) -> Option<&CellStyleRef> {
         if let Some(col_header) = self.valid_col_header(col) {
             col_header.cellstyle.as_ref()
         } else {
@@ -1066,7 +1066,7 @@ impl Sheet {
     ) {
         let cell = self.data.entry((row, col)).or_default();
         cell.value = value.into();
-        cell.style = Some(style.to_string());
+        cell.style = Some(style.clone());
     }
 
     /// Sets a value for the specified cell. Creates a new cell if necessary.
@@ -1124,7 +1124,7 @@ impl Sheet {
     /// Sets the cell-style for the specified cell. Creates a new cell if necessary.
     pub fn set_cellstyle(&mut self, row: u32, col: u32, style: &CellStyleRef) {
         let cell = self.data.entry((row, col)).or_default();
-        cell.style = Some(style.to_string());
+        cell.style = Some(style.clone());
     }
 
     /// Removes the cell-style.
@@ -1135,7 +1135,7 @@ impl Sheet {
     }
 
     /// Returns a value
-    pub fn cellstyle(&self, row: u32, col: u32) -> Option<&String> {
+    pub fn cellstyle(&self, row: u32, col: u32) -> Option<&CellStyleRef> {
         if let Some(c) = self.data.get(&(row, col)) {
             c.style.as_ref()
         } else {

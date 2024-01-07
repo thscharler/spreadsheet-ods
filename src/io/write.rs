@@ -1478,7 +1478,7 @@ fn write_sheet(
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table")?;
     xml_out.attr_esc("table:name", &sheet.name)?;
-    if let Some(style) = &sheet.style {
+    if let Some(style) = sheet.style.as_ref() {
         xml_out.attr_esc("table:style-name", style)?;
     }
     if let Some(print_ranges) = &sheet.print_ranges {
@@ -1978,8 +1978,8 @@ fn write_table_columns(
             if let Some(style) = col_header.style.as_ref() {
                 xml_out.attr_esc("table:style-name", style)?;
             }
-            if let Some(cellstyle) = col_header.cellstyle.as_ref() {
-                xml_out.attr_esc("table:default-cell-style-name", cellstyle)?;
+            if let Some(style) = col_header.cellstyle.as_ref() {
+                xml_out.attr_esc("table:default-cell-style-name", style)?;
             }
             if col_header.visible != Visibility::Visible {
                 xml_out.attr_esc("table:visibility", &col_header.visible)?;

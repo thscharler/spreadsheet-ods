@@ -5,11 +5,12 @@ use crate::style::units::{
     WritingMode,
 };
 use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
+use core::borrow::Borrow;
 use get_size::GetSize;
 use get_size_derive::GetSize;
 use std::fmt::{Display, Formatter};
 
-style_ref!(TableStyleRef);
+style_ref2!(TableStyleRef);
 
 /// Describes the style information for a table.
 ///
@@ -27,7 +28,7 @@ pub struct TableStyle {
     tablestyle: AttrMap2,
 }
 
-styles_styles!(TableStyle, TableStyleRef);
+styles_styles2!(TableStyle, TableStyleRef);
 
 impl TableStyle {
     /// empty
@@ -42,11 +43,11 @@ impl TableStyle {
     }
 
     /// Creates a new Style.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: String::from(name.as_ref()),
             attr: Default::default(),
             tablestyle: Default::default(),
         }

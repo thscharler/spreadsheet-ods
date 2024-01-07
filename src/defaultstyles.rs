@@ -72,42 +72,42 @@ pub struct DefaultStyle {}
 impl DefaultStyle {
     /// Default bool style.
     pub fn bool() -> CellStyleRef {
-        CellStyleRef::from("default-bool")
+        CellStyleRef::from_str("default-bool")
     }
 
     /// Default number style.
     pub fn number() -> CellStyleRef {
-        CellStyleRef::from("default-num")
+        CellStyleRef::from_str("default-num")
     }
 
     /// Default percent style.
     pub fn percent() -> CellStyleRef {
-        CellStyleRef::from("default-percent")
+        CellStyleRef::from_str("default-percent")
     }
 
     /// Default currency style.
     pub fn currency() -> CellStyleRef {
-        CellStyleRef::from("default-currency")
+        CellStyleRef::from_str("default-currency")
     }
 
     /// Default date style.
     pub fn date() -> CellStyleRef {
-        CellStyleRef::from("default-date")
+        CellStyleRef::from_str("default-date")
     }
 
     /// Default datetime style.
     pub fn datetime() -> CellStyleRef {
-        CellStyleRef::from("default-datetime")
+        CellStyleRef::from_str("default-datetime")
     }
 
     /// Default time style.
     pub fn time_of_day() -> CellStyleRef {
-        CellStyleRef::from("default-time")
+        CellStyleRef::from_str("default-time")
     }
 
     /// Default time style.
     pub fn time_interval() -> CellStyleRef {
-        CellStyleRef::from("default-interval")
+        CellStyleRef::from_str("default-interval")
     }
 }
 
@@ -177,10 +177,10 @@ pub fn create_default_styles(book: &mut WorkBook) {
         &DefaultFormat::time_interval(),
     ));
 
-    book.add_def_style(ValueType::Boolean, &DefaultStyle::bool());
-    book.add_def_style(ValueType::Number, &DefaultStyle::number());
-    book.add_def_style(ValueType::Percentage, &DefaultStyle::percent());
-    book.add_def_style(ValueType::Currency, &DefaultStyle::currency());
-    book.add_def_style(ValueType::DateTime, &DefaultStyle::date());
-    book.add_def_style(ValueType::TimeDuration, &DefaultStyle::time_interval());
+    book.add_def_style(ValueType::Boolean, DefaultStyle::bool());
+    book.add_def_style(ValueType::Number, DefaultStyle::number());
+    book.add_def_style(ValueType::Percentage, DefaultStyle::percent());
+    book.add_def_style(ValueType::Currency, DefaultStyle::currency());
+    book.add_def_style(ValueType::DateTime, DefaultStyle::date());
+    book.add_def_style(ValueType::TimeDuration, DefaultStyle::time_interval());
 }

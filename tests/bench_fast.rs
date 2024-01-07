@@ -5,7 +5,7 @@ mod lib_test;
 use crate::lib_test::{Timing, Unit};
 use icu_locid::locale;
 use spreadsheet_ods::{
-    read_ods, write_ods_buf, write_ods_buf_uncompressed, OdsError, Sheet, WorkBook,
+    read_ods, write_ods_buf, write_ods_buf_uncompressed, CellStyleRef, OdsError, Sheet, WorkBook,
 };
 
 const ROWS: u32 = 100;
@@ -28,7 +28,7 @@ fn create_wb(rows: u32, cols: u32) -> Result<WorkBook, OdsError> {
         }
         if r % 2 == 0 {
             for c in 0..cols {
-                sh.set_cellstyle(r, c, &"s0".into());
+                sh.set_cellstyle(r, c, &CellStyleRef::from_str("s0"));
             }
         }
         if r % 10 == 0 {

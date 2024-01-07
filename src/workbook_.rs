@@ -4,8 +4,10 @@
 
 use get_size::GetSize;
 use get_size_derive::GetSize;
+use std::borrow::Borrow;
 use std::fmt;
 use std::fmt::Formatter;
+use std::hash::Hash;
 
 use icu_locid::{locale, Locale};
 
@@ -53,10 +55,10 @@ pub struct WorkBook {
     pub(crate) event_listener: HashMap<String, EventListener>,
 
     /// Styles hold the style:style elements.
-    pub(crate) tablestyles: HashMap<String, TableStyle>,
+    pub(crate) tablestyles: HashMap<TableStyleRef, TableStyle>,
     pub(crate) rowstyles: HashMap<String, RowStyle>,
     pub(crate) colstyles: HashMap<String, ColStyle>,
-    pub(crate) cellstyles: HashMap<String, CellStyle>,
+    pub(crate) cellstyles: HashMap<CellStyleRef, CellStyle>,
     pub(crate) paragraphstyles: HashMap<String, ParagraphStyle>,
     pub(crate) textstyles: HashMap<String, TextStyle>,
     pub(crate) rubystyles: HashMap<String, RubyStyle>,
@@ -74,7 +76,7 @@ pub struct WorkBook {
 
     /// Default-styles per Type.
     /// This is only used when writing the ods file.
-    pub(crate) def_styles: HashMap<ValueType, String>,
+    pub(crate) def_styles: HashMap<ValueType, CellStyleRef>,
 
     /// Page-layout data.
     pub(crate) pagestyles: HashMap<String, PageStyle>,
@@ -177,6 +179,35 @@ impl fmt::Debug for WorkBook {
         }
         Ok(())
     }
+}
+
+/// Autogenerate a stylename. Runs a counter with the prefix and
+/// checks for existence.
+fn auto_style_name2<K, V>(
+    autonum: &mut HashMap<String, u32>,
+    prefix: &str,
+    styles: &HashMap<K, V>,
+) -> String
+where
+    K: Borrow<str> + Hash + Eq,
+{
+    let mut cnt = if let Some(n) = autonum.get(prefix) {
+        n + 1
+    } else {
+        0
+    };
+
+    let style_name = loop {
+        let style_name = format!("{}{}", prefix, cnt);
+        if !styles.contains_key(&style_name) {
+            break style_name;
+        }
+        cnt += 1;
+    };
+
+    autonum.insert(prefix.to_string(), cnt);
+
+    style_name
 }
 
 /// Autogenerate a stylename. Runs a counter with the prefix and
@@ -315,12 +346,12 @@ impl WorkBook {
             &DefaultFormat::time_interval(),
         ));
 
-        self.add_def_style(ValueType::Boolean, &DefaultStyle::bool());
-        self.add_def_style(ValueType::Number, &DefaultStyle::number());
-        self.add_def_style(ValueType::Percentage, &DefaultStyle::percent());
-        self.add_def_style(ValueType::Currency, &DefaultStyle::currency());
-        self.add_def_style(ValueType::DateTime, &DefaultStyle::date());
-        self.add_def_style(ValueType::TimeDuration, &DefaultStyle::time_interval());
+        self.add_def_style(ValueType::Boolean, DefaultStyle::bool());
+        self.add_def_style(ValueType::Number, DefaultStyle::number());
+        self.add_def_style(ValueType::Percentage, DefaultStyle::percent());
+        self.add_def_style(ValueType::Currency, DefaultStyle::currency());
+        self.add_def_style(ValueType::DateTime, DefaultStyle::date());
+        self.add_def_style(ValueType::TimeDuration, DefaultStyle::time_interval());
     }
 
     /// ODS version. Defaults to 1.3.
@@ -473,12 +504,12 @@ impl WorkBook {
 
     /// Adds a default-style for all new values.
     /// This information is only used when writing the data to the ODS file.
-    pub fn add_def_style(&mut self, value_type: ValueType, style: &CellStyleRef) {
-        self.def_styles.insert(value_type, style.to_string());
+    pub fn add_def_style(&mut self, value_type: ValueType, style: CellStyleRef) {
+        self.def_styles.insert(value_type, style);
     }
 
     /// Returns the default style name.
-    pub fn def_style(&self, value_type: ValueType) -> Option<&String> {
+    pub fn def_style(&self, value_type: ValueType) -> Option<&CellStyleRef> {
         self.def_styles.get(&value_type)
     }
 
@@ -511,10 +542,10 @@ impl WorkBook {
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_tablestyle(&mut self, mut style: TableStyle) -> TableStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "ta", &self.tablestyles));
+            style.set_name(auto_style_name2(&mut self.autonum, "ta", &self.tablestyles));
         }
         let sref = style.style_ref();
-        self.tablestyles.insert(style.name().to_string(), style);
+        self.tablestyles.insert(sref.clone(), style);
         sref
     }
 
@@ -604,10 +635,10 @@ impl WorkBook {
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_cellstyle(&mut self, mut style: CellStyle) -> CellStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "ce", &self.cellstyles));
+            style.set_name(auto_style_name2(&mut self.autonum, "ce", &self.cellstyles));
         }
         let sref = style.style_ref();
-        self.cellstyles.insert(style.name().to_string(), style);
+        self.cellstyles.insert(sref.clone(), style);
         sref
     }
 

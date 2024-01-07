@@ -15,12 +15,13 @@ use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, text_position,
     StyleOrigin, StyleUse, TextStyleRef,
 };
+use core::borrow::Borrow;
 use get_size::GetSize;
 use get_size_derive::GetSize;
 use icu_locid::Locale;
 use std::fmt::{Display, Formatter};
 
-style_ref!(CellStyleRef);
+style_ref2!(CellStyleRef);
 
 /// Describes the style information for a cell.
 ///
@@ -67,7 +68,7 @@ pub struct CellStyle {
     stylemaps: Option<Vec<StyleMap>>,
 }
 
-styles_styles!(CellStyle, CellStyleRef);
+styles_styles2!(CellStyle, CellStyleRef);
 
 impl CellStyle {
     /// Creates an empty style.
@@ -86,11 +87,11 @@ impl CellStyle {
 
     /// Creates an empty style with the given name and a reference to a
     /// value format.
-    pub fn new<S: Into<String>>(name: S, value_format: &ValueFormatRef) -> Self {
+    pub fn new<S: AsRef<str>>(name: S, value_format: &ValueFormatRef) -> Self {
         let mut s = Self {
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: String::from(name.as_ref()),
             attr: Default::default(),
             cellstyle: Default::default(),
             paragraphstyle: Default::default(),

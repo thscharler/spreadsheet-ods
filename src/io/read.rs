@@ -37,16 +37,17 @@ use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
     ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, MasterPageRef, PageStyle,
-    ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
+    ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TableStyleRef,
+    TextStyle,
 };
 use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
 use crate::workbook::{EventListener, Script};
 use crate::xmltree::XmlTag;
 use crate::{
-    CellStyle, ColRange, Length, RowRange, Sheet, Value, ValueFormatBoolean, ValueFormatCurrency,
-    ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage, ValueFormatText,
-    ValueFormatTimeDuration, ValueType, WorkBook,
+    CellStyle, CellStyleRef, ColRange, Length, RowRange, Sheet, Value, ValueFormatBoolean,
+    ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage,
+    ValueFormatText, ValueFormatTimeDuration, ValueType, WorkBook,
 };
 
 type OdsXmlReader<'a> = quick_xml::Reader<&'a mut dyn BufRead>;
@@ -1090,7 +1091,8 @@ fn read_table_attr(
                 sheet.set_name(attr.decode_and_unescape_value(xml)?.to_string());
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                sheet.set_style(&attr.decode_and_unescape_value(xml)?.as_ref().into());
+                let name = &attr.decode_and_unescape_value(xml)?;
+                sheet.style = Some(TableStyleRef::from_str(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"table:print" => {
                 sheet.set_print(parse_bool(&attr.value)?);
@@ -1228,8 +1230,9 @@ fn read_table_col_attr(
                 col_header.get_or_insert_with(ColHeader::default).style = Some(style);
             }
             attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
-                let cellstyle = attr.decode_and_unescape_value(xml)?.to_string();
-                col_header.get_or_insert_with(ColHeader::default).cellstyle = Some(cellstyle);
+                let name = attr.decode_and_unescape_value(xml)?;
+                col_header.get_or_insert_with(ColHeader::default).cellstyle =
+                    Some(CellStyleRef::from_str(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"table:visibility" => {
                 let visible = parse_visibility(&attr.value)?;
@@ -1397,8 +1400,9 @@ fn read_table_cell(
                     Some(attr.decode_and_unescape_value(xml)?.to_string());
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
+                let name = attr.decode_and_unescape_value(xml)?;
                 cell.get_or_insert_with(CellData::default).style =
-                    Some(attr.decode_and_unescape_value(xml)?.to_string());
+                    Some(CellStyleRef::from_str(name.as_ref()));
             }
             attr => {
                 unused_attr("read_table_cell2", super_tag.name().as_ref(), &attr)?;
@@ -1470,7 +1474,11 @@ fn read_table_cell(
 }
 
 #[inline]
-fn ignore_cell(ctx: &mut OdsContext, default_cellstyle: Option<&String>, cell: &CellData) -> bool {
+fn ignore_cell(
+    ctx: &mut OdsContext,
+    default_cellstyle: Option<&CellStyleRef>,
+    cell: &CellData,
+) -> bool {
     if cell.is_void(default_cellstyle) {
         true
     } else if ctx.ignore_empty_cells && cell.is_empty() {
