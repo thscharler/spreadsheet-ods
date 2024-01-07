@@ -163,14 +163,6 @@ macro_rules! style_ref2 {
             }
         }
 
-        impl Default for $l {
-            fn default() -> Self {
-                Self {
-                    id: SmolStr::default(),
-                }
-            }
-        }
-
         impl Borrow<str> for $l {
             fn borrow(&self) -> &str {
                 self.id.borrow()
@@ -184,20 +176,6 @@ macro_rules! style_ref2 {
         }
 
         impl $l {
-            /// Empty reference
-            pub fn is_empty(&self) -> bool {
-                self.id.is_empty()
-            }
-
-            /// Express is_empty as Option
-            pub fn as_option(&self) -> Option<&Self> {
-                if !self.is_empty() {
-                    Some(self)
-                } else {
-                    None
-                }
-            }
-
             /// Create from str.
             pub fn from_str(str: &str) -> Self {
                 Self {

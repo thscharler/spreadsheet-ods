@@ -88,7 +88,7 @@ pub(crate) struct CellData {
     // Unparsed formula string.
     pub(crate) formula: Option<String>,
     // Cell style name.
-    pub(crate) style: CellStyleRef,
+    pub(crate) style: Option<CellStyleRef>,
     // Cell repeated.
     pub(crate) repeat: u32,
     // Scarcely used extra data.
@@ -144,17 +144,8 @@ impl CellData {
         if self.formula.is_some() {
             return false;
         }
-        if !self.style.is_empty() {
-            if let Some(default) = default_cellstyle {
-                if &self.style != default {
-                    return false;
-                } else {
-                    // equal default
-                }
-            } else {
-                // not the default (None)
-                return false;
-            }
+        if self.style.is_some() && self.style.as_ref() != default_cellstyle {
+            return false;
         }
         self.is_void_extra()
     }
@@ -269,7 +260,7 @@ impl CellData {
 
         CellContentRef {
             value: &self.value,
-            style: &self.style,
+            style: self.style.as_ref(),
             formula: self.formula.as_ref(),
             repeat: &self.repeat,
             validation_name,
@@ -288,7 +279,7 @@ pub struct CellContentRef<'a> {
     /// Reference to the cell value.
     pub value: &'a Value,
     /// Reference to the stylename.
-    pub style: &'a CellStyleRef,
+    pub style: Option<&'a CellStyleRef>,
     /// Reference to the cell formula.
     pub formula: Option<&'a String>,
     /// Reference to the repeat count.
@@ -320,7 +311,7 @@ impl<'a> CellContentRef<'a> {
 
     /// Returns the cell style.
     #[inline]
-    pub fn style(&self) -> &'a CellStyleRef {
+    pub fn style(&self) -> Option<&'a CellStyleRef> {
         self.style
     }
 
@@ -392,7 +383,7 @@ impl<'a> CellContentRef<'a> {
     pub fn to_owned(&self) -> CellContent {
         CellContent {
             value: self.value.clone(),
-            style: self.style.clone(),
+            style: self.style.cloned(),
             formula: self.formula.cloned(),
             repeat: *self.repeat,
             validation_name: self.validation_name.cloned(),
@@ -410,7 +401,7 @@ pub struct CellContent {
     /// Cell value.
     pub value: Value,
     /// Cell stylename.
-    pub style: CellStyleRef,
+    pub style: Option<CellStyleRef>,
     /// Cell formula.
     pub formula: Option<String>,
     /// Cell repeat count.
@@ -499,20 +490,20 @@ impl CellContent {
 
     /// Returns the cell style.
     #[inline]
-    pub fn style(&self) -> &CellStyleRef {
-        &self.style
+    pub fn style(&self) -> Option<&CellStyleRef> {
+        self.style.as_ref()
     }
 
     /// Sets the cell style.
     #[inline]
     pub fn set_style(&mut self, style: &CellStyleRef) {
-        self.style = style.clone();
+        self.style = Some(style.clone());
     }
 
     /// Removes the style.
     #[inline]
     pub fn clear_style(&mut self) {
-        self.style = Default::default();
+        self.style = None;
     }
 
     /// Sets the repeat count for the cell.
