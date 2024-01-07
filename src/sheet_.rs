@@ -87,7 +87,7 @@ impl Default for ColHeader {
     fn default() -> Self {
         Self {
             style: None,
-            cellstyle: Default::default(),
+            cellstyle: None,
             visible: Default::default(),
             width: Default::default(),
             span: 1,
@@ -539,7 +539,7 @@ impl Sheet {
             name: name.into(),
             data: BTreeMap::new(),
             col_header: Default::default(),
-            style: Default::default(),
+            style: None,
             header_rows: None,
             header_cols: None,
             print_ranges: None,
@@ -1130,7 +1130,7 @@ impl Sheet {
     /// Removes the cell-style.
     pub fn clear_cellstyle(&mut self, row: u32, col: u32) {
         if let Some(cell) = self.data.get_mut(&(row, col)) {
-            cell.style = Default::default();
+            cell.style = None;
         }
     }
 

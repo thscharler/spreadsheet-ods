@@ -524,7 +524,7 @@ impl WorkBook {
             if let Some(sref) = self.tablestyle_ref.get(style.name()) {
                 style.set_style_ref(*sref);
             } else {
-                style.set_style_ref(TableStyleRef::new(gen_autonum(anum, "ta-id")));
+                style.set_style_ref(TableStyleRef::from_u32(gen_autonum(anum, "ta-id")));
             }
         }
 
@@ -633,7 +633,7 @@ impl WorkBook {
             if let Some(sref) = self.cellstyle_ref.get(style.name()) {
                 style.set_style_ref(*sref);
             } else {
-                style.set_style_ref(CellStyleRef::new(gen_autonum(anum, "ce-id")));
+                style.set_style_ref(CellStyleRef::from_u32(gen_autonum(anum, "ce-id")));
             }
         }
 

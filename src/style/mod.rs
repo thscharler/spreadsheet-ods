@@ -139,40 +139,6 @@ mod textstyle;
 // ok: style:parent-style-name 19.510 and
 // only for chart: style:percentage-data-style-name 19.511
 
-// /// Reference to a style.
-// /// A u32 in disguise.
-// pub trait StyleRef: Sized {
-//     /// undefined reference
-//     fn is_empty(&self) -> bool;
-//
-//     ///
-//     fn as_option(&self) -> Option<&Self>;
-//
-//     ///
-//     fn from_u32(id: u32) -> Self;
-//
-//     /// get the base index.
-//     fn as_usize(&self) -> usize;
-// }
-//
-// /// Common behaviour of all Styles.
-// pub trait Style {
-//     /// Links to the associated reference type.
-//     type RefType: StyleRef;
-//
-//     /// style name.
-//     fn name(&self) -> &str;
-//
-//     /// style name.
-//     fn set_name<S: Into<String>>(&mut self, name: S);
-//
-//     /// reference
-//     fn style_ref(&self) -> Self::RefType;
-//
-//     /// reference
-//     fn set_style_ref(&mut self, style_ref: Self::RefType);
-// }
-
 /// Origin of a style. Content.xml or Styles.xml.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, GetSize)]
 pub enum StyleOrigin {

@@ -116,7 +116,7 @@ impl Default for CellData {
         Self {
             value: Default::default(),
             formula: None,
-            style: Default::default(),
+            style: None,
             repeat: 1,
             extra: None,
         }
@@ -503,7 +503,7 @@ impl CellContent {
     /// Removes the style.
     #[inline]
     pub fn clear_style(&mut self) {
-        self.style = Default::default();
+        self.style = None;
     }
 
     /// Sets the repeat count for the cell.

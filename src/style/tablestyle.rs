@@ -45,12 +45,12 @@ impl TableStyle {
     }
 
     /// Creates a new Style.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
             id: Default::default(),
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: String::from(name.as_ref()),
             attr: Default::default(),
             tablestyle: Default::default(),
         }

@@ -90,12 +90,12 @@ impl CellStyle {
 
     /// Creates an empty style with the given name and a reference to a
     /// value format.
-    pub fn new<S: Into<String>>(name: S, value_format: &ValueFormatRef) -> Self {
+    pub fn new<S: AsRef<str>>(name: S, value_format: &ValueFormatRef) -> Self {
         let mut s = Self {
             id: Default::default(),
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: String::from(name.as_ref()),
             attr: Default::default(),
             cellstyle: Default::default(),
             paragraphstyle: Default::default(),

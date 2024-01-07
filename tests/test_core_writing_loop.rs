@@ -254,7 +254,7 @@ fn test_void() -> Result<(), OdsError> {
     let wb = OdsOptions::default().use_repeat_for_cells().read_ods(f)?;
     let sh = wb.sheet(0);
 
-    dbg!(sh);
+    // dbg!(sh);
 
     assert!(sh.cell_ref(1, 0).is_none());
     assert!(sh.cell_ref(2, 1).is_none());

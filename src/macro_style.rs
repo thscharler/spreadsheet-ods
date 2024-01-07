@@ -131,8 +131,8 @@ macro_rules! styles_styles2 {
             }
 
             /// Stylename
-            pub fn set_name<S: Into<String>>(&mut self, name: S) {
-                self.name = name.into();
+            pub fn set_name<S: AsRef<str>>(&mut self, name: S) {
+                self.name = String::from(name.as_ref());
             }
 
             /// Returns the name as a style reference.
@@ -156,8 +156,14 @@ macro_rules! styles_styles2 {
 macro_rules! style_ref2 {
     ($l:ident) => {
         /// Reference
-        #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, GetSize)]
+        #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
         pub struct $l(NonZeroU32);
+
+        impl GetSize for $l {
+            fn get_heap_size(&self) -> usize {
+                0
+            }
+        }
 
         impl Display for $l {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -166,8 +172,8 @@ macro_rules! style_ref2 {
         }
 
         impl $l {
-            pub(crate) fn new(id: NonZeroU32) -> Self {
-                Self(id.into())
+            pub(crate) fn from_u32(id: NonZeroU32) -> Self {
+                Self(id)
             }
         }
     };

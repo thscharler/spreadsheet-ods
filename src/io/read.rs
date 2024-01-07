@@ -1093,11 +1093,7 @@ fn read_table_attr(
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
                 let n = attr.decode_and_unescape_value(xml)?;
-                if let Some(r) = ctx.book.tablestyle_ref(n.as_ref()) {
-                    sheet.set_style(&r)
-                } else {
-                    // todo:
-                }
+                sheet.style = ctx.book.tablestyle_ref(n.as_ref());
             }
             attr if attr.key.as_ref() == b"table:print" => {
                 sheet.set_print(parse_bool(&attr.value)?);
