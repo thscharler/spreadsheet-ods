@@ -114,66 +114,54 @@ impl DefaultStyle {
 /// Replaced with WorkBook::locale_settings() or WorkBook::new(l: Locale).
 #[deprecated]
 pub fn create_default_styles(book: &mut WorkBook) {
-    book.add_boolean_format(format::create_boolean_format(
-        DefaultFormat::bool().to_string(),
-    ));
+    book.add_boolean_format(format::create_boolean_format(DefaultFormat::bool()));
     book.add_number_format(format::create_number_format(
-        DefaultFormat::number().to_string(),
+        DefaultFormat::number(),
         2,
         false,
     ));
     book.add_percentage_format(format::create_percentage_format(
-        DefaultFormat::percent().to_string(),
+        DefaultFormat::percent(),
         2,
     ));
     book.add_currency_format(format::create_currency_prefix(
-        DefaultFormat::currency().to_string(),
+        DefaultFormat::currency(),
         locale!("de_AT"),
         "€",
     ));
-    book.add_datetime_format(format::create_date_dmy_format(
-        DefaultFormat::date().to_string(),
-    ));
-    book.add_datetime_format(format::create_datetime_format(
-        DefaultFormat::datetime().to_string(),
-    ));
+    book.add_datetime_format(format::create_date_dmy_format(DefaultFormat::date()));
+    book.add_datetime_format(format::create_datetime_format(DefaultFormat::datetime()));
     book.add_timeduration_format(format::create_time_of_day_format(
-        DefaultFormat::time_of_day().to_string(),
+        DefaultFormat::time_of_day(),
     ));
     book.add_timeduration_format(format::create_time_interval_format(
-        DefaultFormat::time_interval().to_string(),
+        DefaultFormat::time_interval(),
     ));
 
+    book.add_cellstyle(CellStyle::new(DefaultStyle::bool(), &DefaultFormat::bool()));
     book.add_cellstyle(CellStyle::new(
-        DefaultStyle::bool().to_string(),
-        &DefaultFormat::bool(),
-    ));
-    book.add_cellstyle(CellStyle::new(
-        DefaultStyle::number().to_string(),
+        DefaultStyle::number(),
         &DefaultFormat::number(),
     ));
     book.add_cellstyle(CellStyle::new(
-        DefaultStyle::percent().to_string(),
+        DefaultStyle::percent(),
         &DefaultFormat::percent(),
     ));
     book.add_cellstyle(CellStyle::new(
-        DefaultStyle::currency().to_string(),
+        DefaultStyle::currency(),
         &DefaultFormat::currency(),
     ));
+    book.add_cellstyle(CellStyle::new(DefaultStyle::date(), &DefaultFormat::date()));
     book.add_cellstyle(CellStyle::new(
-        DefaultStyle::date().to_string(),
-        &DefaultFormat::date(),
-    ));
-    book.add_cellstyle(CellStyle::new(
-        DefaultStyle::datetime().to_string(),
+        DefaultStyle::datetime(),
         &DefaultFormat::datetime(),
     ));
     book.add_cellstyle(CellStyle::new(
-        DefaultStyle::time_of_day().to_string(),
+        DefaultStyle::time_of_day(),
         &DefaultFormat::time_of_day(),
     ));
     book.add_cellstyle(CellStyle::new(
-        DefaultStyle::time_interval().to_string(),
+        DefaultStyle::time_interval(),
         &DefaultFormat::time_interval(),
     ));
 

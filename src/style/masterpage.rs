@@ -2,9 +2,9 @@ use crate::style::pagestyle::PageStyleRef;
 use crate::text::TextTag;
 use get_size::GetSize;
 use get_size_derive::GetSize;
-use std::fmt::{Display, Formatter};
+use std::borrow::Borrow;
 
-style_ref!(MasterPageRef);
+style_ref2!(MasterPageRef);
 
 /// Defines the structure and content for a page.
 /// Refers to a PageStyle for layout information.
@@ -42,8 +42,8 @@ style_ref!(MasterPageRef);
 pub struct MasterPage {
     name: String,
     display_name: String,
-    pagestyle: String,
-    next_style_name: String,
+    pagestyle: Option<PageStyleRef>,
+    next_style_name: Option<MasterPageRef>,
 
     header: HeaderFooter,
     header_first: HeaderFooter,
@@ -72,9 +72,9 @@ impl MasterPage {
     }
 
     /// New MasterPage
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
-            name: name.into(),
+            name: name.as_ref().to_string(),
             display_name: Default::default(),
             pagestyle: Default::default(),
             next_style_name: Default::default(),
@@ -114,12 +114,12 @@ impl MasterPage {
 
     /// Reference to a page-style.
     pub fn set_pagestyle(&mut self, name: &PageStyleRef) {
-        self.pagestyle = name.to_string();
+        self.pagestyle = Some(name.clone());
     }
 
     /// Reference to a page-style.
-    pub fn pagestyle(&self) -> &String {
-        &self.pagestyle
+    pub fn pagestyle(&self) -> Option<&PageStyleRef> {
+        self.pagestyle.as_ref()
     }
 
     /// The style:next-style-name attribute specifies the name of the master page that is used for
@@ -127,12 +127,12 @@ impl MasterPage {
     /// current master page is used for the next page. The value of this attribute shall be the name of a
     /// <style:master-page> element.
     pub fn set_next_masterpage(&mut self, master: &MasterPageRef) {
-        self.next_style_name = master.to_string()
+        self.next_style_name = Some(master.clone());
     }
 
     ///
-    pub fn next_masterpage(&self) -> &String {
-        &self.next_style_name
+    pub fn next_masterpage(&self) -> Option<&MasterPageRef> {
+        self.next_style_name.as_ref()
     }
 
     /// Left side header.

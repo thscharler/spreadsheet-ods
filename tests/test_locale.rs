@@ -17,7 +17,7 @@ pub fn test_locale1() -> Result<(), OdsError> {
     v0.part_currency().locale(locale!("ru_RU")).build();
     let v0 = wb.add_currency_format(v0);
 
-    let s0 = CellStyle::new("s0", v0.as_ref());
+    let s0 = CellStyle::new("s0", &v0);
     let s0 = wb.add_cellstyle(s0);
 
     sheet.set_styled_value(1, 1, 47.11f64, &s0);

@@ -41,8 +41,8 @@ impl Display for Visibility {
 /// Row data
 #[derive(Debug, Clone, GetSize)]
 pub(crate) struct RowHeader {
-    pub(crate) style: Option<String>,
-    pub(crate) cellstyle: Option<String>,
+    pub(crate) style: Option<RowStyleRef>,
+    pub(crate) cellstyle: Option<CellStyleRef>,
     pub(crate) visible: Visibility,
     /// Value of the table:number-rows-repeated.
     ///
@@ -74,7 +74,7 @@ impl Default for RowHeader {
 /// Column data
 #[derive(Debug, Clone, GetSize)]
 pub(crate) struct ColHeader {
-    pub(crate) style: Option<String>,
+    pub(crate) style: Option<ColStyleRef>,
     pub(crate) cellstyle: Option<CellStyleRef>,
     pub(crate) visible: Visibility,
     pub(crate) width: Length,
@@ -712,7 +712,7 @@ impl Sheet {
 
     /// Column style.
     pub fn set_colstyle(&mut self, col: u32, style: &ColStyleRef) {
-        self.create_split_col_header(col).style = Some(style.to_string());
+        self.create_split_col_header(col).style = Some(style.clone());
     }
 
     /// Remove the style.
@@ -721,7 +721,7 @@ impl Sheet {
     }
 
     /// Returns the column style.
-    pub fn colstyle(&self, col: u32) -> Option<&String> {
+    pub fn colstyle(&self, col: u32) -> Option<&ColStyleRef> {
         if let Some(col_header) = self.valid_col_header(col) {
             col_header.style.as_ref()
         } else {
@@ -873,7 +873,7 @@ impl Sheet {
 
     /// Row style.
     pub fn set_rowstyle(&mut self, row: u32, style: &RowStyleRef) {
-        self.create_split_row_header(row).style = Some(style.to_string());
+        self.create_split_row_header(row).style = Some(style.clone());
     }
 
     /// Remove the style.
@@ -882,7 +882,7 @@ impl Sheet {
     }
 
     /// Returns the row style.
-    pub fn rowstyle(&self, row: u32) -> Option<&String> {
+    pub fn rowstyle(&self, row: u32) -> Option<&RowStyleRef> {
         if let Some(row_header) = self.valid_row_header(row) {
             row_header.style.as_ref()
         } else {
@@ -892,7 +892,7 @@ impl Sheet {
 
     /// Default cell style for this row.
     pub fn set_row_cellstyle(&mut self, row: u32, style: &CellStyleRef) {
-        self.create_split_row_header(row).cellstyle = Some(style.to_string());
+        self.create_split_row_header(row).cellstyle = Some(style.clone());
     }
 
     /// Remove the style.
@@ -901,7 +901,7 @@ impl Sheet {
     }
 
     /// Returns the default cell style for this row.
-    pub fn row_cellstyle(&self, row: u32) -> Option<&String> {
+    pub fn row_cellstyle(&self, row: u32) -> Option<&CellStyleRef> {
         if let Some(row_header) = self.valid_row_header(row) {
             row_header.cellstyle.as_ref()
         } else {
@@ -1146,7 +1146,7 @@ impl Sheet {
     /// Sets a content-validation for this cell.
     pub fn set_validation(&mut self, row: u32, col: u32, validation: &ValidationRef) {
         let cell = self.data.entry((row, col)).or_default();
-        cell.extra_mut().validation_name = Some(validation.to_string());
+        cell.extra_mut().validation_name = Some(validation.clone());
     }
 
     /// Removes the cell-style.
@@ -1157,7 +1157,7 @@ impl Sheet {
     }
 
     /// Returns a content-validation name for this cell.
-    pub fn validation(&self, row: u32, col: u32) -> Option<&String> {
+    pub fn validation(&self, row: u32, col: u32) -> Option<&ValidationRef> {
         if let Some(CellData { extra: Some(c), .. }) = self.data.get(&(row, col)) {
             c.validation_name.as_ref()
         } else {

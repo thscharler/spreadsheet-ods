@@ -17,9 +17,9 @@ use crate::style::{
 use get_size::GetSize;
 use get_size_derive::GetSize;
 use icu_locid::Locale;
-use std::fmt::{Display, Formatter};
+use std::borrow::Borrow;
 
-style_ref!(ParagraphStyleRef);
+style_ref2!(ParagraphStyleRef);
 
 /// Paragraph style.
 ///
@@ -44,7 +44,7 @@ pub struct ParagraphStyle {
     tabstops: Option<Vec<TabStop>>,
 }
 
-styles_styles!(ParagraphStyle, ParagraphStyleRef);
+styles_styles2!(ParagraphStyle, ParagraphStyleRef);
 
 impl ParagraphStyle {
     /// Empty
@@ -61,11 +61,11 @@ impl ParagraphStyle {
     }
 
     /// New style.
-    pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: name.as_ref().to_string(),
             attr: Default::default(),
             paragraphstyle: Default::default(),
             textstyle: Default::default(),

@@ -61,7 +61,8 @@ impl TextH {
 
     /// Sets a conditional style.
     pub fn condstyle_name(mut self, name: &ParagraphStyleRef) -> Self {
-        self.xml.set_attr("text:condstyle-name", name.to_string());
+        self.xml
+            .set_attr("text:condstyle-name", name.as_str().to_string());
         self
     }
 
@@ -97,7 +98,8 @@ impl TextH {
 
     /// Style
     pub fn style_name(mut self, name: &ParagraphStyleRef) -> Self {
-        self.xml.set_attr("text:style-name", name.to_string());
+        self.xml
+            .set_attr("text:style-name", name.as_str().to_string());
         self
     }
 
@@ -133,7 +135,8 @@ impl TextP {
 
     /// Sets a conditional style.
     pub fn condstyle_name(mut self, name: &ParagraphStyleRef) -> Self {
-        self.xml.set_attr("text:condstyle-name", name.to_string());
+        self.xml
+            .set_attr("text:condstyle-name", name.as_str().to_string());
         self
     }
 
@@ -145,7 +148,8 @@ impl TextP {
 
     /// Style for this paragraph.
     pub fn style_name(mut self, name: &ParagraphStyleRef) -> Self {
-        self.xml.set_attr("text:style-name", name.to_string());
+        self.xml
+            .set_attr("text:style-name", name.as_str().to_string());
         self
     }
 
@@ -185,7 +189,8 @@ impl TextSpan {
     /// Consumers should support the text:class-names attribute and also should preserve it while
     /// editing.
     pub fn style_name(mut self, name: &TextStyleRef) -> Self {
-        self.xml.set_attr("text:style-name", name.to_string());
+        self.xml
+            .set_attr("text:style-name", name.as_str().to_string());
         self
     }
 }
@@ -209,14 +214,15 @@ text_tag!(TextA, "text:a");
 impl TextA {
     /// The text:style-name attribute specifies a text style for an unvisited hyperlink.
     pub fn style_name(mut self, style: &TextStyleRef) -> Self {
-        self.xml.set_attr("text:style-name", style.to_string());
+        self.xml
+            .set_attr("text:style-name", style.as_str().to_string());
         self
     }
 
     /// The text:visited-style-name attribute specifies a style for a hyperlink that has been visited.
     pub fn visited_style_name(mut self, style: &TextStyleRef) -> Self {
         self.xml
-            .set_attr("text:visited-style-name", style.to_string());
+            .set_attr("text:visited-style-name", style.as_str().to_string());
         self
     }
 

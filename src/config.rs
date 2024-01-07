@@ -364,11 +364,11 @@ impl ConfigItem {
     /// If this is not a map-like ConfigItem.
     pub(crate) fn insert<S, V>(&mut self, name: S, item: V)
     where
-        S: Into<String>,
+        S: AsRef<str>,
         V: Into<ConfigItem>,
     {
         if let Some(m) = self.as_map_mut() {
-            m.insert(name.into(), item.into());
+            m.insert(name, item.into());
         } else {
             panic!();
         }
@@ -508,10 +508,10 @@ impl Config {
     /// Add an item.
     pub(crate) fn insert<S, V>(&mut self, name: S, item: V)
     where
-        S: Into<String>,
+        S: AsRef<str>,
         V: Into<ConfigItem>,
     {
-        self.config.insert(name.into(), item.into());
+        self.config.insert(name, item.into());
     }
 
     /// Recursive get.

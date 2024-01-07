@@ -7,9 +7,9 @@ use crate::style::ParseStyleAttr;
 use crate::style::{color_string, StyleOrigin, StyleUse};
 use crate::OdsError;
 use get_size_derive::GetSize;
-use std::fmt::{Display, Formatter};
+use std::borrow::Borrow;
 
-style_ref!(RowStyleRef);
+style_ref2!(RowStyleRef);
 
 /// Describes the style information for a table row.
 /// Hardly ever used. It's easier to set the row_height via
@@ -29,7 +29,7 @@ pub struct RowStyle {
     rowstyle: AttrMap2,
 }
 
-styles_styles!(RowStyle, RowStyleRef);
+styles_styles2!(RowStyle, RowStyleRef);
 
 impl RowStyle {
     /// empty
@@ -44,11 +44,11 @@ impl RowStyle {
     }
 
     /// New Style.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: name.as_ref().to_string(),
             attr: Default::default(),
             rowstyle: Default::default(),
         }

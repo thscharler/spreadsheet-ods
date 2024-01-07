@@ -10,9 +10,9 @@ use crate::style::{
 use crate::{Length, OdsResult};
 use get_size::GetSize;
 use get_size_derive::GetSize;
-use std::fmt::{Display, Formatter};
+use std::borrow::Borrow;
 
-style_ref!(PageStyleRef);
+style_ref2!(PageStyleRef);
 
 /// The <style:page-layout> element represents the styles that specify the formatting properties
 /// of a page.
@@ -44,9 +44,9 @@ impl PageStyle {
     }
 
     /// New pagestyle.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
-            name: name.into(),
+            name: name.as_ref().to_string(),
             master_page_usage: None,
             style: Default::default(),
             header: Default::default(),
@@ -65,8 +65,8 @@ impl PageStyle {
     }
 
     /// Style name
-    pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.name = name.into();
+    pub fn set_name<S: AsRef<str>>(&mut self, name: S) {
+        self.name = name.as_ref().to_string();
     }
 
     /// The style:page-usage attribute specifies the type of pages that a page master should

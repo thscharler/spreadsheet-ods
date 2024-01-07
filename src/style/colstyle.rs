@@ -1,14 +1,14 @@
 use get_size::GetSize;
 use get_size_derive::GetSize;
-use std::fmt::{Display, Formatter};
 
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak};
 use crate::style::ParseStyleAttr;
 use crate::style::{rel_width_string, StyleOrigin, StyleUse};
 use crate::OdsError;
+use std::borrow::Borrow;
 
-style_ref!(ColStyleRef);
+style_ref2!(ColStyleRef);
 
 /// Describes the style information for a table column.
 /// Hardly ever used. It's easier to set the col_width via
@@ -29,7 +29,7 @@ pub struct ColStyle {
     colstyle: AttrMap2,
 }
 
-styles_styles!(ColStyle, ColStyleRef);
+styles_styles2!(ColStyle, ColStyleRef);
 
 impl ColStyle {
     /// empty
@@ -44,11 +44,11 @@ impl ColStyle {
     }
 
     /// New Style.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: name.as_ref().to_string(),
             attr: Default::default(),
             colstyle: Default::default(),
         }

@@ -34,7 +34,7 @@ macro_rules! style_master_page {
         /// within a table.
         pub fn set_master_page(&mut self, masterpage: &MasterPageRef) {
             self.$acc
-                .set_attr("style:master-page-name", masterpage.to_string());
+                .set_attr("style:master-page-name", masterpage.as_str().to_string());
         }
     };
 }
@@ -46,7 +46,7 @@ macro_rules! style_next_style {
         /// style is used as the next style.
         pub fn set_next_style(&mut self, name: &ParagraphStyleRef) {
             self.$acc
-                .set_attr("style:next-style-name", name.to_string());
+                .set_attr("style:next-style-name", name.as_str().to_string());
         }
     };
 }
@@ -1147,8 +1147,10 @@ macro_rules! style_text_line_through {
         /// common style. If the attribute appears in a common style, it may reference a common
         /// style only.
         pub fn set_text_line_through_text_style(&mut self, style_ref: TextStyleRef) {
-            self.$acc
-                .set_attr("style:text-line-through-text-style", style_ref.to_string());
+            self.$acc.set_attr(
+                "style:text-line-through-text-style",
+                style_ref.as_str().to_string(),
+            );
         }
 
         /// The style:text-line-through-type attribute specifies whether text is lined through, and if
@@ -1765,7 +1767,7 @@ macro_rules! style_leader_text_style {
         /// reference a common style only.
         pub fn set_leader_text_style(&mut self, styleref: &TextStyleRef) {
             self.$acc
-                .set_attr("style:leader-text-style", styleref.to_string());
+                .set_attr("style:leader-text-style", styleref.as_ref().to_string());
         }
     };
 }
@@ -1910,7 +1912,7 @@ macro_rules! style_parent_style_name {
         /// attribute value as the current style is used.
         pub fn set_parent_style(&mut self, name: &$styleref) {
             self.$acc
-                .set_attr("style:parent-style-name", name.to_string());
+                .set_attr("style:parent-style-name", name.as_str().to_string());
         }
     };
 }

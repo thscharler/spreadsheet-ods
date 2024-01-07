@@ -10,6 +10,7 @@ use crate::condition::Condition;
 use crate::text::TextTag;
 use crate::{CellRef, OdsError};
 use get_size_derive::GetSize;
+use std::borrow::Borrow;
 use std::str::from_utf8;
 
 /// This defines how lists of entries are displayed to the user.
@@ -209,7 +210,7 @@ impl ValidationError {
     }
 }
 
-style_ref!(ValidationRef);
+style_ref2!(ValidationRef);
 
 /// Cell content validations.
 ///
@@ -218,7 +219,7 @@ style_ref!(ValidationRef);
 #[derive(Clone, Debug, Default, GetSize)]
 pub struct Validation {
     name: String,
-    condition: String,
+    condition: Condition,
     base_cell: CellRef,
     allow_empty: bool,
     display_list: ValidationDisplay,
@@ -230,9 +231,9 @@ impl Validation {
     /// Empty validation.
     pub fn new() -> Self {
         Self {
-            name: "".to_string(),
-            condition: "".to_string(),
-            base_cell: CellRef::new(),
+            name: Default::default(),
+            condition: Default::default(),
+            base_cell: Default::default(),
             allow_empty: true,
             display_list: Default::default(),
             err: Some(ValidationError {
@@ -246,8 +247,8 @@ impl Validation {
     }
 
     /// Validation name.
-    pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.name = name.into();
+    pub fn set_name<S: AsRef<str>>(&mut self, name: S) {
+        self.name = name.as_ref().to_string();
     }
 
     /// Validation name.
@@ -262,12 +263,12 @@ impl Validation {
 
     /// Sets the condition that is checked for new values.
     pub fn set_condition(&mut self, cond: Condition) {
-        self.condition = cond.to_string();
+        self.condition = cond;
     }
 
     /// Condition for new values.
-    pub fn condition(&self) -> &str {
-        self.condition.as_str()
+    pub fn condition(&self) -> &Condition {
+        &self.condition
     }
 
     /// Base-cell for the validation. Relative CellReferences in the

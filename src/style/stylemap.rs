@@ -14,8 +14,8 @@ use get_size_derive::GetSize;
 /// works somewhat.
 #[derive(Clone, Debug, Default, GetSize)]
 pub struct StyleMap {
-    condition: String,
-    applied_style: String,
+    condition: Condition,
+    applied_style: String, // todo: general style
     base_cell: Option<CellRef>,
 }
 
@@ -23,26 +23,26 @@ impl StyleMap {
     ///  Create a stylemap. When the condition is fullfilled the style
     /// applied_style is used. The base_cell is used to resolve all relative
     /// cell-references within the condition.
-    pub fn new<T: Into<String>>(
+    pub fn new<T: AsRef<str>>(
         condition: Condition,
         applied_style: T,
         base_cell: Option<CellRef>,
     ) -> Self {
         Self {
-            condition: condition.to_string(),
-            applied_style: applied_style.into(),
+            condition,
+            applied_style: applied_style.as_ref().to_string(),
             base_cell,
         }
     }
 
     /// Condition
-    pub fn condition(&self) -> &String {
+    pub fn condition(&self) -> &Condition {
         &self.condition
     }
 
     /// Condition
     pub fn set_condition(&mut self, cond: Condition) {
-        self.condition = cond.to_string();
+        self.condition = cond;
     }
 
     /// The applied style.
@@ -51,8 +51,8 @@ impl StyleMap {
     }
 
     /// Sets the applied style.
-    pub fn set_applied_style<S: Into<String>>(&mut self, style: S) {
-        self.applied_style = style.into();
+    pub fn set_applied_style<S: AsRef<str>>(&mut self, style: S) {
+        self.applied_style = style.as_ref().to_string();
     }
 
     /// Base cell.

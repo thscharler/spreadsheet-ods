@@ -2,9 +2,9 @@ use crate::attrmap2::AttrMap2;
 use crate::style::{StyleOrigin, StyleUse};
 use get_size::GetSize;
 use get_size_derive::GetSize;
-use std::fmt::{Display, Formatter};
+use std::borrow::Borrow;
 
-style_ref!(RubyStyleRef);
+style_ref2!(RubyStyleRef);
 
 /// Text style.
 /// This is not used for cell-formatting. Use CellStyle instead.
@@ -23,7 +23,7 @@ pub struct RubyStyle {
     rubystyle: AttrMap2,
 }
 
-styles_styles!(RubyStyle, RubyStyleRef);
+styles_styles2!(RubyStyle, RubyStyleRef);
 
 impl RubyStyle {
     /// Empty.
@@ -38,11 +38,11 @@ impl RubyStyle {
     }
 
     /// A new named style.
-    pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: name.as_ref().to_string(),
             attr: Default::default(),
             rubystyle: Default::default(),
         }

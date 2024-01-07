@@ -19,7 +19,6 @@ use core::borrow::Borrow;
 use get_size::GetSize;
 use get_size_derive::GetSize;
 use icu_locid::Locale;
-use std::fmt::{Display, Formatter};
 
 style_ref2!(CellStyleRef);
 
@@ -110,7 +109,7 @@ impl CellStyle {
     /// Reference to the value format.
     pub fn set_value_format(&mut self, name: &ValueFormatRef) {
         self.attr
-            .set_attr("style:data-style-name", name.to_string());
+            .set_attr("style:data-style-name", name.as_ref().to_string());
     }
 
     /// Allows access to all attributes of the style itself.

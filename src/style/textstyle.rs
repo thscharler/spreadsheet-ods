@@ -6,12 +6,12 @@ use crate::style::units::{
     TextDisplay, TextEmphasize, TextEmphasizePosition, TextPosition, TextRelief, TextTransform,
 };
 use crate::style::{color_string, shadow_string, text_position, StyleOrigin, StyleUse};
+use core::borrow::Borrow;
 use get_size::GetSize;
 use get_size_derive::GetSize;
 use icu_locid::Locale;
-use std::fmt::{Display, Formatter};
 
-style_ref!(TextStyleRef);
+style_ref2!(TextStyleRef);
 
 /// Text style.
 /// This is not used for cell-formatting. Use CellStyle instead.
@@ -30,7 +30,7 @@ pub struct TextStyle {
     textstyle: AttrMap2,
 }
 
-styles_styles!(TextStyle, TextStyleRef);
+styles_styles2!(TextStyle, TextStyleRef);
 
 impl TextStyle {
     /// Empty.
@@ -45,11 +45,11 @@ impl TextStyle {
     }
 
     /// A new named style.
-    pub fn new<S: Into<String>, T: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: name.as_ref().to_string(),
             attr: Default::default(),
             textstyle: Default::default(),
         }

@@ -36,14 +36,14 @@ macro_rules! valueformat {
 
             /// New, with name.
             #[deprecated]
-            pub fn new_with_name<S: Into<String>>(name: S) -> Self {
+            pub fn new_with_name<S: AsRef<str>>(name: S) -> Self {
                 Self::new_named(name)
             }
 
             /// New, with name.
-            pub fn new_named<S: Into<String>>(name: S) -> Self {
+            pub fn new_named<S: AsRef<str>>(name: S) -> Self {
                 Self {
-                    name: name.into(),
+                    name: name.as_ref().to_string(),
                     origin: Default::default(),
                     styleuse: Default::default(),
                     attr: Default::default(),
@@ -54,9 +54,9 @@ macro_rules! valueformat {
             }
 
             /// New, with name.
-            pub fn new_localized<S: Into<String>>(name: S, locale: Locale) -> Self {
+            pub fn new_localized<S: AsRef<str>>(name: S, locale: Locale) -> Self {
                 let mut v = Self {
-                    name: name.into(),
+                    name: name.as_ref().to_string(),
                     origin: Default::default(),
                     styleuse: Default::default(),
                     attr: Default::default(),

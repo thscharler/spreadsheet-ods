@@ -36,12 +36,12 @@ use crate::sheet_::{CellDataIter, CellDataIterMut, ColHeader, RowHeader};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
-    ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, MasterPageRef, PageStyle,
-    ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TableStyleRef,
-    TextStyle,
+    ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, MasterPageRef,
+    PageStyle, ParagraphStyle, RowStyle, RowStyleRef, RubyStyle, StyleOrigin, StyleUse, TableStyle,
+    TableStyleRef, TextStyle,
 };
 use crate::text::{TextP, TextTag};
-use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp};
+use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp, ValidationRef};
 use crate::workbook::{EventListener, Script};
 use crate::xmltree::XmlTag;
 use crate::{
@@ -1130,12 +1130,14 @@ fn read_table_row_attr(
                 row_repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                let style = attr.decode_and_unescape_value(xml)?.to_string();
-                row_header.get_or_insert_with(RowHeader::default).style = Some(style);
+                let name = attr.decode_and_unescape_value(xml)?;
+                row_header.get_or_insert_with(RowHeader::default).style =
+                    Some(RowStyleRef::from(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
-                let cellstyle = attr.decode_and_unescape_value(xml)?.to_string();
-                row_header.get_or_insert_with(RowHeader::default).cellstyle = Some(cellstyle);
+                let name = attr.decode_and_unescape_value(xml)?;
+                row_header.get_or_insert_with(RowHeader::default).cellstyle =
+                    Some(CellStyleRef::from(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"table:visibility" => {
                 let visible = parse_visibility(&attr.value)?;
@@ -1226,8 +1228,9 @@ fn read_table_col_attr(
                 col_repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                let style = attr.decode_and_unescape_value(xml)?.to_string();
-                col_header.get_or_insert_with(ColHeader::default).style = Some(style);
+                let name = attr.decode_and_unescape_value(xml)?;
+                col_header.get_or_insert_with(ColHeader::default).style =
+                    Some(ColStyleRef::from(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
                 let name = attr.decode_and_unescape_value(xml)?;
@@ -1346,9 +1349,10 @@ fn read_table_cell(
                 }
             }
             attr if attr.key.as_ref() == b"table:content-validation-name" => {
+                let name = attr.decode_and_unescape_value(xml)?;
                 cell.get_or_insert_with(CellData::default)
                     .extra_mut()
-                    .validation_name = Some(attr.decode_and_unescape_value(xml)?.to_string());
+                    .validation_name = Some(ValidationRef::from(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"calcext:value-type" => {
                 // not used. office:value-type seems to be good enough.

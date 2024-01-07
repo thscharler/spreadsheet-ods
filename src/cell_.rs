@@ -99,7 +99,7 @@ pub(crate) struct CellData {
 #[derive(Debug, Clone, Default, GetSize)]
 pub(crate) struct CellDataExt {
     // Content validation name.
-    pub(crate) validation_name: Option<String>,
+    pub(crate) validation_name: Option<ValidationRef>,
     // Row/Column span.
     pub(crate) span: CellSpan,
     // Matrix span.
@@ -285,7 +285,7 @@ pub struct CellContentRef<'a> {
     /// Reference to the repeat count.
     pub repeat: u32,
     /// Reference to a cell validation.
-    pub validation_name: Option<&'a String>,
+    pub validation_name: Option<&'a ValidationRef>,
     /// Reference to the cellspan.
     pub span: CellSpan,
     /// Reference to a matrix cellspan.
@@ -323,7 +323,7 @@ impl<'a> CellContentRef<'a> {
 
     /// Returns the validation name.
     #[inline]
-    pub fn validation(&self) -> Option<&'a String> {
+    pub fn validation(&self) -> Option<&'a ValidationRef> {
         self.validation_name
     }
 
@@ -391,7 +391,7 @@ pub struct CellContent {
     /// Cell repeat count.
     pub repeat: u32,
     /// Reference to a validation rule.
-    pub validation_name: Option<String>,
+    pub validation_name: Option<ValidationRef>,
     /// Cellspan.
     pub span: CellSpan,
     /// Matrix span.
@@ -506,14 +506,14 @@ impl CellContent {
 
     /// Returns the validation name.
     #[inline]
-    pub fn validation(&self) -> Option<&String> {
+    pub fn validation(&self) -> Option<&ValidationRef> {
         self.validation_name.as_ref()
     }
 
     /// Sets the validation name.
     #[inline]
     pub fn set_validation(&mut self, validation: &ValidationRef) {
-        self.validation_name = Some(validation.to_string());
+        self.validation_name = Some(validation.clone());
     }
 
     /// No validation.

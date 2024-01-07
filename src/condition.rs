@@ -1,5 +1,7 @@
 //! Defines conditional expressions that are used for cell-validation and
 //! conditional styles via style-maps.
+use get_size::GetSize;
+use get_size_derive::GetSize;
 use std::fmt::{Display, Formatter};
 
 use crate::CellRange;
@@ -88,7 +90,7 @@ from_x_conditionvalue!(f64);
 from_x_conditionvalue!(bool);
 
 /// Defines a condition that compares the cell-content with a value.
-#[derive(Clone, Debug)]
+#[derive(Default, Clone, Debug, GetSize)]
 pub struct ValueCondition {
     cond: String,
 }
@@ -155,7 +157,7 @@ impl ValueCondition {
 }
 
 /// Defines a condition for a cell-validation.
-#[derive(Clone, Debug)]
+#[derive(Default, Clone, Debug, GetSize)]
 pub struct Condition {
     cond: String,
 }

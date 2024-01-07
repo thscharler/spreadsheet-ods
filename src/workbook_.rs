@@ -56,13 +56,13 @@ pub struct WorkBook {
 
     /// Styles hold the style:style elements.
     pub(crate) tablestyles: HashMap<TableStyleRef, TableStyle>,
-    pub(crate) rowstyles: HashMap<String, RowStyle>,
-    pub(crate) colstyles: HashMap<String, ColStyle>,
+    pub(crate) rowstyles: HashMap<RowStyleRef, RowStyle>,
+    pub(crate) colstyles: HashMap<ColStyleRef, ColStyle>,
     pub(crate) cellstyles: HashMap<CellStyleRef, CellStyle>,
-    pub(crate) paragraphstyles: HashMap<String, ParagraphStyle>,
-    pub(crate) textstyles: HashMap<String, TextStyle>,
-    pub(crate) rubystyles: HashMap<String, RubyStyle>,
-    pub(crate) graphicstyles: HashMap<String, GraphicStyle>,
+    pub(crate) paragraphstyles: HashMap<ParagraphStyleRef, ParagraphStyle>,
+    pub(crate) textstyles: HashMap<TextStyleRef, TextStyle>,
+    pub(crate) rubystyles: HashMap<RubyStyleRef, RubyStyle>,
+    pub(crate) graphicstyles: HashMap<GraphicStyleRef, GraphicStyle>,
 
     /// Value-styles are actual formatting instructions for various datatypes.
     /// Represents the various number:xxx-style elements.
@@ -79,11 +79,11 @@ pub struct WorkBook {
     pub(crate) def_styles: HashMap<ValueType, CellStyleRef>,
 
     /// Page-layout data.
-    pub(crate) pagestyles: HashMap<String, PageStyle>,
-    pub(crate) masterpages: HashMap<String, MasterPage>,
+    pub(crate) pagestyles: HashMap<PageStyleRef, PageStyle>,
+    pub(crate) masterpages: HashMap<MasterPageRef, MasterPage>,
 
     /// Validations.
-    pub(crate) validations: HashMap<String, Validation>,
+    pub(crate) validations: HashMap<ValidationRef, Validation>,
 
     /// Configuration data. Internal cache for all values.
     /// Mapped into WorkBookConfig, SheetConfig.
@@ -313,36 +313,30 @@ impl WorkBook {
             self.add_timeduration_format(lf.time_interval_format());
         }
 
+        self.add_cellstyle(CellStyle::new(DefaultStyle::bool(), &DefaultFormat::bool()));
         self.add_cellstyle(CellStyle::new(
-            DefaultStyle::bool().to_string(),
-            &DefaultFormat::bool(),
-        ));
-        self.add_cellstyle(CellStyle::new(
-            DefaultStyle::number().to_string(),
+            DefaultStyle::number(),
             &DefaultFormat::number(),
         ));
         self.add_cellstyle(CellStyle::new(
-            DefaultStyle::percent().to_string(),
+            DefaultStyle::percent(),
             &DefaultFormat::percent(),
         ));
         self.add_cellstyle(CellStyle::new(
-            DefaultStyle::currency().to_string(),
+            DefaultStyle::currency(),
             &DefaultFormat::currency(),
         ));
+        self.add_cellstyle(CellStyle::new(DefaultStyle::date(), &DefaultFormat::date()));
         self.add_cellstyle(CellStyle::new(
-            DefaultStyle::date().to_string(),
-            &DefaultFormat::date(),
-        ));
-        self.add_cellstyle(CellStyle::new(
-            DefaultStyle::datetime().to_string(),
+            DefaultStyle::datetime(),
             &DefaultFormat::datetime(),
         ));
         self.add_cellstyle(CellStyle::new(
-            DefaultStyle::time_of_day().to_string(),
+            DefaultStyle::time_of_day(),
             &DefaultFormat::time_of_day(),
         ));
         self.add_cellstyle(CellStyle::new(
-            DefaultStyle::time_interval().to_string(),
+            DefaultStyle::time_interval(),
             &DefaultFormat::time_interval(),
         ));
 
@@ -545,7 +539,7 @@ impl WorkBook {
             style.set_name(auto_style_name2(&mut self.autonum, "ta", &self.tablestyles));
         }
         let sref = style.style_ref();
-        self.tablestyles.insert(sref.clone(), style);
+        self.tablestyles.insert(style.style_ref(), style);
         sref
     }
 
@@ -573,26 +567,26 @@ impl WorkBook {
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_rowstyle(&mut self, mut style: RowStyle) -> RowStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "ro", &self.rowstyles));
+            style.set_name(auto_style_name2(&mut self.autonum, "ro", &self.rowstyles));
         }
         let sref = style.style_ref();
-        self.rowstyles.insert(style.name().to_string(), style);
+        self.rowstyles.insert(style.style_ref(), style);
         sref
     }
 
     /// Removes a style.
-    pub fn remove_rowstyle(&mut self, name: &str) -> Option<RowStyle> {
-        self.rowstyles.remove(name)
+    pub fn remove_rowstyle<S: AsRef<str>>(&mut self, name: S) -> Option<RowStyle> {
+        self.rowstyles.remove(name.as_ref())
     }
 
     /// Returns the style.
-    pub fn rowstyle(&self, name: &str) -> Option<&RowStyle> {
-        self.rowstyles.get(name)
+    pub fn rowstyle<S: AsRef<str>>(&self, name: S) -> Option<&RowStyle> {
+        self.rowstyles.get(name.as_ref())
     }
 
     /// Returns the mutable style.
-    pub fn rowstyle_mut(&mut self, name: &str) -> Option<&mut RowStyle> {
-        self.rowstyles.get_mut(name)
+    pub fn rowstyle_mut<S: AsRef<str>>(&mut self, name: S) -> Option<&mut RowStyle> {
+        self.rowstyles.get_mut(name.as_ref())
     }
 
     /// Returns iterator over styles.
@@ -604,26 +598,26 @@ impl WorkBook {
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_colstyle(&mut self, mut style: ColStyle) -> ColStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "co", &self.colstyles));
+            style.set_name(auto_style_name2(&mut self.autonum, "co", &self.colstyles));
         }
         let sref = style.style_ref();
-        self.colstyles.insert(style.name().to_string(), style);
+        self.colstyles.insert(style.style_ref(), style);
         sref
     }
 
     /// Removes a style.
-    pub fn remove_colstyle(&mut self, name: &str) -> Option<ColStyle> {
-        self.colstyles.remove(name)
+    pub fn remove_colstyle<S: AsRef<str>>(&mut self, name: S) -> Option<ColStyle> {
+        self.colstyles.remove(name.as_ref())
     }
 
     /// Returns the style.
-    pub fn colstyle(&self, name: &str) -> Option<&ColStyle> {
-        self.colstyles.get(name)
+    pub fn colstyle<S: AsRef<str>>(&self, name: S) -> Option<&ColStyle> {
+        self.colstyles.get(name.as_ref())
     }
 
     /// Returns the mutable style.
-    pub fn colstyle_mut(&mut self, name: &str) -> Option<&mut ColStyle> {
-        self.colstyles.get_mut(name)
+    pub fn colstyle_mut<S: AsRef<str>>(&mut self, name: S) -> Option<&mut ColStyle> {
+        self.colstyles.get_mut(name.as_ref())
     }
 
     /// Returns iterator over styles.
@@ -638,7 +632,7 @@ impl WorkBook {
             style.set_name(auto_style_name2(&mut self.autonum, "ce", &self.cellstyles));
         }
         let sref = style.style_ref();
-        self.cellstyles.insert(sref.clone(), style);
+        self.cellstyles.insert(style.style_ref(), style);
         sref
     }
 
@@ -666,20 +660,20 @@ impl WorkBook {
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_paragraphstyle(&mut self, mut style: ParagraphStyle) -> ParagraphStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(
+            style.set_name(auto_style_name2(
                 &mut self.autonum,
                 "para",
                 &self.paragraphstyles,
             ));
         }
         let sref = style.style_ref();
-        self.paragraphstyles.insert(style.name().to_string(), style);
+        self.paragraphstyles.insert(style.style_ref(), style);
         sref
     }
 
     /// Removes a style.
-    pub fn remove_paragraphstyle(&mut self, name: &str) -> Option<ParagraphStyle> {
-        self.paragraphstyles.remove(name)
+    pub fn remove_paragraphstyle<S: AsRef<str>>(&mut self, name: S) -> Option<ParagraphStyle> {
+        self.paragraphstyles.remove(name.as_ref())
     }
 
     /// Returns iterator over styles.
@@ -688,29 +682,29 @@ impl WorkBook {
     }
 
     /// Returns the style.
-    pub fn paragraphstyle(&self, name: &str) -> Option<&ParagraphStyle> {
-        self.paragraphstyles.get(name)
+    pub fn paragraphstyle<S: AsRef<str>>(&self, name: S) -> Option<&ParagraphStyle> {
+        self.paragraphstyles.get(name.as_ref())
     }
 
     /// Returns the mutable style.
-    pub fn paragraphstyle_mut(&mut self, name: &str) -> Option<&mut ParagraphStyle> {
-        self.paragraphstyles.get_mut(name)
+    pub fn paragraphstyle_mut<S: AsRef<str>>(&mut self, name: S) -> Option<&mut ParagraphStyle> {
+        self.paragraphstyles.get_mut(name.as_ref())
     }
 
     /// Adds a style.
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_textstyle(&mut self, mut style: TextStyle) -> TextStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "txt", &self.textstyles));
+            style.set_name(auto_style_name2(&mut self.autonum, "txt", &self.textstyles));
         }
         let sref = style.style_ref();
-        self.textstyles.insert(style.name().to_string(), style);
+        self.textstyles.insert(style.style_ref(), style);
         sref
     }
 
     /// Removes a style.
-    pub fn remove_textstyle(&mut self, name: &str) -> Option<TextStyle> {
-        self.textstyles.remove(name)
+    pub fn remove_textstyle<S: AsRef<str>>(&mut self, name: S) -> Option<TextStyle> {
+        self.textstyles.remove(name.as_ref())
     }
 
     /// Returns iterator over styles.
@@ -719,29 +713,33 @@ impl WorkBook {
     }
 
     /// Returns the style.
-    pub fn textstyle(&self, name: &str) -> Option<&TextStyle> {
-        self.textstyles.get(name)
+    pub fn textstyle<S: AsRef<str>>(&self, name: S) -> Option<&TextStyle> {
+        self.textstyles.get(name.as_ref())
     }
 
     /// Returns the mutable style.
-    pub fn textstyle_mut(&mut self, name: &str) -> Option<&mut TextStyle> {
-        self.textstyles.get_mut(name)
+    pub fn textstyle_mut<S: AsRef<str>>(&mut self, name: S) -> Option<&mut TextStyle> {
+        self.textstyles.get_mut(name.as_ref())
     }
 
     /// Adds a style.
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_rubystyle(&mut self, mut style: RubyStyle) -> RubyStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(&mut self.autonum, "ruby", &self.rubystyles));
+            style.set_name(auto_style_name2(
+                &mut self.autonum,
+                "ruby",
+                &self.rubystyles,
+            ));
         }
         let sref = style.style_ref();
-        self.rubystyles.insert(style.name().to_string(), style);
+        self.rubystyles.insert(style.style_ref(), style);
         sref
     }
 
     /// Removes a style.
-    pub fn remove_rubystyle(&mut self, name: &str) -> Option<RubyStyle> {
-        self.rubystyles.remove(name)
+    pub fn remove_rubystyle<S: AsRef<str>>(&mut self, name: S) -> Option<RubyStyle> {
+        self.rubystyles.remove(name.as_ref())
     }
 
     /// Returns iterator over styles.
@@ -750,33 +748,33 @@ impl WorkBook {
     }
 
     /// Returns the style.
-    pub fn rubystyle(&self, name: &str) -> Option<&RubyStyle> {
-        self.rubystyles.get(name)
+    pub fn rubystyle<S: AsRef<str>>(&self, name: S) -> Option<&RubyStyle> {
+        self.rubystyles.get(name.as_ref())
     }
 
     /// Returns the mutable style.
-    pub fn rubystyle_mut(&mut self, name: &str) -> Option<&mut RubyStyle> {
-        self.rubystyles.get_mut(name)
+    pub fn rubystyle_mut<S: AsRef<str>>(&mut self, name: S) -> Option<&mut RubyStyle> {
+        self.rubystyles.get_mut(name.as_ref())
     }
 
     /// Adds a style.
     /// Unnamed styles will be assigned an automatic name.
     pub fn add_graphicstyle(&mut self, mut style: GraphicStyle) -> GraphicStyleRef {
         if style.name().is_empty() {
-            style.set_name(auto_style_name(
+            style.set_name(auto_style_name2(
                 &mut self.autonum,
                 "gr",
                 &self.graphicstyles,
             ));
         }
         let sref = style.style_ref();
-        self.graphicstyles.insert(style.name().to_string(), style);
+        self.graphicstyles.insert(style.style_ref(), style);
         sref
     }
 
     /// Removes a style.
-    pub fn remove_graphicstyle(&mut self, name: &str) -> Option<GraphicStyle> {
-        self.graphicstyles.remove(name)
+    pub fn remove_graphicstyle<S: AsRef<str>>(&mut self, name: S) -> Option<GraphicStyle> {
+        self.graphicstyles.remove(name.as_ref())
     }
 
     /// Returns iterator over styles.
@@ -785,13 +783,13 @@ impl WorkBook {
     }
 
     /// Returns the style.
-    pub fn graphicstyle(&self, name: &str) -> Option<&GraphicStyle> {
-        self.graphicstyles.get(name)
+    pub fn graphicstyle<S: AsRef<str>>(&self, name: S) -> Option<&GraphicStyle> {
+        self.graphicstyles.get(name.as_ref())
     }
 
     /// Returns the mutable style.
-    pub fn graphicstyle_mut(&mut self, name: &str) -> Option<&mut GraphicStyle> {
-        self.graphicstyles.get_mut(name)
+    pub fn graphicstyle_mut<S: AsRef<str>>(&mut self, name: S) -> Option<&mut GraphicStyle> {
+        self.graphicstyles.get_mut(name.as_ref())
     }
 
     /// Adds a value format.
@@ -1048,16 +1046,20 @@ impl WorkBook {
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_pagestyle(&mut self, mut pstyle: PageStyle) -> PageStyleRef {
         if pstyle.name().is_empty() {
-            pstyle.set_name(auto_style_name(&mut self.autonum, "page", &self.pagestyles));
+            pstyle.set_name(auto_style_name2(
+                &mut self.autonum,
+                "page",
+                &self.pagestyles,
+            ));
         }
         let sref = pstyle.style_ref();
-        self.pagestyles.insert(pstyle.name().to_string(), pstyle);
+        self.pagestyles.insert(pstyle.style_ref(), pstyle);
         sref
     }
 
     /// Removes the PageStyle.
-    pub fn remove_pagestyle(&mut self, name: &str) -> Option<PageStyle> {
-        self.pagestyles.remove(name)
+    pub fn remove_pagestyle<S: AsRef<str>>(&mut self, name: S) -> Option<PageStyle> {
+        self.pagestyles.remove(name.as_ref())
     }
 
     /// Returns iterator over formats.
@@ -1066,29 +1068,29 @@ impl WorkBook {
     }
 
     /// Returns the PageStyle.
-    pub fn pagestyle(&self, name: &str) -> Option<&PageStyle> {
-        self.pagestyles.get(name)
+    pub fn pagestyle<S: AsRef<str>>(&self, name: S) -> Option<&PageStyle> {
+        self.pagestyles.get(name.as_ref())
     }
 
     /// Returns the mutable PageStyle.
-    pub fn pagestyle_mut(&mut self, name: &str) -> Option<&mut PageStyle> {
-        self.pagestyles.get_mut(name)
+    pub fn pagestyle_mut<S: AsRef<str>>(&mut self, name: S) -> Option<&mut PageStyle> {
+        self.pagestyles.get_mut(name.as_ref())
     }
 
     /// Adds a value MasterPage.
     /// Unnamed formats will be assigned an automatic name.
     pub fn add_masterpage(&mut self, mut mpage: MasterPage) -> MasterPageRef {
         if mpage.name().is_empty() {
-            mpage.set_name(auto_style_name(&mut self.autonum, "mp", &self.masterpages));
+            mpage.set_name(auto_style_name2(&mut self.autonum, "mp", &self.masterpages));
         }
         let sref = mpage.masterpage_ref();
-        self.masterpages.insert(mpage.name().to_string(), mpage);
+        self.masterpages.insert(mpage.masterpage_ref(), mpage);
         sref
     }
 
     /// Removes the MasterPage.
-    pub fn remove_masterpage(&mut self, name: &str) -> Option<MasterPage> {
-        self.masterpages.remove(name)
+    pub fn remove_masterpage<S: AsRef<str>>(&mut self, name: S) -> Option<MasterPage> {
+        self.masterpages.remove(name.as_ref())
     }
 
     /// Returns iterator over formats.
@@ -1097,29 +1099,33 @@ impl WorkBook {
     }
 
     /// Returns the MasterPage.
-    pub fn masterpage(&self, name: &str) -> Option<&MasterPage> {
-        self.masterpages.get(name)
+    pub fn masterpage<S: AsRef<str>>(&self, name: S) -> Option<&MasterPage> {
+        self.masterpages.get(name.as_ref())
     }
 
     /// Returns the mutable MasterPage.
-    pub fn masterpage_mut(&mut self, name: &str) -> Option<&mut MasterPage> {
-        self.masterpages.get_mut(name)
+    pub fn masterpage_mut<S: AsRef<str>>(&mut self, name: S) -> Option<&mut MasterPage> {
+        self.masterpages.get_mut(name.as_ref())
     }
 
     /// Adds a Validation.
     /// Nameless validations will be assigned a name.
     pub fn add_validation(&mut self, mut valid: Validation) -> ValidationRef {
         if valid.name().is_empty() {
-            valid.set_name(auto_style_name(&mut self.autonum, "val", &self.validations));
+            valid.set_name(auto_style_name2(
+                &mut self.autonum,
+                "val",
+                &self.validations,
+            ));
         }
         let vref = valid.validation_ref();
-        self.validations.insert(valid.name().to_string(), valid);
+        self.validations.insert(valid.validation_ref(), valid);
         vref
     }
 
     /// Removes a Validation.
-    pub fn remove_validation(&mut self, name: &str) -> Option<Validation> {
-        self.validations.remove(name)
+    pub fn remove_validation<S: AsRef<str>>(&mut self, name: S) -> Option<Validation> {
+        self.validations.remove(name.as_ref())
     }
 
     /// Returns iterator over formats.
@@ -1128,13 +1134,13 @@ impl WorkBook {
     }
 
     /// Returns the Validation.
-    pub fn validation(&self, name: &str) -> Option<&Validation> {
-        self.validations.get(name)
+    pub fn validation<S: AsRef<str>>(&self, name: S) -> Option<&Validation> {
+        self.validations.get(name.as_ref())
     }
 
     /// Returns a mutable Validation.
-    pub fn validation_mut(&mut self, name: &str) -> Option<&mut Validation> {
-        self.validations.get_mut(name)
+    pub fn validation_mut<S: AsRef<str>>(&mut self, name: S) -> Option<&mut Validation> {
+        self.validations.get_mut(name.as_ref())
     }
 
     /// Adds a manifest entry, replaces an existing one with the same name.

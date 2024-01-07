@@ -90,7 +90,8 @@ macro_rules! draw_style_name {
         /// The draw:style-name attribute specifies the name of a <style:style> element with a
         /// style:family attribute value value of graphic.
         pub fn set_draw_style_name(&mut self, style: GraphicStyleRef) {
-            self.$acc.set_attr("draw:style-name", style.to_string());
+            self.$acc
+                .set_attr("draw:style-name", style.as_str().to_string());
         }
     };
 }
@@ -102,7 +103,7 @@ macro_rules! draw_text_style_name {
         /// 19.480 attribute value of paragraph.
         pub fn set_draw_text_style_name(&mut self, style: ParagraphStyleRef) {
             self.$acc
-                .set_attr("draw:text-style-name", style.to_string());
+                .set_attr("draw:text-style-name", style.as_str().to_string());
         }
     };
 }

@@ -8,7 +8,6 @@ use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, Styl
 use core::borrow::Borrow;
 use get_size::GetSize;
 use get_size_derive::GetSize;
-use std::fmt::{Display, Formatter};
 
 style_ref2!(TableStyleRef);
 

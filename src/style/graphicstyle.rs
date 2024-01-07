@@ -14,9 +14,9 @@ use crate::style::{StyleOrigin, StyleUse, TextStyleRef};
 use get_size::GetSize;
 use get_size_derive::GetSize;
 use icu_locid::Locale;
-use std::fmt::{Display, Formatter};
+use std::borrow::Borrow;
 
-style_ref!(GraphicStyleRef);
+style_ref2!(GraphicStyleRef);
 
 /// Styles of this type can occur in an odt file.
 /// This is only used as a place to put this stuff when reading the ods.
@@ -39,7 +39,7 @@ pub struct GraphicStyle {
     textstyle: AttrMap2,
 }
 
-styles_styles!(GraphicStyle, GraphicStyleRef);
+styles_styles2!(GraphicStyle, GraphicStyleRef);
 
 impl GraphicStyle {
     /// Empty.
@@ -56,11 +56,11 @@ impl GraphicStyle {
     }
 
     /// New graphic style.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
             origin: Default::default(),
             styleuse: Default::default(),
-            name: name.into(),
+            name: name.as_ref().to_string(),
             attr: Default::default(),
             graphicstyle: Default::default(),
             paragraphstyle: Default::default(),

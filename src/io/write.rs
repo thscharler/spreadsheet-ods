@@ -12,8 +12,9 @@ use crate::refs::{format_cellranges, CellRange};
 use crate::sheet::Visibility;
 use crate::sheet_::CellDataIter;
 use crate::style::{
-    CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
-    ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
+    CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, MasterPageRef,
+    PageStyle, PageStyleRef, ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse,
+    TableStyle, TextStyle,
 };
 use crate::validation::ValidationDisplay;
 use crate::workbook::{EventListener, Script};
@@ -1481,7 +1482,7 @@ fn write_sheet(
     xml_out.elem("table:table")?;
     xml_out.attr_esc("table:name", &sheet.name)?;
     if let Some(style) = sheet.style.as_ref() {
-        xml_out.attr_esc("table:style-name", style)?;
+        xml_out.attr_esc("table:style-name", style.as_str())?;
     }
     if let Some(print_ranges) = &sheet.print_ranges {
         xml_out.attr_esc("table:print-ranges", &format_cellranges(print_ranges))?;
@@ -1777,10 +1778,10 @@ fn write_start_current_row(
             xml_out.attr_esc("table:number-rows-repeated", &row_header.repeat)?;
         }
         if let Some(rowstyle) = row_header.style.as_ref() {
-            xml_out.attr_esc("table:style-name", rowstyle)?;
+            xml_out.attr_esc("table:style-name", rowstyle.as_str())?;
         }
         if let Some(cellstyle) = row_header.cellstyle.as_ref() {
-            xml_out.attr_esc("table:default-cell-style-name", cellstyle)?;
+            xml_out.attr_esc("table:default-cell-style-name", cellstyle.as_str())?;
         }
         if row_header.visible != Visibility::Visible {
             xml_out.attr_esc("table:visibility", &row_header.visible)?;
@@ -1930,10 +1931,10 @@ fn write_empty_row(
     xml_out.attr("table:number-rows-repeated", &row_repeat)?;
     if let Some(row_header) = sheet.valid_row_header(cur_row) {
         if let Some(rowstyle) = row_header.style.as_ref() {
-            xml_out.attr_esc("table:style-name", rowstyle)?;
+            xml_out.attr_esc("table:style-name", rowstyle.as_str())?;
         }
         if let Some(cellstyle) = row_header.cellstyle.as_ref() {
-            xml_out.attr_esc("table:default-cell-style-name", cellstyle)?;
+            xml_out.attr_esc("table:default-cell-style-name", cellstyle.as_str())?;
         }
         if row_header.visible != Visibility::Visible {
             xml_out.attr_esc("table:visibility", &row_header.visible)?;
@@ -1983,10 +1984,10 @@ fn write_table_columns(
                 xml_out.attr_esc("table:number-columns-repeated", &col_header.span)?;
             }
             if let Some(style) = col_header.style.as_ref() {
-                xml_out.attr_esc("table:style-name", style)?;
+                xml_out.attr_esc("table:style-name", style.as_str())?;
             }
             if let Some(style) = col_header.cellstyle.as_ref() {
-                xml_out.attr_esc("table:default-cell-style-name", style)?;
+                xml_out.attr_esc("table:default-cell-style-name", style.as_str())?;
             }
             if col_header.visible != Visibility::Visible {
                 xml_out.attr_esc("table:visibility", &col_header.visible)?;
@@ -2045,9 +2046,9 @@ fn write_cell(
 
     // Direct style oder value based default style.
     if let Some(style) = &cell.style {
-        xml_out.attr_esc("table:style-name", style)?;
+        xml_out.attr_esc("table:style-name", style.as_str())?;
     } else if let Some(style) = book.def_style(cell.value.value_type()) {
-        xml_out.attr_esc("table:style-name", style)?;
+        xml_out.attr_esc("table:style-name", style.as_str())?;
     }
 
     // Content validation
@@ -2057,7 +2058,7 @@ fn write_cell(
         .map(|v| v.validation_name.as_ref())
         .flatten()
     {
-        xml_out.attr_esc("table:content-validation-name", validation_name)?;
+        xml_out.attr_esc("table:content-validation-name", validation_name.as_str())?;
     }
 
     // Spans
@@ -2870,7 +2871,7 @@ fn write_valuestyle<T: ValueFormatTrait>(
 }
 
 fn write_pagestyles(
-    styles: &HashMap<String, PageStyle>,
+    styles: &HashMap<PageStyleRef, PageStyle>,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     for style in styles.values() {
@@ -2912,62 +2913,64 @@ fn write_pagestyles(
 }
 
 fn write_masterpage(
-    styles: &HashMap<String, MasterPage>,
+    masterpages: &HashMap<MasterPageRef, MasterPage>,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
-    for style in styles.values() {
+    for masterpage in masterpages.values() {
         xml_out.elem("style:master-page")?;
-        xml_out.attr_esc("style:name", style.name())?;
-        if !style.display_name().is_empty() {
-            xml_out.attr_esc("style:display-name", style.display_name())?;
+        xml_out.attr_esc("style:name", masterpage.name())?;
+        if !masterpage.display_name().is_empty() {
+            xml_out.attr_esc("style:display-name", masterpage.display_name())?;
         }
-        xml_out.attr_esc("style:page-layout-name", style.pagestyle())?;
-        if !style.next_masterpage().is_empty() {
-            xml_out.attr_esc("style:next-style-name", style.next_masterpage())?;
+        if let Some(style) = masterpage.pagestyle() {
+            xml_out.attr_esc("style:page-layout-name", style.as_str())?;
+        }
+        if let Some(next) = masterpage.next_masterpage() {
+            xml_out.attr_esc("style:next-style-name", next.as_str())?;
         }
 
         // header
         xml_out.elem("style:header")?;
-        if !style.header().display() {
+        if !masterpage.header().display() {
             xml_out.attr_str("style:display", "false")?;
         }
-        write_regions(style.header(), xml_out)?;
+        write_regions(masterpage.header(), xml_out)?;
         xml_out.end_elem("style:header")?;
 
         xml_out.elem("style:header-first")?;
-        if !style.header_first().display() || style.header_first().is_empty() {
+        if !masterpage.header_first().display() || masterpage.header_first().is_empty() {
             xml_out.attr_str("style:display", "false")?;
         }
-        write_regions(style.header_first(), xml_out)?;
+        write_regions(masterpage.header_first(), xml_out)?;
         xml_out.end_elem("style:header-first")?;
 
         xml_out.elem("style:header-left")?;
-        if !style.header_left().display() || style.header_left().is_empty() {
+        if !masterpage.header_left().display() || masterpage.header_left().is_empty() {
             xml_out.attr_str("style:display", "false")?;
         }
-        write_regions(style.header_left(), xml_out)?;
+        write_regions(masterpage.header_left(), xml_out)?;
         xml_out.end_elem("style:header-left")?;
 
         // footer
         xml_out.elem("style:footer")?;
-        if !style.footer().display() {
+        if !masterpage.footer().display() {
             xml_out.attr_str("style:display", "false")?;
         }
-        write_regions(style.footer(), xml_out)?;
+        write_regions(masterpage.footer(), xml_out)?;
         xml_out.end_elem("style:footer")?;
 
         xml_out.elem("style:footer-first")?;
-        if !style.footer_first().display() || style.footer_first().is_empty() {
+        if !masterpage.footer_first().display() || masterpage.footer_first().is_empty() {
             xml_out.attr_str("style:display", "false")?;
         }
-        write_regions(style.footer_first(), xml_out)?;
+        write_regions(masterpage.footer_first(), xml_out)?;
         xml_out.end_elem("style:footer-first")?;
 
         xml_out.elem("style:footer-left")?;
-        if !style.footer_left().display() || style.footer_left().is_empty() {
+        if !masterpage.footer_left().display() || masterpage.footer_left().is_empty() {
             xml_out.attr_str("style:display", "false")?;
         }
-        write_regions(style.footer_left(), xml_out)?;
+        write_regions(masterpage.footer_left(), xml_out)?;
         xml_out.end_elem("style:footer-left")?;
 
         xml_out.end_elem("style:master-page")?;

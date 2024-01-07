@@ -46,9 +46,9 @@ impl FontFaceDecl {
     }
 
     /// New, with a name.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
         Self {
-            name: name.into(),
+            name: name.as_ref().to_string(),
             origin: StyleOrigin::Content,
             attr: Default::default(),
         }
@@ -56,13 +56,13 @@ impl FontFaceDecl {
 
     /// New with a name.
     #[deprecated]
-    pub fn new_with_name<S: Into<String>>(name: S) -> Self {
-        Self::new(name)
+    pub fn new_with_name<S: AsRef<str>>(name: S) -> Self {
+        Self::new(name.as_ref().to_string())
     }
 
     /// Set the name.
-    pub fn set_name<V: Into<String>>(&mut self, name: V) {
-        self.name = name.into();
+    pub fn set_name<V: AsRef<str>>(&mut self, name: V) {
+        self.name = name.as_ref().to_string();
     }
 
     /// Returns the name.

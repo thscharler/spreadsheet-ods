@@ -55,6 +55,7 @@ use crate::style::{
     color_string, shadow_string, text_position, StyleOrigin, StyleUse, TextStyleRef,
 };
 use crate::{OdsError, ValueType};
+use core::borrow::Borrow;
 use get_size::GetSize;
 use get_size_derive::GetSize;
 use icu_locid::subtags::{Language, Region, Script};
@@ -62,7 +63,7 @@ use icu_locid::{LanguageIdentifier, Locale};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-style_ref!(ValueFormatRef);
+style_ref2!(ValueFormatRef);
 
 /// Trait used by the builder types.
 pub trait ValueFormatTrait {
