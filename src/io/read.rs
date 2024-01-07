@@ -1092,7 +1092,7 @@ fn read_table_attr(
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
                 let name = &attr.decode_and_unescape_value(xml)?;
-                sheet.style = Some(TableStyleRef::from_str(name.as_ref()));
+                sheet.style = Some(TableStyleRef::from(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"table:print" => {
                 sheet.set_print(parse_bool(&attr.value)?);
@@ -1232,7 +1232,7 @@ fn read_table_col_attr(
             attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
                 let name = attr.decode_and_unescape_value(xml)?;
                 col_header.get_or_insert_with(ColHeader::default).cellstyle =
-                    Some(CellStyleRef::from_str(name.as_ref()));
+                    Some(CellStyleRef::from(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"table:visibility" => {
                 let visible = parse_visibility(&attr.value)?;
@@ -1402,7 +1402,7 @@ fn read_table_cell(
             attr if attr.key.as_ref() == b"table:style-name" => {
                 let name = attr.decode_and_unescape_value(xml)?;
                 cell.get_or_insert_with(CellData::default).style =
-                    Some(CellStyleRef::from_str(name.as_ref()));
+                    Some(CellStyleRef::from(name.as_ref()));
             }
             attr => {
                 unused_attr("read_table_cell2", super_tag.name().as_ref(), &attr)?;

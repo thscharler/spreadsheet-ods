@@ -72,42 +72,42 @@ pub struct DefaultStyle {}
 impl DefaultStyle {
     /// Default bool style.
     pub fn bool() -> CellStyleRef {
-        CellStyleRef::from_str("default-bool")
+        CellStyleRef::from("default-bool")
     }
 
     /// Default number style.
     pub fn number() -> CellStyleRef {
-        CellStyleRef::from_str("default-num")
+        CellStyleRef::from("default-num")
     }
 
     /// Default percent style.
     pub fn percent() -> CellStyleRef {
-        CellStyleRef::from_str("default-percent")
+        CellStyleRef::from("default-percent")
     }
 
     /// Default currency style.
     pub fn currency() -> CellStyleRef {
-        CellStyleRef::from_str("default-currency")
+        CellStyleRef::from("default-currency")
     }
 
     /// Default date style.
     pub fn date() -> CellStyleRef {
-        CellStyleRef::from_str("default-date")
+        CellStyleRef::from("default-date")
     }
 
     /// Default datetime style.
     pub fn datetime() -> CellStyleRef {
-        CellStyleRef::from_str("default-datetime")
+        CellStyleRef::from("default-datetime")
     }
 
     /// Default time style.
     pub fn time_of_day() -> CellStyleRef {
-        CellStyleRef::from_str("default-time")
+        CellStyleRef::from("default-time")
     }
 
     /// Default time style.
     pub fn time_interval() -> CellStyleRef {
-        CellStyleRef::from_str("default-interval")
+        CellStyleRef::from("default-interval")
     }
 }
 

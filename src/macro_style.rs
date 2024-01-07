@@ -1,4 +1,3 @@
-use get_size::GetSize;
 macro_rules! styles_styles {
     ($style:ident, $styleref:ident) => {
         impl $style {
@@ -138,7 +137,7 @@ macro_rules! styles_styles2 {
 
             /// Returns the name as a style reference.
             pub fn style_ref(&self) -> $styleref {
-                $styleref::from_str(self.name.as_str())
+                $styleref::from(self.name.as_str())
             }
 
             style_auto_update!(attr);
@@ -164,6 +163,24 @@ macro_rules! style_ref2 {
             }
         }
 
+        impl From<String> for $l {
+            fn from(id: String) -> Self {
+                Self { id }
+            }
+        }
+
+        impl From<&String> for $l {
+            fn from(id: &String) -> Self {
+                Self { id: id.clone() }
+            }
+        }
+
+        impl From<&str> for $l {
+            fn from(id: &str) -> Self {
+                Self { id: id.to_string() }
+            }
+        }
+
         impl Borrow<str> for $l {
             fn borrow(&self) -> &str {
                 self.id.borrow()
@@ -177,13 +194,6 @@ macro_rules! style_ref2 {
         }
 
         impl $l {
-            /// Create from str.
-            pub fn from_str(str: &str) -> Self {
-                Self {
-                    id: String::from(str),
-                }
-            }
-
             /// Reference as str.
             pub fn as_str(&self) -> &str {
                 self.id.as_str()
