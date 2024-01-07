@@ -1,3 +1,4 @@
+use crate::cell_::CellData;
 use crate::config::{ConfigItem, ConfigItemType, ConfigValue};
 use crate::draw::{Annotation, DrawFrame, DrawFrameContent, DrawImage};
 use crate::error::OdsError;
@@ -9,6 +10,7 @@ use crate::manifest::Manifest;
 use crate::metadata::MetaValue;
 use crate::refs::{format_cellranges, CellRange};
 use crate::sheet::Visibility;
+use crate::sheet_::CellDataIter;
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, PageStyle,
     ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse, TableStyle, TextStyle,
@@ -16,8 +18,8 @@ use crate::style::{
 use crate::validation::ValidationDisplay;
 use crate::workbook::{EventListener, Script};
 use crate::xmltree::{XmlContent, XmlTag};
-use crate::HashMap;
-use crate::{CellContentRef, Length, Sheet, Value, ValueType, WorkBook};
+use crate::{CellStyleRef, HashMap};
+use crate::{Length, Sheet, Value, ValueType, WorkBook};
 use std::borrow::Cow;
 use std::fs::File;
 use std::io::{BufWriter, Cursor, Seek, Write};
@@ -1520,7 +1522,7 @@ fn write_sheet(
     let mut row_group_count = 0;
     let mut row_header = false;
 
-    let mut it = sheet.into_iter();
+    let mut it = CellDataIter::new(sheet.data.range(..));
     while let Some(((cur_row, cur_col), cell)) = it.next() {
         // Row repeat count.
         let cur_row_repeat = if let Some(row_header) = sheet.row_header.get(&cur_row) {
@@ -1529,7 +1531,12 @@ fn write_sheet(
             1
         };
         // Cell repeat count.
-        let cur_col_repeat = *cell.repeat;
+        let cur_col_repeat = cell.repeat;
+
+        let def_cellstyle = sheet
+            .valid_col_header(cur_col)
+            .map(|v| v.cellstyle.as_ref())
+            .flatten();
 
         // There may be a lot of gaps of any kind in our data.
         // In the XML format there is no cell identification, every gap
@@ -1631,7 +1638,7 @@ fn write_sheet(
 
         // Maybe span, only if visible. That nicely eliminates all double hides.
         // Only check for the start cell in case of repeat.
-        if let Some(span) = cell.span {
+        if let Some(span) = cell.extra.as_ref().map(|v| v.span) {
             if !split[0].hidden && (span.row_span > 1 || span.col_span > 1) {
                 spans.push(CellRange::origin_span(cur_row, cur_col, span.into()));
             }
@@ -1639,7 +1646,7 @@ fn write_sheet(
 
         // And now to something completely different ...
         for s in &split {
-            write_cell(book, &cell, s.hidden, s.repeat(), xml_out)?;
+            write_cell(book, cell, s.hidden, s.repeat(), def_cellstyle, xml_out)?;
         }
 
         // There may be some blank cells until the next one.
@@ -2009,9 +2016,10 @@ fn write_table_columns(
 #[allow(clippy::single_char_add_str)]
 fn write_cell(
     book: &WorkBook,
-    cell: &CellContentRef<'_>,
+    cell: &CellData,
     is_hidden: bool,
     repeat: u32,
+    def_cellstyle: Option<&CellStyleRef>,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     let tag = if is_hidden {
@@ -2020,17 +2028,14 @@ fn write_cell(
         "table:table-cell"
     };
 
-    let is_empty = matches!(cell.value, Value::Empty)
-        && cell.annotation.is_none()
-        && cell.draw_frames.is_none();
-
+    let is_empty = cell.is_void(def_cellstyle);
     if is_empty {
         xml_out.empty(tag)?;
     } else {
         xml_out.elem(tag)?;
     }
 
-    if let Some(formula) = cell.formula {
+    if let Some(formula) = &cell.formula {
         xml_out.attr_esc("table:formula", formula)?;
     }
 
@@ -2039,19 +2044,24 @@ fn write_cell(
     }
 
     // Direct style oder value based default style.
-    if let Some(style) = cell.style {
+    if let Some(style) = &cell.style {
         xml_out.attr_esc("table:style-name", style)?;
     } else if let Some(style) = book.def_style(cell.value.value_type()) {
         xml_out.attr_esc("table:style-name", style)?;
     }
 
     // Content validation
-    if let Some(validation_name) = cell.validation_name {
+    if let Some(validation_name) = cell
+        .extra
+        .as_ref()
+        .map(|v| v.validation_name.as_ref())
+        .flatten()
+    {
         xml_out.attr_esc("table:content-validation-name", validation_name)?;
     }
 
     // Spans
-    if let Some(span) = cell.span {
+    if let Some(span) = cell.extra.as_ref().map(|v| v.span) {
         if span.row_span > 1 {
             xml_out.attr_esc("table:number-rows-spanned", &span.row_span)?;
         }
@@ -2059,7 +2069,7 @@ fn write_cell(
             xml_out.attr_esc("table:number-columns-spanned", &span.col_span)?;
         }
     }
-    if let Some(span) = cell.matrix_span {
+    if let Some(span) = cell.extra.as_ref().map(|v| v.matrix_span) {
         if span.row_span > 1 {
             xml_out.attr_esc("table:number-matrix-rows-spanned", &span.row_span)?;
         }
@@ -2078,7 +2088,7 @@ fn write_cell(
     //     None
     // };
 
-    match cell.value {
+    match &cell.value {
         Value::Empty => {}
         Value::Text(s) => {
             xml_out.attr_str("office:value-type", "string")?;
@@ -2141,11 +2151,11 @@ fn write_cell(
         }
     }
 
-    if let Some(annotation) = cell.annotation {
+    if let Some(annotation) = cell.extra.as_ref().map(|v| v.annotation.as_ref()).flatten() {
         write_annotation(annotation, xml_out)?;
     }
 
-    if let Some(draw_frames) = cell.draw_frames {
+    if let Some(draw_frames) = cell.extra.as_ref().map(|v| &v.draw_frames) {
         for draw_frame in draw_frames {
             write_draw_frame(draw_frame, xml_out)?;
         }
