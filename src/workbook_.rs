@@ -550,8 +550,8 @@ impl WorkBook {
     }
 
     /// Removes a style.
-    pub fn remove_tablestyle(&mut self, name: &str) -> Option<TableStyle> {
-        self.tablestyles.remove(name)
+    pub fn remove_tablestyle<S: AsRef<str>>(&mut self, name: S) -> Option<TableStyle> {
+        self.tablestyles.remove(name.as_ref())
     }
 
     /// Iterates the table-styles.
@@ -560,13 +560,13 @@ impl WorkBook {
     }
 
     /// Returns the style.
-    pub fn tablestyle(&self, name: &str) -> Option<&TableStyle> {
-        self.tablestyles.get(name)
+    pub fn tablestyle<S: AsRef<str>>(&self, name: S) -> Option<&TableStyle> {
+        self.tablestyles.get(name.as_ref())
     }
 
     /// Returns the mutable style.
-    pub fn tablestyle_mut(&mut self, name: &str) -> Option<&mut TableStyle> {
-        self.tablestyles.get_mut(name)
+    pub fn tablestyle_mut<S: AsRef<str>>(&mut self, name: S) -> Option<&mut TableStyle> {
+        self.tablestyles.get_mut(name.as_ref())
     }
 
     /// Adds a style.
@@ -643,8 +643,8 @@ impl WorkBook {
     }
 
     /// Removes a style.
-    pub fn remove_cellstyle(&mut self, name: &str) -> Option<CellStyle> {
-        self.cellstyles.remove(name)
+    pub fn remove_cellstyle<S: AsRef<str>>(&mut self, name: S) -> Option<CellStyle> {
+        self.cellstyles.remove(name.as_ref())
     }
 
     /// Returns iterator over styles.
@@ -653,13 +653,13 @@ impl WorkBook {
     }
 
     /// Returns the style.
-    pub fn cellstyle(&self, name: &str) -> Option<&CellStyle> {
-        self.cellstyles.get(name)
+    pub fn cellstyle<S: AsRef<str>>(&self, name: S) -> Option<&CellStyle> {
+        self.cellstyles.get(name.as_ref())
     }
 
     /// Returns the mutable style.
-    pub fn cellstyle_mut(&mut self, name: &str) -> Option<&mut CellStyle> {
-        self.cellstyles.get_mut(name)
+    pub fn cellstyle_mut<S: AsRef<str>>(&mut self, name: S) -> Option<&mut CellStyle> {
+        self.cellstyles.get_mut(name.as_ref())
     }
 
     /// Adds a style.

@@ -1,9 +1,11 @@
 mod lib_test;
 
+use icu_locid::locale;
 use lib_test::*;
+use spreadsheet_ods::defaultstyles::DefaultFormat;
 use spreadsheet_ods::{
-    cm, currency, percent, read_ods, CellRange, CellStyleRef, Length, OdsError, OdsOptions, Sheet,
-    Value, ValueType, WorkBook,
+    cm, currency, percent, read_ods, CellRange, CellStyle, CellStyleRef, Length, OdsError,
+    OdsOptions, Sheet, Value, ValueType, WorkBook,
 };
 use std::fs::File;
 use std::io::BufReader;
@@ -216,7 +218,7 @@ fn test_iterator() {
     for r in 1..100 {
         for c in 1..10 {
             if r % c == 0 {
-                sh.set_styled_value(r, c, 4711, &CellStyleRef::from_str("foo"));
+                sh.set_styled_value(r, c, 4711, &CellStyleRef::from("foo"));
             }
         }
     }
@@ -229,4 +231,15 @@ fn test_iterator() {
             // println!("{:?} -> {:?}", (cur_row, cur_col), ());
         }
     }
+}
+
+#[test]
+fn test_cell_style() {
+    let mut wb = WorkBook::new(locale!("de_AT"));
+
+    let s0 = CellStyle::new("a21", &DefaultFormat::number());
+    let s0 = wb.add_cellstyle(s0);
+
+    let ss0 = wb.cellstyle(&s0).expect("style");
+    assert_eq!(ss0.name(), "a21");
 }

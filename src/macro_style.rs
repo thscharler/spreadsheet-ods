@@ -187,6 +187,12 @@ macro_rules! style_ref2 {
             }
         }
 
+        impl AsRef<str> for $l {
+            fn as_ref(&self) -> &str {
+                self.id.as_ref()
+            }
+        }
+
         impl Display for $l {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{}", self.id)

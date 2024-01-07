@@ -22,10 +22,10 @@ fn test_workbook() {
 fn test_def_style() {
     let mut wb = WorkBook::new_empty();
 
-    wb.add_def_style(ValueType::Number, CellStyleRef::from_str("val0"));
+    wb.add_def_style(ValueType::Number, CellStyleRef::from("val0"));
     assert_eq!(
         wb.def_style(ValueType::Number),
-        Some(&CellStyleRef::from_str("val0"))
+        Some(&CellStyleRef::from("val0"))
     );
     assert!(wb.def_style(ValueType::Text).is_none());
 }

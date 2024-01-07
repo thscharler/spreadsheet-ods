@@ -28,7 +28,7 @@ fn create_wb(rows: u32, cols: u32) -> Result<WorkBook, OdsError> {
         }
         if r % 2 == 0 {
             for c in 0..cols {
-                sh.set_cellstyle(r, c, &CellStyleRef::from_str("s0"));
+                sh.set_cellstyle(r, c, &CellStyleRef::from("s0"));
             }
         }
         if r % 10 == 0 {

@@ -25,7 +25,7 @@ fn test_images() -> Result<(), OdsError> {
     let sh = wb.sheet(0);
 
     for ((_r, _c), d) in sh.iter() {
-        if let Some(draw_frames) = d.draw_frames {
+        if let Some(_draw_frames) = d.draw_frames {
             // dbg!(draw_frames);
         }
     }
