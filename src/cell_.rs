@@ -249,20 +249,20 @@ impl CellData {
             if let Some(extra) = &self.extra {
                 (
                     extra.validation_name.as_ref(),
-                    Some(&extra.span),
-                    Some(&extra.matrix_span),
+                    extra.span,
+                    extra.matrix_span,
                     extra.annotation.as_ref(),
                     Some(&extra.draw_frames),
                 )
             } else {
-                (None, None, None, None, None)
+                (None, CellSpan::default(), CellSpan::default(), None, None)
             };
 
         CellContentRef {
             value: &self.value,
             style: self.style.as_ref(),
             formula: self.formula.as_ref(),
-            repeat: &self.repeat,
+            repeat: self.repeat,
             validation_name,
             span,
             matrix_span,
@@ -283,13 +283,13 @@ pub struct CellContentRef<'a> {
     /// Reference to the cell formula.
     pub formula: Option<&'a String>,
     /// Reference to the repeat count.
-    pub repeat: &'a u32,
+    pub repeat: u32,
     /// Reference to a cell validation.
     pub validation_name: Option<&'a String>,
     /// Reference to the cellspan.
-    pub span: Option<&'a CellSpan>,
+    pub span: CellSpan,
     /// Reference to a matrix cellspan.
-    pub matrix_span: Option<&'a CellSpan>,
+    pub matrix_span: CellSpan,
     /// Reference to an annotation.
     pub annotation: Option<&'a Annotation>,
     /// Reference to draw-frames.
@@ -317,7 +317,7 @@ impl<'a> CellContentRef<'a> {
 
     /// Returns the repeat count.
     #[inline]
-    pub fn repeat(&self) -> &'a u32 {
+    pub fn repeat(&self) -> u32 {
         self.repeat
     }
 
@@ -330,41 +330,25 @@ impl<'a> CellContentRef<'a> {
     /// Returns the row span.
     #[inline]
     pub fn row_span(&self) -> u32 {
-        if let Some(span) = self.span {
-            span.row_span
-        } else {
-            1
-        }
+        self.span.row_span
     }
 
     /// Returns the col span.
     #[inline]
     pub fn col_span(&self) -> u32 {
-        if let Some(span) = self.span {
-            span.col_span
-        } else {
-            1
-        }
+        self.span.col_span
     }
 
     /// Returns the row span for a matrix.
     #[inline]
     pub fn matrix_row_span(&self) -> u32 {
-        if let Some(matrix_span) = self.matrix_span {
-            matrix_span.row_span
-        } else {
-            1
-        }
+        self.matrix_span.row_span
     }
 
     /// Returns the col span for a matrix.
     #[inline]
     pub fn matrix_col_span(&self) -> u32 {
-        if let Some(matrix_span) = self.matrix_span {
-            matrix_span.col_span
-        } else {
-            1
-        }
+        self.matrix_span.col_span
     }
 
     /// Returns the validation name.
@@ -385,10 +369,10 @@ impl<'a> CellContentRef<'a> {
             value: self.value.clone(),
             style: self.style.cloned(),
             formula: self.formula.cloned(),
-            repeat: *self.repeat,
+            repeat: self.repeat,
             validation_name: self.validation_name.cloned(),
-            span: self.span.cloned().unwrap_or_default(),
-            matrix_span: self.matrix_span.cloned().unwrap_or_default(),
+            span: self.span,
+            matrix_span: self.matrix_span,
             annotation: self.annotation.cloned(),
             draw_frames: self.draw_frames.map(|v| v.clone()).unwrap_or_default(),
         }
