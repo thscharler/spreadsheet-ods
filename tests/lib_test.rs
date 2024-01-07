@@ -88,11 +88,15 @@ impl<X> Timing<X> {
         self
     }
 
-    pub fn run<E, R>(&mut self, mut fun: impl FnMut() -> Result<R, E>) -> Result<R, E> {
+    pub fn run_pp<E, R>(
+        &mut self,
+        mut fun: impl FnMut() -> Result<R, E>,
+        mut sum: impl FnMut(Result<R, E>, &mut Vec<f64>, &mut Vec<X>) -> Result<R, E>,
+    ) -> Result<R, E> {
         assert!(self.runs > 0);
         assert!(self.divider > 0);
 
-        println!("run {}...", self.name);
+        print!("run {} ", self.name);
 
         let mut bench = move || {
             let now = Instant::now();
@@ -100,27 +104,40 @@ impl<X> Timing<X> {
             (now.elapsed(), result)
         };
 
-        let mut samples_vec = Vec::with_capacity(self.runs);
+        let mut sub_sample = Vec::new();
+        let mut sub_extra = Vec::new();
+
         let mut n = 0;
-        let result = loop {
+        let mut result = loop {
             let (elapsed, result) = black_box(bench());
-            samples_vec.push(elapsed);
+
             n += 1;
-            if n >= self.runs + self.skip {
+
+            if n >= self.skip {
+                let sample = elapsed.as_nanos() as f64 / self.divider as f64;
+                sub_sample.push(sample);
+            }
+            if n >= self.skip + self.runs {
                 break result;
             }
+
             print!(".");
+
             let _ = stdout().flush();
         };
 
-        self.samples.extend(
-            samples_vec
-                .iter()
-                .skip(self.skip)
-                .map(|v| v.as_nanos() as f64 / self.divider as f64),
-        );
+        result = sum(result, &mut sub_sample, &mut sub_extra);
+
+        self.samples.extend(sub_sample);
+        self.extra.extend(sub_extra);
+
+        println!();
 
         result
+    }
+
+    pub fn run<E, R>(&mut self, fun: impl FnMut() -> Result<R, E>) -> Result<R, E> {
+        self.run_pp(fun, |v, _s, _x| v)
     }
 
     pub fn n(&self) -> usize {

@@ -57,11 +57,11 @@ fn print_t(t0: &Timing<Sample>) {
     println!();
     println!("{}", t0.name);
     println!();
-    println!("| cat | name | file-size | time | cells | mem-size | sheet | colh | rowh | meta |");
+    println!("cat|name|file-size|time|cells|mem-size|sheet|colh|rowh|meta");
     for i in 0..t0.samples.len() {
         let extra = t0.extra.get(i).expect("b");
         println!(
-            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
+            "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
             extra.category,
             extra.name,
             extra.file_size,
@@ -91,7 +91,7 @@ struct Sample {
 
 #[test]
 fn test_samples() -> Result<(), OdsError> {
-    let mut t = Timing::default();
+    let mut t = Timing::default().skip(1).runs(5);
 
     run_samples(&mut t, "clone", OdsOptions::default().use_clone_for_cells())?;
     // run_samples(&mut t, "content", OdsOptions::default().content_only())?;
@@ -121,28 +121,46 @@ fn run_samples(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Resul
                         .unwrap_or_default()
                         .to_string_lossy()
                         .to_string();
+                    let name = t1.name.clone();
 
                     let mut buf = Vec::new();
                     File::open(f.path())?.read_to_end(&mut buf)?;
 
-                    let wb = t1.run(|| {
-                        let read = BufReader::new(Cursor::new(&buf));
-                        options.read_ods(read)
-                    })?;
+                    let _wb = t1.run_pp(
+                        || {
+                            let read = BufReader::new(Cursor::new(&buf));
+                            options.read_ods(read)
+                        },
+                        |r, s, x| {
+                            if let Ok(wb) = &r {
+                                // some cleanup ...
+                                let min = s.iter().fold(f64::MAX, |s, v| f64::min(s, *v));
+                                let max = s.iter().fold(0f64, |s, v| f64::max(s, *v));
+                                let sum = s.iter().fold(0f64, |s, v| s + *v) - min - max;
+                                let avg = sum / (s.len() - 2) as f64;
 
-                    let mut cell_count = 0;
-                    for sh in wb.iter_sheets() {
-                        cell_count += sh.cell_count();
-                    }
+                                s.clear();
+                                s.push(avg);
 
-                    t1.extra.push(Sample {
-                        category: cat.to_string(),
-                        name: t1.name.clone(),
-                        file_size: f.metadata()?.len(),
-                        cell_count,
-                        mem_size: wb.get_size(),
-                        ..Sample::default()
-                    });
+                                // general stats
+                                let mut cell_count = 0;
+                                for sh in wb.iter_sheets() {
+                                    cell_count += sh.cell_count();
+                                }
+
+                                x.push(Sample {
+                                    category: cat.to_string(),
+                                    name: name.clone(),
+                                    file_size: f.metadata()?.len(),
+                                    cell_count,
+                                    mem_size: wb.get_size(),
+                                    ..Sample::default()
+                                });
+                            }
+
+                            r
+                        },
+                    )?;
                 }
             }
         }
