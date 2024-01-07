@@ -116,7 +116,7 @@ impl Default for CellData {
         Self {
             value: Default::default(),
             formula: None,
-            style: Default::default(),
+            style: None,
             repeat: 1,
             extra: None,
         }

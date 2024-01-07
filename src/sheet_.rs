@@ -87,7 +87,7 @@ impl Default for ColHeader {
     fn default() -> Self {
         Self {
             style: None,
-            cellstyle: Default::default(),
+            cellstyle: None,
             visible: Default::default(),
             width: Default::default(),
             span: 1,
@@ -539,7 +539,7 @@ impl Sheet {
             name: name.into(),
             data: BTreeMap::new(),
             col_header: Default::default(),
-            style: Default::default(),
+            style: None,
             header_rows: None,
             header_cols: None,
             print_ranges: None,
@@ -641,7 +641,6 @@ impl Sheet {
     }
 
     /// Returns the table-style.
-    //todo: option or not?
     pub fn style(&self) -> Option<&TableStyleRef> {
         self.style.as_ref()
     }
