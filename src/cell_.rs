@@ -171,6 +171,22 @@ impl CellData {
         true
     }
 
+    pub(crate) fn has_annotation(&self) -> bool {
+        if let Some(extra) = &self.extra {
+            extra.annotation.is_some()
+        } else {
+            false
+        }
+    }
+
+    pub(crate) fn has_draw_frames(&self) -> bool {
+        if let Some(extra) = &self.extra {
+            !extra.draw_frames.is_empty()
+        } else {
+            false
+        }
+    }
+
     pub(crate) fn extra_mut(&mut self) -> &mut CellDataExt {
         if self.extra.is_none() {
             self.extra = Some(Box::default());

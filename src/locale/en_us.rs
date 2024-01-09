@@ -48,7 +48,7 @@ impl LocalizedValueFormat for LocaleEnUs {
     fn currency_format(&self) -> ValueFormatCurrency {
         let mut v = ValueFormatCurrency::new_localized(DefaultFormat::currency(), Self::LOCALE);
         v.part_currency().locale(Self::LOCALE).symbol("$").build();
-        v.part_text(" ").build();
+        v.part_text(" ").build();
         v.part_number()
             .min_integer_digits(1)
             .decimal_places(2)

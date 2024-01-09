@@ -977,11 +977,7 @@ fn write_config_item(
         _ => false,
     };
 
-    if is_empty {
-        xml_out.empty("config:config-item")?;
-    } else {
-        xml_out.elem("config:config-item")?;
-    }
+    xml_out.elem_if(!is_empty, "config:config-item")?;
 
     xml_out.attr_esc("config:name", name)?;
 
@@ -1020,9 +1016,7 @@ fn write_config_item(
         }
     }
 
-    if !is_empty {
-        xml_out.end_elem("config:config-item")?;
-    }
+    xml_out.end_elem_if(!is_empty, "config:config-item")?;
 
     Ok(())
 }
@@ -1293,10 +1287,10 @@ fn write_office_body(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<
 }
 
 fn write_office_scripts(book: &WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
-    xml_out.elem("office:scripts")?;
+    xml_out.elem_if(!book.scripts.is_empty(), "office:scripts")?;
     write_scripts(&book.scripts, xml_out)?;
     write_event_listeners(&book.event_listener, xml_out)?;
-    xml_out.end_elem("office:scripts")?;
+    xml_out.end_elem_if(!book.scripts.is_empty(), "office:scripts")?;
     Ok(())
 }
 
@@ -1326,11 +1320,7 @@ fn write_content_validations(
             xml_out.attr_esc("table:base-cell-address", &valid.base_cell())?;
 
             if let Some(err) = valid.err() {
-                if err.text().is_some() {
-                    xml_out.elem("table:error-message")?;
-                } else {
-                    xml_out.empty("table:error-message")?;
-                }
+                xml_out.elem_if(err.text().is_some(), "table:error-message")?;
                 xml_out.attr("table:display", &err.display())?;
                 xml_out.attr("table:message-type", &err.msg_type())?;
                 if let Some(title) = err.title() {
@@ -1339,16 +1329,10 @@ fn write_content_validations(
                 if let Some(text) = err.text() {
                     write_xmltag(text, xml_out)?;
                 }
-                if err.text().is_some() {
-                    xml_out.end_elem("table:error-message")?;
-                }
+                xml_out.end_elem_if(err.text().is_some(), "table:error-message")?;
             }
             if let Some(err) = valid.help() {
-                if err.text().is_some() {
-                    xml_out.elem("table:help-message")?;
-                } else {
-                    xml_out.empty("table:help-message")?;
-                }
+                xml_out.elem_if(err.text().is_some(), "table:help-message")?;
                 xml_out.attr("table:display", &err.display())?;
                 if let Some(title) = err.title() {
                     xml_out.attr_esc("table:title", title)?;
@@ -1356,9 +1340,7 @@ fn write_content_validations(
                 if let Some(text) = err.text() {
                     write_xmltag(text, xml_out)?;
                 }
-                if err.text().is_some() {
-                    xml_out.end_elem("table:help-message")?;
-                }
+                xml_out.end_elem_if(err.text().is_some(), "table:help-message")?;
             }
 
             xml_out.end_elem("table:content-validation")?;
@@ -2024,12 +2006,8 @@ fn write_cell(
         "table:table-cell"
     };
 
-    let is_empty = cell.is_void(def_cellstyle);
-    if is_empty {
-        xml_out.empty(tag)?;
-    } else {
-        xml_out.elem(tag)?;
-    }
+    let has_subs = cell.value != Value::Empty || cell.has_annotation() || cell.has_draw_frames();
+    xml_out.elem_if(has_subs, tag)?;
 
     if let Some(formula) = &cell.formula {
         xml_out.attr_esc("table:formula", formula)?;
@@ -2157,9 +2135,7 @@ fn write_cell(
         }
     }
 
-    if !is_empty {
-        xml_out.end_elem(tag)?
-    }
+    xml_out.end_elem_if(has_subs, tag)?;
 
     Ok(())
 }
@@ -2286,9 +2262,9 @@ fn write_office_font_face_decls(
     origin: StyleOrigin,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
-    xml_out.elem("office:font-face-decls")?;
+    xml_out.elem_if(!book.fonts.is_empty(), "office:font-face-decls")?;
     write_style_font_face(&book.fonts, origin, xml_out)?;
-    xml_out.end_elem("office:font-face-decls")?;
+    xml_out.end_elem_if(!book.fonts.is_empty(), "office:font-face-decls")?;
     Ok(())
 }
 
@@ -2404,10 +2380,12 @@ fn write_styles(
 }
 
 fn write_tablestyle(style: &TableStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let is_empty = style.tablestyle().is_empty();
+
     if style.styleuse() == StyleUse::Default {
-        xml_out.elem("style:default-style")?;
+        xml_out.elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.elem("style:style")?;
+        xml_out.elem_if(!is_empty, "style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
     xml_out.attr_str("style:family", "table")?;
@@ -2428,19 +2406,21 @@ fn write_tablestyle(style: &TableStyle, xml_out: &mut OdsXmlWriter<'_>) -> Resul
         }
     }
     if style.styleuse() == StyleUse::Default {
-        xml_out.end_elem("style:default-style")?;
+        xml_out.end_elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.end_elem("style:style")?;
+        xml_out.end_elem_if(!is_empty, "style:style")?;
     }
 
     Ok(())
 }
 
 fn write_rowstyle(style: &RowStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let is_empty = style.rowstyle().is_empty();
+
     if style.styleuse() == StyleUse::Default {
-        xml_out.elem("style:default-style")?;
+        xml_out.elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.elem("style:style")?;
+        xml_out.elem_if(!is_empty, "style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
     xml_out.attr_str("style:family", "table-row")?;
@@ -2461,19 +2441,21 @@ fn write_rowstyle(style: &RowStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<()
         }
     }
     if style.styleuse() == StyleUse::Default {
-        xml_out.end_elem("style:default-style")?;
+        xml_out.end_elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.end_elem("style:style")?;
+        xml_out.end_elem_if(!is_empty, "style:style")?;
     }
 
     Ok(())
 }
 
 fn write_colstyle(style: &ColStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let is_empty = style.colstyle().is_empty();
+
     if style.styleuse() == StyleUse::Default {
-        xml_out.elem("style:default-style")?;
+        xml_out.elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.elem("style:style")?;
+        xml_out.elem_if(!is_empty, "style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
     xml_out.attr_str("style:family", "table-column")?;
@@ -2494,9 +2476,9 @@ fn write_colstyle(style: &ColStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<()
         }
     }
     if style.styleuse() == StyleUse::Default {
-        xml_out.end_elem("style:default-style")?;
+        xml_out.end_elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.end_elem("style:style")?;
+        xml_out.end_elem_if(!is_empty, "style:style")?;
     }
 
     Ok(())
@@ -2566,10 +2548,12 @@ fn write_paragraphstyle(
     style: &ParagraphStyle,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
+    let is_empty = style.paragraphstyle().is_empty() && style.textstyle().is_empty();
+
     if style.styleuse() == StyleUse::Default {
-        xml_out.elem("style:default-style")?;
+        xml_out.elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.elem("style:style")?;
+        xml_out.elem_if(!is_empty, "style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
     xml_out.attr_str("style:family", "paragraph")?;
@@ -2614,19 +2598,21 @@ fn write_paragraphstyle(
         }
     }
     if style.styleuse() == StyleUse::Default {
-        xml_out.end_elem("style:default-style")?;
+        xml_out.end_elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.end_elem("style:style")?;
+        xml_out.end_elem_if(!is_empty, "style:style")?;
     }
 
     Ok(())
 }
 
 fn write_textstyle(style: &TextStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let is_empty = style.textstyle().is_empty();
+
     if style.styleuse() == StyleUse::Default {
-        xml_out.elem("style:default-style")?;
+        xml_out.elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.elem("style:style")?;
+        xml_out.elem_if(!is_empty, "style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
     xml_out.attr_str("style:family", "text")?;
@@ -2647,19 +2633,21 @@ fn write_textstyle(style: &TextStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<
         }
     }
     if style.styleuse() == StyleUse::Default {
-        xml_out.end_elem("style:default-style")?;
+        xml_out.end_elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.end_elem("style:style")?;
+        xml_out.end_elem_if(!is_empty, "style:style")?;
     }
 
     Ok(())
 }
 
 fn write_rubystyle(style: &RubyStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let is_empty = style.rubystyle().is_empty();
+
     if style.styleuse() == StyleUse::Default {
-        xml_out.elem("style:default-style")?;
+        xml_out.elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.elem("style:style")?;
+        xml_out.elem_if(!is_empty, "style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
     xml_out.attr_str("style:family", "ruby")?;
@@ -2680,9 +2668,9 @@ fn write_rubystyle(style: &RubyStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<
         }
     }
     if style.styleuse() == StyleUse::Default {
-        xml_out.end_elem("style:default-style")?;
+        xml_out.end_elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.end_elem("style:style")?;
+        xml_out.end_elem_if(!is_empty, "style:style")?;
     }
 
     Ok(())
@@ -2692,10 +2680,14 @@ fn write_graphicstyle(
     style: &GraphicStyle,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
+    let is_empty = style.graphicstyle().is_empty()
+        && style.paragraphstyle().is_empty()
+        && style.textstyle().is_empty();
+
     if style.styleuse() == StyleUse::Default {
-        xml_out.elem("style:default-style")?;
+        xml_out.elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.elem("style:style")?;
+        xml_out.elem_if(!is_empty, "style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
     xml_out.attr_str("style:family", "graphic")?;
@@ -2729,9 +2721,9 @@ fn write_graphicstyle(
     }
 
     if style.styleuse() == StyleUse::Default {
-        xml_out.end_elem("style:default-style")?;
+        xml_out.end_elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.end_elem("style:style")?;
+        xml_out.end_elem_if(!is_empty, "style:style")?;
     }
 
     Ok(())
@@ -2931,48 +2923,48 @@ fn write_masterpage(
         }
 
         // header
-        xml_out.elem("style:header")?;
+        xml_out.elem_if(!masterpage.header().is_empty(), "style:header")?;
         if !masterpage.header().display() {
             xml_out.attr_str("style:display", "false")?;
         }
         write_regions(masterpage.header(), xml_out)?;
-        xml_out.end_elem("style:header")?;
+        xml_out.end_elem_if(!masterpage.header().is_empty(), "style:header")?;
 
-        xml_out.elem("style:header-first")?;
+        xml_out.elem_if(!masterpage.header_first().is_empty(), "style:header-first")?;
         if !masterpage.header_first().display() || masterpage.header_first().is_empty() {
             xml_out.attr_str("style:display", "false")?;
         }
         write_regions(masterpage.header_first(), xml_out)?;
-        xml_out.end_elem("style:header-first")?;
+        xml_out.end_elem_if(!masterpage.header_first().is_empty(), "style:header-first")?;
 
-        xml_out.elem("style:header-left")?;
+        xml_out.elem_if(!masterpage.header_left().is_empty(), "style:header-left")?;
         if !masterpage.header_left().display() || masterpage.header_left().is_empty() {
             xml_out.attr_str("style:display", "false")?;
         }
         write_regions(masterpage.header_left(), xml_out)?;
-        xml_out.end_elem("style:header-left")?;
+        xml_out.end_elem_if(!masterpage.header_left().is_empty(), "style:header-left")?;
 
         // footer
-        xml_out.elem("style:footer")?;
+        xml_out.elem_if(!masterpage.footer().is_empty(), "style:footer")?;
         if !masterpage.footer().display() {
             xml_out.attr_str("style:display", "false")?;
         }
         write_regions(masterpage.footer(), xml_out)?;
-        xml_out.end_elem("style:footer")?;
+        xml_out.end_elem_if(!masterpage.footer().is_empty(), "style:footer")?;
 
-        xml_out.elem("style:footer-first")?;
+        xml_out.elem_if(!masterpage.footer_first().is_empty(), "style:footer-first")?;
         if !masterpage.footer_first().display() || masterpage.footer_first().is_empty() {
             xml_out.attr_str("style:display", "false")?;
         }
         write_regions(masterpage.footer_first(), xml_out)?;
-        xml_out.end_elem("style:footer-first")?;
+        xml_out.end_elem_if(!masterpage.footer_first().is_empty(), "style:footer-first")?;
 
-        xml_out.elem("style:footer-left")?;
+        xml_out.elem_if(!masterpage.footer_left().is_empty(), "style:footer-left")?;
         if !masterpage.footer_left().display() || masterpage.footer_left().is_empty() {
             xml_out.attr_str("style:display", "false")?;
         }
         write_regions(masterpage.footer_left(), xml_out)?;
-        xml_out.end_elem("style:footer-left")?;
+        xml_out.end_elem_if(!masterpage.footer_left().is_empty(), "style:footer-left")?;
 
         xml_out.end_elem("style:master-page")?;
     }
@@ -3022,11 +3014,8 @@ fn write_xmlcontent(x: &XmlContent, xml_out: &mut OdsXmlWriter<'_>) -> Result<()
 }
 
 fn write_xmltag(x: &XmlTag, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
-    if x.is_empty() {
-        xml_out.empty(x.name())?;
-    } else {
-        xml_out.elem(x.name())?;
-    }
+    xml_out.elem_if(!x.is_empty(), x.name())?;
+
     for (k, v) in x.attrmap().iter() {
         xml_out.attr_esc(k.as_ref(), v)?;
     }
@@ -3042,9 +3031,7 @@ fn write_xmltag(x: &XmlTag, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsErr
         }
     }
 
-    if !x.is_empty() {
-        xml_out.end_elem(x.name())?;
-    }
+    xml_out.end_elem_if(!x.is_empty(), x.name())?;
 
     Ok(())
 }
