@@ -94,6 +94,7 @@ use crate::style::units::{Border, Length, Percent, TextPosition};
 use crate::OdsError;
 use get_size::GetSize;
 use get_size_derive::GetSize;
+use std::borrow::Borrow;
 use std::str::FromStr;
 
 pub use cellstyle::*;
@@ -175,6 +176,9 @@ pub enum StyleUse {
     #[default]
     Automatic,
 }
+
+// General style reference.
+style_ref2_base!(AnyStyleRef);
 
 /// Parses an attribute string to a value type.
 pub(crate) trait ParseStyleAttr<T> {

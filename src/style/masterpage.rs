@@ -1,4 +1,5 @@
 use crate::style::pagestyle::PageStyleRef;
+use crate::style::AnyStyleRef;
 use crate::text::TextTag;
 use get_size::GetSize;
 use get_size_derive::GetSize;

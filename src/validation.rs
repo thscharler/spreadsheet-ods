@@ -7,6 +7,7 @@ use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
 
 use crate::condition::Condition;
+use crate::style::AnyStyleRef;
 use crate::text::TextTag;
 use crate::{CellRef, OdsError};
 use get_size_derive::GetSize;

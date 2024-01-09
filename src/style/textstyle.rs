@@ -5,6 +5,7 @@ use crate::style::units::{
     LineStyle, LineType, LineWidth, Percent, RotationScale, TextCombine, TextCondition,
     TextDisplay, TextEmphasize, TextEmphasizePosition, TextPosition, TextRelief, TextTransform,
 };
+use crate::style::AnyStyleRef;
 use crate::style::{color_string, shadow_string, text_position, StyleOrigin, StyleUse};
 use core::borrow::Borrow;
 use get_size::GetSize;

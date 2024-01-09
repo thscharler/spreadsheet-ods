@@ -4,6 +4,7 @@ use crate::style::units::{
     Length, Margin, PageBreak, PageNumber, RelativeScale, TableAlign, TableBorderModel, TextKeep,
     WritingMode,
 };
+use crate::style::AnyStyleRef;
 use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
 use core::borrow::Borrow;
 use get_size::GetSize;

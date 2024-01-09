@@ -1,4 +1,5 @@
 use crate::attrmap2::AttrMap2;
+use crate::style::AnyStyleRef;
 use crate::style::{StyleOrigin, StyleUse};
 use get_size::GetSize;
 use get_size_derive::GetSize;

@@ -6,6 +6,7 @@ use crate::style::units::{
     TextAlignLast, TextAutoSpace, TextCombine, TextCondition, TextDisplay, TextEmphasize,
     TextEmphasizePosition, TextKeep, TextPosition, TextRelief, TextTransform, WritingMode,
 };
+use crate::style::AnyStyleRef;
 use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, text_position, Border,
     Length, Rgb,

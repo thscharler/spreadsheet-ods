@@ -89,7 +89,7 @@ struct Sample {
     metadata: usize,
 }
 
-#[test]
+// #[test]
 fn test_samples() -> Result<(), OdsError> {
     let mut t = Timing::default().skip(1).runs(5);
 

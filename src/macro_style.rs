@@ -47,10 +47,29 @@ macro_rules! styles_styles2 {
 /// Generates a name reference for a style.
 macro_rules! style_ref2 {
     ($l:ident) => {
+        style_ref2_base!($l);
+
+        impl From<AnyStyleRef> for $l {
+            fn from(value: AnyStyleRef) -> Self {
+                Self { id: value.id }
+            }
+        }
+
+        impl From<$l> for AnyStyleRef {
+            fn from(value: $l) -> Self {
+                Self { id: value.id }
+            }
+        }
+    };
+}
+
+/// Generates a name reference for a style.
+macro_rules! style_ref2_base {
+    ($l:ident) => {
         /// Reference
         #[derive(Debug, Clone, Hash, PartialEq, Eq)]
         pub struct $l {
-            id: String,
+            pub(crate) id: String,
         }
 
         impl GetSize for $l {
@@ -88,12 +107,6 @@ macro_rules! style_ref2 {
                 self.id.as_ref()
             }
         }
-
-        // impl Display for $l {
-        //     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        //         write!(f, "{}", self.id)
-        //     }
-        // }
 
         impl $l {
             /// Reference as str.

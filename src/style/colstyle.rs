@@ -3,6 +3,7 @@ use get_size_derive::GetSize;
 
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak};
+use crate::style::AnyStyleRef;
 use crate::style::ParseStyleAttr;
 use crate::style::{rel_width_string, StyleOrigin, StyleUse};
 use crate::OdsError;

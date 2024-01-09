@@ -50,6 +50,7 @@ use crate::style::units::{
     TextDisplay, TextEmphasize, TextEmphasizePosition, TextPosition, TextRelief, TextTransform,
     TransliterationStyle,
 };
+use crate::style::AnyStyleRef;
 use crate::style::ParseStyleAttr;
 use crate::style::{
     color_string, shadow_string, text_position, StyleOrigin, StyleUse, TextStyleRef,
