@@ -2529,7 +2529,7 @@ fn write_cellstyle(style: &CellStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<
         for sm in stylemaps {
             xml_out.empty("style:map")?;
             xml_out.attr_esc("style:condition", sm.condition())?;
-            xml_out.attr_esc("style:apply-style-name", sm.applied_style())?;
+            xml_out.attr_esc("style:apply-style-name", sm.applied_style().as_str())?;
             if let Some(r) = sm.base_cell() {
                 xml_out.attr_esc("style:base-cell-address", r)?;
             }

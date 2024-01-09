@@ -354,12 +354,12 @@ fn test_stylemap() -> Result<(), OdsError> {
     let mut ce13 = CellStyle::new("ce13", &"num4".into());
     ce13.push_stylemap(StyleMap::new(
         Condition::content_eq("BB"),
-        "ce12",
+        "ce12".into(),
         Some(CellRef::remote("s0", 4, 3)),
     ));
     ce13.push_stylemap(StyleMap::new(
         Condition::content_eq("CC"),
-        "ce11",
+        "ce11".into(),
         Some(CellRef::remote("s0", 4, 3)),
     ));
     let ce13 = wb.add_cellstyle(ce13);

@@ -36,9 +36,9 @@ use crate::sheet_::{CellDataIter, CellDataIterMut, ColHeader, RowHeader};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
-    ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, MasterPageRef,
-    PageStyle, ParagraphStyle, RowStyle, RowStyleRef, RubyStyle, StyleOrigin, StyleUse, TableStyle,
-    TableStyleRef, TextStyle,
+    AnyStyleRef, ColStyle, ColStyleRef, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage,
+    MasterPageRef, PageStyle, ParagraphStyle, RowStyle, RowStyleRef, RubyStyle, StyleOrigin,
+    StyleUse, TableStyle, TableStyleRef, TextStyle,
 };
 use crate::text::{TextP, TextTag};
 use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp, ValidationRef};
@@ -3532,7 +3532,7 @@ fn read_stylemap(
     xml: &mut OdsXmlReader<'_>,
     super_tag: &BytesStart<'_>,
 ) -> Result<StyleMap, OdsError> {
-    let mut sm = StyleMap::default();
+    let mut sm = StyleMap::new_empty();
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"style:condition" => {
@@ -3541,7 +3541,8 @@ fn read_stylemap(
                 ));
             }
             attr if attr.key.as_ref() == b"style:apply-style-name" => {
-                sm.set_applied_style(attr.decode_and_unescape_value(xml)?.to_string());
+                let name = attr.decode_and_unescape_value(xml)?;
+                sm.set_applied_style(AnyStyleRef::from(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"style:base-cell-address" => {
                 let v = attr.decode_and_unescape_value(xml)?;
