@@ -199,6 +199,20 @@ impl<W: Write> XmlWriter<W> {
         Ok(())
     }
 
+    /// Begin an elem if has_content is true, otherwise begin a empty elem.
+    pub(crate) fn elem_if(&mut self, has_content: bool, name: &str) -> io::Result<()> {
+        self.close_elem()?;
+
+        if has_content {
+            self.stack.push(name);
+        }
+
+        self.buf.push('<');
+        self.open = if has_content { Open::Elem } else { Open::Empty };
+        self.buf.push_str(name);
+        Ok(())
+    }
+
     /// Begin an empty elem
     pub(crate) fn empty(&mut self, name: &str) -> io::Result<()> {
         self.close_elem()?;
@@ -385,9 +399,13 @@ impl<W: Write> XmlWriter<W> {
         Ok(())
     }
 
-    /// End and elem
-    pub(crate) fn end_elem(&mut self, name: &str) -> io::Result<()> {
+    /// End an elem. Only checks the stack and writes the end tag if has_content is true.
+    pub(crate) fn end_elem_if(&mut self, has_content: bool, name: &str) -> io::Result<()> {
         self.close_elem()?;
+
+        if !has_content {
+            return Ok(());
+        }
 
         if cfg!(feature = "check_xml") {
             match self.stack.pop() {
@@ -415,6 +433,12 @@ impl<W: Write> XmlWriter<W> {
         }
 
         Ok(())
+    }
+
+    /// End an elem. Writes the end-tag
+    #[inline(always)]
+    pub(crate) fn end_elem(&mut self, name: &str) -> io::Result<()> {
+        self.end_elem_if(true, name)
     }
 
     fn write_buf(&mut self) -> io::Result<()> {

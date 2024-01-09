@@ -1768,7 +1768,6 @@ fn write_start_current_row(
     }
     if *row_header {
         xml_out.elem("table:table-header-rows")?;
-        xml_out.comment("start_current_row")?;
     }
 
     // row
@@ -1811,7 +1810,6 @@ fn write_end_prev_row(
     xml_out.end_elem("table:table-row")?;
     if *row_header {
         xml_out.end_elem("table:table-header-rows")?;
-        xml_out.comment("end_prev_row")?;
     }
 
     // end of the print-header
@@ -1850,7 +1848,6 @@ fn write_end_last_row(
     if *row_header {
         *row_header = false;
         xml_out.end_elem("table:table-header-rows")?;
-        xml_out.comment("end_last_row")?;
     }
 
     // close all groups
@@ -1876,7 +1873,6 @@ fn write_empty_rows_before(
         for r in last_row..last_row + last_row_repeat {
             if *row_header {
                 xml_out.end_elem("table:table-header-rows")?;
-                xml_out.comment("empty_rows_before")?;
             }
             // end of the print-header
             if let Some(header_rows) = &sheet.header_rows {
@@ -1908,7 +1904,6 @@ fn write_empty_rows_before(
             }
             if *row_header {
                 xml_out.elem("table:table-header-rows")?;
-                xml_out.comment("empty_rows_before")?;
             }
             // row
             write_empty_row(sheet, r, 1, max_cell, xml_out)?;
@@ -2508,10 +2503,15 @@ fn write_colstyle(style: &ColStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<()
 }
 
 fn write_cellstyle(style: &CellStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsError> {
+    let is_empty = style.cellstyle().is_empty()
+        && style.paragraphstyle().is_empty()
+        && style.textstyle().is_empty()
+        && style.stylemaps().is_none();
+
     if style.styleuse() == StyleUse::Default {
-        xml_out.elem("style:default-style")?;
+        xml_out.elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.elem("style:style")?;
+        xml_out.elem_if(!is_empty, "style:style")?;
         xml_out.attr_esc("style:name", style.name())?;
     }
     xml_out.attr_str("style:family", "table-cell")?;
@@ -2531,7 +2531,7 @@ fn write_cellstyle(style: &CellStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<
             xml_out.attr_esc(a.as_ref(), v)?;
         }
     }
-    if !&style.paragraphstyle().is_empty() {
+    if !style.paragraphstyle().is_empty() {
         xml_out.empty("style:paragraph-properties")?;
         for (a, v) in style.paragraphstyle().iter() {
             xml_out.attr_esc(a.as_ref(), v)?;
@@ -2554,9 +2554,9 @@ fn write_cellstyle(style: &CellStyle, xml_out: &mut OdsXmlWriter<'_>) -> Result<
         }
     }
     if style.styleuse() == StyleUse::Default {
-        xml_out.end_elem("style:default-style")?;
+        xml_out.end_elem_if(!is_empty, "style:default-style")?;
     } else {
-        xml_out.end_elem("style:style")?;
+        xml_out.end_elem_if(!is_empty, "style:style")?;
     }
 
     Ok(())
@@ -2815,14 +2815,15 @@ fn write_valuestyle<T: ValueFormatTrait>(
                 || part.part_type() == FormatPartType::CurrencySymbol
                 || part.part_type() == FormatPartType::FillCharacter
             {
-                xml_out.elem(part_tag)?;
+                let content = opt_string(part.content());
+                xml_out.elem_if(content.is_some(), part_tag)?;
                 for (a, v) in part.attrmap().iter() {
                     xml_out.attr_esc(a.as_ref(), v)?;
                 }
-                if let Some(content) = part.content() {
+                if let Some(content) = content {
                     xml_out.text_esc(content)?;
                 }
-                xml_out.end_elem(part_tag)?;
+                xml_out.end_elem_if(content.is_some(), part_tag)?;
             } else if part.part_type() == FormatPartType::Number {
                 if let Some(position) = part.position() {
                     xml_out.elem(part_tag)?;
@@ -3074,4 +3075,17 @@ fn write_ods_extra<W: Write + Seek>(
     }
 
     Ok(())
+}
+
+// Return None if str.is_empty()
+fn opt_string(str: Option<&String>) -> Option<&String> {
+    if let Some(str) = str {
+        if !str.is_empty() {
+            Some(str)
+        } else {
+            None
+        }
+    } else {
+        None
+    }
 }
