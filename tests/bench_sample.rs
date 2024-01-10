@@ -227,7 +227,7 @@ fn run_sample(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Result
     Ok(())
 }
 
-#[test]
+// #[test]
 fn run_dump() -> Result<(), OdsError> {
     let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
     let sample = "2d0d3aca0b2ddd244ad34f2b11f5625cd2835141ca98ec025a54c2f2d10118.ods";
