@@ -6,6 +6,8 @@
 
 - small: ```Pagestyle.set_page_usage()``` changed.
   There has been an unusual Option<> parameter. This is replaced with a direct set+clear.
+- medium: switch apis for xxxRef fields from String to the correct Ref type. 
+  The conversions from/to strings are still in place. 
 - medium: rename the metadata xml-tags to have a common prefix "Meta". This helps with
   code completion, there were conflicts with some enums.
 - large: Refined OdsOptions.
@@ -33,9 +35,11 @@
 
 ## Performance/memory usage
 
-- Store the row/column header data in a compacted format that avoids duplication.
-- The cell duplication code has been moved to a separate stage. This makes the task a lot easier.
-- The repeat value for a whole row is now used to repeat the cells for this row.
+- Store the row/column header data in compact form pos+span to save some memory.
+  - column headers are deduplicated when reading/before writing on top of that.
+- The cell duplication code has been moved to a separate stage. 
+  This makes the task a lot easier and allows extra reductions.
+- The repeat value for a whole row is now used to duplicated the rows on reading.
   This has not been done so far.
 - The last two rows often use insane repeat values. If the repeat-value for these rows is greater 1000
   it's simply ignored.
