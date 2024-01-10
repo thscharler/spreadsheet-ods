@@ -10,7 +10,7 @@ use crate::manifest::Manifest;
 use crate::metadata::MetaValue;
 use crate::refs::{format_cellranges, CellRange};
 use crate::sheet::Visibility;
-use crate::sheet_::CellDataIter;
+use crate::sheet_::{dedup_colheader, CellDataIter};
 use crate::style::{
     CellStyle, ColStyle, FontFaceDecl, GraphicStyle, HeaderFooter, MasterPage, MasterPageRef,
     PageStyle, PageStyleRef, ParagraphStyle, RowStyle, RubyStyle, StyleOrigin, StyleUse,
@@ -22,12 +22,17 @@ use crate::xmltree::{XmlContent, XmlTag};
 use crate::{CellStyleRef, HashMap};
 use crate::{Length, Sheet, Value, ValueType, WorkBook};
 use std::borrow::Cow;
+use std::cmp::max;
+use std::collections::{BTreeMap, HashSet};
 use std::fs::File;
 use std::io::{BufWriter, Cursor, Seek, Write};
 use std::path::Path;
 use std::{io, mem};
 use zip::write::FileOptions;
 use zip::{CompressionMethod, ZipWriter};
+
+#[cfg(test)]
+mod tests;
 
 type OdsXmlWriter<'a> = XmlWriter<&'a mut dyn Write>;
 
@@ -134,7 +139,7 @@ pub fn write_fods<P: AsRef<Path>>(book: &mut WorkBook, fods_path: P) -> Result<(
 ///
 fn write_fods_impl(ctx: FodsContext<'_>, book: &mut WorkBook) -> Result<(), OdsError> {
     sanity_checks(book)?;
-    sync(book)?;
+    calculations(book)?;
 
     convert(book)?;
 
@@ -328,8 +333,7 @@ fn write_ods_impl<W: Write + Seek>(
     book: &mut WorkBook,
 ) -> Result<(), OdsError> {
     sanity_checks(book)?;
-
-    sync(book)?;
+    calculations(book)?;
 
     create_manifest(book)?;
 
@@ -386,36 +390,74 @@ fn sanity_checks(book: &mut WorkBook) -> Result<(), OdsError> {
     Ok(())
 }
 
-/// - Syncs book.config back to the config tree structure.
-/// - Syncs row-heights and col-widths back to the corresponding styles.
-#[allow(clippy::collapsible_else_if)]
-#[allow(clippy::collapsible_if)]
-fn sync(book: &mut WorkBook) -> Result<(), OdsError> {
-    // Manifest
-    book.metadata.generator = format!("spreadsheet-ods {}", env!("CARGO_PKG_VERSION"));
-    book.metadata.document_statistics.table_count = book.sheets.len() as u32;
-    let mut cell_count = 0;
-    for sheet in book.iter_sheets() {
-        cell_count += sheet.data.len() as u32;
+/// Before write calculations.
+fn calculations(book: &mut WorkBook) -> Result<(), OdsError> {
+    calc_metadata(book)?;
+    calc_config(book)?;
+
+    calc_row_header_styles(book)?;
+    calc_col_header_styles(book)?;
+    calc_col_headers(book)?;
+
+    Ok(())
+}
+
+/// Compacting and normalizing column-headers.
+fn calc_col_headers(book: &mut WorkBook) -> Result<(), OdsError> {
+    for i in 0..book.num_sheets() {
+        let mut sheet = book.detach_sheet(i);
+
+        // deduplicate all col-headers
+        dedup_colheader(&mut sheet)?;
+
+        // resplit along column-groups and header-columns.
+        let mut split_pos = HashSet::new();
+        for grp in &sheet.group_cols {
+            split_pos.insert(grp.from);
+            split_pos.insert(grp.to + 1);
+        }
+        if let Some(header_cols) = &sheet.header_cols {
+            split_pos.insert(header_cols.col());
+            split_pos.insert(header_cols.to_col() + 1);
+        }
+
+        let col_header = mem::take(&mut sheet.col_header);
+        let mut new_col_header = BTreeMap::new();
+
+        for (mut col, mut header) in col_header {
+            let mut cc = col;
+            loop {
+                if cc == col + header.span {
+                    new_col_header.insert(col, header);
+                    break;
+                }
+
+                if split_pos.contains(&cc) {
+                    let new_span = cc - col;
+                    if new_span > 0 {
+                        let mut new_header = header.clone();
+                        new_header.span = new_span;
+                        new_col_header.insert(col, new_header);
+                    }
+
+                    header.span -= new_span;
+                    col = cc;
+                }
+
+                cc += 1;
+            }
+        }
+
+        sheet.col_header = new_col_header;
+
+        book.attach_sheet(sheet);
     }
-    book.metadata.document_statistics.cell_count = cell_count;
 
-    // Config
-    let mut config = book.config.detach(0);
+    Ok(())
+}
 
-    let bc = config.create_path(&[
-        ("ooo:view-settings", ConfigItemType::Set),
-        ("Views", ConfigItemType::Vec),
-        ("0", ConfigItemType::Entry),
-    ]);
-    if book.config().active_table.is_empty() {
-        book.config_mut().active_table = book.sheet(0).name().clone();
-    }
-    bc.insert("ActiveTable", book.config().active_table.clone());
-    bc.insert("HasSheetTabs", book.config().has_sheet_tabs);
-    bc.insert("ShowGrid", book.config().show_grid);
-    bc.insert("ShowPageBreaks", book.config().show_page_breaks);
-
+/// Sync row/column styles with row/col header values.
+fn calc_col_header_styles(book: &mut WorkBook) -> Result<(), OdsError> {
     for i in 0..book.num_sheets() {
         let mut sheet = book.detach_sheet(i);
 
@@ -442,6 +484,17 @@ fn sync(book: &mut WorkBook) -> Result<(), OdsError> {
             }
         }
 
+        book.attach_sheet(sheet);
+    }
+
+    Ok(())
+}
+
+/// Sync row/column styles with row/col header values.
+fn calc_row_header_styles(book: &mut WorkBook) -> Result<(), OdsError> {
+    for i in 0..book.num_sheets() {
+        let mut sheet = book.detach_sheet(i);
+
         for rh in sheet.row_header.values_mut() {
             if rh.height != Length::Default {
                 if rh.style.is_none() {
@@ -461,6 +514,50 @@ fn sync(book: &mut WorkBook) -> Result<(), OdsError> {
                 }
             }
         }
+
+        book.attach_sheet(sheet);
+    }
+
+    Ok(())
+}
+
+/// Calculate metadata values.
+fn calc_metadata(book: &mut WorkBook) -> Result<(), OdsError> {
+    // Manifest
+    book.metadata.generator = format!("spreadsheet-ods {}", env!("CARGO_PKG_VERSION"));
+    book.metadata.document_statistics.table_count = book.sheets.len() as u32;
+    let mut cell_count = 0;
+    for sheet in book.iter_sheets() {
+        cell_count += sheet.data.len() as u32;
+    }
+    book.metadata.document_statistics.cell_count = cell_count;
+
+    Ok(())
+}
+
+/// - Syncs book.config back to the config tree structure.
+/// - Syncs row-heights and col-widths back to the corresponding styles.
+#[allow(clippy::collapsible_else_if)]
+#[allow(clippy::collapsible_if)]
+fn calc_config(book: &mut WorkBook) -> Result<(), OdsError> {
+    // Config
+    let mut config = book.config.detach(0);
+
+    let bc = config.create_path(&[
+        ("ooo:view-settings", ConfigItemType::Set),
+        ("Views", ConfigItemType::Vec),
+        ("0", ConfigItemType::Entry),
+    ]);
+    if book.config().active_table.is_empty() {
+        book.config_mut().active_table = book.sheet(0).name().clone();
+    }
+    bc.insert("ActiveTable", book.config().active_table.clone());
+    bc.insert("HasSheetTabs", book.config().has_sheet_tabs);
+    bc.insert("ShowGrid", book.config().show_grid);
+    bc.insert("ShowPageBreaks", book.config().show_page_breaks);
+
+    for i in 0..book.num_sheets() {
+        let sheet = book.detach_sheet(i);
 
         let bc = config.create_path(&[
             ("ooo:view-settings", ConfigItemType::Set),
@@ -1516,11 +1613,6 @@ fn write_sheet(
         // Cell repeat count.
         let cur_col_repeat = cell.repeat;
 
-        let def_cellstyle = sheet
-            .valid_col_header(cur_col)
-            .map(|v| v.cellstyle.as_ref())
-            .flatten();
-
         // There may be a lot of gaps of any kind in our data.
         // In the XML format there is no cell identification, every gap
         // must be filled with empty rows/columns. For this we need some
@@ -1629,7 +1721,7 @@ fn write_sheet(
 
         // And now to something completely different ...
         for s in &split {
-            write_cell(book, cell, s.hidden, s.repeat(), def_cellstyle, xml_out)?;
+            write_cell(book, cell, s.hidden, s.repeat(), xml_out)?;
         }
 
         // There may be some blank cells until the next one.
@@ -1932,10 +2024,22 @@ fn write_table_columns(
     max_cell: (u32, u32),
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
-    let mut col_header = false;
+    // determine column count
+    let mut max_col = max_cell.1;
+    for grp in &sheet.group_cols {
+        max_col = max(max_col, grp.to + 1);
+    }
+    if let Some(header_cols) = &sheet.header_cols {
+        max_col = max(max_col, header_cols.to_col() + 1);
+    }
 
     // table:table-column
-    for c in 0..max_cell.1 {
+    let mut c = 0;
+    loop {
+        if c == max_col {
+            break;
+        }
+
         for grp in &sheet.group_cols {
             if c == grp.from() {
                 xml_out.elem("table:table-column-group")?;
@@ -1947,16 +2051,13 @@ fn write_table_columns(
 
         // print-header columns
         if let Some(header_cols) = &sheet.header_cols {
-            if header_cols.col() == c {
-                col_header = true;
+            if c >= header_cols.col() && c <= header_cols.to_col() {
+                xml_out.elem("table:table-header-columns")?;
             }
-        }
-        if col_header {
-            xml_out.elem("table:table-header-columns")?;
         }
 
         xml_out.empty("table:table-column")?;
-        if let Some(col_header) = sheet.col_header.get(&c) {
+        let span = if let Some(col_header) = sheet.col_header.get(&c) {
             if col_header.span > 1 {
                 xml_out.attr_esc("table:number-columns-repeated", &col_header.span)?;
             }
@@ -1969,15 +2070,15 @@ fn write_table_columns(
             if col_header.visible != Visibility::Visible {
                 xml_out.attr_esc("table:visibility", &col_header.visible)?;
             }
-        }
 
-        if col_header {
-            xml_out.end_elem("table:table-header-columns")?;
-        }
-        // print-header columns
+            col_header.span
+        } else {
+            1
+        };
+
         if let Some(header_cols) = &sheet.header_cols {
-            if header_cols.to_col() == c {
-                col_header = false;
+            if c >= header_cols.col() && c <= header_cols.to_col() {
+                xml_out.end_elem("table:table-header-columns")?;
             }
         }
 
@@ -1986,6 +2087,8 @@ fn write_table_columns(
                 xml_out.end_elem("table:table-column-group")?;
             }
         }
+
+        c += span;
     }
 
     Ok(())
@@ -1997,7 +2100,6 @@ fn write_cell(
     cell: &CellData,
     is_hidden: bool,
     repeat: u32,
-    def_cellstyle: Option<&CellStyleRef>,
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     let tag = if is_hidden {

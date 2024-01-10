@@ -32,7 +32,7 @@ use crate::metadata::{
 };
 use crate::refs::{parse_cellranges, parse_cellref};
 use crate::sheet::{Grouped, SplitMode};
-use crate::sheet_::{CellDataIter, CellDataIterMut, ColHeader, RowHeader};
+use crate::sheet_::{dedup_colheader, CellDataIter, CellDataIterMut, ColHeader, RowHeader};
 use crate::style::stylemap::StyleMap;
 use crate::style::tabstop::TabStop;
 use crate::style::{
@@ -305,7 +305,7 @@ fn read_fods_impl(read: &mut dyn BufRead, options: &OdsOptions) -> Result<WorkBo
     }
     ctx.push_buf(buf);
 
-    calc_repeat(&mut ctx)?;
+    calculations(&mut ctx)?;
 
     // We do some data duplication here, to make everything easier to use.
     calc_derived(&mut ctx.book)?;
@@ -341,7 +341,7 @@ fn read_fods_impl_content_only(
     }
     ctx.push_buf(buf);
 
-    calc_repeat(&mut ctx)?;
+    calculations(&mut ctx)?;
 
     Ok(ctx.book)
 }
@@ -392,7 +392,7 @@ fn read_ods_impl<R: Read + Seek>(
         read_ods_content(&mut ctx, &mut xml)?;
     }
 
-    calc_repeat(&mut ctx)?;
+    calculations(&mut ctx)?;
 
     // We do some data duplication here, to make everything easier to use.
     calc_derived(&mut ctx.book)?;
@@ -414,7 +414,7 @@ fn read_ods_impl_content_only<R: Read + Seek>(
     // todo: this still reads styles etc from content.xml
     read_ods_content(&mut ctx, &mut xml)?;
 
-    calc_repeat(&mut ctx)?;
+    calculations(&mut ctx)?;
 
     Ok(ctx.book)
 }
@@ -484,8 +484,9 @@ fn read_ods_manifest(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
 }
 
 // Clone cell-data.
-fn calc_repeat(ctx: &mut OdsContext) -> Result<(), OdsError> {
+fn calculations(ctx: &mut OdsContext) -> Result<(), OdsError> {
     for i in 0..ctx.book.num_sheets() {
+        dedup_colheader(ctx.book.sheet_mut(i))?;
         if ctx.use_repeat_for_cells {
             calc_repeat_sheet(ctx.book.sheet_mut(i))?;
         } else {

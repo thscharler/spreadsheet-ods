@@ -5,10 +5,10 @@
 use get_size::GetSize;
 use get_size_derive::GetSize;
 use std::collections::{BTreeMap, Bound};
-use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::FusedIterator;
 use std::ops::RangeBounds;
+use std::{fmt, mem};
 
 use crate::cell_::{CellContent, CellContentRef, CellData};
 use crate::draw::{Annotation, DrawFrame};
@@ -17,6 +17,9 @@ use crate::validation::ValidationRef;
 use crate::value_::Value;
 use crate::xmltree::XmlTag;
 use crate::{CellRange, CellStyleRef, ColRange, Length, OdsError, RowRange};
+
+#[cfg(test)]
+mod tests;
 
 /// Visibility of a column or row.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default, GetSize)]
@@ -46,7 +49,7 @@ pub(crate) struct RowHeader {
     pub(crate) visible: Visibility,
     /// Value of the table:number-rows-repeated.
     ///
-    /// This value is moved to span if use_repeat_for_cells is set.
+    /// This value is moved to span if use_repeat_for_cells is not set.
     /// This way a programmatic set_repeat() is possible without cloning
     /// all the row-data. When writing the necessary data is found via
     /// the range row..row+span and doesn't interfere with any calculated
@@ -78,6 +81,10 @@ pub(crate) struct ColHeader {
     pub(crate) cellstyle: Option<CellStyleRef>,
     pub(crate) visible: Visibility,
     pub(crate) width: Length,
+    // Contains the actual value of table:number-columns-repeated when
+    // reading. And is recalculated before writing to adjust for any
+    // groupings.
+    //pub(crate) repeat: u32,
     /// Logical valid range for all the header values. Avoids duplication
     /// on reading.
     pub(crate) span: u32,
@@ -1664,4 +1671,41 @@ impl Default for SheetConfig {
             show_grid: true,
         }
     }
+}
+
+/// Cleanup repeat col-data.
+pub(crate) fn dedup_colheader(sheet: &mut Sheet) -> Result<(), OdsError> {
+    fn limited_eq(ch1: &ColHeader, ch2: &ColHeader) -> bool {
+        ch1.style == ch2.style
+            && ch1.cellstyle == ch2.cellstyle
+            && ch1.visible == ch2.visible
+            && ch1.width == ch2.width
+    }
+
+    let col_header = mem::take(&mut sheet.col_header);
+
+    let mut new_col_header = BTreeMap::new();
+    let mut new = None;
+    for (col, header) in col_header {
+        match new.as_mut() {
+            None => {
+                new = Some((col, header));
+            }
+            Some((new_col, new_header)) => {
+                if limited_eq(new_header, &header) {
+                    new_header.span += header.span;
+                } else {
+                    new_col_header
+                        .insert(mem::replace(new_col, col), mem::replace(new_header, header));
+                }
+            }
+        }
+    }
+    if let Some((new_col, new_header)) = new {
+        new_col_header.insert(new_col, new_header);
+    }
+
+    sheet.col_header = new_col_header;
+
+    Ok(())
 }
