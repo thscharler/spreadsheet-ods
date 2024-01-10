@@ -912,8 +912,6 @@ fn read_table(
     let mut col: u32 = 0;
     let mut col_data: bool = false;
 
-    // Position within table-columns
-    let mut table_col: u32 = 0;
     // Columns
     let mut col_range_from = 0;
     let mut col_group = ctx.pop_colgroup_buf();
