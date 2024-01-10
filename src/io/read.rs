@@ -1033,6 +1033,7 @@ fn read_table(
                 // noop
             }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
+                col = 0;
                 row_repeat = read_table_row_attr(xml, &mut sheet, row, xml_tag)?;
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
@@ -1042,7 +1043,6 @@ fn read_table(
                 }
                 row += row_repeat;
                 row_repeat = 1;
-                col = 0;
                 col_data = false;
             }
 
