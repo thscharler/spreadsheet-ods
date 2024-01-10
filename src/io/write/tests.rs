@@ -68,6 +68,4 @@ fn test_calc_col_headers() {
 
     let sh0 = wb.sheet_mut(0);
     assert!(sh0.col_header.is_empty());
-
-    write_ods(&mut wb, "test_out/calc_col_headers.ods").unwrap();
 }
