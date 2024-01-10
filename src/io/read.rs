@@ -907,23 +907,20 @@ fn read_table(
 
     read_table_attr(xml, &mut sheet, super_tag)?;
 
-    // Cell position
+    // Cell
     let mut row: u32 = 0;
     let mut col: u32 = 0;
     let mut col_data: bool = false;
 
     // Position within table-columns
     let mut table_col: u32 = 0;
-
-    // Rows can be repeated. In reality only empty ones ever are.
-    let mut row_repeat: u32 = 1;
-
-    // Header rows/columns
+    // Columns
     let mut col_range_from = 0;
-    let mut row_range_from = 0;
-
-    // Groups can be stacked.
     let mut col_group = ctx.pop_colgroup_buf();
+
+    // Rows
+    let mut row_repeat: u32 = 1;
+    let mut row_range_from = 0;
     let mut row_group = ctx.pop_rowgroup_buf();
 
     let mut buf = ctx.pop_buf();
@@ -971,38 +968,27 @@ fn read_table(
                     || xml_tag.name().as_ref() == b"calcext:conditional-formats" => {}
 
             //
-            // Table Column Data
+            // table columns
             //
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-column-group" => {
-                let v = read_table_column_group_attr(table_col, xml_tag)?;
+                let v = read_table_column_group_attr(col, xml_tag)?;
                 col_group.push(v);
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-column-group" => {
                 if let Some(mut v) = col_group.pop() {
-                    v.set_to(table_col - 1);
+                    v.set_to(col - 1);
                     sheet.group_cols.push(v);
                 }
             }
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-columns" => {
-                col_range_from = table_col;
+                col_range_from = col;
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-columns" => {
                 if let Some(header_cols) = &mut sheet.header_cols {
-                    header_cols.set_to_col(table_col - 1);
+                    header_cols.set_to_col(col - 1);
                 } else {
-                    sheet.header_cols = Some(ColRange::new(col_range_from, table_col - 1));
-                }
-            }
-
-            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {
-                row_range_from = row;
-            }
-            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {
-                if let Some(header_rows) = &mut sheet.header_rows {
-                    header_rows.set_to_row(row - 1);
-                } else {
-                    sheet.header_rows = Some(RowRange::new(row_range_from, row - 1));
+                    sheet.header_cols = Some(ColRange::new(col_range_from, col - 1));
                 }
             }
 
@@ -1010,12 +996,12 @@ fn read_table(
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-columns" => {}
 
             Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"table:table-column" => {
-                let col_repeat = read_table_col_attr(xml, &mut sheet, xml_tag, table_col)?;
-                table_col += col_repeat;
+                let col_repeat = read_table_col_attr(xml, &mut sheet, xml_tag, col)?;
+                col += col_repeat;
             }
 
             //
-            // Table row data
+            // table rows
             //
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-row-group" => {
                 let v = read_table_row_group_attr(row, xml_tag)?;
@@ -1030,16 +1016,23 @@ fn read_table(
                 }
             }
 
+            Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {
+                row_range_from = row;
+            }
+            Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {
+                if let Some(header_rows) = &mut sheet.header_rows {
+                    header_rows.set_to_row(row - 1);
+                } else {
+                    sheet.header_rows = Some(RowRange::new(row_range_from, row - 1));
+                }
+            }
+
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-rows" => {
                 // noop
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-rows" => {
                 // noop
             }
-
-            //
-            // Table cells
-            //
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"table:table-row" => {
                 row_repeat = read_table_row_attr(xml, &mut sheet, row, xml_tag)?;
             }
@@ -1054,6 +1047,9 @@ fn read_table(
                 col_data = false;
             }
 
+            //
+            // table cells
+            //
             Event::Empty(xml_tag) | Event::Start(xml_tag)
                 if xml_tag.name().as_ref() == b"table:table-cell"
                     || xml_tag.name().as_ref() == b"table:covered-table-cell" =>
@@ -1070,6 +1066,7 @@ fn read_table(
         }
         buf.clear();
     }
+
     ctx.push_buf(buf);
     ctx.push_colgroup_buf(col_group);
     ctx.push_rowgroup_buf(row_group);
