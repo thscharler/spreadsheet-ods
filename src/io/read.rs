@@ -1084,7 +1084,7 @@ fn read_table_attr(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"table:name" => {
-                sheet.set_name(attr.decode_and_unescape_value(xml)?.to_string());
+                sheet.set_name(attr.decode_and_unescape_value(xml)?);
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
                 let name = &attr.decode_and_unescape_value(xml)?;
@@ -1473,6 +1473,7 @@ fn read_table_cell(
     Ok((repeat, have_data))
 }
 
+#[allow(clippy::if_same_then_else)]
 #[inline]
 fn ignore_cell(
     ctx: &mut OdsContext,
@@ -1480,12 +1481,12 @@ fn ignore_cell(
     cell: &CellData,
 ) -> bool {
     if cell.is_void(default_cellstyle) {
-        true
-    } else if ctx.ignore_empty_cells && cell.is_empty() {
-        true
-    } else {
-        false
+        return true;
     }
+    if ctx.ignore_empty_cells && cell.is_empty() {
+        return true;
+    }
+    false
 }
 
 fn append_text(new_txt: TextContent, mut content: TextContent) -> TextContent {
@@ -1949,7 +1950,7 @@ fn read_page_style(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"style:name" => {
-                pl.set_name(&attr.decode_and_unescape_value(xml)?.to_string());
+                pl.set_name(&attr.decode_and_unescape_value(xml)?);
             }
             attr if attr.key.as_ref() == b"style:page-usage" => {
                 pl.master_page_usage = Some(attr.decode_and_unescape_value(xml)?.to_string());
@@ -2188,11 +2189,11 @@ fn read_validation(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"table:name" => {
-                valid.set_name(attr.decode_and_unescape_value(xml)?.to_string());
+                valid.set_name(attr.decode_and_unescape_value(xml)?);
             }
             attr if attr.key.as_ref() == b"table:condition" => {
                 // split off 'of:' prefix
-                let v = attr.decode_and_unescape_value(xml)?.to_string();
+                let v = attr.decode_and_unescape_value(xml)?;
                 valid.set_condition(Condition::new(v.split_at(3).1));
             }
             attr if attr.key.as_ref() == b"table:allow-empty-cell" => {
@@ -3513,7 +3514,7 @@ fn read_value_stylemap(
                 ));
             }
             attr if attr.key.as_ref() == b"style:apply-style-name" => {
-                sm.set_applied_style(attr.decode_and_unescape_value(xml)?.to_string());
+                sm.set_applied_style(attr.decode_and_unescape_value(xml)?);
             }
             attr => {
                 unused_attr("read_value_stylemap", super_tag.name().as_ref(), &attr)?;

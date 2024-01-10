@@ -57,7 +57,7 @@ impl FontFaceDecl {
     /// New with a name.
     #[deprecated]
     pub fn new_with_name<S: AsRef<str>>(name: S) -> Self {
-        Self::new(name.as_ref().to_string())
+        Self::new(name)
     }
 
     /// Set the name.

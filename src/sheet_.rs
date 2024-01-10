@@ -418,6 +418,7 @@ impl<'a> IterCols<'a> {
 impl<'a> Iterator for IterCols<'a> {
     type Item = ((u32, u32), CellContentRef<'a>);
 
+    #[allow(clippy::comparison_chain)]
     fn next(&mut self) -> Option<Self::Item> {
         if self.cell.0 == self.end.0 && self.cell.1 == self.end.1 {
             return None;
@@ -668,6 +669,7 @@ impl Sheet {
     // find the col-header with the correct data and do a three-way-split
     // to allow setting a value for a single col.
     // Create the col-header if necessary.
+    #[allow(clippy::comparison_chain)]
     fn create_split_col_header(&mut self, col: u32) -> &mut ColHeader {
         let mut cloned = Vec::new();
 
@@ -813,6 +815,7 @@ impl Sheet {
     // find the row-header with the correct data and do a three-way-split
     // to allow setting a value for a single row.
     // Create the row-header if necessary.
+    #[allow(clippy::comparison_chain)]
     fn create_split_row_header(&mut self, row: u32) -> &mut RowHeader {
         let mut cloned = Vec::new();
 
@@ -864,11 +867,7 @@ impl Sheet {
 
     /// unstable internal method.
     pub fn _row_header_span(&self, row: u32) -> Option<u32> {
-        if let Some(row_header) = self.row_header.get(&row) {
-            Some(row_header.span)
-        } else {
-            None
-        }
+        self.row_header.get(&row).map(|v| v.span)
     }
 
     /// unstable internal method.

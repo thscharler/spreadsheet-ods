@@ -390,7 +390,7 @@ impl<'a> CellContentRef<'a> {
             span: self.span,
             matrix_span: self.matrix_span,
             annotation: self.annotation.cloned(),
-            draw_frames: self.draw_frames.map(|v| v.clone()).unwrap_or_default(),
+            draw_frames: self.draw_frames.cloned().unwrap_or_default(),
         }
     }
 }

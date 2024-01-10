@@ -76,7 +76,7 @@ fn test_write_repeat_overlapped() {
     wb.push_sheet(sh);
 
     let path = Path::new("test_out/test_write_read_3.ods");
-    test_write_ods(&mut wb, path).unwrap();
+    test_write_odsbuf(&mut wb).unwrap();
 
     let _ods = read_ods(path).unwrap();
 }

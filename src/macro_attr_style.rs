@@ -1898,7 +1898,7 @@ macro_rules! style_class {
         /// style class name has no meaning within the file format itself, but it can for instance be evaluated
         /// by user interfaces to show a list of styles where the styles are grouped by its name.
         pub fn set_class(&mut self, class: &str) {
-            self.$acc.set_attr("style:class", class.into());
+            self.$acc.set_attr("style:class", class);
         }
     };
 }

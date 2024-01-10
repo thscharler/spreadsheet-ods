@@ -45,10 +45,10 @@ impl AttrMap2 {
     }
 
     /// Adds an attribute.
-    pub fn set_attr(&mut self, name: &str, value: String) {
+    pub fn set_attr<S: Into<String>>(&mut self, name: &str, value: S) {
         self.map
             .get_or_insert_with(HashMap::new)
-            .insert(DefaultAtom::from(name), value);
+            .insert(DefaultAtom::from(name), value.into());
     }
 
     /// Removes an attribute.

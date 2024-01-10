@@ -148,7 +148,7 @@ macro_rules! number_transliteration_format {
         /// The default value for this attribute is 1
         pub fn set_transliteration_format(&mut self, format: char) {
             self.attr
-                .set_attr("number:transliteration-format", format.into());
+                .set_attr("number:transliteration-format", format.to_string());
         }
 
         /// Transliteration format.

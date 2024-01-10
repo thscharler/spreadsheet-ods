@@ -18,6 +18,11 @@ pub fn test_write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Resul
     spreadsheet_ods::write_ods(book, ods_path)
 }
 
+pub fn test_write_odsbuf(book: &mut WorkBook) -> Result<Vec<u8>, OdsError> {
+    fs::create_dir_all("test_out")?;
+    spreadsheet_ods::write_ods_buf(book, Vec::new())
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum Unit {
     Nanosecond,

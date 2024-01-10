@@ -19,7 +19,7 @@ use crate::style::{
 use crate::validation::ValidationDisplay;
 use crate::workbook::{EventListener, Script};
 use crate::xmltree::{XmlContent, XmlTag};
-use crate::{CellStyleRef, HashMap};
+use crate::HashMap;
 use crate::{Length, Sheet, Value, ValueType, WorkBook};
 use std::borrow::Cow;
 use std::cmp::max;
@@ -464,11 +464,9 @@ fn calc_col_header_styles(book: &mut WorkBook) -> Result<(), OdsError> {
         // Set the column widths.
         for ch in sheet.col_header.values_mut() {
             // Any non default values?
-            if ch.width != Length::Default {
-                if ch.style.is_none() {
-                    let colstyle = book.add_colstyle(ColStyle::new_empty());
-                    ch.style = Some(colstyle.into());
-                }
+            if ch.width != Length::Default && ch.style.is_none() {
+                let colstyle = book.add_colstyle(ColStyle::new_empty());
+                ch.style = Some(colstyle);
             }
 
             // Write back to the style.
@@ -496,11 +494,9 @@ fn calc_row_header_styles(book: &mut WorkBook) -> Result<(), OdsError> {
         let mut sheet = book.detach_sheet(i);
 
         for rh in sheet.row_header.values_mut() {
-            if rh.height != Length::Default {
-                if rh.style.is_none() {
-                    let rowstyle = book.add_rowstyle(RowStyle::new_empty());
-                    rh.style = Some(rowstyle.into());
-                }
+            if rh.height != Length::Default && rh.style.is_none() {
+                let rowstyle = book.add_rowstyle(RowStyle::new_empty());
+                rh.style = Some(rowstyle);
             }
 
             if let Some(style_name) = rh.style.as_ref() {
@@ -2127,12 +2123,7 @@ fn write_cell(
     }
 
     // Content validation
-    if let Some(validation_name) = cell
-        .extra
-        .as_ref()
-        .map(|v| v.validation_name.as_ref())
-        .flatten()
-    {
+    if let Some(validation_name) = cell.extra.as_ref().and_then(|v| v.validation_name.as_ref()) {
         xml_out.attr_esc("table:content-validation-name", validation_name.as_str())?;
     }
 
@@ -2227,7 +2218,7 @@ fn write_cell(
         }
     }
 
-    if let Some(annotation) = cell.extra.as_ref().map(|v| v.annotation.as_ref()).flatten() {
+    if let Some(annotation) = cell.extra.as_ref().and_then(|v| v.annotation.as_ref()) {
         write_annotation(annotation, xml_out)?;
     }
 
@@ -2909,7 +2900,7 @@ fn write_valuestyle<T: ValueFormatTrait>(
                 || part.part_type() == FormatPartType::CurrencySymbol
                 || part.part_type() == FormatPartType::FillCharacter
             {
-                let content = opt_string(part.content());
+                let content = part.content().filter(|v| !v.is_empty());
                 xml_out.elem_if(content.is_some(), part_tag)?;
                 for (a, v) in part.attrmap().iter() {
                     xml_out.attr_esc(a.as_ref(), v)?;
@@ -3164,17 +3155,4 @@ fn write_ods_extra<W: Write + Seek>(
     }
 
     Ok(())
-}
-
-// Return None if str.is_empty()
-fn opt_string(str: Option<&String>) -> Option<&String> {
-    if let Some(str) = str {
-        if !str.is_empty() {
-            Some(str)
-        } else {
-            None
-        }
-    } else {
-        None
-    }
 }
