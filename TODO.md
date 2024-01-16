@@ -3,6 +3,8 @@
 
 - text.rs: add ruby tag
 
+- cell: table:protected
+
 # MAYBE
 
 
