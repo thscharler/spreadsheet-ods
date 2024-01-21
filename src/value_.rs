@@ -31,7 +31,7 @@ pub enum Value {
     Boolean(bool),
     Number(f64),
     Percentage(f64),
-    Currency(f64, String),
+    Currency(f64, Box<str>),
     Text(String),
     TextXml(Vec<TextTag>),
     DateTime(NaiveDateTime),
@@ -401,7 +401,7 @@ impl Value {
     /// Create a currency value.
     #[allow(clippy::needless_range_loop)]
     pub fn new_currency<S: AsRef<str>>(cur: S, value: f64) -> Self {
-        Value::Currency(value, cur.as_ref().to_string())
+        Value::Currency(value, cur.as_ref().into())
     }
 
     /// Create a percentage value.

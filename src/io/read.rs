@@ -1582,9 +1582,9 @@ fn set_value(tc: ReadTableCell, cell: &mut CellData) -> Result<(), OdsError> {
         ValueType::Currency => {
             if let Some(v) = tc.val_float {
                 if let Some(c) = tc.val_currency {
-                    cell.value = Value::Currency(v, c);
+                    cell.value = Value::Currency(v, c.into_boxed_str());
                 } else {
-                    cell.value = Value::Currency(v, "".to_string());
+                    cell.value = Value::Currency(v, "".into());
                 }
             } else {
                 return Err(OdsError::Parse("no float value", None));
