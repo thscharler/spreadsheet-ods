@@ -1636,8 +1636,8 @@ fn read_annotation(
     ctx: &mut OdsContext,
     xml: &mut OdsXmlReader<'_>,
     super_tag: &BytesStart<'_>,
-) -> Result<Annotation, OdsError> {
-    let mut annotation = Annotation::new_empty();
+) -> Result<Box<Annotation>, OdsError> {
+    let mut annotation = Box::new(Annotation::new_empty());
 
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {

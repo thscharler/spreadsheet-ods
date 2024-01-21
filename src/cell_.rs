@@ -105,7 +105,7 @@ pub(crate) struct CellDataExt {
     // Matrix span.
     pub(crate) matrix_span: CellSpan,
     // Annotation
-    pub(crate) annotation: Option<Annotation>,
+    pub(crate) annotation: Option<Box<Annotation>>,
     // Draw
     pub(crate) draw_frames: Vec<DrawFrame>,
 }
@@ -282,7 +282,7 @@ impl CellData {
             validation_name,
             span,
             matrix_span,
-            annotation,
+            annotation: annotation.map(|v| v.as_ref()),
             draw_frames,
         }
     }
@@ -389,7 +389,7 @@ impl<'a> CellContentRef<'a> {
             validation_name: self.validation_name.cloned(),
             span: self.span,
             matrix_span: self.matrix_span,
-            annotation: self.annotation.cloned(),
+            annotation: self.annotation.map(|v| Box::new(v.clone())),
             draw_frames: self.draw_frames.cloned().unwrap_or_default(),
         }
     }
@@ -413,7 +413,7 @@ pub struct CellContent {
     /// Matrix span.
     pub matrix_span: CellSpan,
     /// Annotation
-    pub annotation: Option<Annotation>,
+    pub annotation: Option<Box<Annotation>>,
     /// DrawFrames
     pub draw_frames: Vec<DrawFrame>,
 }
@@ -597,7 +597,7 @@ impl CellContent {
     /// Annotation
     #[inline]
     pub fn set_annotation(&mut self, annotation: Annotation) {
-        self.annotation = Some(annotation);
+        self.annotation = Some(Box::new(annotation));
     }
 
     /// Annotation
@@ -609,7 +609,7 @@ impl CellContent {
     /// Returns the Annotation
     #[inline]
     pub fn annotation(&self) -> Option<&Annotation> {
-        self.annotation.as_ref()
+        self.annotation.as_ref().map(|v| v.as_ref())
     }
 
     /// Draw Frames

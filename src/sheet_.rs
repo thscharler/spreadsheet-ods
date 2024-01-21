@@ -1231,7 +1231,7 @@ impl Sheet {
     /// Sets a annotation for this cell.
     pub fn set_annotation(&mut self, row: u32, col: u32, annotation: Annotation) {
         let cell = self.data.entry((row, col)).or_default();
-        cell.extra_mut().annotation = Some(annotation);
+        cell.extra_mut().annotation = Some(Box::new(annotation));
     }
 
     /// Removes the annotation.
@@ -1244,7 +1244,7 @@ impl Sheet {
     /// Returns a content-validation name for this cell.
     pub fn annotation(&self, row: u32, col: u32) -> Option<&Annotation> {
         if let Some(CellData { extra: Some(c), .. }) = self.data.get(&(row, col)) {
-            c.annotation.as_ref()
+            c.annotation.as_ref().map(|v| v.as_ref())
         } else {
             None
         }
@@ -1253,7 +1253,7 @@ impl Sheet {
     /// Returns a content-validation name for this cell.
     pub fn annotation_mut(&mut self, row: u32, col: u32) -> Option<&mut Annotation> {
         if let Some(CellData { extra: Some(c), .. }) = self.data.get_mut(&(row, col)) {
-            c.annotation.as_mut()
+            c.annotation.as_mut().map(|v| v.as_mut())
         } else {
             None
         }
