@@ -81,10 +81,6 @@ pub(crate) struct ColHeader {
     pub(crate) cellstyle: Option<CellStyleRef>,
     pub(crate) visible: Visibility,
     pub(crate) width: Length,
-    // Contains the actual value of table:number-columns-repeated when
-    // reading. And is recalculated before writing to adjust for any
-    // groupings.
-    //pub(crate) repeat: u32,
     /// Logical valid range for all the header values. Avoids duplication
     /// on reading.
     pub(crate) span: u32,
