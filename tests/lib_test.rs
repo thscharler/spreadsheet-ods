@@ -126,7 +126,10 @@ impl<X> Timing<X> {
                 break result;
             }
 
-            print!(".");
+            let d = 10usize.pow(n.ilog10());
+            if n % d == 0 {
+                print!(".");
+            }
 
             let _ = stdout().flush();
         };
@@ -139,6 +142,16 @@ impl<X> Timing<X> {
         println!();
 
         result
+    }
+
+    pub fn run_nf(&mut self, mut fun: impl FnMut()) {
+        let _ = self.run_pp::<(), ()>(
+            || {
+                fun();
+                Ok(())
+            },
+            |v, _s, _x| v,
+        );
     }
 
     pub fn run<E, R>(&mut self, fun: impl FnMut() -> Result<R, E>) -> Result<R, E> {

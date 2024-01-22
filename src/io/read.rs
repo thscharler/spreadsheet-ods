@@ -1650,7 +1650,7 @@ fn read_annotation(
             attr => {
                 let k = from_utf8(attr.key.as_ref())?;
                 let v = attr.decode_and_unescape_value(xml)?.to_string();
-                annotation.attrmap_mut().set_attr(k, v);
+                annotation.attrmap_mut().push_attr(k, v);
             }
         }
     }
@@ -3570,7 +3570,7 @@ fn copy_style_attr(
             attr => {
                 let k = from_utf8(attr.key.as_ref())?;
                 let v = attr.decode_and_unescape_value(xml)?.to_string();
-                attrmap.set_attr(k, v);
+                attrmap.push_attr(k, v);
             }
         }
     }
@@ -3589,7 +3589,7 @@ fn copy_attr2(
 
         let k = from_utf8(attr.key.as_ref())?;
         let v = attr.decode_and_unescape_value(xml)?.to_string();
-        attrmap.set_attr(k, v);
+        attrmap.push_attr(k, v);
     }
 
     Ok(())

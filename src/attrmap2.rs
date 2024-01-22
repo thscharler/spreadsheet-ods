@@ -4,32 +4,21 @@
 //! related families of attributes.
 //!
 
-use crate::{HashMap, HashMapIter};
 use get_size::GetSize;
-use std::mem;
 use std::mem::size_of;
+use std::{mem, slice};
 use string_cache::DefaultAtom;
 
 /// Container type for attributes.
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct AttrMap2 {
-    map: Option<HashMap<DefaultAtom, String>>,
+    keys: Vec<DefaultAtom>,
+    values: Vec<String>,
 }
 
 impl GetSize for AttrMap2 {
     fn get_heap_size(&self) -> usize {
-        let mut total = 0;
-
-        if let Some(map) = &self.map {
-            for (_, v) in self.iter() {
-                total += GetSize::get_heap_size(v);
-            }
-
-            total += map.capacity() * size_of::<DefaultAtom>();
-            total += map.capacity() * size_of::<String>();
-        }
-
-        total
+        self.keys.capacity() * size_of::<DefaultAtom>() + self.values.get_heap_size()
     }
 }
 
@@ -37,59 +26,94 @@ impl AttrMap2 {
     #[allow(dead_code)]
     pub fn new() -> Self {
         AttrMap2 {
-            map: Default::default(),
+            keys: Default::default(),
+            values: Default::default(),
         }
     }
 
     /// Are there any attributes?
+    #[inline]
     pub fn is_empty(&self) -> bool {
-        self.map.is_none()
+        self.keys.is_empty()
+    }
+
+    #[inline]
+    pub fn shrink_to_fit(&mut self) {
+        self.keys.shrink_to_fit();
+        self.values.shrink_to_fit();
     }
 
     /// Add from Slice
-    pub fn add_all(&mut self, data: &[(&str, String)]) {
-        let attr = self.map.get_or_insert_with(HashMap::new);
-        for (name, value) in data {
-            attr.insert(DefaultAtom::from(*name), value.to_string());
+    #[inline]
+    pub fn add_all<'a, I: IntoIterator<Item = (&'a str, String)>>(&mut self, data: I) {
+        for (k, v) in data {
+            self.keys.push(DefaultAtom::from(k));
+            self.values.push(v);
         }
     }
 
     /// Adds an attribute.
+    #[inline]
     pub fn set_attr<S: Into<String>>(&mut self, name: &str, value: S) {
-        self.map
-            .get_or_insert_with(HashMap::new)
-            .insert(DefaultAtom::from(name), value.into());
+        let k = DefaultAtom::from(name);
+        let v = value.into();
+        if let Some(idx) = self.find_idx(&k) {
+            self.keys[idx] = k;
+            self.values[idx] = v;
+        } else {
+            self.keys.push(k);
+            self.values.push(v);
+        }
+    }
+
+    #[inline]
+    pub(crate) fn push_attr<S: Into<String>>(&mut self, name: &str, value: S) {
+        self.keys.push(DefaultAtom::from(name));
+        self.values.push(value.into());
+    }
+
+    #[inline]
+    fn find_idx(&self, test: &DefaultAtom) -> Option<usize> {
+        for (i, key) in self.keys.iter().enumerate() {
+            if test == key {
+                return Some(i);
+            }
+        }
+        None
     }
 
     /// Removes an attribute.
+    #[inline]
     pub fn clear_attr(&mut self, name: &str) -> Option<String> {
-        if let Some(ref mut attr) = self.map {
-            attr.remove(&DefaultAtom::from(name))
+        let k = DefaultAtom::from(name);
+        if let Some(idx) = self.find_idx(&k) {
+            self.keys.remove(idx);
+            Some(self.values.remove(idx))
         } else {
             None
         }
     }
 
     /// Returns the attribute.
+    #[inline]
     pub fn attr(&self, name: &str) -> Option<&String> {
-        if let Some(ref prp) = self.map {
-            prp.get(&DefaultAtom::from(name))
+        let k = DefaultAtom::from(name);
+        if let Some(idx) = self.find_idx(&k) {
+            Some(&self.values[idx])
         } else {
             None
         }
     }
 
     /// Returns a property or a default.
+    #[inline]
     pub fn attr_def<'a, 'b, S>(&'a self, name: &'b str, default: S) -> &'a str
     where
         S: Into<&'a str>,
     {
-        if let Some(ref prp) = self.map {
-            if let Some(value) = prp.get(&DefaultAtom::from(name)) {
-                value.as_ref()
-            } else {
-                default.into()
-            }
+        let k = DefaultAtom::from(name);
+        if let Some(idx) = self.find_idx(&k) {
+            self.values[idx].as_str()
         } else {
             default.into()
         }
@@ -98,22 +122,25 @@ impl AttrMap2 {
     pub fn iter(&self) -> AttrMapIter<'_> {
         From::from(self)
     }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.keys.len()
+    }
 }
 
 /// Iterator for an AttrMap.
 #[derive(Debug)]
 pub struct AttrMapIter<'a> {
-    it: Option<HashMapIter<'a, DefaultAtom, String>>,
+    it: slice::Iter<'a, DefaultAtom>,
+    jt: slice::Iter<'a, String>,
 }
 
 impl<'a> From<&'a AttrMap2> for AttrMapIter<'a> {
     fn from(attrmap: &'a AttrMap2) -> Self {
-        if let Some(ref attrmap) = attrmap.map {
-            Self {
-                it: Some(attrmap.iter()),
-            }
-        } else {
-            Self { it: None }
+        Self {
+            it: attrmap.keys.iter(),
+            jt: attrmap.values.iter(),
         }
     }
 }
@@ -122,10 +149,13 @@ impl<'a> Iterator for AttrMapIter<'a> {
     type Item = (&'a DefaultAtom, &'a String);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(it) = &mut self.it {
-            it.next()
-        } else {
-            None
+        let k = self.it.next();
+        let v = self.jt.next();
+
+        match (k, v) {
+            (Some(k), Some(v)) => Some((k, v)),
+            (None, None) => None,
+            _ => unreachable!(),
         }
     }
 }
@@ -138,7 +168,7 @@ mod tests {
     fn test_attrmap2() {
         let mut m = AttrMap2::new();
 
-        m.add_all(&[
+        m.add_all([
             ("foo", "baz".to_string()),
             ("lol", "now".to_string()),
             ("ful", "uuu".to_string()),

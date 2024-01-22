@@ -4,7 +4,7 @@ use spreadsheet_ods::xmltree::XmlTag;
 pub fn test_tree() {
     let _tag = XmlTag::new("table:shapes").tag(
         XmlTag::new("draw:frame")
-            .attr_slice(&[
+            .attr_slice([
                 ("draw:z", "0".into()),
                 ("draw:name", "Bild 1".into()),
                 ("draw:style:name", "gr1".into()),
@@ -16,7 +16,7 @@ pub fn test_tree() {
             ])
             .tag(
                 XmlTag::new("draw:image")
-                    .attr_slice(&[
+                    .attr_slice([
                         (
                             "xlink:href",
                             "Pictures/10000000000011D7000003105281DD09B0E0B8D4.jpg".into(),

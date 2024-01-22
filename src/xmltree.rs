@@ -17,7 +17,7 @@
 //!             .attr("svg:x", "0cm")
 //!             .attr("svg:y", "0cm")
 //!             .tag(XmlTag::new("draw:image")
-//!                 .attr_slice(&[
+//!                 .attr_slice([
 //!                     ("xlink:href", "Pictures/10000000000011D7000003105281DD09B0E0B8D4.jpg".into()),
 //!                     ("xlink:type", "simple".into()),
 //!                     ("xlink:show", "embed".into()),
@@ -102,83 +102,101 @@ impl XmlTag {
     }
 
     /// Name
+    #[inline]
     pub fn set_name<S: Into<String>>(&mut self, name: S) {
         self.name = name.into();
     }
 
     /// Name
+    #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Any text or child elements?
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.content.is_empty()
     }
 
-    pub(crate) fn attrmap(&self) -> &AttrMap2 {
+    /// Attributes
+    #[inline]
+    pub fn attrmap(&self) -> &AttrMap2 {
         &self.attr
     }
 
-    pub(crate) fn attrmap_mut(&mut self) -> &mut AttrMap2 {
+    /// Attributes
+    #[inline]
+    pub fn attrmap_mut(&mut self) -> &mut AttrMap2 {
         &mut self.attr
     }
 
     /// Sets an attribute
+    #[inline]
     pub fn set_attr<'a, S: Into<&'a str>, T: Into<String>>(&mut self, name: S, value: T) {
         self.attr.set_attr(name.into(), value.into());
     }
 
     /// Gets an attribute
+    #[inline]
     pub fn get_attr<'a, S: Into<&'a str>>(&self, name: S) -> Option<&String> {
         self.attr.attr(name.into())
     }
 
     /// Adds more attributes.
-    pub fn add_attr_slice(&mut self, attr: &[(&str, String)]) {
+    #[inline]
+    pub fn add_attr_slice<'a, I: IntoIterator<Item = (&'a str, String)>>(&mut self, attr: I) {
         self.attr.add_all(attr);
     }
 
     /// Add an element.
+    #[inline]
     pub fn add_tag<T: Into<XmlTag>>(&mut self, tag: T) {
         self.content.push(XmlContent::Tag(tag.into()));
     }
 
     /// Add text.
+    #[inline]
     pub fn add_text<S: Into<String>>(&mut self, text: S) {
         self.content.push(XmlContent::Text(text.into()));
     }
 
     /// Sets an attribute. Allows for cascading.
+    #[inline]
     pub fn attr<'a, S: Into<&'a str>, T: Into<String>>(mut self, name: S, value: T) -> Self {
         self.set_attr(name, value);
         self
     }
 
     /// Adds more attributes.
-    pub fn attr_slice(mut self, attr: &[(&str, String)]) -> Self {
+    #[inline]
+    pub fn attr_slice<'a, I: IntoIterator<Item = (&'a str, String)>>(mut self, attr: I) -> Self {
         self.add_attr_slice(attr);
         self
     }
 
     /// Adds an element. Allows for cascading.
+    #[inline]
     pub fn tag<T: Into<XmlTag>>(mut self, tag: T) -> Self {
         self.add_tag(tag);
         self
     }
 
     /// Adds text. Allows for cascading.
+    #[inline]
     pub fn text<S: Into<String>>(mut self, text: S) -> Self {
         self.add_text(text);
         self
     }
 
     /// Returns the content vec.
+    #[inline]
     pub fn content(&self) -> &Vec<XmlContent> {
         &self.content
     }
 
     /// Returns the content vec.
+    #[inline]
     pub fn content_mut(&mut self) -> &mut Vec<XmlContent> {
         &mut self.content
     }

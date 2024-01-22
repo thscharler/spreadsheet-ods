@@ -1,7 +1,7 @@
 use crate::io::write::calc_col_headers;
 use crate::sheet_::dedup_colheader;
 use crate::Length;
-use crate::{write_ods, Sheet, WorkBook};
+use crate::{Sheet, WorkBook};
 use icu_locid::locale;
 
 fn setup_test_calc_col_headers() -> WorkBook {

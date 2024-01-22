@@ -5,7 +5,8 @@ use std::fs::File;
 use std::io::{BufReader, Cursor, Read};
 use std::path::Path;
 
-use spreadsheet_ods::{OdsError, OdsOptions};
+use spreadsheet_ods::format::ValueFormatTrait;
+use spreadsheet_ods::{OdsError, OdsOptions, Value};
 
 use crate::lib_test::Timing;
 
@@ -59,20 +60,21 @@ fn print_t(t0: &Timing<Sample>) {
     println!();
     println!("cat|name|file-size|time|cells|mem-size|sheet|colh|rowh|meta");
     for i in 0..t0.samples.len() {
-        let extra = t0.extra.get(i).expect("b");
-        println!(
-            "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
-            extra.category,
-            extra.name,
-            extra.file_size,
-            t0.samples[i],
-            extra.cell_count,
-            extra.mem_size,
-            extra.sheet_size,
-            extra.col_header,
-            extra.row_header,
-            extra.metadata,
-        );
+        if let Some(extra) = t0.extra.get(i) {
+            println!(
+                "{}|{}|{}|{}|{}|{}|{}|{}|{}|{}",
+                extra.category,
+                extra.name,
+                extra.file_size,
+                t0.samples[i],
+                extra.cell_count,
+                extra.mem_size,
+                extra.sheet_size,
+                extra.col_header,
+                extra.row_header,
+                extra.metadata,
+            );
+        }
     }
 }
 
@@ -148,12 +150,89 @@ fn run_samples(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Resul
                                     cell_count += sh.cell_count();
                                 }
 
+                                let mut attr = Vec::new();
+                                for v in wb.iter_table_styles() {
+                                    attr.push(v.attrmap().len());
+                                    attr.push(v.tablestyle().len());
+                                }
+                                for v in wb.iter_rowstyles() {
+                                    attr.push(v.attrmap().len());
+                                    attr.push(v.rowstyle().len());
+                                }
+                                for v in wb.iter_colstyles() {
+                                    attr.push(v.attrmap().len());
+                                    attr.push(v.colstyle().len());
+                                }
+                                for v in wb.iter_cellstyles() {
+                                    attr.push(v.attrmap().len());
+                                    attr.push(v.cellstyle().len());
+                                    attr.push(v.textstyle().len());
+                                    attr.push(v.paragraphstyle().len());
+                                }
+                                for v in wb.iter_paragraphstyles() {
+                                    attr.push(v.attrmap().len());
+                                    attr.push(v.paragraphstyle().len());
+                                    attr.push(v.textstyle().len());
+                                }
+                                for v in wb.iter_textstyles() {
+                                    attr.push(v.attrmap().len());
+                                    attr.push(v.textstyle().len());
+                                }
+                                for v in wb.iter_rubystyles() {
+                                    attr.push(v.attrmap().len());
+                                    attr.push(v.rubystyle().len());
+                                }
+                                for v in wb.iter_graphicstyles() {
+                                    attr.push(v.attrmap().len());
+                                    attr.push(v.paragraphstyle().len());
+                                    attr.push(v.textstyle().len());
+                                    attr.push(v.graphicstyle().len());
+                                }
+                                for v in wb.iter_boolean_formats() {
+                                    attr.push(v.attrmap().len());
+                                }
+                                for v in wb.iter_number_formats() {
+                                    attr.push(v.attrmap().len());
+                                }
+                                for v in wb.iter_percentage_formats() {
+                                    attr.push(v.attrmap().len());
+                                }
+                                for v in wb.iter_currency_formats() {
+                                    attr.push(v.attrmap().len());
+                                }
+                                for v in wb.iter_text_formats() {
+                                    attr.push(v.attrmap().len());
+                                }
+                                for v in wb.iter_datetime_formats() {
+                                    attr.push(v.attrmap().len());
+                                }
+                                for v in wb.iter_timeduration_formats() {
+                                    attr.push(v.attrmap().len());
+                                }
+                                for v in wb.iter_pagestyles() {
+                                    attr.push(v.style().len());
+                                }
+                                for sh in wb.iter_sheets() {
+                                    for (_, c) in sh.iter() {
+                                        if let Value::TextXml(xml) = c.value {
+                                            for x in xml {
+                                                attr.push(x.attrmap().len());
+                                            }
+                                        }
+                                    }
+                                }
+                                let max = attr.iter().fold(0f64, |s, v| f64::max(s, *v as f64));
+                                let sum = attr.iter().fold(0.0, |s, v| s + *v as f64);
+                                let avg = sum / (attr.len() as f64 - 2.0);
+
                                 x.push(Sample {
                                     category: cat.to_string(),
                                     name: name.clone(),
                                     file_size: f.metadata()?.len(),
                                     cell_count,
                                     mem_size: wb.get_size(),
+                                    col_header: avg as usize,
+                                    row_header: max as usize,
                                     ..Sample::default()
                                 });
                             }
@@ -171,14 +250,10 @@ fn run_samples(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Resul
 
 // #[test]
 fn test_sample() -> Result<(), OdsError> {
-    let mut t = Timing::default();
+    let mut t = Timing::default().skip(1).runs(50);
     run_sample(&mut t, "clone", OdsOptions::default().use_clone_for_cells())?;
     // run_sample(&mut t, "content", OdsOptions::default().content_only())?;
-    // run_sample(
-    //     &mut t,
-    //     "repeat",
-    //     OdsOptions::default().use_repeat_for_cells(),
-    // )?;
+    // run_sample(&mut t, "repeat", OdsOptions::default().use_repeat_for_cells())?;
     // run_sample(&mut t, "ignore", OdsOptions::default().ignore_empty_cells())?;
 
     print_t(&t);
@@ -188,7 +263,7 @@ fn test_sample() -> Result<(), OdsError> {
 
 fn run_sample(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Result<(), OdsError> {
     let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
-    let sample = "2d0d3aca0b2ddd244ad34f2b11f5625cd2835141ca98ec025a54c2f2d10118.ods";
+    let sample = "a134707a421a3ecd13235e92b72ae4b9.ods";
 
     let f = path.join(sample);
     if f.exists() {
