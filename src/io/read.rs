@@ -1654,7 +1654,6 @@ fn read_annotation(
             }
         }
     }
-    annotation.attrmap_mut().shrink_to_fit();
 
     let mut buf = ctx.pop_buf();
     loop {
@@ -3575,7 +3574,6 @@ fn copy_style_attr(
             }
         }
     }
-    attrmap.shrink_to_fit();
 
     Ok(name.unwrap_or_default())
 }
@@ -3593,7 +3591,6 @@ fn copy_attr2(
         let v = attr.decode_and_unescape_value(xml)?.to_string();
         attrmap.push_attr(k, v);
     }
-    attrmap.shrink_to_fit();
 
     Ok(())
 }
