@@ -7,6 +7,7 @@
 use crate::{HashMap, HashMapIter};
 use get_size::GetSize;
 use std::mem;
+use std::mem::size_of;
 use string_cache::DefaultAtom;
 
 /// Container type for attributes.
@@ -17,9 +18,18 @@ pub struct AttrMap2 {
 
 impl GetSize for AttrMap2 {
     fn get_heap_size(&self) -> usize {
-        self.iter()
-            .map(|(key, value)| mem::size_of_val(key) + value.get_size())
-            .sum::<usize>()
+        let mut total = 0;
+
+        if let Some(map) = &self.map {
+            for (_, v) in self.iter() {
+                total += GetSize::get_heap_size(v);
+            }
+
+            total += map.capacity() * size_of::<DefaultAtom>();
+            total += map.capacity() * size_of::<String>();
+        }
+
+        total
     }
 }
 
