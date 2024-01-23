@@ -417,8 +417,8 @@ fn calc_col_headers(book: &mut WorkBook) -> Result<(), OdsError> {
             split_pos.insert(grp.to + 1);
         }
         if let Some(header_cols) = &sheet.header_cols {
-            split_pos.insert(header_cols.col());
-            split_pos.insert(header_cols.to_col() + 1);
+            split_pos.insert(header_cols.from);
+            split_pos.insert(header_cols.to + 1);
         }
 
         let col_header = mem::take(&mut sheet.col_header);
@@ -1832,7 +1832,7 @@ fn write_start_current_row(
 
     // print-header
     if let Some(header_rows) = &sheet.header_rows {
-        if header_rows.row() >= cur_row && header_rows.row() < cur_row + cur_row_repeat {
+        if header_rows.from >= cur_row && header_rows.from < cur_row + cur_row_repeat {
             *row_header = true;
         }
     }
@@ -1884,7 +1884,7 @@ fn write_end_prev_row(
 
     // end of the print-header
     if let Some(header_rows) = &sheet.header_rows {
-        if header_rows.to_row() >= last_r && header_rows.to_row() < last_r + last_r_repeat {
+        if header_rows.to >= last_r && header_rows.to < last_r + last_r_repeat {
             *row_header = false;
         }
     }
@@ -1946,7 +1946,7 @@ fn write_empty_rows_before(
             }
             // end of the print-header
             if let Some(header_rows) = &sheet.header_rows {
-                if header_rows.to_row() == r {
+                if header_rows.to == r {
                     *row_header = false;
                 }
             }
@@ -1968,7 +1968,7 @@ fn write_empty_rows_before(
             }
             // start of print-header
             if let Some(header_rows) = &sheet.header_rows {
-                if header_rows.row() == r {
+                if header_rows.from == r {
                     *row_header = true;
                 }
             }
@@ -2026,7 +2026,7 @@ fn write_table_columns(
         max_col = max(max_col, grp.to + 1);
     }
     if let Some(header_cols) = &sheet.header_cols {
-        max_col = max(max_col, header_cols.to_col() + 1);
+        max_col = max(max_col, header_cols.to + 1);
     }
 
     // table:table-column
@@ -2047,7 +2047,7 @@ fn write_table_columns(
 
         // print-header columns
         if let Some(header_cols) = &sheet.header_cols {
-            if c >= header_cols.col() && c <= header_cols.to_col() {
+            if c >= header_cols.from && c <= header_cols.to {
                 xml_out.elem("table:table-header-columns")?;
             }
         }
@@ -2073,7 +2073,7 @@ fn write_table_columns(
         };
 
         if let Some(header_cols) = &sheet.header_cols {
-            if c >= header_cols.col() && c <= header_cols.to_col() {
+            if c >= header_cols.from && c <= header_cols.to {
                 xml_out.end_elem("table:table-header-columns")?;
             }
         }

@@ -1,3 +1,4 @@
+use crate::sheet_::Header;
 use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
 use std::fs::File;
@@ -45,9 +46,9 @@ use crate::validation::{MessageType, Validation, ValidationError, ValidationHelp
 use crate::workbook::{EventListener, Script};
 use crate::xmltree::XmlTag;
 use crate::{
-    CellStyle, CellStyleRef, ColRange, Length, RowRange, Sheet, Value, ValueFormatBoolean,
-    ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage,
-    ValueFormatText, ValueFormatTimeDuration, ValueType, WorkBook,
+    CellStyle, CellStyleRef, Length, Sheet, Value, ValueFormatBoolean, ValueFormatCurrency,
+    ValueFormatDateTime, ValueFormatNumber, ValueFormatPercentage, ValueFormatText,
+    ValueFormatTimeDuration, ValueType, WorkBook,
 };
 
 type OdsXmlReader<'a> = quick_xml::Reader<&'a mut dyn BufRead>;
@@ -985,9 +986,12 @@ fn read_table(
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-columns" => {
                 if let Some(header_cols) = &mut sheet.header_cols {
-                    header_cols.set_to_col(col - 1);
+                    header_cols.to = col - 1;
                 } else {
-                    sheet.header_cols = Some(ColRange::new(col_range_from, col - 1));
+                    sheet.header_cols = Some(Header {
+                        from: col_range_from,
+                        to: col - 1,
+                    });
                 }
             }
 
@@ -1020,9 +1024,12 @@ fn read_table(
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"table:table-header-rows" => {
                 if let Some(header_rows) = &mut sheet.header_rows {
-                    header_rows.set_to_row(row - 1);
+                    header_rows.to = row - 1;
                 } else {
-                    sheet.header_rows = Some(RowRange::new(row_range_from, row - 1));
+                    sheet.header_rows = Some(Header {
+                        from: row_range_from,
+                        to: row - 1,
+                    });
                 }
             }
 

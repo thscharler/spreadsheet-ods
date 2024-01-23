@@ -16,7 +16,7 @@ use crate::style::{ColStyleRef, RowStyleRef, TableStyleRef};
 use crate::validation::ValidationRef;
 use crate::value_::Value;
 use crate::xmltree::XmlTag;
-use crate::{CellRange, CellStyleRef, ColRange, Length, OdsError, RowRange};
+use crate::{CellRange, CellStyleRef, Length, OdsError};
 
 #[cfg(test)]
 mod tests;
@@ -116,8 +116,8 @@ pub struct Sheet {
     pub(crate) display: bool,
     pub(crate) print: bool,
 
-    pub(crate) header_rows: Option<RowRange>,
-    pub(crate) header_cols: Option<ColRange>,
+    pub(crate) header_rows: Option<Header>,
+    pub(crate) header_cols: Option<Header>,
     pub(crate) print_ranges: Option<Vec<CellRange>>,
 
     pub(crate) group_rows: Vec<Grouped>,
@@ -1293,7 +1293,10 @@ impl Sheet {
     /// Defines a range of rows as header rows.
     /// These rows are repeated when printing on multiple pages.
     pub fn set_header_rows(&mut self, row_start: u32, row_end: u32) {
-        self.header_rows = Some(RowRange::new(row_start, row_end));
+        self.header_rows = Some(Header {
+            from: row_start,
+            to: row_end,
+        });
     }
 
     /// Clears the header-rows definition.
@@ -1303,14 +1306,17 @@ impl Sheet {
 
     /// Returns the header rows.
     /// These rows are repeated when printing on multiple pages.
-    pub fn header_rows(&self) -> &Option<RowRange> {
-        &self.header_rows
+    pub fn header_rows(&self) -> Option<(u32, u32)> {
+        self.header_rows.map(Into::into)
     }
 
     /// Defines a range of columns as header columns.
     /// These columns are repeated when printing on multiple pages.
     pub fn set_header_cols(&mut self, col_start: u32, col_end: u32) {
-        self.header_cols = Some(ColRange::new(col_start, col_end));
+        self.header_cols = Some(Header {
+            from: col_start,
+            to: col_end,
+        });
     }
 
     /// Clears the header-columns definition.
@@ -1320,8 +1326,8 @@ impl Sheet {
 
     /// Returns the header columns.
     /// These columns are repeated when printing on multiple pages.
-    pub fn header_cols(&self) -> &Option<ColRange> {
-        &self.header_cols
+    pub fn header_cols(&self) -> Option<(u32, u32)> {
+        self.header_cols.map(Into::into)
     }
 
     /// Print ranges.
@@ -1504,6 +1510,19 @@ impl Sheet {
     /// Iterate row groups.
     pub fn row_group_iter(&self) -> impl Iterator<Item = &Grouped> {
         self.group_rows.iter()
+    }
+}
+
+/// Describes header rows/columns.
+#[derive(Debug, Copy, Clone, Default, GetSize)]
+pub struct Header {
+    pub from: u32,
+    pub to: u32,
+}
+
+impl From<Header> for (u32, u32) {
+    fn from(value: Header) -> Self {
+        (value.from, value.to)
     }
 }
 
