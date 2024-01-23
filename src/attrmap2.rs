@@ -6,7 +6,7 @@
 
 use get_size::GetSize;
 use std::mem::size_of;
-use std::{mem, slice};
+use std::slice;
 use string_cache::DefaultAtom;
 
 /// Container type for attributes.
@@ -72,14 +72,13 @@ impl AttrMap2 {
         self.values.push(value.into());
     }
 
-    #[inline]
+    #[inline(always)]
     fn find_idx(&self, test: &DefaultAtom) -> Option<usize> {
-        for (i, key) in self.keys.iter().enumerate() {
-            if test == key {
-                return Some(i);
-            }
-        }
-        None
+        self.keys
+            .iter()
+            .enumerate()
+            .find(|v| v.1 == test)
+            .map(|v| v.0)
     }
 
     /// Removes an attribute.
