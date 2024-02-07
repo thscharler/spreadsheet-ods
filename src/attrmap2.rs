@@ -13,12 +13,14 @@ use string_cache::DefaultAtom;
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct AttrMap2 {
     keys: Vec<DefaultAtom>,
-    values: Vec<String>,
+    values: Vec<Box<str>>,
 }
 
 impl GetSize for AttrMap2 {
     fn get_heap_size(&self) -> usize {
-        self.keys.capacity() * size_of::<DefaultAtom>() + self.values.get_heap_size()
+        self.keys.capacity() * size_of::<DefaultAtom>()
+            + self.values.capacity() * size_of::<Box<str>>()
+            + self.values.iter().map(|v| v.get_heap_size()).sum::<usize>()
     }
 }
 
@@ -45,10 +47,10 @@ impl AttrMap2 {
 
     /// Add from Slice
     #[inline]
-    pub fn add_all<'a, I: IntoIterator<Item = (&'a str, String)>>(&mut self, data: I) {
+    pub fn add_all<'a, V: Into<String>, I: IntoIterator<Item = (&'a str, V)>>(&mut self, data: I) {
         for (k, v) in data {
             self.keys.push(DefaultAtom::from(k));
-            self.values.push(v);
+            self.values.push(v.into().into_boxed_str());
         }
     }
 
@@ -56,7 +58,7 @@ impl AttrMap2 {
     #[inline]
     pub fn set_attr<S: Into<String>>(&mut self, name: &str, value: S) {
         let k = DefaultAtom::from(name);
-        let v = value.into();
+        let v = value.into().into_boxed_str();
         if let Some(idx) = self.find_idx(&k) {
             self.keys[idx] = k;
             self.values[idx] = v;
@@ -69,7 +71,7 @@ impl AttrMap2 {
     #[inline]
     pub(crate) fn push_attr<S: Into<String>>(&mut self, name: &str, value: S) {
         self.keys.push(DefaultAtom::from(name));
-        self.values.push(value.into());
+        self.values.push(value.into().into_boxed_str());
     }
 
     #[inline(always)]
@@ -87,7 +89,7 @@ impl AttrMap2 {
         let k = DefaultAtom::from(name);
         if let Some(idx) = self.find_idx(&k) {
             self.keys.remove(idx);
-            Some(self.values.remove(idx))
+            Some(self.values.remove(idx).into_string())
         } else {
             None
         }
@@ -95,7 +97,7 @@ impl AttrMap2 {
 
     /// Returns the attribute.
     #[inline]
-    pub fn attr(&self, name: &str) -> Option<&String> {
+    pub fn attr(&self, name: &str) -> Option<&str> {
         let k = DefaultAtom::from(name);
         if let Some(idx) = self.find_idx(&k) {
             Some(&self.values[idx])
@@ -112,7 +114,7 @@ impl AttrMap2 {
     {
         let k = DefaultAtom::from(name);
         if let Some(idx) = self.find_idx(&k) {
-            self.values[idx].as_str()
+            &self.values[idx]
         } else {
             default.into()
         }
@@ -132,7 +134,7 @@ impl AttrMap2 {
 #[derive(Debug)]
 pub struct AttrMapIter<'a> {
     it: slice::Iter<'a, DefaultAtom>,
-    jt: slice::Iter<'a, String>,
+    jt: slice::Iter<'a, Box<str>>,
 }
 
 impl<'a> From<&'a AttrMap2> for AttrMapIter<'a> {
@@ -145,7 +147,7 @@ impl<'a> From<&'a AttrMap2> for AttrMapIter<'a> {
 }
 
 impl<'a> Iterator for AttrMapIter<'a> {
-    type Item = (&'a DefaultAtom, &'a String);
+    type Item = (&'a DefaultAtom, &'a str);
 
     fn next(&mut self) -> Option<Self::Item> {
         let k = self.it.next();
@@ -167,11 +169,7 @@ mod tests {
     fn test_attrmap2() {
         let mut m = AttrMap2::new();
 
-        m.add_all([
-            ("foo", "baz".to_string()),
-            ("lol", "now".to_string()),
-            ("ful", "uuu".to_string()),
-        ]);
+        m.add_all([("foo", "baz"), ("lol", "now"), ("ful", "uuu")]);
         assert_eq!(m.attr("foo").unwrap(), "baz");
 
         m.set_attr("lol", "loud!".to_string());
