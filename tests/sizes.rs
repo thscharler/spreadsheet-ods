@@ -50,7 +50,7 @@ pub fn sizes2() {
     println!("SheetConfig {}", size_of::<SheetConfig>());
 
     println!("String {}", size_of::<String>());
-    println!("Cow<str> {}", size_of::<Cow<str>>());
+    println!("Cow<str> {}", size_of::<Cow<'_, str>>());
     println!("Rc<str> {}", size_of::<Rc<str>>());
     println!("Arc<str> {}", size_of::<Arc<str>>());
     println!("Box<str> {}", size_of::<Box<str>>());

@@ -1863,7 +1863,10 @@ fn read_script(
 ) -> Result<Script, OdsError> {
     let v = read_xml(ctx, xml, super_tag, false)?;
     let script: Script = Script {
-        script_lang: v.get_attr("script:language").cloned().unwrap_or_default(),
+        script_lang: v
+            .get_attr("script:language")
+            .map(|v| v.to_string())
+            .unwrap_or_default(),
         script: v.into_mixed_vec(),
     };
     Ok(script)
@@ -1957,10 +1960,12 @@ fn read_page_style(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"style:name" => {
-                pl.set_name(&attr.decode_and_unescape_value(xml)?);
+                let value = attr.decode_and_unescape_value(xml)?;
+                pl.set_name(value);
             }
             attr if attr.key.as_ref() == b"style:page-usage" => {
-                pl.master_page_usage = Some(attr.decode_and_unescape_value(xml)?.to_string());
+                let value = attr.decode_and_unescape_value(xml)?;
+                pl.master_page_usage = Some(value.to_string());
             }
             attr => {
                 unused_attr("read_page_style", super_tag.name().as_ref(), &attr)?;

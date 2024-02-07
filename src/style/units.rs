@@ -84,7 +84,7 @@ impl Display for Length {
 }
 
 impl ParseStyleAttr<Length> for Length {
-    fn parse_attr(attr: Option<&String>) -> Result<Option<Length>, OdsError> {
+    fn parse_attr(attr: Option<&str>) -> Result<Option<Length>, OdsError> {
         if let Some(s) = attr {
             if s.ends_with("cm") {
                 Ok(Some(Length::Cm(s.split_at(s.len() - 2).0.parse()?)))
@@ -99,7 +99,7 @@ impl ParseStyleAttr<Length> for Length {
             } else if s.ends_with("em") {
                 Ok(Some(Length::Em(s.split_at(s.len() - 2).0.parse()?)))
             } else {
-                Err(OdsError::Parse("invalid length", Some(s.clone())))
+                Err(OdsError::Parse("invalid length", Some(s.to_string())))
             }
         } else {
             Ok(None)
@@ -182,12 +182,15 @@ impl Display for FormatSource {
 }
 
 impl ParseStyleAttr<FormatSource> for FormatSource {
-    fn parse_attr(attr: Option<&String>) -> Result<Option<FormatSource>, OdsError> {
+    fn parse_attr(attr: Option<&str>) -> Result<Option<FormatSource>, OdsError> {
         if let Some(attr) = attr {
-            match attr.as_str() {
+            match attr {
                 "fixed" => Ok(Some(FormatSource::Fixed)),
                 "language" => Ok(Some(FormatSource::Language)),
-                _ => Err(OdsError::Parse("invalid format source", Some(attr.clone()))),
+                _ => Err(OdsError::Parse(
+                    "invalid format source",
+                    Some(attr.to_string()),
+                )),
             }
         } else {
             Ok(None)
@@ -223,15 +226,15 @@ impl Display for TransliterationStyle {
 }
 
 impl ParseStyleAttr<TransliterationStyle> for TransliterationStyle {
-    fn parse_attr(attr: Option<&String>) -> Result<Option<TransliterationStyle>, OdsError> {
+    fn parse_attr(attr: Option<&str>) -> Result<Option<TransliterationStyle>, OdsError> {
         if let Some(attr) = attr {
-            match attr.as_str() {
+            match attr {
                 "short" => Ok(Some(TransliterationStyle::Short)),
                 "medium" => Ok(Some(TransliterationStyle::Medium)),
                 "long" => Ok(Some(TransliterationStyle::Long)),
                 _ => Err(OdsError::Parse(
                     "invalid number:transliteration-style",
-                    Some(attr.clone()),
+                    Some(attr.to_string()),
                 )),
             }
         } else {
@@ -332,16 +335,16 @@ impl Display for MasterPageUsage {
 }
 
 impl ParseStyleAttr<MasterPageUsage> for MasterPageUsage {
-    fn parse_attr(attr: Option<&String>) -> Result<Option<MasterPageUsage>, OdsError> {
+    fn parse_attr(attr: Option<&str>) -> Result<Option<MasterPageUsage>, OdsError> {
         if let Some(attr) = attr {
-            match attr.as_str() {
+            match attr {
                 "all" => Ok(Some(MasterPageUsage::All)),
                 "left" => Ok(Some(MasterPageUsage::Left)),
                 "mirrored" => Ok(Some(MasterPageUsage::Mirrored)),
                 "right" => Ok(Some(MasterPageUsage::Right)),
                 _ => Err(OdsError::Parse(
                     "invalid style:page-usage",
-                    Some(attr.clone()),
+                    Some(attr.to_string()),
                 )),
             }
         } else {

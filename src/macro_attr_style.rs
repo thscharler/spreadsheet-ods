@@ -1854,7 +1854,7 @@ macro_rules! style_volatile {
         pub fn volatile(&self) -> Option<bool> {
             match self.attr.attr("style:volatile") {
                 None => None,
-                Some(s) => FromStr::from_str(s.as_str()).ok(),
+                Some(s) => FromStr::from_str(s).ok(),
             }
         }
     };

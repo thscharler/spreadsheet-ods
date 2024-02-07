@@ -139,13 +139,16 @@ impl XmlTag {
 
     /// Gets an attribute
     #[inline]
-    pub fn get_attr<'a, S: Into<&'a str>>(&self, name: S) -> Option<&String> {
+    pub fn get_attr<'a, S: Into<&'a str>>(&self, name: S) -> Option<&str> {
         self.attr.attr(name.into())
     }
 
     /// Adds more attributes.
     #[inline]
-    pub fn add_attr_slice<'a, I: IntoIterator<Item = (&'a str, String)>>(&mut self, attr: I) {
+    pub fn add_attr_slice<'a, V: Into<String>, I: IntoIterator<Item = (&'a str, V)>>(
+        &mut self,
+        attr: I,
+    ) {
         self.attr.add_all(attr);
     }
 
@@ -170,7 +173,10 @@ impl XmlTag {
 
     /// Adds more attributes.
     #[inline]
-    pub fn attr_slice<'a, I: IntoIterator<Item = (&'a str, String)>>(mut self, attr: I) -> Self {
+    pub fn attr_slice<'a, V: Into<String>, I: IntoIterator<Item = (&'a str, V)>>(
+        mut self,
+        attr: I,
+    ) -> Self {
         self.add_attr_slice(attr);
         self
     }

@@ -182,9 +182,9 @@ style_ref2_base!(AnyStyleRef);
 
 /// Parses an attribute string to a value type.
 pub(crate) trait ParseStyleAttr<T> {
-    fn parse_attr(attr: Option<&String>) -> Result<Option<T>, OdsError>;
+    fn parse_attr(attr: Option<&str>) -> Result<Option<T>, OdsError>;
 
-    fn parse_attr_def(attr: Option<&String>, default: T) -> Result<T, OdsError> {
+    fn parse_attr_def(attr: Option<&str>, default: T) -> Result<T, OdsError> {
         match Self::parse_attr(attr)? {
             None => Ok(default),
             Some(v) => Ok(v),
@@ -193,7 +193,7 @@ pub(crate) trait ParseStyleAttr<T> {
 }
 
 impl ParseStyleAttr<bool> for bool {
-    fn parse_attr(attr: Option<&String>) -> Result<Option<bool>, OdsError> {
+    fn parse_attr(attr: Option<&str>) -> Result<Option<bool>, OdsError> {
         if let Some(s) = attr {
             Ok(Some(bool::from_str(s)?))
         } else {

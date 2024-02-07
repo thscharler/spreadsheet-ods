@@ -103,7 +103,7 @@ impl CellStyle {
     }
 
     /// Reference to the value format.
-    pub fn value_format(&self) -> Option<&String> {
+    pub fn value_format(&self) -> Option<&str> {
         self.attr.attr("style:data-style-name")
     }
 

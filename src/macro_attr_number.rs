@@ -7,7 +7,7 @@ macro_rules! number_title {
         }
 
         /// The number:title attribute specifies the title of a data style.
-        pub fn title(&self) -> Option<&String> {
+        pub fn title(&self) -> Option<&str> {
             self.$acc.attr("number:title")
         }
     };

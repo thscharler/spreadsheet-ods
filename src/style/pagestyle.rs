@@ -61,13 +61,13 @@ impl PageStyle {
     }
 
     /// Style name
-    pub fn name(&self) -> &String {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
     /// Style name
-    pub fn set_name<S: AsRef<str>>(&mut self, name: S) {
-        self.name = name.as_ref().to_string();
+    pub fn set_name<S: Into<String>>(&mut self, name: S) {
+        self.name = name.into();
     }
 
     /// The style:page-usage attribute specifies the type of pages that a page master should
@@ -93,7 +93,7 @@ impl PageStyle {
     /// The style:page-usage attribute specifies the type of pages that a page master should
     /// generate.
     pub fn page_usage(&self) -> OdsResult<Option<MasterPageUsage>> {
-        MasterPageUsage::parse_attr(self.master_page_usage.as_ref())
+        MasterPageUsage::parse_attr(self.master_page_usage.as_deref())
     }
 
     /// Attributes for header.
