@@ -567,8 +567,8 @@ impl Sheet {
             row_header: self.row_header.clone(),
             display: self.display,
             print: self.print,
-            header_rows: self.header_rows.clone(),
-            header_cols: self.header_cols.clone(),
+            header_rows: self.header_rows,
+            header_cols: self.header_cols,
             print_ranges: self.print_ranges.clone(),
             group_rows: self.group_rows.clone(),
             group_cols: self.group_cols.clone(),
@@ -1306,7 +1306,7 @@ impl Sheet {
 
     /// Returns the header rows.
     /// These rows are repeated when printing on multiple pages.
-    pub fn header_rows(&self) -> Option<(u32, u32)> {
+    pub fn header_rows(&self) -> Option<Header> {
         self.header_rows.map(Into::into)
     }
 
@@ -1326,7 +1326,7 @@ impl Sheet {
 
     /// Returns the header columns.
     /// These columns are repeated when printing on multiple pages.
-    pub fn header_cols(&self) -> Option<(u32, u32)> {
+    pub fn header_cols(&self) -> Option<Header> {
         self.header_cols.map(Into::into)
     }
 
@@ -1527,7 +1527,7 @@ impl From<Header> for (u32, u32) {
 }
 
 /// Describes a row/column group.
-#[derive(Debug, PartialEq, Clone, GetSize)]
+#[derive(Debug, PartialEq, Clone, Copy, GetSize)]
 pub struct Grouped {
     /// Inclusive from row/col.
     pub from: u32,

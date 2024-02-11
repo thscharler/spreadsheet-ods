@@ -34,7 +34,7 @@ fn test_write_group1() -> Result<(), OdsError> {
     assert!(v.contains(&Grouped::new(1, 3, true)));
 
     if let Some(h) = sh.header_rows() {
-        assert!(h.0 == 1 && h.1 == 3);
+        assert!(h.from == 1 && h.to == 3);
     } else {
         panic!();
     }
@@ -72,7 +72,7 @@ fn test_write_group2() -> Result<(), OdsError> {
     assert!(v.contains(&Grouped::new(1, 3, true)));
 
     if let Some(h) = sh.header_rows() {
-        assert!(h.0 == 0 && h.1 == 3);
+        assert!(h.from == 0 && h.to == 3);
     } else {
         panic!();
     }
@@ -110,7 +110,7 @@ fn test_write_group3() -> Result<(), OdsError> {
     assert!(v.contains(&Grouped::new(1, 3, true)));
 
     if let Some(h) = sh.header_rows() {
-        assert!(h.0 == 0 && h.1 == 4);
+        assert!(h.from == 0 && h.to == 4);
     } else {
         panic!();
     }
@@ -148,7 +148,7 @@ fn test_write_group4() -> Result<(), OdsError> {
     assert!(v.contains(&Grouped::new(1, 3, true)));
 
     if let Some(h) = sh.header_rows() {
-        assert!(h.0 == 2 && h.1 == 4);
+        assert!(h.from == 2 && h.to == 4);
     } else {
         panic!();
     }
@@ -186,7 +186,7 @@ fn test_write_colgroup1() -> Result<(), OdsError> {
     assert!(v.contains(&Grouped::new(1, 3, true)));
 
     if let Some(h) = sh.header_cols() {
-        assert!(h.0 == 1 && h.1 == 3);
+        assert!(h.from == 1 && h.to == 3);
     } else {
         panic!();
     }
@@ -224,7 +224,7 @@ fn test_write_colgroup2() -> Result<(), OdsError> {
     assert!(v.contains(&Grouped::new(1, 3, true)));
 
     if let Some(h) = sh.header_cols() {
-        assert!(h.0 == 0 && h.1 == 3);
+        assert!(h.from == 0 && h.to == 3);
     } else {
         panic!();
     }
@@ -262,7 +262,7 @@ fn test_write_colgroup3() -> Result<(), OdsError> {
     assert!(v.contains(&Grouped::new(1, 3, true)));
 
     if let Some(h) = sh.header_cols() {
-        assert!(h.0 == 0 && h.1 == 4);
+        assert!(h.from == 0 && h.to == 4);
     } else {
         panic!();
     }
@@ -300,7 +300,7 @@ fn test_write_colgroup4() -> Result<(), OdsError> {
     assert!(v.contains(&Grouped::new(1, 3, true)));
 
     if let Some(h) = sh.header_cols() {
-        assert!(h.0 == 2 && h.1 == 4);
+        assert!(h.from == 2 && h.to == 4);
     } else {
         panic!();
     }
