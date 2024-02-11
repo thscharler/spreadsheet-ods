@@ -93,4 +93,4 @@ pub mod xmltree;
 // pub(crate) type HashMap<K, V> = indexmap::IndexMap<K, V>;
 // pub(crate) type HashMapIter<'a, K, V> = indexmap::map::Iter<'a, K, V>;
 pub(crate) type HashMap<K, V> = std::collections::HashMap<K, V>;
-pub(crate) type HashMapIter<'a, K, V> = std::collections::hash_map::Iter<'a, K, V>;
+// pub(crate) type HashMapIter<'a, K, V> = std::collections::hash_map::Iter<'a, K, V>;

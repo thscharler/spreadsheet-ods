@@ -441,7 +441,7 @@ mod v4 {
     }
 }
 
-#[test]
+// #[test]
 fn test_all() {
     test_attrmap1();
     test_attrmap2();

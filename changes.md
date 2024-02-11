@@ -1,3 +1,12 @@
+# 0.22.0
+
+- memory optimizations
+  - breaking: change currency string in Value from String to Box<str>. This shrinks Currency 
+    enough to fit in with the other variants.
+  - breaking: change annotation to Box<Annotation>. Big reduction for CellDataExt. Overall minor wins.
+  - change AttrMap2 from HashMap to Vec<Key> + Vec<Value>. Time is roughly equivalent, memory -7% averaged.
+  - breaking: change Sheet::header_rows() and Sheet::header_cols() to (u32,u32) instead of RowRange/ColRange.
+
 # 0.21.0
 
 - add some examples.
