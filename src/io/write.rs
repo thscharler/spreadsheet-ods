@@ -2032,7 +2032,7 @@ fn write_table_columns(
     // table:table-column
     let mut c = 0;
     loop {
-        if c == max_col {
+        if c >= max_col {
             break;
         }
 
