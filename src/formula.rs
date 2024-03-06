@@ -21,6 +21,16 @@ macro_rules! formula {
     }};
 }
 
+/// Macro for cell-references. Returns as string with the cell-reference in
+/// a format suitable for formulas.
+///
+/// Syntax:
+/// ```bnf
+///     cell!(\[abs] row, \[abs] col);
+///     cell!(\[abs] row, \[abs] col, \[abs] row_to, \[abs] col_to);
+///     cell!(table => \[abs] row, \[abs] col);
+///     cell!(table => \[abs] row, \[abs] col, \[abs] row_to, \[abs] col_to);
+/// ```
 #[macro_export]
 macro_rules! fcell {
     ($($arg:tt)*) => {
