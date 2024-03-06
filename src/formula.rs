@@ -4,7 +4,32 @@
 
 use crate::refs::{CellRange, CellRef};
 
-/// Macro for cell-references.
+/// Simple macro for formula.
+#[macro_export]
+macro_rules! formula {
+    ($format:literal) => {{
+        let res = std::fmt::format(
+            format_args!(concat!("of:=", $format))
+        );
+        res
+    }};
+    ($format:literal , $($arg:tt)*) => {{
+        let res = std::fmt::format(
+            format_args!(concat!("of:=", $format), $($arg)*)
+        );
+        res
+    }};
+}
+
+#[macro_export]
+macro_rules! fcell {
+    ($($arg:tt)*) => {
+        cell!($($arg)*).to_formula()
+    }
+}
+
+/// Macro for cell-references. This one returns the reference itself.
+/// For use in formulas use fcell, which returns the correct string for formulas.
 ///
 /// Syntax:
 /// ```bnf
