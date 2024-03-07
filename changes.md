@@ -1,3 +1,7 @@
+# 0.22.1
+
+- fix
+
 # 0.22.0
 
 - memory optimizations
@@ -41,7 +45,7 @@
 - new functions ```add_left()```, ```add_center()```, ```add_right()```, ```add_content()``` for HeaderFooter.
   Ease of use addition.
 - add ```OdsResult<T>```
-- add ```loupe::MemoryUsage```
+- add ```get-size```
 
 ## Performance/memory usage
 
@@ -131,7 +135,7 @@ BREAKING
 
 - The default for reading is changed to use the repeat counter for empty cells.
   While this should be fine for most uses, it still might break something.
-  But the speedup for many cases is to impressive to not to change this.
+  But the speedup for many cases is too impressive to not change this.
     - This can be reverted to the previous default with OdsOptions::
       use_clone_for_repeat().
 
