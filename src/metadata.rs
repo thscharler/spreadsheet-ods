@@ -109,7 +109,7 @@ impl Default for Metadata {
             document_statistics: Default::default(),
             language: Default::default(),
             editing_cycles: 0,
-            editing_duration: Duration::seconds(0),
+            editing_duration: Duration::default(),
             user_defined: vec![],
         }
     }
