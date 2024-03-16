@@ -42,7 +42,7 @@ impl AsStatic<str> for RCode {
             RCode::Integer => "Integer",
             RCode::DateTime => "DateTime",
             RCode::Bool => "Bool",
-            RCode::Duration => "Duration"
+            RCode::Duration => "Duration",
         }
     }
 }
@@ -365,30 +365,29 @@ fn token_duration(input: KSpan<'_>) -> KTokenResult<'_, Duration> {
         input,
     )))?;
     if let Some(day) = day {
-        result = result + Duration::try_days(day).ok_or(nom::Err::Error(KTokenizerError::new(
+        result += Duration::try_days(day).ok_or(nom::Err::Error(KTokenizerError::new(
             RCode::Duration,
             input,
         )))?;
     }
     if let Some((_, hour, minute, (second, nanos))) = time {
         if let Some(hour) = hour {
-            result = result + Duration::try_hours(hour).ok_or(nom::Err::Error(KTokenizerError::new(
+            result += Duration::try_hours(hour).ok_or(nom::Err::Error(KTokenizerError::new(
                 RCode::Duration,
                 input,
             )))?;
         }
         if let Some(minute) = minute {
-            result = result + Duration::try_minutes(minute).ok_or(nom::Err::Error(KTokenizerError::new(
-                RCode::Duration,
-                input,
-            )))?;
+            result += Duration::try_minutes(minute).ok_or(nom::Err::Error(
+                KTokenizerError::new(RCode::Duration, input),
+            ))?;
         }
-        result = result + Duration::try_seconds(second).ok_or(nom::Err::Error(KTokenizerError::new(
+        result += Duration::try_seconds(second).ok_or(nom::Err::Error(KTokenizerError::new(
             RCode::Duration,
             input,
         )))?;
         if let Some(nanos) = nanos {
-            result = result + Duration::nanoseconds(nanos);
+            result += Duration::nanoseconds(nanos);
         }
     }
 

@@ -6,7 +6,7 @@ use get_size::GetSize;
 use get_size_derive::GetSize;
 
 /// Metadata
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Metadata {
     /// The <meta:generator> element contains a string that identifies the OpenDocument producer
     /// that was used to create or last modify the document. This string should match the definition for
@@ -86,32 +86,6 @@ impl GetSize for Metadata {
             + self.hyperlink_behaviour.get_heap_size()
             + self.document_statistics.get_heap_size()
             + self.user_defined.get_heap_size()
-    }
-}
-
-impl Default for Metadata {
-    fn default() -> Self {
-        Self {
-            generator: Default::default(),
-            title: Default::default(),
-            description: Default::default(),
-            subject: Default::default(),
-            keyword: Default::default(),
-            initial_creator: Default::default(),
-            creator: Default::default(),
-            printed_by: Default::default(),
-            creation_date: None,
-            date: None,
-            print_date: None,
-            template: Default::default(),
-            auto_reload: Default::default(),
-            hyperlink_behaviour: Default::default(),
-            document_statistics: Default::default(),
-            language: Default::default(),
-            editing_cycles: 0,
-            editing_duration: Duration::default(),
-            user_defined: vec![],
-        }
     }
 }
 
