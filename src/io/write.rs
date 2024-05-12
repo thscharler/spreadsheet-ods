@@ -38,7 +38,9 @@ type OdsXmlWriter<'a> = XmlWriter<&'a mut dyn Write>;
 
 const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 
+#[allow(dead_code)]
 trait SeekWrite: Seek + Write {}
+
 impl<T> SeekWrite for T where T: Seek + Write {}
 
 struct OdsContext<W: Seek + Write> {

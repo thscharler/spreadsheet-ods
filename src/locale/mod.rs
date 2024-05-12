@@ -19,6 +19,7 @@ use lazy_static::lazy_static;
 
 /// Defines functions that generate the standard formats for various
 /// value types.
+#[allow(dead_code)]
 pub(crate) trait LocalizedValueFormat: Sync {
     fn locale(&self) -> Locale;
     /// Default boolean format.
