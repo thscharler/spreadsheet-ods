@@ -341,39 +341,39 @@ fn write_ods_impl<W: Write + Seek>(
 
     ctx.zip_writer.start_file(
         "mimetype",
-        FileOptions::default().compression_method(CompressionMethod::Stored),
+        FileOptions::<()>::default().compression_method(CompressionMethod::Stored),
     )?;
     write_ods_mimetype(&mut ctx.zip_writer)?;
 
     ctx.zip_writer
-        .add_directory("META-INF", FileOptions::default())?;
+        .add_directory("META-INF", FileOptions::<()>::default())?;
     ctx.zip_writer.start_file(
         "META-INF/manifest.xml",
-        FileOptions::default().compression_method(ctx.compression),
+        FileOptions::<()>::default().compression_method(ctx.compression),
     )?;
     write_ods_manifest(book, &mut XmlWriter::new(&mut ctx.zip_writer))?;
 
     ctx.zip_writer.start_file(
         "meta.xml",
-        FileOptions::default().compression_method(ctx.compression),
+        FileOptions::<()>::default().compression_method(ctx.compression),
     )?;
     write_ods_metadata(book, &mut XmlWriter::new(&mut ctx.zip_writer))?;
 
     ctx.zip_writer.start_file(
         "settings.xml",
-        FileOptions::default().compression_method(ctx.compression),
+        FileOptions::<()>::default().compression_method(ctx.compression),
     )?;
     write_ods_settings(book, &mut XmlWriter::new(&mut ctx.zip_writer))?;
 
     ctx.zip_writer.start_file(
         "styles.xml",
-        FileOptions::default().compression_method(ctx.compression),
+        FileOptions::<()>::default().compression_method(ctx.compression),
     )?;
     write_ods_styles(book, &mut XmlWriter::new(&mut ctx.zip_writer))?;
 
     ctx.zip_writer.start_file(
         "content.xml",
-        FileOptions::default().compression_method(ctx.compression),
+        FileOptions::<()>::default().compression_method(ctx.compression),
     )?;
     write_ods_content(book, &mut XmlWriter::new(&mut ctx.zip_writer))?;
 
@@ -3143,11 +3143,11 @@ fn write_ods_extra<W: Write + Seek>(
         ) {
             if manifest.is_dir() {
                 ctx.zip_writer
-                    .add_directory(&manifest.full_path, FileOptions::default())?;
+                    .add_directory(&manifest.full_path, FileOptions::<()>::default())?;
             } else {
                 ctx.zip_writer.start_file(
-                    &manifest.full_path,
-                    FileOptions::default().compression_method(ctx.compression),
+                    manifest.full_path.as_str(),
+                    FileOptions::<()>::default().compression_method(ctx.compression),
                 )?;
                 if let Some(buf) = &manifest.buffer {
                     ctx.zip_writer.write_all(buf.as_slice())?;

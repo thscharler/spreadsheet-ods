@@ -1,6 +1,6 @@
 [package]
 name = "spreadsheet-ods"
-version = "0.22.1"
+version = "0.22.2"
 authors = ["thomasscharler <thscharler@gmail.com>"]
 edition = "2021"
 description = "Read and write ODS files"
@@ -71,9 +71,9 @@ icu_locid = "1.4"
 lazy_static = "1.4"
 unicode-ident = "1.0"
 kparse = "3.0.5"
-base64 = "0.21"
+base64 = "0.22"
 quick-xml = { version = "0.31.0" }
-zip = { version = "0.6.6", default-features = false, features = ["deflate", "time"] }
+zip = { version = "1.3", default-features = false, features = ["deflate", "time"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "alloc"] }
 get-size = "0.1.4"
 get-size-derive = "0.1.3"

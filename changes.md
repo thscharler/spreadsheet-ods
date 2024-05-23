@@ -1,3 +1,9 @@
+# 0.22.2
+
+- Update dependencies
+    - zip 0.6.6 -> 1.3
+    - base64 0.21 -> 0.22
+
 # 0.22.1
 
 - fix
@@ -5,12 +11,12 @@
 # 0.22.0
 
 - memory optimizations
-  - BREAKING: Change &String in all APIs with &str.
-  - BREAKING: change currency string in Value from String to Box<str>. This shrinks Currency 
-    enough to fit in with the other variants.
-  - BREAKING: change annotation to Box<Annotation>. Big reduction for CellDataExt. Overall minor wins.
-  - change AttrMap2 from HashMap to Vec<Key> + Vec<Value>. Time is roughly equivalent, memory -7% averaged.
-  - breaking: change Sheet::header_rows() and Sheet::header_cols() to Header instead of RowRange/ColRange.
+    - BREAKING: Change &String in all APIs with &str.
+    - BREAKING: change currency string in Value from String to Box<str>. This shrinks Currency
+      enough to fit in with the other variants.
+    - BREAKING: change annotation to Box<Annotation>. Big reduction for CellDataExt. Overall minor wins.
+    - change AttrMap2 from HashMap to Vec<Key> + Vec<Value>. Time is roughly equivalent, memory -7% averaged.
+    - breaking: change Sheet::header_rows() and Sheet::header_cols() to Header instead of RowRange/ColRange.
 
 # 0.21.0
 
@@ -20,8 +26,8 @@
 
 - small: ```Pagestyle.set_page_usage()``` changed.
   There has been an unusual Option<> parameter. This is replaced with a direct set+clear.
-- medium: switch apis for xxxRef fields from String to the correct Ref type. 
-  The conversions from/to strings are still in place. 
+- medium: switch apis for xxxRef fields from String to the correct Ref type.
+  The conversions from/to strings are still in place.
 - medium: rename the metadata xml-tags to have a common prefix "Meta". This helps with
   code completion, there were conflicts with some enums.
 - large: Refined OdsOptions.
@@ -50,8 +56,8 @@
 ## Performance/memory usage
 
 - Store the row/column header data in compact form pos+span to save some memory.
-  - column headers are deduplicated when reading/before writing on top of that.
-- The cell duplication code has been moved to a separate stage. 
+    - column headers are deduplicated when reading/before writing on top of that.
+- The cell duplication code has been moved to a separate stage.
   This makes the task a lot easier and allows extra reductions.
 - The repeat value for a whole row is now used to duplicated the rows on reading.
   This has not been done so far.
@@ -73,18 +79,19 @@
 
 ## Experiments
 
-Tried three different implementations for xxxStyleRef. 
-- Current String implementation. 
-- Using smol_str:
-  - Memory usage goes down only 1-2%. Time is in the same range. Not worth the effort.
-- Using handles with u32:
-  - Memory usage goes down 10%. Time is in the same range. 
-  - This can't get rid of the style-name completely, so there would be two ways of 
-    indirection. Which only leads to insanity.
+Tried three different implementations for xxxStyleRef.
 
-Conclusion 1: It's not worth the effort. 
-Conclusion 2: Using xxStyleRef instead of String helps readability. Implementing 
-  Borrow<str> and AsRef<str> for xxStyleRef might be helpful.
+- Current String implementation.
+- Using smol_str:
+    - Memory usage goes down only 1-2%. Time is in the same range. Not worth the effort.
+- Using handles with u32:
+    - Memory usage goes down 10%. Time is in the same range.
+    - This can't get rid of the style-name completely, so there would be two ways of
+      indirection. Which only leads to insanity.
+
+Conclusion 1: It's not worth the effort.
+Conclusion 2: Using xxStyleRef instead of String helps readability. Implementing
+Borrow<str> and AsRef<str> for xxStyleRef might be helpful.
 
 # 0.20.2
 
