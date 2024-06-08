@@ -1,3 +1,5 @@
+- Use a fixed version (0.2.18) of num_traits for color-rs to compile.
+
 # 0.22.3
 
 - Include color-rs from github branch for now. Hope the fix will get released
