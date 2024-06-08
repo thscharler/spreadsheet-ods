@@ -851,13 +851,13 @@ impl WorkBook {
     }
 
     /// Returns the format.
-    pub fn number_format(&self, name: &str) -> Option<&ValueFormatBoolean> {
-        self.formats_boolean.get(name)
+    pub fn number_format(&self, name: &str) -> Option<&ValueFormatNumber> {
+        self.formats_number.get(name)
     }
 
     /// Returns the mutable format.
-    pub fn number_format_mut(&mut self, name: &str) -> Option<&mut ValueFormatBoolean> {
-        self.formats_boolean.get_mut(name)
+    pub fn number_format_mut(&mut self, name: &str) -> Option<&mut ValueFormatNumber> {
+        self.formats_number.get_mut(name)
     }
 
     /// Adds a value format.

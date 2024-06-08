@@ -1,3 +1,14 @@
+# 0.22.4
+
+- Include color-rs from github branch for now. Hope the fix will get released
+  sooner rather than later.
+- Fix invalid forwards in WorkBook::number_format() and WorkBook::number_format_mut()
+
+# 0.22.3
+
+- Update dependencies
+    - zip 1.3 -> 2.1
+
 # 0.22.2
 
 - Update dependencies
