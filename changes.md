@@ -17,7 +17,7 @@
 
 # 0.22.1
 
-- fix
+- fix: run in endless loop when writing. ups. don't use == for loop breaks, it seems.
 
 # 0.22.0
 
