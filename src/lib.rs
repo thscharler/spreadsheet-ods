@@ -13,7 +13,7 @@ pub use crate::io::read::{
 };
 pub use crate::io::write::{
     write_fods, write_fods_buf, write_fods_to, write_ods, write_ods_buf,
-    write_ods_buf_uncompressed, write_ods_to,
+    write_ods_buf_uncompressed, write_ods_to, OdsWriteOptions,
 };
 pub use crate::refs::{CCol, CRow, CellRange, CellRef, ColRange, RowRange};
 pub use crate::sheet_::Sheet;

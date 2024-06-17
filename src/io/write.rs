@@ -43,25 +43,47 @@ trait SeekWrite: Seek + Write {}
 
 impl<T> SeekWrite for T where T: Seek + Write {}
 
-struct OdsContext<W: Seek + Write> {
-    compression: CompressionMethod,
-    zip_writer: ZipWriter<W>,
+/// Write options for ods-files.
+#[derive(Debug, Default)]
+pub struct OdsWriteOptions {
+    method: CompressionMethod,
+    level: Option<i64>,
 }
 
-struct FodsContext<'a> {
-    writer: &'a mut dyn Write,
+impl OdsWriteOptions {
+    /// Zip compression method
+    pub fn compression_method(mut self, method: CompressionMethod) -> Self {
+        self.method = method;
+        self
+    }
+
+    /// Zip compression level
+    pub fn compression_level(mut self, level: Option<i64>) -> Self {
+        self.level = level;
+        self
+    }
+
+    /// Write the ods to the given writer.
+    pub fn write_ods<T: Write + Seek>(
+        self,
+        book: &mut WorkBook,
+        mut write: T,
+    ) -> Result<(), OdsError> {
+        let w = ZipWriter::new(&mut write);
+
+        write_ods_impl(self, w, book)?;
+
+        Ok(())
+    }
 }
 
 /// Writes the ODS file into a supplied buffer.
 pub fn write_ods_buf_uncompressed(book: &mut WorkBook, buf: Vec<u8>) -> Result<Vec<u8>, OdsError> {
     let mut cursor = Cursor::new(buf);
 
-    let ctx = OdsContext {
-        compression: CompressionMethod::Stored,
-        zip_writer: ZipWriter::new(&mut cursor),
-    };
-
-    write_ods_impl(ctx, book)?;
+    OdsWriteOptions::default()
+        .compression_method(CompressionMethod::Stored)
+        .write_ods(book, &mut cursor)?;
 
     Ok(cursor.into_inner())
 }
@@ -70,24 +92,18 @@ pub fn write_ods_buf_uncompressed(book: &mut WorkBook, buf: Vec<u8>) -> Result<V
 pub fn write_ods_buf(book: &mut WorkBook, buf: Vec<u8>) -> Result<Vec<u8>, OdsError> {
     let mut cursor = Cursor::new(buf);
 
-    let ctx = OdsContext {
-        compression: CompressionMethod::Deflated,
-        zip_writer: ZipWriter::new(&mut cursor),
-    };
-
-    write_ods_impl(ctx, book)?;
+    OdsWriteOptions::default()
+        .compression_method(CompressionMethod::Deflated)
+        .write_ods(book, &mut cursor)?;
 
     Ok(cursor.into_inner())
 }
 
 /// Writes the ODS file to the given Write.
 pub fn write_ods_to<T: Write + Seek>(book: &mut WorkBook, mut write: T) -> Result<(), OdsError> {
-    let ctx = OdsContext {
-        compression: CompressionMethod::Deflated,
-        zip_writer: ZipWriter::new(&mut write),
-    };
-
-    write_ods_impl(ctx, book)?;
+    OdsWriteOptions::default()
+        .compression_method(CompressionMethod::Deflated)
+        .write_ods(book, &mut write)?;
 
     Ok(())
 }
@@ -96,12 +112,9 @@ pub fn write_ods_to<T: Write + Seek>(book: &mut WorkBook, mut write: T) -> Resul
 pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(), OdsError> {
     let mut write = BufWriter::new(File::create(ods_path)?);
 
-    let ctx = OdsContext {
-        compression: CompressionMethod::Deflated,
-        zip_writer: ZipWriter::new(&mut write),
-    };
-
-    write_ods_impl(ctx, book)?;
+    OdsWriteOptions::default()
+        .compression_method(CompressionMethod::Deflated)
+        .write_ods(book, &mut write)?;
 
     write.flush()?;
 
@@ -110,18 +123,18 @@ pub fn write_ods<P: AsRef<Path>>(book: &mut WorkBook, ods_path: P) -> Result<(),
 
 /// Writes the FODS file into a supplied buffer.
 pub fn write_fods_buf(book: &mut WorkBook, mut buf: Vec<u8>) -> Result<Vec<u8>, OdsError> {
-    let ctx = FodsContext { writer: &mut buf };
+    let write: &mut dyn Write = &mut buf;
 
-    write_fods_impl(ctx, book)?;
+    write_fods_impl(write, book)?;
 
     Ok(buf)
 }
 
 /// Writes the FODS file to the given Write.
 pub fn write_fods_to<T: Write + Seek>(book: &mut WorkBook, mut write: T) -> Result<(), OdsError> {
-    let ctx = FodsContext { writer: &mut write };
+    let write: &mut dyn Write = &mut write;
 
-    write_fods_impl(ctx, book)?;
+    write_fods_impl(write, book)?;
 
     Ok(())
 }
@@ -129,23 +142,22 @@ pub fn write_fods_to<T: Write + Seek>(book: &mut WorkBook, mut write: T) -> Resu
 /// Writes the FODS file.
 pub fn write_fods<P: AsRef<Path>>(book: &mut WorkBook, fods_path: P) -> Result<(), OdsError> {
     let mut write = BufWriter::new(File::create(fods_path)?);
+    let write: &mut dyn Write = &mut write;
 
-    let ctx = FodsContext { writer: &mut write };
-
-    write_fods_impl(ctx, book)?;
+    write_fods_impl(write, book)?;
 
     Ok(())
 }
 
 /// Writes the ODS file.
 ///
-fn write_fods_impl(ctx: FodsContext<'_>, book: &mut WorkBook) -> Result<(), OdsError> {
+fn write_fods_impl(writer: &mut dyn Write, book: &mut WorkBook) -> Result<(), OdsError> {
     sanity_checks(book)?;
     calculations(book)?;
 
     convert(book)?;
 
-    let mut xml_out = XmlWriter::new(ctx.writer).line_break(true);
+    let mut xml_out = XmlWriter::new(writer).line_break(true);
     write_fods_content(book, &mut xml_out)?;
 
     Ok(())
@@ -331,7 +343,8 @@ fn write_fods_content(book: &mut WorkBook, xml_out: &mut OdsXmlWriter<'_>) -> Re
 /// Writes the ODS file.
 ///
 fn write_ods_impl<W: Write + Seek>(
-    mut ctx: OdsContext<W>,
+    cfg: OdsWriteOptions,
+    mut zip_writer: ZipWriter<W>,
     book: &mut WorkBook,
 ) -> Result<(), OdsError> {
     sanity_checks(book)?;
@@ -339,47 +352,56 @@ fn write_ods_impl<W: Write + Seek>(
 
     create_manifest(book)?;
 
-    ctx.zip_writer.start_file(
+    zip_writer.start_file(
         "mimetype",
         FileOptions::<()>::default().compression_method(CompressionMethod::Stored),
     )?;
-    write_ods_mimetype(&mut ctx.zip_writer)?;
+    write_ods_mimetype(&mut zip_writer)?;
 
-    ctx.zip_writer
-        .add_directory("META-INF", FileOptions::<()>::default())?;
-    ctx.zip_writer.start_file(
+    zip_writer.add_directory("META-INF", FileOptions::<()>::default())?;
+    zip_writer.start_file(
         "META-INF/manifest.xml",
-        FileOptions::<()>::default().compression_method(ctx.compression),
+        FileOptions::<()>::default()
+            .compression_method(cfg.method)
+            .compression_level(cfg.level),
     )?;
-    write_ods_manifest(book, &mut XmlWriter::new(&mut ctx.zip_writer))?;
+    write_ods_manifest(book, &mut XmlWriter::new(&mut zip_writer))?;
 
-    ctx.zip_writer.start_file(
+    zip_writer.start_file(
         "meta.xml",
-        FileOptions::<()>::default().compression_method(ctx.compression),
+        FileOptions::<()>::default()
+            .compression_method(cfg.method)
+            .compression_level(cfg.level),
     )?;
-    write_ods_metadata(book, &mut XmlWriter::new(&mut ctx.zip_writer))?;
+    write_ods_metadata(book, &mut XmlWriter::new(&mut zip_writer))?;
 
-    ctx.zip_writer.start_file(
+    zip_writer.start_file(
         "settings.xml",
-        FileOptions::<()>::default().compression_method(ctx.compression),
+        FileOptions::<()>::default()
+            .compression_method(cfg.method)
+            .compression_level(cfg.level),
     )?;
-    write_ods_settings(book, &mut XmlWriter::new(&mut ctx.zip_writer))?;
+    write_ods_settings(book, &mut XmlWriter::new(&mut zip_writer))?;
 
-    ctx.zip_writer.start_file(
+    zip_writer.start_file(
         "styles.xml",
-        FileOptions::<()>::default().compression_method(ctx.compression),
+        FileOptions::<()>::default()
+            .compression_method(cfg.method)
+            .compression_level(cfg.level),
     )?;
-    write_ods_styles(book, &mut XmlWriter::new(&mut ctx.zip_writer))?;
+    write_ods_styles(book, &mut XmlWriter::new(&mut zip_writer))?;
 
-    ctx.zip_writer.start_file(
+    zip_writer.start_file(
         "content.xml",
-        FileOptions::<()>::default().compression_method(ctx.compression),
+        FileOptions::<()>::default()
+            .compression_method(cfg.method)
+            .compression_level(cfg.level),
     )?;
-    write_ods_content(book, &mut XmlWriter::new(&mut ctx.zip_writer))?;
+    write_ods_content(book, &mut XmlWriter::new(&mut zip_writer))?;
 
-    write_ods_extra(&mut ctx, book)?;
+    write_ods_extra(&cfg, &mut zip_writer, book)?;
 
-    ctx.zip_writer.finish()?;
+    zip_writer.finish()?;
 
     Ok(())
 }
@@ -3133,7 +3155,8 @@ fn write_xmltag(x: &XmlTag, xml_out: &mut OdsXmlWriter<'_>) -> Result<(), OdsErr
 
 // All extra entries from the manifest.
 fn write_ods_extra<W: Write + Seek>(
-    ctx: &mut OdsContext<W>,
+    cfg: &OdsWriteOptions,
+    zip_writer: &mut ZipWriter<W>,
     book: &WorkBook,
 ) -> Result<(), OdsError> {
     for manifest in book.manifest.values() {
@@ -3142,15 +3165,16 @@ fn write_ods_extra<W: Write + Seek>(
             "/" | "settings.xml" | "styles.xml" | "content.xml" | "meta.xml"
         ) {
             if manifest.is_dir() {
-                ctx.zip_writer
-                    .add_directory(&manifest.full_path, FileOptions::<()>::default())?;
+                zip_writer.add_directory(&manifest.full_path, FileOptions::<()>::default())?;
             } else {
-                ctx.zip_writer.start_file(
+                zip_writer.start_file(
                     manifest.full_path.as_str(),
-                    FileOptions::<()>::default().compression_method(ctx.compression),
+                    FileOptions::<()>::default()
+                        .compression_method(cfg.method)
+                        .compression_level(cfg.level),
                 )?;
                 if let Some(buf) = &manifest.buffer {
-                    ctx.zip_writer.write_all(buf.as_slice())?;
+                    zip_writer.write_all(buf.as_slice())?;
                 }
             }
         }
