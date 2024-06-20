@@ -48,7 +48,7 @@ fn create_wb(rows: u32, cols: u32) -> Result<WorkBook, OdsError> {
     Ok(wb)
 }
 
-fn write_wb<'a>(wb: &'a mut WorkBook) -> impl FnMut() -> Result<(), OdsError> + 'a {
+fn write_wb(wb: &mut WorkBook) -> impl FnMut() -> Result<(), OdsError> + '_ {
     move || {
         let _buf = write_ods_buf_uncompressed(wb, Vec::new())?;
         Ok(())

@@ -173,7 +173,7 @@ impl<X> Timing<X> {
     pub fn median(&self) -> (f64, f64, f64) {
         let mut s = self.samples.clone();
         s.sort_by(|v, w| v.total_cmp(w));
-        let m0 = s.len() * 1 / 10;
+        let m0 = s.len() / 10;
         let m5 = s.len() / 2;
         let m9 = s.len() * 9 / 10;
 

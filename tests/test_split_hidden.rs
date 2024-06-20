@@ -12,7 +12,7 @@ struct SplitCols {
 fn split_hidden(ranges: &[CellRange], row: u32, col: u32, repeat: u32, out: &mut Vec<SplitCols>) {
     out.clear();
     if repeat == 1 {
-        if ranges.iter().find(|v| v.contains(row, col)).is_some() {
+        if ranges.iter().any(|v| v.contains(row, col)) {
             let range = SplitCols {
                 col,
                 col_to: col,

@@ -3905,9 +3905,7 @@ fn read_office_meta(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<
             }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:editing-duration" => {
                 ctx.book.metadata.editing_duration =
-                    read_metadata_value(ctx, xml, xml_tag, parse_duration, || {
-                        Duration::default()
-                    })?;
+                    read_metadata_value(ctx, xml, xml_tag, parse_duration, Duration::default)?;
             }
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:template" => {

@@ -138,7 +138,7 @@ pub fn all_digits(input: &[u8]) -> TokenizerResult<RCode, &[u8], ()> {
 #[inline(always)]
 pub(crate) fn byte(c: u8) -> impl Fn(&[u8]) -> TokenizerResult<RCode, &[u8], ()> {
     move |i: &[u8]| {
-        if i.len() > 0 && i[0] == c {
+        if !i.is_empty() && i[0] == c {
             Ok((&i[1..], ()))
         } else {
             Err(nom::Err::Error(KTokenizerError::new(RCode::Byte, i)))

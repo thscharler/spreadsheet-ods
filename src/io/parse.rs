@@ -508,8 +508,8 @@ mod tests {
 
     #[test]
     fn test_bool() -> Result<(), OdsError> {
-        assert_eq!(parse_bool(b"true")?, true);
-        assert_eq!(parse_bool(b"false")?, false);
+        assert!(parse_bool(b"true")?);
+        assert!(!(parse_bool(b"false")?));
         parse_bool(b"ffoso").unwrap_err();
         Ok(())
     }

@@ -452,7 +452,7 @@ fn test_all() {
 fn test_attrmap1() {
     let mut t0 = Timing::<()>::default().name("vec").skip(10).runs(100000);
 
-    let _ = t0.run_nf(|| {
+    t0.run_nf(|| {
         let mut a = v1::AttrMap2::new();
 
         for v in 0..45 {
@@ -475,7 +475,7 @@ fn test_attrmap2() {
         .skip(10)
         .runs(100000);
 
-    let _ = t0.run_nf(|| {
+    t0.run_nf(|| {
         let mut a = v2::AttrMap2::new();
 
         for v in 0..45 {
@@ -495,7 +495,7 @@ fn test_attrmap2() {
 fn test_attrmap3() {
     let mut t0 = Timing::<()>::default().name("vec2").skip(10).runs(100000);
 
-    let _ = t0.run_nf(|| {
+    t0.run_nf(|| {
         let mut a = v3::AttrMap2::new();
 
         for v in 0..45 {
@@ -515,7 +515,7 @@ fn test_attrmap3() {
 fn test_attrmap4() {
     let mut t0 = Timing::<()>::default().name("vec3").skip(10).runs(100000);
 
-    let _ = t0.run_nf(|| {
+    t0.run_nf(|| {
         let mut a = v4::AttrMap2::new();
 
         for v in 0..45 {
