@@ -1014,7 +1014,7 @@ impl Sheet {
 
     /// Returns true if there is no SCell at the given position.
     pub fn is_empty(&self, row: u32, col: u32) -> bool {
-        self.data.get(&(row, col)).is_none()
+        !self.data.contains_key(&(row, col))
     }
 
     /// Returns a clone of the cell content.
