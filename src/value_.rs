@@ -1,11 +1,13 @@
-use crate::text::TextTag;
+use std::borrow::Cow;
+
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 use get_size::GetSize;
 use get_size_derive::GetSize;
+use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::prelude::ToPrimitive;
-use rust_decimal::Decimal;
-use std::borrow::Cow;
+
+use crate::text::TextTag;
 
 /// Datatypes for the values. Only the discriminants of the Value enum.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, GetSize)]
@@ -612,7 +614,7 @@ impl From<Option<NaiveDate>> for Value {
 impl From<NaiveTime> for Value {
     fn from(ti: NaiveTime) -> Self {
         Value::DateTime(NaiveDateTime::new(
-            NaiveDate::from_ymd_opt(1900, 1, 1).expect("valid date"),
+            NaiveDate::from_ymd_opt(1899, 12, 30).expect("valid date"),
             ti,
         ))
     }
@@ -622,7 +624,7 @@ impl From<Option<NaiveTime>> for Value {
     fn from(dt: Option<NaiveTime>) -> Self {
         if let Some(ti) = dt {
             Value::DateTime(NaiveDateTime::new(
-                NaiveDate::from_ymd_opt(1900, 1, 1).expect("valid date"),
+                NaiveDate::from_ymd_opt(1899, 12, 30).expect("valid date"),
                 ti,
             ))
         } else {
