@@ -2111,6 +2111,7 @@ fn write_table_columns(
             }
         }
 
+        debug_assert!(span>0);
         c += span;
     }
 

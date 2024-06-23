@@ -667,49 +667,58 @@ impl Sheet {
     // Create the col-header if necessary.
     #[allow(clippy::comparison_chain)]
     fn create_split_col_header(&mut self, col: u32) -> &mut ColHeader {
-        let mut cloned = Vec::new();
+        // not already split up.
+        if self.col_header.get(&col).filter(|v| v.span == 1).is_none() {
+            let mut col_col = None;
+            let mut left_hdr = None;
+            let mut split_hdr = None;
+            let mut right_hdr = None;
 
-        if let Some((base_col, col_header)) = self.col_header.range_mut(..=col).last() {
-            if (*base_col..*base_col + col_header.span).contains(&col) {
-                let base_span = col_header.span;
+            for (base_col, col_header) in &self.col_header {
+                if col >= *base_col && col < base_col + col_header.span {
+                    // correct one.
+                    col_col = Some(*base_col);
 
-                // three-way split:
-                //      base_col .. col
-                //      col
-                //      col +1 .. base_col+span
+                    // now split three-ways: base_col..col | col | col + 1..base_col+base_span
+                    let left_span = col - *base_col;
+                    if left_span > 0 {
+                        let mut tmp = col_header.clone();
+                        tmp.span = left_span;
+                        left_hdr = Some((*base_col, tmp));
+                    }
 
-                // front + target
-                if *base_col < col {
-                    col_header.span = col - *base_col;
+                    split_hdr = Some((col, col_header.clone()));
 
-                    let mut clone = col_header.clone();
-                    clone.span = 1;
-                    cloned.push((col, clone));
-                } else if *base_col == col {
-                    col_header.span = 1;
-                } else {
-                    unreachable!();
+                    let right_span = (*base_col + col_header.span) - (col + 1);
+                    if right_span > 0 {
+                        let mut tmp = col_header.clone();
+                        tmp.span = right_span;
+                        right_hdr = Some((col + 1, tmp));
+                    }
+
+                    break;
                 }
+            }
 
-                // back
-                if *base_col + base_span > col {
-                    let mut clone = col_header.clone();
-                    clone.span = *base_col + base_span - (col + 1);
-                    cloned.push((col + 1, clone));
-                } else if *base_col + base_span == col {
-                    // noop
-                } else {
-                    unreachable!();
+            if let Some(col_col) = col_col {
+                // found
+                self.col_header.remove(&col_col);
+
+                if let Some(left_hdr) = left_hdr {
+                    self.col_header.insert(left_hdr.0, left_hdr.1);
+                }
+                if let Some(split_hdr) = split_hdr {
+                    self.col_header.insert(split_hdr.0, split_hdr.1);
+                }
+                if let Some(right_hdr) = right_hdr {
+                    self.col_header.insert(right_hdr.0, right_hdr.1);
                 }
             } else {
+                // not found
                 self.col_header.insert(col, ColHeader::default());
             }
         } else {
-            self.col_header.insert(col, ColHeader::default());
-        }
-
-        for (r, ch) in cloned {
-            self.col_header.insert(r, ch);
+            // found with span==1
         }
 
         self.col_header.get_mut(&col).expect("col-header")
