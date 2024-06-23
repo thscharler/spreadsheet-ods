@@ -437,6 +437,7 @@ mod tests {
         parse_bool, parse_datetime, parse_duration, parse_f64, parse_i32, parse_u32, token_nano,
     };
     use crate::OdsError;
+    use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
     #[test]
     fn test_u32() -> Result<(), OdsError> {
@@ -474,23 +475,62 @@ mod tests {
 
     #[test]
     fn test_datetime() -> Result<(), OdsError> {
-        assert_eq!(parse_datetime(b"19999-01-01")?.timestamp(), 568940284800);
-        assert_eq!(parse_datetime(b"1999-01-01")?.timestamp(), 915148800);
-        assert_eq!(parse_datetime(b"-45-01-01")?.timestamp(), -63587289600);
-        assert_eq!(parse_datetime(b"2004-02-29")?.timestamp(), 1078012800);
-        assert_eq!(parse_datetime(b"2000-02-29")?.timestamp(), 951782400);
+        assert_eq!(
+            parse_datetime(b"19999-01-01")?,
+            NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(19999, 1, 1).expect("date"),
+                NaiveTime::default()
+            )
+        );
+        assert_eq!(
+            parse_datetime(b"1999-01-01")?,
+            NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(1999, 1, 1).expect("date"),
+                NaiveTime::default()
+            )
+        );
+        assert_eq!(
+            parse_datetime(b"-45-01-01")?,
+            NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(-45, 1, 1).expect("date"),
+                NaiveTime::default()
+            )
+        );
+        assert_eq!(
+            parse_datetime(b"2004-02-29")?,
+            NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(2004, 2, 29).expect("date"),
+                NaiveTime::default()
+            )
+        );
+        assert_eq!(
+            parse_datetime(b"2000-02-29")?,
+            NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(2000, 2, 29).expect("date"),
+                NaiveTime::default()
+            )
+        );
 
         assert_eq!(
-            parse_datetime(b"2000-01-01T11:22:33")?.timestamp(),
-            946725753
+            parse_datetime(b"2000-01-01T11:22:33")?,
+            NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(2000, 1, 1).expect("date"),
+                NaiveTime::from_hms_opt(11, 22, 33).expect("time")
+            )
         );
         assert_eq!(
-            parse_datetime(b"2000-01-01T11:22:33.1234")?.timestamp(),
-            946725753
+            parse_datetime(b"2000-01-01T11:22:33.1234")?,
+            NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(2000, 1, 1).expect("date"),
+                NaiveTime::from_hms_micro_opt(11, 22, 33, 123400).expect("time")
+            )
         );
         assert_eq!(
-            parse_datetime(b"2000-01-01T11:22:33.123456789111")?.timestamp(),
-            946725753
+            parse_datetime(b"2000-01-01T11:22:33.123456789111")?,
+            NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(2000, 1, 1).expect("date"),
+                NaiveTime::from_hms_nano_opt(11, 22, 33, 123456789).expect("time")
+            )
         );
 
         Ok(())

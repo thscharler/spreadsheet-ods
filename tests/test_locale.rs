@@ -1,6 +1,6 @@
 mod lib_test;
 
-use chrono::{Duration, NaiveDate, NaiveDateTime};
+use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 use icu_locid::{locale, Locale};
 use lib_test::*;
 use spreadsheet_ods::defaultstyles::DefaultStyle;
@@ -74,9 +74,12 @@ pub fn test_locale3() -> Result<(), OdsError> {
     sheet.set_value(
         6,
         1,
-        Value::DateTime(NaiveDateTime::from_timestamp_opt(1234, 0).unwrap()),
+        Value::DateTime(NaiveDateTime::new(
+            NaiveDate::from_ymd_opt(2000, 10, 11).unwrap(),
+            NaiveTime::default(),
+        )),
     );
-    sheet.set_value(8, 1, Value::TimeDuration(Duration::hours(1234)));
+    sheet.set_value(8, 1, Value::TimeDuration(Duration::try_hours(1234).expect("hours")));
 
     wb.push_sheet(sheet);
 
@@ -142,7 +145,7 @@ pub fn test_locale4() -> Result<(), OdsError> {
     sheet.set_styled_value(
         8,
         1,
-        Value::TimeDuration(Duration::hours(1234)),
+        Value::TimeDuration(Duration::try_hours(1234).expect("hours")),
         &DefaultStyle::time_interval(),
     );
 

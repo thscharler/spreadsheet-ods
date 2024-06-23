@@ -594,7 +594,7 @@ impl Sheet {
     pub fn iter_rows<R: RangeBounds<(u32, u32)>>(
         &self,
         range: R,
-    ) -> impl Iterator<Item = ((u32, u32), CellContentRef<'_>)> {
+    ) -> impl Iterator<Item=((u32, u32), CellContentRef<'_>)> {
         IterRows::new(self, range)
     }
 
@@ -605,7 +605,7 @@ impl Sheet {
     pub fn iter_cols<R: RangeBounds<(u32, u32)>>(
         &self,
         range: R,
-    ) -> impl Iterator<Item = ((u32, u32), CellContentRef<'_>)> {
+    ) -> impl Iterator<Item=((u32, u32), CellContentRef<'_>)> {
         IterCols::new(self, range)
     }
 
@@ -613,7 +613,7 @@ impl Sheet {
     pub fn range<R: RangeBounds<(u32, u32)>>(
         &self,
         range: R,
-    ) -> impl Iterator<Item = ((u32, u32), CellContentRef<'_>)> {
+    ) -> impl Iterator<Item=((u32, u32), CellContentRef<'_>)> {
         Range {
             range: self.data.range(range),
         }
@@ -1452,7 +1452,7 @@ impl Sheet {
     }
 
     /// Iterate the column groups.
-    pub fn col_group_iter(&self) -> impl Iterator<Item = &Grouped> {
+    pub fn col_group_iter(&self) -> impl Iterator<Item=&Grouped> {
         self.group_cols.iter()
     }
 
@@ -1517,7 +1517,7 @@ impl Sheet {
     }
 
     /// Iterate row groups.
-    pub fn row_group_iter(&self) -> impl Iterator<Item = &Grouped> {
+    pub fn row_group_iter(&self) -> impl Iterator<Item=&Grouped> {
         self.group_rows.iter()
     }
 }
