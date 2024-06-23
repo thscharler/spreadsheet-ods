@@ -1,6 +1,6 @@
 mod lib_test;
 
-use chrono::NaiveDateTime;
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use icu_locid::locale;
 use lib_test::*;
 use spreadsheet_ods::format::{FormatCalendarStyle, FormatNumberStyle};
@@ -109,7 +109,10 @@ fn write_format() -> Result<(), OdsError> {
     sh.set_styled_value(
         7,
         0,
-        NaiveDateTime::from_timestamp_opt(1_223_222_222, 22992).unwrap(),
+        NaiveDateTime::new(
+            NaiveDate::from_ymd_opt(2000, 1, 1).expect("date"),
+            NaiveTime::from_hms_opt(11, 21, 17).expect("time"),
+        ),
         &f7,
     );
     sh.set_styled_value(8, 0, 1.234567f64, &f8);

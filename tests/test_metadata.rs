@@ -15,7 +15,7 @@ fn test_write_read() -> Result<(), OdsError> {
     });
     wb.metadata_mut().user_defined.push(MetaUserDefined {
         name: "two".to_string(),
-        value: MetaValue::TimeDuration(Duration::hours(0)),
+        value: MetaValue::TimeDuration(Duration::try_hours(0).expect("hours")),
     });
     wb.metadata_mut().user_defined.push(MetaUserDefined {
         name: "three".to_string(),
