@@ -29,7 +29,10 @@ use std::io::{BufWriter, Cursor, Seek, Write};
 use std::path::Path;
 use std::{io, mem};
 use zip::write::FileOptions;
-use zip::{CompressionMethod, ZipWriter};
+use zip::ZipWriter;
+
+// reexport for OdsWriteOptions.
+pub use zip::CompressionMethod;
 
 #[cfg(test)]
 mod tests;
