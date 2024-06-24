@@ -1,3 +1,11 @@
+# 0.22.4
+
+- #55: Add OdsWriteOptions to set the compression-method and compression-level
+  for the output.
+- Conversion from NaiveTime used the wrong date (1.1.1900 instead of 30.12.1899)
+  This showed times correctly, but the value was wrong.
+- #54: When calling Sheet::set_col_width() multiple times for the same
+  column, splitting the header-data went wrong somewhere.
 - Use a fixed version (0.2.18) of num_traits for color-rs to compile.
 
 # 0.22.3
