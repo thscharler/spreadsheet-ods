@@ -1,6 +1,7 @@
 #![doc = include_str!("../crate.md")]
 
 pub use color;
+pub use zip::CompressionMethod;
 
 pub use crate::cell_::{CellContent, CellContentRef};
 pub use crate::error::{OdsError, OdsResult};
@@ -20,8 +21,6 @@ pub use crate::sheet_::Sheet;
 pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
 pub use crate::value_::{Value, ValueType};
-// pub mod value {
-// }
 pub use crate::workbook_::WorkBook;
 
 #[macro_use]

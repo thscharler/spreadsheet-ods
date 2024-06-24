@@ -1,4 +1,4 @@
-# 0.22.4
+# 0.22.4 yanked; 0.22.5
 
 - #55: Add OdsWriteOptions to set the compression-method and compression-level
   for the output.

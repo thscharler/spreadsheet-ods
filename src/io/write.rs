@@ -29,10 +29,7 @@ use std::io::{BufWriter, Cursor, Seek, Write};
 use std::path::Path;
 use std::{io, mem};
 use zip::write::FileOptions;
-use zip::ZipWriter;
-
-// reexport for OdsWriteOptions.
-pub use zip::CompressionMethod;
+use zip::{CompressionMethod, ZipWriter};
 
 #[cfg(test)]
 mod tests;
@@ -2111,7 +2108,7 @@ fn write_table_columns(
             }
         }
 
-        debug_assert!(span>0);
+        debug_assert!(span > 0);
         c += span;
     }
 
