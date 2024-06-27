@@ -353,10 +353,10 @@ fn token_duration(input: KSpan<'_>) -> KTokenResult<'_, Duration> {
             byte(b'T'),
             opt(terminated(token_datepart, byte(b'H'))),
             opt(terminated(token_datepart, byte(b'M'))),
-            terminated(
+            opt(terminated(
                 pair(token_datepart, opt(preceded(byte(b'.'), token_nano))),
                 byte(b'S'),
-            ),
+            )),
         ))),
     )))(input)?;
 
@@ -370,7 +370,7 @@ fn token_duration(input: KSpan<'_>) -> KTokenResult<'_, Duration> {
             input,
         )))?;
     }
-    if let Some((_, hour, minute, (second, nanos))) = time {
+    if let Some((_, hour, minute, second)) = time {
         if let Some(hour) = hour {
             result += Duration::try_hours(hour).ok_or(nom::Err::Error(KTokenizerError::new(
                 RCode::Duration,
@@ -382,12 +382,13 @@ fn token_duration(input: KSpan<'_>) -> KTokenResult<'_, Duration> {
                 KTokenizerError::new(RCode::Duration, input),
             ))?;
         }
-        result += Duration::try_seconds(second).ok_or(nom::Err::Error(KTokenizerError::new(
-            RCode::Duration,
-            input,
-        )))?;
-        if let Some(nanos) = nanos {
-            result += Duration::nanoseconds(nanos);
+        if let Some((second, nanos)) = second {
+            result += Duration::try_seconds(second).ok_or(nom::Err::Error(
+                KTokenizerError::new(RCode::Duration, input),
+            ))?;
+            if let Some(nanos) = nanos {
+                result += Duration::nanoseconds(nanos);
+            }
         }
     }
 
