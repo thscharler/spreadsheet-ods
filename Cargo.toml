@@ -16,8 +16,6 @@ absolute_paths_not_starting_with_crate = "warn"
 # box_pointers = "warn"
 elided_lifetimes_in_paths = "warn"
 explicit_outlives_requirements = "warn"
-keyword_idents = "warn"
-macro_use_extern_crate = "warn"
 meta_variable_misuse = "warn"
 missing_abi = "warn"
 # NOT_ACCURATE: missing_copy_implementations = "warn"
@@ -42,6 +40,9 @@ unused_lifetimes = "warn"
 unused_qualifications = "warn"
 # NO: unused_results = "warn"
 variant_size_differences = "warn"
+
+[lints.clippy]
+empty_docs = "allow"
 
 [features]
 default = ["use_decimal", "all_locales"]
@@ -76,8 +77,14 @@ unicode-ident = "1.0"
 kparse = "3.0.5"
 base64 = "0.22"
 quick-xml = { version = "0.31.0" }
-zip = { version = "2.1.0", default-features = false, features = ["deflate", "time"] }
-chrono = { version = "0.4", default-features = false, features = ["clock", "alloc"] }
+zip = { version = "2.1.0", default-features = false, features = [
+  "deflate",
+  "time",
+] }
+chrono = { version = "0.4", default-features = false, features = [
+  "clock",
+  "alloc",
+] }
 get-size = "0.1.4"
 get-size-derive = "0.1.3"
 
@@ -87,3 +94,4 @@ criterion = { version = "0.5.1", features = ["html_reports"] }
 [[bench]]
 name = "bench"
 harness = false
+

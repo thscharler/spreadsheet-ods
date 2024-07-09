@@ -551,7 +551,7 @@ mod tests {
         }
         {
             let mut configuration_settings = ConfigItem::new_set();
-            configuration_settings.insert("HasSheetTabs".to_string(), true);
+            configuration_settings.insert("HasSheetTabs", true);
             configuration_settings.insert("ShowNotes", true);
             configuration_settings.insert("GridColor", 12632256);
             configuration_settings.insert("LinkUpdateMode", 3i16);

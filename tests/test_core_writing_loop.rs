@@ -114,7 +114,7 @@ fn test_write_gap_repeat() -> Result<(), OdsError> {
 
 #[test]
 #[should_panic]
-fn test_write_row_overlap() -> () {
+fn test_write_row_overlap() {
     let mut wb = WorkBook::new_empty();
 
     let mut sh = Sheet::new("Sheet1");
@@ -134,7 +134,7 @@ fn test_write_row_overlap() -> () {
 
 #[test]
 #[should_panic]
-fn test_write_col_overlap() -> () {
+fn test_write_col_overlap() {
     let mut wb = WorkBook::new_empty();
 
     let mut sh = Sheet::new("Sheet1");
