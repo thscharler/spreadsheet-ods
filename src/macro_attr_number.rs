@@ -190,9 +190,9 @@ macro_rules! number_automatic_order {
         /// order for the language and country of a data style.
         /// The defined values for the number:automatic-order attribute are:
         /// * false: data is not ordered to match the default order for the language and country of a data
-        /// style.
+        ///     style.
         /// * true: data is ordered to match the default order for the language and country of a data style.
-        /// The default value for this attribute is false.
+        ///     The default value for this attribute is false.
         ///
         /// This attribute is valid for ValueType::DateTime and ValueType::TimeDuration.
         pub fn set_automatic_order(&mut self, volatile: bool) {
@@ -219,11 +219,11 @@ macro_rules! number_format_source {
         ///
         /// The defined values for the number:format-source attribute are:
         /// * fixed: the values short and long of the number:style attribute are defined by this
-        /// standard.
+        ///     standard.
         /// * language: the meaning of the values long and short of the number:style attribute
-        /// depend upon the number:language and number:country attributes of the date style. If
-        /// neither of those attributes are specified, consumers should use their default locale for short
-        /// and long date and time formats.
+        ///     depend upon the number:language and number:country attributes of the date style. If
+        ///     neither of those attributes are specified, consumers should use their default locale for short
+        ///     and long date and time formats.
         ///
         /// The default value for this attribute is fixed.
         ///

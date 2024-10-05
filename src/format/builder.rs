@@ -64,10 +64,11 @@ impl<'vf, T: ValueFormatTrait> PartNumberBuilder<'vf, T> {
     /// grouped using a separator character.
     /// The grouping character that is used and the number of digits that are grouped together depends
     /// on the language and country of the style.
+    ///
     /// The defined values for the number:grouping attribute are:
     /// * false: integer digits of a number are not grouped using a separator character.
     /// * true: integer digits of a number should be grouped by a separator character.
-    /// The default value for this attribute is false.
+    ///     The default value for this attribute is false.
     #[must_use]
     pub fn grouping(mut self) -> Self {
         self.part.set_attr("number:grouping", String::from("true"));
@@ -265,11 +266,12 @@ impl<'vf, T: ValueFormatTrait> PartScientificBuilder<'vf, T> {
 
     /// The number:forced-exponent-sign attribute specifies whether the sign of the exponent for a
     /// scientific number is always displayed.
+    ///
     /// The defined values for the number:forced-exponent-sign attribute are:
     /// * false: the exponent sign is displayed only for a negative value of the exponent, otherwise it
-    /// is not displayed.
+    ///     is not displayed.
     /// * true: the exponent sign is always displayed regardless of the value of exponent.
-    /// The default value for this attribute is true.
+    ///     The default value for this attribute is true.
     #[must_use]
     pub fn forced_exponent_sign(mut self, v: bool) -> Self {
         self.part
@@ -281,10 +283,11 @@ impl<'vf, T: ValueFormatTrait> PartScientificBuilder<'vf, T> {
     /// grouped using a separator character.
     /// The grouping character that is used and the number of digits that are grouped together depends
     /// on the language and country of the style.
+    ///
     /// The defined values for the number:grouping attribute are:
     /// * false: integer digits of a number are not grouped using a separator character.
     /// * true: integer digits of a number should be grouped by a separator character.
-    /// The default value for this attribute is false.
+    ///     The default value for this attribute is false.
     #[must_use]
     pub fn grouping(mut self) -> Self {
         self.part.set_attr("number:grouping", String::from("true"));
@@ -390,10 +393,11 @@ impl<'vf, T: ValueFormatTrait> PartFractionBuilder<'vf, T> {
     /// grouped using a separator character.
     /// The grouping character that is used and the number of digits that are grouped together depends
     /// on the language and country of the style.
+    ///
     /// The defined values for the number:grouping attribute are:
     /// * false: integer digits of a number are not grouped using a separator character.
     /// * true: integer digits of a number should be grouped by a separator character.
-    /// The default value for this attribute is false.
+    ///     The default value for this attribute is false.
     #[must_use]
     pub fn grouping(mut self) -> Self {
         self.part.set_attr("number:grouping", String::from("true"));
@@ -701,9 +705,11 @@ impl<'vf, T: ValueFormatTrait> PartMonthBuilder<'vf, T> {
 
     /// The number:textual attribute specifies whether the name or number of a month is displayed in
     /// the month portion of a date.
+    ///
     /// The defined values for the number:textual element are:
     /// * false: the number of the month is displayed.
     /// * true: the name of the month is displayed.
+    ///
     /// The name or number of a month is defined by the number:calendar 19.341 attribute on the
     /// same parent element as the number:textual attribute.
     /// The default value for this attribute is false.
@@ -717,6 +723,7 @@ impl<'vf, T: ValueFormatTrait> PartMonthBuilder<'vf, T> {
     /// using the possessive form.
     /// The number:possessive-form attribute is only applied when a number:textual 19.363
     /// attribute on the same number:month element has the value of true.
+    ///
     /// The defined values for the number:possessive-form attribute are:
     /// * false: the name of the month is displayed in nominative form.
     /// * true: the name of the month is displayed in possessive form.

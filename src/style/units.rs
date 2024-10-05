@@ -1056,7 +1056,7 @@ impl Display for CellProtect {
 ///
 /// The defined values for the style:direction attribute are:
 /// * ltr – left to right, text is rendered in the direction specified by the style:writing-mode
-/// attribute
+///     attribute
 /// * ttb – top to bottom, characters are vertically stacked but not rotated
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
@@ -1478,11 +1478,11 @@ impl Display for TextAutoSpace {
 ///
 /// The defined values for the style:text-combine attribute are:
 /// * letters: Display text in Kumimoji. Up to five (5) characters are combined within two lines
-/// and are displayed with a reduced size in a single wide-cell character. Additional characters
-/// are displayed as normal text.
+///     and are displayed with a reduced size in a single wide-cell character. Additional characters
+///     are displayed as normal text.
 /// * lines: Displays text in Warichu. All characters with the style:text-combine attribute that
-/// immediately follow each other are displayed within two lines of approximately the same length.
-/// A line break may occur between any two characters to meet this constraint.
+///     immediately follow each other are displayed within two lines of approximately the same length.
+///     A line break may occur between any two characters to meet this constraint.
 /// * none: characters should not be combined.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
@@ -1614,10 +1614,10 @@ impl Display for LineMode {
 /// * dash: text has a dashed line underlining it.
 /// * dot-dash: text has a line whose repeating pattern is a dot followed by a dash underlining it.
 /// * dot-dot-dash: text has a line whose repeating pattern is two dots followed by a dash
-/// underlining it.
+///     underlining it.
 /// * dotted: text has a dotted line underlining it.
 /// * long-dash: text has a dashed line whose dashes are longer than the ones from the dashed
-/// line for value dash underlining it.
+///     line for value dash underlining it.
 /// * solid: text has a solid line underlining it.
 /// * wave: text has a wavy line underlining it.
 ///
@@ -1831,8 +1831,8 @@ impl Display for RotationScale {
 ///
 /// The defined values for the style:vertical-align attribute are:
 /// * auto: automatically, which sets the vertical alignment to suit the text rotation. Text that is
-/// rotated 0 or 90 degrees is aligned to the baseline, while text that is rotated 270 degrees is
-/// aligned to the center of the line.
+///     rotated 0 or 90 degrees is aligned to the baseline, while text that is rotated 270 degrees is
+///     aligned to the center of the line.
 /// * baseline: to the baseline of the character.
 /// * bottom: to the bottom of the line.
 /// * middle: to the center of the line.

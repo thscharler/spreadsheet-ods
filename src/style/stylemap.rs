@@ -21,7 +21,7 @@ pub struct StyleMap {
 }
 
 impl StyleMap {
-    ///
+    /// New.
     pub fn new_empty() -> Self {
         Self {
             condition: Default::default(),

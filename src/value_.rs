@@ -3,9 +3,9 @@ use std::borrow::Cow;
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 use get_size::GetSize;
 use get_size_derive::GetSize;
-use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 
 use crate::text::TextTag;
 
@@ -258,7 +258,7 @@ impl Value {
 
     /// Return the content as decimal if the value is a number, percentage or
     /// currency. Default otherwise.
-    #[cfg(feature = "use_decimal")]
+    #[cfg(feature = "rust_decimal")]
     pub fn as_decimal_or(&self, d: Decimal) -> Decimal {
         match self {
             Value::Number(n) => Decimal::from_f64(*n).unwrap_or(d),
@@ -270,7 +270,7 @@ impl Value {
 
     /// Return the content as decimal if the value is a number, percentage or
     /// currency. Default otherwise.
-    #[cfg(feature = "use_decimal")]
+    #[cfg(feature = "rust_decimal")]
     pub fn as_decimal_opt(&self) -> Option<Decimal> {
         match self {
             Value::Number(n) => Decimal::from_f64(*n),
@@ -494,14 +494,14 @@ impl From<Option<String>> for Value {
     }
 }
 
-#[cfg(feature = "use_decimal")]
+#[cfg(feature = "rust_decimal")]
 impl From<Decimal> for Value {
     fn from(f: Decimal) -> Self {
         Value::Number(f.to_f64().expect("decimal->f64 should not fail"))
     }
 }
 
-#[cfg(feature = "use_decimal")]
+#[cfg(feature = "rust_decimal")]
 impl From<Option<Decimal>> for Value {
     fn from(f: Option<Decimal>) -> Self {
         if let Some(f) = f {

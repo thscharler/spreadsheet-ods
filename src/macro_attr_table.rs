@@ -1,11 +1,13 @@
 macro_rules! table_align {
     ($acc:ident) => {
         /// The table:align attribute specifies the horizontal alignment of a table.
+        ///
         /// The defined values for the table:align attribute are:
         /// * center: table aligns to the center between left and right margins.
         /// * left: table aligns to the left margin.
         /// * margins: table fills all the space between the left and right margins.
         /// * right: table aligns to the right margin.
+        ///
         /// Consumers that do not support the margins value, may treat this value as left.
         pub fn set_align(&mut self, align: TableAlign) {
             self.$acc.set_attr("table:align", align.to_string());
@@ -17,10 +19,12 @@ macro_rules! table_border_model {
     ($acc:ident) => {
         /// The table:border-model attribute specifies what border model to use when creating a table
         /// with a border.
+        ///
         /// The defined values for the table:border-model attribute are:
         /// * collapsing: when two adjacent cells have different borders, the wider border appears as
-        /// the border between the cells. Each cell receives half of the width of the border.
+        ///     the border between the cells. Each cell receives half of the width of the border.
         /// * separating: borders appear within the cell that specifies the border.
+        ///
         /// In OpenDocument, a row height or column width includes any space required to display borders
         /// or padding. This means that, while the width and height of the content area is less than the
         /// column width and row height, the sum of the widths of all columns is equal to the total width of the
@@ -34,6 +38,7 @@ macro_rules! table_border_model {
 macro_rules! table_display {
     ($acc:ident) => {
         /// The table:display attribute specifies whether a table is displayed.
+        ///
         /// The defined values for the table:display attribute are:
         /// * false: table should not be displayed.
         /// * true: table should be displayed.
@@ -88,9 +93,10 @@ macro_rules! table_table_background {
     ($acc:ident) => {
         /// The table:table-background attribute specifies whether a shape is in the table background if
         /// the drawing shape is included in a spreadsheet document.
+        ///
         /// The defined values for the table:table-background attribute are:
-        /// • false: shape is included in foreground of a table.
-        /// • true: shape is included in background of a table.
+        /// * false: shape is included in foreground of a table.
+        /// * true: shape is included in background of a table.
         pub fn set_table_table_background(&mut self, is_bg: bool) {
             self.$acc
                 .set_attr("table:table-background", is_bg.to_string());

@@ -594,7 +594,7 @@ impl Sheet {
     pub fn iter_rows<R: RangeBounds<(u32, u32)>>(
         &self,
         range: R,
-    ) -> impl Iterator<Item=((u32, u32), CellContentRef<'_>)> {
+    ) -> impl Iterator<Item = ((u32, u32), CellContentRef<'_>)> {
         IterRows::new(self, range)
     }
 
@@ -605,7 +605,7 @@ impl Sheet {
     pub fn iter_cols<R: RangeBounds<(u32, u32)>>(
         &self,
         range: R,
-    ) -> impl Iterator<Item=((u32, u32), CellContentRef<'_>)> {
+    ) -> impl Iterator<Item = ((u32, u32), CellContentRef<'_>)> {
         IterCols::new(self, range)
     }
 
@@ -613,7 +613,7 @@ impl Sheet {
     pub fn range<R: RangeBounds<(u32, u32)>>(
         &self,
         range: R,
-    ) -> impl Iterator<Item=((u32, u32), CellContentRef<'_>)> {
+    ) -> impl Iterator<Item = ((u32, u32), CellContentRef<'_>)> {
         Range {
             range: self.data.range(range),
         }
@@ -1023,7 +1023,7 @@ impl Sheet {
 
     /// Returns true if there is no SCell at the given position.
     pub fn is_empty(&self, row: u32, col: u32) -> bool {
-        self.data.get(&(row, col)).is_none()
+        !self.data.contains_key(&(row, col))
     }
 
     /// Returns a clone of the cell content.
@@ -1452,7 +1452,7 @@ impl Sheet {
     }
 
     /// Iterate the column groups.
-    pub fn col_group_iter(&self) -> impl Iterator<Item=&Grouped> {
+    pub fn col_group_iter(&self) -> impl Iterator<Item = &Grouped> {
         self.group_cols.iter()
     }
 
@@ -1517,7 +1517,7 @@ impl Sheet {
     }
 
     /// Iterate row groups.
-    pub fn row_group_iter(&self) -> impl Iterator<Item=&Grouped> {
+    pub fn row_group_iter(&self) -> impl Iterator<Item = &Grouped> {
         self.group_rows.iter()
     }
 }
@@ -1638,28 +1638,33 @@ pub struct SheetConfig {
     pub vert_split_pos: u32,
     /// SplitMode is Pixel
     /// - 0-4 indicates the quadrant where the focus is.
+    ///
     /// SplitMode is Cell
     /// - No real function.
     pub active_split_range: i16,
     /// SplitMode is Pixel
     /// - First visible column in the left quadrant.
+    ///
     /// SplitMode is Cell
     /// - The first visible column in the left quadrant.
     ///   AND every column left of this one is simply invisible.
     pub position_left: u32,
     /// SplitMode is Pixel
     /// - First visible column in the right quadrant.
+    ///
     /// SplitMode is Cell
     /// - The first visible column in the right quadrant.
     pub position_right: u32,
     /// SplitMode is Pixel
     /// - First visible row in the top quadrant.
+    ///
     /// SplitMode is Cell
     /// - The first visible row in the top quadrant.
     ///   AND every row up from this one is simply invisible.
     pub position_top: u32,
     /// SplitMode is Pixel
     /// - The first visible row in teh right quadrant.
+    ///
     /// SplitMode is Cell
     /// - The first visible row in the bottom quadrant.
     pub position_bottom: u32,

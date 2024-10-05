@@ -74,10 +74,10 @@ impl PageStyle {
     /// generate.
     /// The defined values for the style:page-usage attribute are:
     /// * all: if there are no <style:header-left> or <style:footer-left> elements, the
-    /// header and footer content is the same for left and right pages.
+    ///     header and footer content is the same for left and right pages.
     /// * left: <style:header-left> or <style:footer-left> elements are ignored.
     /// * mirrored: if there are no <style:header-left> or <style:footer-left> elements,
-    /// the header and footer content is the same for left and right pages.
+    ///     the header and footer content is the same for left and right pages.
     /// * right: <style:header-left> or <style:footer-left> elements are ignored.
     ///
     /// The default value for this attribute is all.

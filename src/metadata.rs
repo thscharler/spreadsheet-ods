@@ -193,13 +193,13 @@ impl MetaHyperlinkBehaviour {
 /// Represents statistics about a document.
 #[derive(Debug, Default, Clone, GetSize)]
 pub struct MetaDocumentStatistics {
-    ///
+    /// Metadata
     pub cell_count: u32,
-    ///
+    /// Metadata
     pub object_count: u32,
-    ///
+    /// Metadata
     pub ole_object_count: u32,
-    ///
+    /// Metadata
     pub table_count: u32,
 }
 
@@ -224,15 +224,15 @@ impl Default for MetaUserDefined {
 /// Value for user defined metadata.
 #[derive(Debug, Clone)]
 pub enum MetaValue {
-    ///
+    /// bool
     Boolean(bool),
-    ///
+    /// NaiveDateTime
     Datetime(NaiveDateTime),
-    ///
+    /// f64
     Float(f64),
-    ///
+    /// Duration
     TimeDuration(Duration),
-    ///
+    /// String
     String(String),
 }
 

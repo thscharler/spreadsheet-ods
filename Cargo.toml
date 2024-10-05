@@ -43,9 +43,9 @@ unused_qualifications = "warn"
 variant_size_differences = "warn"
 
 [features]
-default = ["use_decimal", "all_locales"]
+default = ["rust_decimal", "all_locales"]
 # Add conversions from rust_decimal.
-use_decimal = []
+rust_decimal = ["dep:rust_decimal", "dep:rust_decimal_macros"]
 # Check the xml output for wellformedness.
 check_xml = []
 
@@ -59,8 +59,8 @@ dump_xml = []
 dump_unused = []
 
 [dependencies]
-rust_decimal = "1.34"
-rust_decimal_macros = "1.34"
+rust_decimal = { version = "1.34", optional = true }
+rust_decimal_macros = { version = "1.34", optional = true }
 color-rs = { version = "0.8.0" }
 # This exact version is needed for color-rs to compile.
 # 0.2.19 introduced the function that makes it fail.

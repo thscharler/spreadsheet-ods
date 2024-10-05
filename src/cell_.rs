@@ -425,7 +425,7 @@ impl CellContent {
         Default::default()
     }
 
-    ///
+    /// Transform to CellData
     pub(crate) fn into_celldata(mut self) -> CellData {
         let extra = self.into_celldata_ext();
         CellData {

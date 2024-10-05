@@ -7,9 +7,9 @@ use std::fmt::{Display, Formatter};
 /// See §5.6.2 of XLink.
 #[derive(Debug, Clone, Copy, GetSize)]
 pub enum XLinkActuate {
-    ///
+    /// XLink
     OnLoad,
-    ///
+    /// XLink
     OnRequest,
 }
 
@@ -25,9 +25,9 @@ impl Display for XLinkActuate {
 /// See §5.6.1 of XLink.
 #[derive(Debug, Clone, Copy, GetSize)]
 pub enum XLinkShow {
-    ///
+    /// XLink
     New,
-    ///
+    /// XLink
     Replace,
 }
 
@@ -43,20 +43,20 @@ impl Display for XLinkShow {
 /// See §3.2 of XLink.
 #[derive(Debug, Clone, Copy, Default, GetSize)]
 pub enum XLinkType {
-    ///
+    /// XLink
     #[default]
     Simple,
-    ///
+    /// XLink
     Extended,
-    ///
+    /// XLink
     Locator,
-    ///
+    /// XLink
     Arc,
-    ///
+    /// XLink
     Resource,
-    ///
+    /// XLink
     Title,
-    ///
+    /// XLink
     None,
 }
 

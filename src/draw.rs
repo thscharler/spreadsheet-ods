@@ -232,9 +232,9 @@ pub struct DrawFrame {
     /// The <svg:desc> element specifies a prose description of a graphic object that may be used to
     /// support accessibility. See appendix D.
     desc: Option<String>,
-    ///
+    /// ...
     attr: AttrMap2,
-    ///
+    /// ...
     content: Vec<DrawFrameContent>,
 }
 

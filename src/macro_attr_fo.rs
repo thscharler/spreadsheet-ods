@@ -283,6 +283,7 @@ macro_rules! fo_hyphenation {
         }
 
         /// See §7.15.2 of XSL.
+        ///
         /// The defined values for the fo:hyphenation-ladder-count attribute are:
         /// * no-limit:
         /// * a value of type positiveInteger
@@ -329,10 +330,11 @@ macro_rules! fo_line_height {
         ///
         /// In the OpenDocument XSL-compatible namespace, the fo:line-height attribute does not
         /// support the inherit, number, and space values.
+        ///
         /// The defined values for the fo:line-height attribute are:
         /// * a value of type nonNegativeLength 18.3.20
         /// * normal: disables the effects of style:line-height-at-least 20.317 and
-        /// style:line-spacing 20.318.
+        ///     style:line-spacing 20.318.
         /// * a value of type percent 18.3.23
         ///
         /// The fo:line-height attribute is usable with the following element:

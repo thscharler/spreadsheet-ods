@@ -131,7 +131,7 @@ impl MasterPage {
         self.next_style_name = Some(master.clone());
     }
 
-    ///
+    /// Next.
     pub fn next_masterpage(&self) -> Option<&MasterPageRef> {
         self.next_style_name.as_ref()
     }
