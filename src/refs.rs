@@ -1126,7 +1126,7 @@ mod format_refs {
         abs: bool,
     ) -> fmt::Result {
         fmt_abs(f, abs)?;
-        if table_name.contains(|c| c == '\'' || c == ' ' || c == '.') {
+        if table_name.contains(['\'', ' ', '.']) {
             write!(f, "'")?;
             write!(f, "{}", &table_name.replace('\'', "''"))?;
             write!(f, "'")?;
