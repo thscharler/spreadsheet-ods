@@ -6,7 +6,7 @@ use spreadsheet_ods::color::Rgb;
 use spreadsheet_ods::format;
 use spreadsheet_ods::formula;
 use spreadsheet_ods::mm;
-use spreadsheet_ods::style::units::{Border, Length, TextRelief};
+use spreadsheet_ods::style::units::{Border, TextRelief};
 use spreadsheet_ods::style::CellStyle;
 use spreadsheet_ods::{Sheet, Value, WorkBook};
 use std::fs;

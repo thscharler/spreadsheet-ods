@@ -2,7 +2,7 @@
 #[macro_export]
 macro_rules! deg {
     ($l:expr) => {
-        Angle::Deg($l.into()).into()
+        $crate::Angle::Deg($l.into()).into()
     };
 }
 
@@ -10,7 +10,7 @@ macro_rules! deg {
 #[macro_export]
 macro_rules! grad {
     ($l:expr) => {
-        Angle::Grad($l.into()).into()
+        $crate::Angle::Grad($l.into()).into()
     };
 }
 
@@ -18,7 +18,7 @@ macro_rules! grad {
 #[macro_export]
 macro_rules! rad {
     ($l:expr) => {
-        Angle::Rad($l.into()).into()
+        $crate::Angle::Rad($l.into()).into()
     };
 }
 
@@ -26,7 +26,7 @@ macro_rules! rad {
 #[macro_export]
 macro_rules! cm {
     ($l:expr) => {
-        Length::Cm($l.into()).into()
+        $crate::Length::Cm($l.into()).into()
     };
 }
 
@@ -34,7 +34,7 @@ macro_rules! cm {
 #[macro_export]
 macro_rules! mm {
     ($l:expr) => {
-        Length::Mm($l.into()).into()
+        $crate::Length::Mm($l.into()).into()
     };
 }
 
@@ -42,7 +42,7 @@ macro_rules! mm {
 #[macro_export]
 macro_rules! inch {
     ($l:expr) => {
-        Length::In($l.into()).into()
+        $crate::Length::In($l.into()).into()
     };
 }
 
@@ -50,7 +50,7 @@ macro_rules! inch {
 #[macro_export]
 macro_rules! pt {
     ($l:expr) => {
-        Length::Pt($l.into()).into()
+        $crate::Length::Pt($l.into()).into()
     };
 }
 
@@ -58,7 +58,7 @@ macro_rules! pt {
 #[macro_export]
 macro_rules! pc {
     ($l:expr) => {
-        Length::Pc($l into()).into()
+        $crate::Length::Pc($l into()).into()
     };
 }
 
@@ -66,6 +66,6 @@ macro_rules! pc {
 #[macro_export]
 macro_rules! em {
     ($l:expr) => {
-        Length::Em($l into()).into()
+        $crate::Length::Em($l into()).into()
     };
 }

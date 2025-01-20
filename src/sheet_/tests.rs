@@ -1,5 +1,4 @@
 use crate::sheet_::dedup_colheader;
-use crate::Length;
 use crate::Sheet;
 
 #[test]

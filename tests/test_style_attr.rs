@@ -5,7 +5,7 @@ use lib_test::*;
 use spreadsheet_ods::condition::Condition;
 use spreadsheet_ods::style::stylemap::StyleMap;
 use spreadsheet_ods::style::units::{
-    Angle, Border, CellAlignVertical, FontFamilyGeneric, FontPitch, FontWeight, Length, PageBreak,
+    Border, CellAlignVertical, FontFamilyGeneric, FontPitch, FontWeight, Length, PageBreak,
     ParaAlignVertical, RotationAlign, TextAlignSource, TextKeep, TextPosition, TextRelief,
     TextTransform, WrapOption, WritingMode,
 };

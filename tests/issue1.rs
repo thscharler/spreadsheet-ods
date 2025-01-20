@@ -1,7 +1,6 @@
 mod lib_test;
 
 use lib_test::*;
-use spreadsheet_ods::style::units::*;
 use spreadsheet_ods::*;
 
 #[test]

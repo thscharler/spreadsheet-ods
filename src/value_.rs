@@ -82,13 +82,14 @@ impl Value {
 
     /// Return the content as i64 if the value is a number, percentage or
     /// currency. Default otherwise.
+    pub fn as_i64_or_default(&self) -> i64 {
+        self.as_i64_opt().unwrap_or_default()
+    }
+
+    /// Return the content as i64 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_i64_or(&self, d: i64) -> i64 {
-        match self {
-            Value::Number(n) => *n as i64,
-            Value::Percentage(p) => *p as i64,
-            Value::Currency(v, _) => *v as i64,
-            _ => d,
-        }
+        self.as_i64_opt().unwrap_or(d)
     }
 
     /// Return the content as i64 if the value is a number, percentage or
@@ -104,13 +105,14 @@ impl Value {
 
     /// Return the content as u64 if the value is a number, percentage or
     /// currency. Default otherwise.
+    pub fn as_u64_or_default(&self) -> u64 {
+        self.as_u64_opt().unwrap_or_default()
+    }
+
+    /// Return the content as u64 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_u64_or(&self, d: u64) -> u64 {
-        match self {
-            Value::Number(n) => *n as u64,
-            Value::Percentage(p) => *p as u64,
-            Value::Currency(v, _) => *v as u64,
-            _ => d,
-        }
+        self.as_u64_opt().unwrap_or(d)
     }
 
     /// Return the content as u64 if the value is a number, percentage or
@@ -126,13 +128,14 @@ impl Value {
 
     /// Return the content as i32 if the value is a number, percentage or
     /// currency. Default otherwise.
+    pub fn as_i32_or_default(&self) -> i32 {
+        self.as_i32_opt().unwrap_or_default()
+    }
+
+    /// Return the content as i32 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_i32_or(&self, d: i32) -> i32 {
-        match self {
-            Value::Number(n) => *n as i32,
-            Value::Percentage(p) => *p as i32,
-            Value::Currency(v, _) => *v as i32,
-            _ => d,
-        }
+        self.as_i32_opt().unwrap_or(d)
     }
 
     /// Return the content as i32 if the value is a number, percentage or
@@ -148,13 +151,14 @@ impl Value {
 
     /// Return the content as u32 if the value is a number, percentage or
     /// currency. Default otherwise.
+    pub fn as_u32_or_default(&self) -> u32 {
+        self.as_u32_opt().unwrap_or_default()
+    }
+
+    /// Return the content as u32 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_u32_or(&self, d: u32) -> u32 {
-        match self {
-            Value::Number(n) => *n as u32,
-            Value::Percentage(p) => *p as u32,
-            Value::Currency(v, _) => *v as u32,
-            _ => d,
-        }
+        self.as_u32_opt().unwrap_or(d)
     }
 
     /// Return the content as u32 if the value is a number, percentage or
@@ -170,13 +174,14 @@ impl Value {
 
     /// Return the content as i16 if the value is a number, percentage or
     /// currency. Default otherwise.
+    pub fn as_i16_or_default(&self) -> i16 {
+        self.as_i16_opt().unwrap_or_default()
+    }
+
+    /// Return the content as i16 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_i16_or(&self, d: i16) -> i16 {
-        match self {
-            Value::Number(n) => *n as i16,
-            Value::Percentage(p) => *p as i16,
-            Value::Currency(v, _) => *v as i16,
-            _ => d,
-        }
+        self.as_i16_opt().unwrap_or(d)
     }
 
     /// Return the content as i16 if the value is a number, percentage or
@@ -192,13 +197,14 @@ impl Value {
 
     /// Return the content as u16 if the value is a number, percentage or
     /// currency. Default otherwise.
+    pub fn as_u16_or_default(&self) -> u16 {
+        self.as_u16_opt().unwrap_or_default()
+    }
+
+    /// Return the content as u16 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_u16_or(&self, d: u16) -> u16 {
-        match self {
-            Value::Number(n) => *n as u16,
-            Value::Percentage(p) => *p as u16,
-            Value::Currency(v, _) => *v as u16,
-            _ => d,
-        }
+        self.as_u16_opt().unwrap_or(d)
     }
 
     /// Return the content as u16 if the value is a number, percentage or
@@ -214,13 +220,14 @@ impl Value {
 
     /// Return the content as i8 if the value is a number, percentage or
     /// currency. Default otherwise.
+    pub fn as_i8_or_default(&self) -> i8 {
+        self.as_i8_opt().unwrap_or_default()
+    }
+
+    /// Return the content as i8 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_i8_or(&self, d: i8) -> i8 {
-        match self {
-            Value::Number(n) => *n as i8,
-            Value::Percentage(p) => *p as i8,
-            Value::Currency(v, _) => *v as i8,
-            _ => d,
-        }
+        self.as_i8_opt().unwrap_or(d)
     }
 
     /// Return the content as i8 if the value is a number, percentage or
@@ -236,13 +243,14 @@ impl Value {
 
     /// Return the content as u8 if the value is a number, percentage or
     /// currency. Default otherwise.
+    pub fn as_u8_or_default(&self) -> u8 {
+        self.as_u8_opt().unwrap_or_default()
+    }
+
+    /// Return the content as u8 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_u8_or(&self, d: u8) -> u8 {
-        match self {
-            Value::Number(n) => *n as u8,
-            Value::Percentage(p) => *p as u8,
-            Value::Currency(v, _) => *v as u8,
-            _ => d,
-        }
+        self.as_u8_opt().unwrap_or(d)
     }
 
     /// Return the content as u8 if the value is a number, percentage or
@@ -259,13 +267,15 @@ impl Value {
     /// Return the content as decimal if the value is a number, percentage or
     /// currency. Default otherwise.
     #[cfg(feature = "rust_decimal")]
+    pub fn as_decimal_or_default(&self) -> Decimal {
+        self.as_decimal_opt().unwrap_or_default()
+    }
+
+    /// Return the content as decimal if the value is a number, percentage or
+    /// currency. Default otherwise.
+    #[cfg(feature = "rust_decimal")]
     pub fn as_decimal_or(&self, d: Decimal) -> Decimal {
-        match self {
-            Value::Number(n) => Decimal::from_f64(*n).unwrap_or(d),
-            Value::Currency(v, _) => Decimal::from_f64(*v).unwrap_or(d),
-            Value::Percentage(p) => Decimal::from_f64(*p).unwrap_or(d),
-            _ => d,
-        }
+        self.as_decimal_opt().unwrap_or(d)
     }
 
     /// Return the content as decimal if the value is a number, percentage or
@@ -282,13 +292,14 @@ impl Value {
 
     /// Return the content as f64 if the value is a number, percentage or
     /// currency. Default otherwise.
+    pub fn as_f64_or_default(&self) -> f64 {
+        self.as_f64_opt().unwrap_or_default()
+    }
+
+    /// Return the content as f64 if the value is a number, percentage or
+    /// currency. Default otherwise.
     pub fn as_f64_or(&self, d: f64) -> f64 {
-        match self {
-            Value::Number(n) => *n,
-            Value::Currency(v, _) => *v,
-            Value::Percentage(p) => *p,
-            _ => d,
-        }
+        self.as_f64_opt().unwrap_or(d)
     }
 
     /// Return the content as f64 if the value is a number, percentage or
@@ -303,11 +314,13 @@ impl Value {
     }
 
     /// Return the content as str if the value is text.
+    pub fn as_str_or_default<'a>(&'a self) -> &'a str {
+        self.as_str_opt().unwrap_or_default()
+    }
+
+    /// Return the content as str if the value is text.
     pub fn as_str_or<'a>(&'a self, d: &'a str) -> &'a str {
-        match self {
-            Value::Text(s) => s.as_ref(),
-            _ => d,
-        }
+        self.as_str_opt().unwrap_or(d)
     }
 
     /// Return the content as str if the value is text or markup text.
@@ -338,13 +351,29 @@ impl Value {
         }
     }
 
+    /// Return the content as String if the value is text.
+    pub fn as_string_or_default(&self) -> String {
+        self.as_string_opt().unwrap_or_default()
+    }
+
+    /// Return the content as String if the value is text.
+    pub fn as_string_opt(&self) -> Option<String> {
+        match self {
+            Value::Text(s) => Some(s.clone()),
+            _ => None,
+        }
+    }
+
+    /// Return the content as Duration if the value is a TimeDuration.
+    /// Default otherwise.
+    pub fn as_timeduration_or_default(&self) -> Duration {
+        self.as_timeduration_opt().unwrap_or_default()
+    }
+
     /// Return the content as Duration if the value is a TimeDuration.
     /// Default otherwise.
     pub fn as_timeduration_or(&self, d: Duration) -> Duration {
-        match self {
-            Value::TimeDuration(td) => *td,
-            _ => d,
-        }
+        self.as_timeduration_opt().unwrap_or(d)
     }
 
     /// Return the content as Duration if the value is a TimeDuration.
@@ -358,11 +387,14 @@ impl Value {
 
     /// Return the content as NaiveDateTime if the value is a DateTime.
     /// Default otherwise.
+    pub fn as_datetime_or_default(&self) -> NaiveDateTime {
+        self.as_datetime_opt().unwrap_or_default()
+    }
+
+    /// Return the content as NaiveDateTime if the value is a DateTime.
+    /// Default otherwise.
     pub fn as_datetime_or(&self, d: NaiveDateTime) -> NaiveDateTime {
-        match self {
-            Value::DateTime(dt) => *dt,
-            _ => d,
-        }
+        self.as_datetime_opt().unwrap_or(d)
     }
 
     /// Return the content as an optional NaiveDateTime if the value is
@@ -376,11 +408,14 @@ impl Value {
 
     /// Return the content as NaiveDate if the value is a DateTime.
     /// Default otherwise.
+    pub fn as_date_or_default(&self) -> NaiveDate {
+        self.as_date_opt().unwrap_or_default()
+    }
+
+    /// Return the content as NaiveDate if the value is a DateTime.
+    /// Default otherwise.
     pub fn as_date_or(&self, d: NaiveDate) -> NaiveDate {
-        match self {
-            Value::DateTime(dt) => dt.date(),
-            _ => d,
-        }
+        self.as_date_opt().unwrap_or(d)
     }
 
     /// Return the content as an optional NaiveDateTime if the value is

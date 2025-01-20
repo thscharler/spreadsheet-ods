@@ -4,8 +4,8 @@ use icu_locid::locale;
 use lib_test::*;
 use spreadsheet_ods::defaultstyles::DefaultFormat;
 use spreadsheet_ods::{
-    cm, currency, percent, read_ods, CellRange, CellStyle, CellStyleRef, Length, OdsError,
-    OdsOptions, Sheet, Value, ValueType, WorkBook,
+    cm, currency, percent, read_ods, CellRange, CellStyle, CellStyleRef, OdsError, OdsOptions,
+    Sheet, Value, ValueType, WorkBook,
 };
 use std::fs::File;
 use std::io::BufReader;

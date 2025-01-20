@@ -2,7 +2,6 @@ mod lib_test;
 
 use color::Rgb;
 use lib_test::*;
-use spreadsheet_ods::style::units::Length;
 use spreadsheet_ods::style::{MasterPage, PageStyle, TableStyle};
 use spreadsheet_ods::xmltree::XmlVec;
 use spreadsheet_ods::{cm, read_ods, OdsError, Sheet, WorkBook};

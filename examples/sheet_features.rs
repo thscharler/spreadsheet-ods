@@ -6,7 +6,7 @@ use spreadsheet_ods::style::{HeaderFooter, MasterPage, PageStyle, TableStyle};
 use spreadsheet_ods::text::{
     MetaAuthorName, MetaDate, MetaPageCount, MetaPageNumber, MetaTime, TextP, TextS,
 };
-use spreadsheet_ods::{cm, pt, write_ods, CellRange, Length, OdsResult, Sheet, WorkBook};
+use spreadsheet_ods::{cm, pt, write_ods, CellRange, OdsResult, Sheet, WorkBook};
 
 ///
 pub fn main() -> OdsResult<()> {

@@ -1,3 +1,8 @@
+# 0.23.0
+
+- fix: unit macros don't need extra imports anymore.
+- feature: Value gets a number of xx_or_default() functions.
+
 # 0.22.4 yanked; 0.22.5
 
 - #55: Add OdsWriteOptions to set the compression-method and compression-level

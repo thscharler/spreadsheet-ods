@@ -1,6 +1,5 @@
 use crate::io::write::calc_col_headers;
 use crate::sheet_::dedup_colheader;
-use crate::Length;
 use crate::{Sheet, WorkBook};
 use icu_locid::locale;
 
