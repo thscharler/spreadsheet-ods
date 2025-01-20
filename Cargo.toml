@@ -1,6 +1,6 @@
 [package]
 name = "spreadsheet-ods"
-version = "0.23.0"
+version = "0.24.0"
 authors = ["thomasscharler <thscharler@gmail.com>"]
 edition = "2021"
 description = "Read and write ODS files"
@@ -28,23 +28,21 @@ dump_xml = []
 dump_unused = []
 
 [dependencies]
-rust_decimal = { version = "1.34", optional = true }
-rust_decimal_macros = { version = "1.34", optional = true }
+rust_decimal = { version = "1.36", optional = true }
+rust_decimal_macros = { version = "1.36", optional = true }
 color-rs = { version = "0.8.0" }
 # This exact version is needed for color-rs to compile.
 # 0.2.19 introduced the function that makes it fail.
 num-traits = "=0.2.18"
 string_cache = "0.8"
-time = "0.3"
 nom = "7.1"
 nom_locate = "4.2"
-icu_locid = "1.4"
-lazy_static = "1.4"
-unicode-ident = "1.0"
-kparse = "3.0.5"
+icu_locid = "1.5"
+lazy_static = "1.5"
+kparse = "3.0"
 base64 = "0.22"
-quick-xml = { version = "0.31.0" }
-zip = { version = "2.1.0", default-features = false, features = ["deflate", "time"] }
+quick-xml = { version = "0.37" }
+zip = { version = "2.2.0", default-features = false, features = ["deflate", "time"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "alloc"] }
 get-size = "0.1.4"
 get-size-derive = "0.1.3"

@@ -1,3 +1,11 @@
+# 0.24.0
+
+- update dependent crates
+    - rust_decimal 1.36
+    - icu_locid 1.5
+    - quick_xml 0.37
+    - zip 2.2
+
 # 0.23.0
 
 - fix: unit macros don't need extra imports anymore.
