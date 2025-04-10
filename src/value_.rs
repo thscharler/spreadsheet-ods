@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
+
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;

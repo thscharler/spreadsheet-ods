@@ -2,8 +2,8 @@
 //! One sheet of the spreadsheet.
 //!
 
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
+
 use std::collections::{BTreeMap, Bound};
 use std::fmt::{Debug, Display, Formatter};
 use std::iter::FusedIterator;

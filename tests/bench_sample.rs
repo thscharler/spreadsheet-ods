@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use get_size::GetSize;
+use get_size2::GetSize;
 use std::fs::File;
 use std::io::{BufReader, Cursor, Read};
 use std::path::Path;

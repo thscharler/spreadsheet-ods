@@ -1,5 +1,5 @@
 use crate::HashMap;
-use get_size::GetSize;
+use get_size2::GetSize;
 use std::borrow::Cow;
 
 pub(crate) mod format;

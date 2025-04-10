@@ -17,8 +17,8 @@ use crate::style::{
     StyleOrigin, StyleUse, TextStyleRef,
 };
 use core::borrow::Borrow;
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
+
 use icu_locid::Locale;
 
 style_ref2!(CellStyleRef);
