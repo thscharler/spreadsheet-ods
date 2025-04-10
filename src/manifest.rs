@@ -4,7 +4,6 @@
 
 use get_size2::GetSize;
 
-
 /// A manifest entry.
 #[derive(Debug, Clone, GetSize)]
 pub struct Manifest {

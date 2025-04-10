@@ -7,7 +7,6 @@ use crate::style::AnyStyleRef;
 use crate::CellRef;
 use get_size2::GetSize;
 
-
 /// A style-map is one way for conditional formatting of cells.
 ///
 /// It seems this is always translated into calcext:conditional-formats

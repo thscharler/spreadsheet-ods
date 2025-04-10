@@ -9,7 +9,6 @@ use get_size2::GetSize;
 
 use chrono::NaiveDateTime;
 
-
 /// The possible value types for the configuration.
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub(crate) enum ConfigValue {

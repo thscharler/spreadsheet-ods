@@ -12,7 +12,6 @@ use base64::Engine;
 use chrono::NaiveDateTime;
 use get_size2::GetSize;
 
-
 /// The <office:annotation> element specifies an OpenDocument annotation. The annotation's
 /// text is contained in <text:p> and <text:list> elements.
 #[derive(Debug, Clone)]

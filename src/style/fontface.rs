@@ -5,7 +5,6 @@ use crate::style::units::{
 use crate::style::StyleOrigin;
 use get_size2::GetSize;
 
-
 /// The <style:font-face> element represents a font face declaration which documents the
 /// properties of a font used in a document.
 ///

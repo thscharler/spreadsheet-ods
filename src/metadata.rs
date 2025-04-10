@@ -4,7 +4,6 @@ use crate::xlink::{XLinkActuate, XLinkShow, XLinkType};
 use chrono::{Duration, NaiveDateTime};
 use get_size2::GetSize;
 
-
 /// Metadata
 #[derive(Debug, Clone, Default)]
 pub struct Metadata {

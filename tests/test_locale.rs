@@ -79,7 +79,11 @@ pub fn test_locale3() -> Result<(), OdsError> {
             NaiveTime::default(),
         )),
     );
-    sheet.set_value(8, 1, Value::TimeDuration(Duration::try_hours(1234).expect("hours")));
+    sheet.set_value(
+        8,
+        1,
+        Value::TimeDuration(Duration::try_hours(1234).expect("hours")),
+    );
 
     wb.push_sheet(sheet);
 

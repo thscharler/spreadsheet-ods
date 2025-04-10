@@ -5,7 +5,6 @@
 use crate::condition::ValueCondition;
 use get_size2::GetSize;
 
-
 /// A style-map is one way for conditional formatting of value formats.
 #[derive(Clone, Debug, Default, GetSize)]
 pub struct ValueStyleMap {
