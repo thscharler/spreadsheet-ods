@@ -41,7 +41,7 @@ icu_locid = "1.5"
 lazy_static = "1.5"
 kparse = "3.0"
 base64 = "0.22"
-quick-xml = { version = "0.37" }
+quick-xml = { version = "0.37", features = ["encoding"] }
 zip = { version = "2.2.0", default-features = false, features = ["deflate", "time"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "alloc"] }
 get-size = "0.1.4"
