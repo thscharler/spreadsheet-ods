@@ -4,8 +4,7 @@
 
 use crate::style::ParseStyleAttr;
 use crate::OdsError;
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use std::fmt::{Display, Formatter};
 
 /// An angle, as defined in §4.1 of SVG, is a double value that may be followed immediately by one

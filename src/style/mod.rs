@@ -92,8 +92,7 @@
 use crate::color::Rgb;
 use crate::style::units::{Border, Length, Percent, TextPosition};
 use crate::OdsError;
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use std::borrow::Borrow;
 use std::str::FromStr;
 

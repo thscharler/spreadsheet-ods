@@ -7,8 +7,7 @@ use crate::style::units::{
 use crate::style::AnyStyleRef;
 use crate::style::{color_string, shadow_string, MasterPageRef, StyleOrigin, StyleUse};
 use core::borrow::Borrow;
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 
 style_ref2!(TableStyleRef);
 

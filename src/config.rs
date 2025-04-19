@@ -5,10 +5,9 @@
 /// SheetConfig which are more accessible.
 ///
 use crate::HashMap;
-use get_size::GetSize;
+use get_size2::GetSize;
 
 use chrono::NaiveDateTime;
-use get_size_derive::GetSize;
 
 /// The possible value types for the configuration.
 #[derive(Debug, Clone, PartialOrd, PartialEq)]

@@ -1,7 +1,6 @@
 //! Defines conditional expressions that are used for cell-validation and
 //! conditional styles via style-maps.
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use std::fmt::{Display, Formatter};
 
 use crate::CellRange;

@@ -3,8 +3,7 @@ use crate::style::units::{
     FontFamilyGeneric, FontPitch, FontStretch, FontStyle, FontVariant, FontWeight,
 };
 use crate::style::StyleOrigin;
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 
 /// The <style:font-face> element represents a font face declaration which documents the
 /// properties of a font used in a document.

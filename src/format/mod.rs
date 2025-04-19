@@ -57,8 +57,7 @@ use crate::style::{
 };
 use crate::{OdsError, ValueType};
 use core::borrow::Borrow;
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use icu_locid::subtags::{Language, Region, Script};
 use icu_locid::{LanguageIdentifier, Locale};
 use std::fmt::{Display, Formatter};

@@ -1,8 +1,7 @@
 use crate::style::pagestyle::PageStyleRef;
 use crate::style::AnyStyleRef;
 use crate::text::TextTag;
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use std::borrow::Borrow;
 
 style_ref2!(MasterPageRef);

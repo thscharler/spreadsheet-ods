@@ -5,8 +5,7 @@
 use crate::condition::Condition;
 use crate::style::AnyStyleRef;
 use crate::CellRef;
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 
 /// A style-map is one way for conditional formatting of cells.
 ///

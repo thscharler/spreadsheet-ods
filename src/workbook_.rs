@@ -2,8 +2,7 @@
 //! Workbook
 //!
 
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use std::borrow::Borrow;
 use std::fmt;
 use std::fmt::Formatter;
