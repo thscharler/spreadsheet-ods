@@ -10,7 +10,7 @@ use std::str::from_utf8;
 use chrono::{Duration, NaiveDateTime};
 use quick_xml::events::attributes::Attribute;
 use quick_xml::events::{BytesStart, Event};
-use quick_xml::Decoder;
+use quick_xml::{Decoder, Reader};
 use zip::ZipArchive;
 
 use crate::attrmap2::AttrMap2;
@@ -206,7 +206,7 @@ impl OdsContext {
     fn new(options: &OdsOptions) -> Self {
         Self {
             book: Default::default(),
-            decoder: Decoder {},
+            decoder: Reader::from_reader(Vec::<u8>::new().as_slice()).decoder(),
             content_only: options.content_only,
             use_repeat_for_cells: options.use_repeat_for_cells,
             ignore_empty_cells: options.ignore_empty_cells,
