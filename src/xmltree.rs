@@ -44,8 +44,7 @@
 //!
 //! ```
 
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use std::fmt::{Display, Formatter};
 
 use crate::attrmap2::AttrMap2;

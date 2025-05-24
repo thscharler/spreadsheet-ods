@@ -2,8 +2,7 @@ use crate::draw::{Annotation, DrawFrame};
 use crate::validation::ValidationRef;
 use crate::value_::Value;
 use crate::CellStyleRef;
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use std::fmt::{Display, Formatter};
 
 /// A cell can span multiple rows/columns.

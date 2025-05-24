@@ -7,7 +7,7 @@ use criterion::black_box;
 mod lib_test;
 
 mod v1 {
-    use get_size::GetSize;
+    use get_size2::GetSize;
     use string_cache::DefaultAtom;
 
     /// Container type for attributes.
@@ -119,7 +119,7 @@ mod v1 {
 }
 
 mod v2 {
-    use get_size::GetSize;
+    use get_size2::GetSize;
     use std::collections::HashMap;
     use string_cache::DefaultAtom;
 
@@ -200,7 +200,7 @@ mod v2 {
 }
 
 mod v3 {
-    use get_size::GetSize;
+    use get_size2::GetSize;
     use string_cache::DefaultAtom;
 
     /// Container type for attributes.
@@ -321,7 +321,7 @@ mod v3 {
 }
 
 mod v4 {
-    use get_size::GetSize;
+    use get_size2::GetSize;
     use string_cache::DefaultAtom;
 
     /// Container type for attributes.

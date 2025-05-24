@@ -4,7 +4,7 @@
 //! related families of attributes.
 //!
 
-use get_size::GetSize;
+use get_size2::GetSize;
 use std::mem::size_of;
 use std::slice;
 use string_cache::DefaultAtom;

@@ -8,8 +8,7 @@ use crate::refs::format_refs::{
 use crate::refs::parser::CRCode::{CRCellRange, CRCellRef, CRColRange, CRRowRange};
 use crate::refs::parser::{CRCode, KTokenizerError};
 use crate::OdsError;
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use kparse::provider::StdTracker;
 use kparse::Track;
 use std::fmt;

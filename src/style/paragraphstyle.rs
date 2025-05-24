@@ -15,8 +15,7 @@ use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, text_position,
     StyleOrigin, StyleUse, TextStyleRef,
 };
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use icu_locid::Locale;
 use std::borrow::Borrow;
 

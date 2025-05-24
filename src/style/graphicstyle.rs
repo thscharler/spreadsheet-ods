@@ -12,8 +12,7 @@ use crate::style::{
     Length, Rgb,
 };
 use crate::style::{StyleOrigin, StyleUse, TextStyleRef};
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use icu_locid::Locale;
 use std::borrow::Borrow;
 

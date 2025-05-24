@@ -1,5 +1,4 @@
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 
 use crate::attrmap2::AttrMap2;
 use crate::style::units::{Length, PageBreak};

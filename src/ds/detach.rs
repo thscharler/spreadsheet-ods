@@ -1,5 +1,4 @@
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 /// Allows to detach data and reattach it later.
 use std::ops::{Deref, DerefMut};
 

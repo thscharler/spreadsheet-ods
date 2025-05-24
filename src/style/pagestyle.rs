@@ -9,8 +9,7 @@ use crate::style::{
     border_line_width_string, border_string, color_string, shadow_string, ParseStyleAttr,
 };
 use crate::{Length, OdsResult};
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use std::borrow::Borrow;
 
 style_ref2!(PageStyleRef);

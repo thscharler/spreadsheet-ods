@@ -1,7 +1,6 @@
 //! Enums for XLink.
 
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 use std::fmt::{Display, Formatter};
 
 /// See §5.6.2 of XLink.

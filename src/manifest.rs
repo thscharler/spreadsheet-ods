@@ -2,8 +2,7 @@
 //!
 //! For unprocessed zip entries this also contains the actual bytes.
 
-use get_size::GetSize;
-use get_size_derive::GetSize;
+use get_size2::GetSize;
 
 /// A manifest entry.
 #[derive(Debug, Clone, GetSize)]
