@@ -30,10 +30,8 @@ dump_unused = []
 [dependencies]
 rust_decimal = { version = "1.36", optional = true }
 rust_decimal_macros = { version = "1.36", optional = true }
-color-rs = { version = "0.8.0" }
-# This exact version is needed for color-rs to compile.
-# 0.2.19 introduced the function that makes it fail.
-num-traits = "=0.2.18"
+color-rs2 = { version = "0.9.0" }
+num-traits = "0.2.19"
 string_cache = "0.8"
 nom = "7.1"
 nom_locate = "4.2"
