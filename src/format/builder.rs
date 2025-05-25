@@ -68,7 +68,7 @@ impl<'vf, T: ValueFormatTrait> PartNumberBuilder<'vf, T> {
     /// The defined values for the number:grouping attribute are:
     /// * false: integer digits of a number are not grouped using a separator character.
     /// * true: integer digits of a number should be grouped by a separator character.
-    ///     The default value for this attribute is false.
+    ///   The default value for this attribute is false.
     #[must_use]
     pub fn grouping(mut self) -> Self {
         self.part.set_attr("number:grouping", String::from("true"));
@@ -123,7 +123,6 @@ impl<'vf, T: ValueFormatTrait> PartNumberBuilder<'vf, T> {
 
     /// The number:embedded-text element specifies text that is displayed at one specific position
     /// within a number.
-
     ///
     /// The number:embedded-text element is usable within the following element:
     /// * number:number 16.29.3.
@@ -269,9 +268,9 @@ impl<'vf, T: ValueFormatTrait> PartScientificBuilder<'vf, T> {
     ///
     /// The defined values for the number:forced-exponent-sign attribute are:
     /// * false: the exponent sign is displayed only for a negative value of the exponent, otherwise it
-    ///     is not displayed.
+    ///   is not displayed.
     /// * true: the exponent sign is always displayed regardless of the value of exponent.
-    ///     The default value for this attribute is true.
+    ///   The default value for this attribute is true.
     #[must_use]
     pub fn forced_exponent_sign(mut self, v: bool) -> Self {
         self.part
@@ -287,7 +286,7 @@ impl<'vf, T: ValueFormatTrait> PartScientificBuilder<'vf, T> {
     /// The defined values for the number:grouping attribute are:
     /// * false: integer digits of a number are not grouped using a separator character.
     /// * true: integer digits of a number should be grouped by a separator character.
-    ///     The default value for this attribute is false.
+    ///   The default value for this attribute is false.
     #[must_use]
     pub fn grouping(mut self) -> Self {
         self.part.set_attr("number:grouping", String::from("true"));
@@ -397,7 +396,7 @@ impl<'vf, T: ValueFormatTrait> PartFractionBuilder<'vf, T> {
     /// The defined values for the number:grouping attribute are:
     /// * false: integer digits of a number are not grouped using a separator character.
     /// * true: integer digits of a number should be grouped by a separator character.
-    ///     The default value for this attribute is false.
+    ///   The default value for this attribute is false.
     #[must_use]
     pub fn grouping(mut self) -> Self {
         self.part.set_attr("number:grouping", String::from("true"));

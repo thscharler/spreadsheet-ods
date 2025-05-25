@@ -22,7 +22,7 @@ macro_rules! table_border_model {
         ///
         /// The defined values for the table:border-model attribute are:
         /// * collapsing: when two adjacent cells have different borders, the wider border appears as
-        ///     the border between the cells. Each cell receives half of the width of the border.
+        ///   the border between the cells. Each cell receives half of the width of the border.
         /// * separating: borders appear within the cell that specifies the border.
         ///
         /// In OpenDocument, a row height or column width includes any space required to display borders

@@ -156,12 +156,12 @@ impl Display for LengthPercent {
 /// long display formats.
 ///
 /// The defined values for the number:format-source attribute are:
-/// • fixed: the values short and long of the number:style attribute are defined by this
-/// standard.
-/// • language: the meaning of the values long and short of the number:style attribute
-/// depend upon the number:language and number:country attributes of the date style. If
-/// neither of those attributes are specified, consumers should use their default locale for short
-/// and long date and time formats.
+/// * fixed: the values short and long of the number:style attribute are defined by this
+///   standard.
+/// * language: the meaning of the values long and short of the number:style attribute
+///   depend upon the number:language and number:country attributes of the date style. If
+///   neither of those attributes are specified, consumers should use their default locale for short
+///   and long date and time formats.
 ///
 /// The default value for this attribute is fixed.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -247,12 +247,12 @@ impl ParseStyleAttr<TransliterationStyle> for TransliterationStyle {
 /// The style:font-family-generic attribute specifies a generic font family name.
 ///
 /// The defined values for the style:font-family-generic attribute are:
-/// • decorative: the family of decorative fonts.
-/// • modern: the family of modern fonts.
-/// • roman: the family roman fonts (with serifs).
-/// • script: the family of script fonts.
-/// • swiss: the family roman fonts (without serifs).
-/// • system: the family system fonts.
+/// * decorative: the family of decorative fonts.
+/// * modern: the family of modern fonts.
+/// * roman: the family roman fonts (with serifs).
+/// * script: the family of script fonts.
+/// * swiss: the family roman fonts (without serifs).
+/// * system: the family system fonts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum FontFamilyGeneric {
@@ -305,12 +305,12 @@ impl Display for FontPitch {
 /// generate.
 ///
 /// The defined values for the style:page-usage attribute are:
-/// • all: if there are no <style:header-left> or <style:footer-left> elements, the
-/// header and footer content is the same for left and right pages.
-/// • left: <style:header-right> and <style:footer-right> elements are ignored.
-/// • mirrored: if there are no <style:header-left> or <style:footer-left> elements,
-/// the header and footer content is the same for left and right pages.
-/// • right: <style:header-left> and <style:footer-left> elements are ignored.
+/// * all: if there are no <style:header-left> or <style:footer-left> elements, the
+///   header and footer content is the same for left and right pages.
+/// * left: <style:header-right> and <style:footer-right> elements are ignored.
+/// * mirrored: if there are no <style:header-left> or <style:footer-left> elements,
+///   the header and footer content is the same for left and right pages.
+/// * right: <style:header-left> and <style:footer-left> elements are ignored.
 ///
 /// The default value for this attribute is all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -357,10 +357,10 @@ impl ParseStyleAttr<MasterPageUsage> for MasterPageUsage {
 /// The style:type attribute specifies the type of a tab stop within paragraph formatting properties.
 ///
 /// The defined values for the style:type attribute are:
-/// • center: text is centered on a tab stop.
-/// • char: character appears at a tab stop position.
-/// • left: text is left aligned with a tab stop.
-/// • right: text is right aligned with a tab stop.
+/// * center: text is centered on a tab stop.
+/// * char: character appears at a tab stop position.
+/// * left: text is left aligned with a tab stop.
+/// * right: text is right aligned with a tab stop.
 ///
 /// For a <style:tab-stop> 17.8 element the default value for this attribute is left.
 #[derive(Clone, Copy, Debug)]
@@ -663,8 +663,8 @@ impl Display for Hyphenation {
 /// See §7.15.2 of XSL.
 ///
 /// The defined values for the fo:hyphenation-ladder-count attribute are:
-/// • no-limit:
-/// • a value of type positiveInteger
+/// * no-limit:
+/// * a value of type positiveInteger
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum HyphenationLadderCount {
@@ -747,10 +747,10 @@ impl Display for LetterSpacing {
 /// support the inherit, number, and space values.
 ///
 /// The defined values for the fo:line-height attribute are:
-/// • a value of type nonNegativeLength 18.3.20
-/// • normal: disables the effects of style:line-height-at-least 20.317 and
-/// style:line-spacing 20.318.
-/// • a value of type percent 18.3.23
+/// * a value of type nonNegativeLength 18.3.20
+/// * normal: disables the effects of style:line-height-at-least 20.317 and
+///   style:line-spacing 20.318.
+/// * a value of type percent 18.3.23
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(missing_docs)]
 pub enum LineHeight {
@@ -1004,16 +1004,16 @@ impl Display for WrapOption {
 /// This attribute is only evaluated if the current table is protected.
 ///
 /// The defined values for the style:cell-protect attribute are:
-/// • formula-hidden: if cell content is a formula, it is not displayed. It can be replaced by
-/// changing the cell content.
-/// Note: Replacement of cell content includes replacement with another formula or
-/// other cell content.
-/// • hidden-and-protected: cell content is not displayed and cannot be edited. If content is a
-/// formula, the formula result is not displayed.
-/// • none: formula responsible for cell content is neither hidden nor protected.
-/// • protected: cell content cannot be edited.
-/// • protected formula-hidden: cell content cannot be edited. If content is a formula, it is not
-/// displayed. A formula result is displayed.
+/// * formula-hidden: if cell content is a formula, it is not displayed. It can be replaced by
+///   changing the cell content.
+///   Note: Replacement of cell content includes replacement with another formula or
+///   other cell content.
+/// * hidden-and-protected: cell content is not displayed and cannot be edited. If content is a
+///   formula, the formula result is not displayed.
+/// * none: formula responsible for cell content is neither hidden nor protected.
+/// * protected: cell content cannot be edited.
+/// * protected formula-hidden: cell content cannot be edited. If content is a formula, it is not
+///   displayed. A formula result is displayed.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub enum CellProtect {
@@ -1055,7 +1055,7 @@ impl Display for CellProtect {
 ///
 /// The defined values for the style:direction attribute are:
 /// * ltr – left to right, text is rendered in the direction specified by the style:writing-mode
-///     attribute
+///   attribute
 /// * ttb – top to bottom, characters are vertically stacked but not rotated
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
@@ -1158,13 +1158,13 @@ impl Display for LineBreak {
 /// If no value is given, no number sequence is displayed.
 ///
 /// The defined values for the style:num-format attribute are:
-/// • 1: number sequence starts with “1”.
-/// • a: number sequence starts with “a”.
-/// • A: number sequence starts with “A”.
-/// • empty string: no number sequence displayed.
-/// • i: number sequence starts with “i”.
-/// • I: number sequence start with “I”.
-/// • a value of type string 18.2
+/// * 1: number sequence starts with “1”.
+/// * a: number sequence starts with “a”.
+/// * A: number sequence starts with “A”.
+/// * empty string: no number sequence displayed.
+/// * i: number sequence starts with “i”.
+/// * I: number sequence start with “I”.
+/// * a value of type string 18.2
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum StyleNumFormat {
@@ -1198,8 +1198,8 @@ impl Display for StyleNumFormat {
 /// beginning from the start of a paragraph or table.
 ///
 /// The defined values for the style:page-number attribute are:
-/// • auto: a page has the page number of the previous page, incremented by one.
-/// • a value of type nonNegativeInteger 18.2: specifies a page number.
+/// * auto: a page has the page number of the previous page, incremented by one.
+/// * a value of type nonNegativeInteger 18.2: specifies a page number.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum PageNumber {
@@ -1222,14 +1222,14 @@ impl Display for PageNumber {
 ///
 /// The value of the style:print attribute is a white space separated list of one or more of these
 /// values:
-/// • annotations: annotations should be printed.
-/// • charts: charts should be printed.
-/// • drawings: drawings should be printed.
-/// • formulas: formulas should be printed.
-/// • grid: grid lines should be printed.
-/// • headers: headers should be printed.
-/// • objects: (including graphics): objects should be printed.
-/// • zero-values: zero-values should be printed.
+/// * annotations: annotations should be printed.
+/// * charts: charts should be printed.
+/// * drawings: drawings should be printed.
+/// * formulas: formulas should be printed.
+/// * grid: grid lines should be printed.
+/// * headers: headers should be printed.
+/// * objects: (including graphics): objects should be printed.
+/// * zero-values: zero-values should be printed.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub enum PrintContent {
@@ -1264,10 +1264,10 @@ impl Display for PrintContent {
 /// numbered and printed when the data does not fit on one printed page.
 ///
 /// The defined values for the style:print-page-order attribute are:
-/// • ltr: create pages from the first column to the last column before continuing with the next set
-/// of rows.
-/// • ttb: create pages from the top row to the bottom row before continuing with the next set of
-/// columns.
+/// * ltr: create pages from the first column to the last column before continuing with the next set
+///   of rows.
+/// * ttb: create pages from the top row to the bottom row before continuing with the next set of
+///   columns.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub enum PrintOrder {
@@ -1290,8 +1290,8 @@ impl Display for PrintOrder {
 /// value of this attribute can be portrait or landscape.
 ///
 /// The defined values for the style:print-orientation attribute are:
-/// • landscape: a page is printed in landscape orientation.
-/// • portrait: a page is printed in portrait orientation
+/// * landscape: a page is printed in landscape orientation.
+/// * portrait: a page is printed in portrait orientation
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub enum PrintOrientation {
@@ -1315,9 +1315,9 @@ impl Display for PrintOrientation {
 /// text.
 ///
 /// The defined values for the style:punctuation-wrap attribute are:
-/// • hanging: a punctuation mark can be placed in the margin area at the end of a full line of text.
-/// • simple: a punctuation mark cannot be placed in the margin area at the end of a full line of
-/// text.
+/// * hanging: a punctuation mark can be placed in the margin area at the end of a full line of text.
+/// * simple: a punctuation mark cannot be placed in the margin area at the end of a full line of
+///   text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum PunctuationWrap {
@@ -1359,7 +1359,7 @@ impl Display for RelativeScale {
 }
 
 /// 20.346 style:rotation-align
-///  The style:rotation-align attribute specifies how the edge of the text in a cell is aligned
+/// The style:rotation-align attribute specifies how the edge of the text in a cell is aligned
 /// after a rotation.
 ///
 /// The values of the style:rotation-align attribute are none, bottom, top or center.
@@ -1392,12 +1392,12 @@ impl Display for RotationAlign {
 /// writing direction.
 ///
 /// The defined values for the style:table-centering attribute are:
-/// • both: tables should be centered both horizontally and vertically on the pages where they
-/// appear.
-/// • horizontal: tables should be centered horizontally on the pages where they appear.
-/// • none: tables should not be centered both horizontally or vertically on the pages where they
-/// appear.
-/// • vertical: tables should be centered vertically on the pages where they appear.
+/// * both: tables should be centered both horizontally and vertically on the pages where they
+///   appear.
+/// * horizontal: tables should be centered horizontally on the pages where they appear.
+/// * none: tables should not be centered both horizontally or vertically on the pages where they
+///   appear.
+/// * vertical: tables should be centered vertically on the pages where they appear.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub enum PrintCentering {
@@ -1423,8 +1423,8 @@ impl Display for PrintCentering {
 /// The style:text-align-source attribute specifies the source of a text-align attribute.
 ///
 /// The defined values for the style:text-align-source attribute are:
-/// • fix: content alignment uses the value of the fo:text-align 20.223 attribute.
-/// • value-type: content alignment uses the value-type of the cell.
+/// * fix: content alignment uses the value of the fo:text-align 20.223 attribute.
+/// * value-type: content alignment uses the value-type of the cell.
 ///
 /// The default alignment for a cell value-type string is left, for other value-types it is right.
 ///
@@ -1451,9 +1451,9 @@ impl Display for TextAlignSource {
 /// Asian, Western, and complex texts.
 ///
 /// The defined values for the style:text-autospace attribute are:
-/// • ideograph-alpha: space should be added between portions of Asian, Western and
-/// Complex texts.
-/// • none: space should not be added between portions of Asian, Western and complex texts.
+/// * ideograph-alpha: space should be added between portions of Asian, Western and
+///   Complex texts.
+/// * none: space should not be added between portions of Asian, Western and complex texts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum TextAutoSpace {
@@ -1477,11 +1477,11 @@ impl Display for TextAutoSpace {
 ///
 /// The defined values for the style:text-combine attribute are:
 /// * letters: Display text in Kumimoji. Up to five (5) characters are combined within two lines
-///     and are displayed with a reduced size in a single wide-cell character. Additional characters
-///     are displayed as normal text.
+///   and are displayed with a reduced size in a single wide-cell character. Additional characters
+///   are displayed as normal text.
 /// * lines: Displays text in Warichu. All characters with the style:text-combine attribute that
-///     immediately follow each other are displayed within two lines of approximately the same length.
-///     A line break may occur between any two characters to meet this constraint.
+///   immediately follow each other are displayed within two lines of approximately the same length.
+///   A line break may occur between any two characters to meet this constraint.
 /// * none: characters should not be combined.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(missing_docs)]
@@ -1581,8 +1581,8 @@ impl Display for TextEmphasizePosition {
 /// words only or to portions of text.
 ///
 /// The defined values for the style:text-line-through-mode attribute are:
-/// • continuous: lining is applied to words and separating spaces.
-/// • skip-white-space: lining is not applied to spaces between words.
+/// * continuous: lining is applied to words and separating spaces.
+/// * skip-white-space: lining is not applied to spaces between words.
 ///
 /// The values of the style:text-line-through-mode attribute are continuous or skip-white-space.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -1613,10 +1613,10 @@ impl Display for LineMode {
 /// * dash: text has a dashed line underlining it.
 /// * dot-dash: text has a line whose repeating pattern is a dot followed by a dash underlining it.
 /// * dot-dot-dash: text has a line whose repeating pattern is two dots followed by a dash
-///     underlining it.
+///   underlining it.
 /// * dotted: text has a dotted line underlining it.
 /// * long-dash: text has a dashed line whose dashes are longer than the ones from the dashed
-///     line for value dash underlining it.
+///   line for value dash underlining it.
 /// * solid: text has a solid line underlining it.
 /// * wave: text has a wavy line underlining it.
 ///
@@ -1662,9 +1662,9 @@ impl Display for LineStyle {
 /// so, whether a single or double line will be used.
 ///
 /// The defined values for the style:text-line-through-type attribute are:
-/// • double: a double line should be used for a line-through text.
-/// • none: deprecated.
-/// • single: a single line should be used for a line-through text.
+/// * double: a double line should be used for a line-through text.
+/// * none: deprecated.
+/// * single: a single line should be used for a line-through text.
 ///
 /// Every occurrence of the style:text-line-through-type attribute should be accompanied
 /// by an occurrence of the style:text-line-through-style 20.373 attribute on the same
@@ -1701,13 +1701,13 @@ impl Display for LineType {
 /// wider than an auto width.
 ///
 /// The defined values for the style:text-line-through-width attribute are:
-/// • auto: the width of a line-through should be calculated from the font size of the text where the
-/// line-through will appear.
-/// • bold: the width of a line-through should be calculated from the font size of the text where the
-/// line-through will appear but is wider than for the value of auto.
-/// • a value of type percent 18.3.23
-/// • a value of type positiveInteger 18.2
-/// • a value of type positiveLength 18.3.26
+/// * auto: the width of a line-through should be calculated from the font size of the text where the
+///   line-through will appear.
+/// * bold: the width of a line-through should be calculated from the font size of the text where the
+///   line-through will appear but is wider than for the value of auto.
+/// * a value of type percent 18.3.23
+/// * a value of type positiveInteger 18.2
+/// * a value of type positiveLength 18.3.26
 ///
 /// The line-through text styles referenced by the values dash, medium, thick and thin, are
 /// implementation-defined. Thin shall be smaller width than medium and medium shall be a smaller
@@ -1830,8 +1830,8 @@ impl Display for RotationScale {
 ///
 /// The defined values for the style:vertical-align attribute are:
 /// * auto: automatically, which sets the vertical alignment to suit the text rotation. Text that is
-///     rotated 0 or 90 degrees is aligned to the baseline, while text that is rotated 270 degrees is
-///     aligned to the center of the line.
+///   rotated 0 or 90 degrees is aligned to the baseline, while text that is rotated 270 degrees is
+///   aligned to the center of the line.
 /// * baseline: to the baseline of the character.
 /// * bottom: to the bottom of the line.
 /// * middle: to the center of the line.
@@ -1935,10 +1935,10 @@ impl Display for WritingMode {
 /// The table:align attribute specifies the horizontal alignment of a table.
 ///
 /// The defined values for the table:align attribute are:
-/// • center: table aligns to the center between left and right margins.
-/// • left: table aligns to the left margin.
-/// • margins: table fills all the space between the left and right margins.
-/// • right: table aligns to the right margin.
+/// * center: table aligns to the center between left and right margins.
+/// * left: table aligns to the left margin.
+/// * margins: table fills all the space between the left and right margins.
+/// * right: table aligns to the right margin.
 ///
 /// Consumers that do not support the margins value, may treat this value as left.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1967,9 +1967,9 @@ impl Display for TableAlign {
 /// with a border.
 ///
 /// The defined values for the table:border-model attribute are:
-/// • collapsing: when two adjacent cells have different borders, the wider border appears as
-/// the border between the cells. Each cell receives half of the width of the border.
-/// • separating: borders appear within the cell that specifies the border.
+/// * collapsing: when two adjacent cells have different borders, the wider border appears as
+///   the border between the cells. Each cell receives half of the width of the border.
+/// * separating: borders appear within the cell that specifies the border.
 ///
 /// In OpenDocument, a row height or column width includes any space required to display borders
 /// or padding. This means that, while the width and height of the content area is less than the
@@ -2014,10 +2014,10 @@ impl Display for TextCondition {
 /// The text:display attribute specifies whether text is hidden.
 ///
 /// The defined values for the text:display attribute are:
-/// • condition: text is hidden under the condition specified in the text:condition 20.426
-/// attribute.
-/// • none: text is hidden unconditionally.
-/// • true: text is displayed. This is the default setting
+/// * condition: text is hidden under the condition specified in the text:condition 20.426
+///   attribute.
+/// * none: text is hidden unconditionally.
+/// * true: text is displayed. This is the default setting
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum TextDisplay {

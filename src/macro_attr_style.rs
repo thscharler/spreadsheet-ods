@@ -59,15 +59,15 @@ macro_rules! style_cell_protect {
         ///
         /// The defined values for the style:cell-protect attribute are:
         /// * formula-hidden: if cell content is a formula, it is not displayed. It can be replaced by
-        ///     changing the cell content.
-        ///     Note: Replacement of cell content includes replacement with another formula or
-        ///     other cell content.
+        ///   changing the cell content.
+        ///   Note: Replacement of cell content includes replacement with another formula or
+        ///   other cell content.
         /// * hidden-and-protected: cell content is not displayed and cannot be edited. If content is a
-        ///     formula, the formula result is not displayed.
+        ///   formula, the formula result is not displayed.
         /// * none: formula responsible for cell content is neither hidden nor protected.
         /// * protected: cell content cannot be edited.
         /// * protected formula-hidden: cell content cannot be edited. If content is a formula, it is not
-        ///     displayed. A formula result is displayed.
+        ///   displayed. A formula result is displayed.
         pub fn set_cell_protect(&mut self, protect: CellProtect) {
             self.$acc
                 .set_attr("style:cell-protect", protect.to_string());
@@ -136,7 +136,7 @@ macro_rules! style_direction {
         ///
         /// The defined values for the style:direction attribute are:
         /// * ltr – left to right, text is rendered in the direction specified by the style:writing-mode
-        ///     attribute
+        ///   attribute
         /// * ttb – top to bottom, characters are vertically stacked but not rotated
         pub fn set_direction(&mut self, direction: WritingDirection) {
             self.$acc.set_attr("style:direction", direction.to_string());
@@ -184,9 +184,9 @@ macro_rules! style_repeat_content {
         ///
         /// The defined values for the style:repeat-content attribute are:
         /// * false: text content of a cell should not be displayed as many times as there is space left in
-        ///     the cell's writing direction.
+        ///   the cell's writing direction.
         /// * true: text content of a cell should be displayed as many times as there is space left in the
-        ///     cell's writing direction.
+        ///   cell's writing direction.
         pub fn set_repeat_content(&mut self, print: bool) {
             self.$acc
                 .set_attr("style:repeat-content", print.to_string());
@@ -308,8 +308,8 @@ macro_rules! style_vertical_align {
         ///
         /// The defined values for the style:vertical-align attribute are:
         /// * auto: automatically, which sets the vertical alignment to suit the text rotation. Text that is
-        ///     rotated 0 or 90 degrees is aligned to the baseline, while text that is rotated 270 degrees is
-        ///     aligned to the center of the line.
+        ///   rotated 0 or 90 degrees is aligned to the baseline, while text that is rotated 270 degrees is
+        ///   aligned to the center of the line.
         /// * baseline: to the baseline of the character.
         /// * bottom: to the bottom of the line.
         /// * middle: to the center of the line.
@@ -360,10 +360,10 @@ macro_rules! style_contextual_spacing {
         /// * The style:contextual-spacing attribute of both paragraphs has the value true.
         /// * The paragraphs belong to the same content area.
         /// * The text:style-name 19.880 attribute of the paragraphs refer to the same common
-        ///     paragraph style. In case a text:style-name attribute refers to an automatic style, the value
-        ///     of the style:parent-style-name 19.510 attribute of the automatic style is taken for the
-        ///     style comparison. If a paragraph has a conditional style, the value of its text:cond-stylename 19.781 attribute is taken for the style comparison.
-        ///     The default value for this attribute is false.
+        ///   paragraph style. In case a text:style-name attribute refers to an automatic style, the value
+        ///   of the style:parent-style-name 19.510 attribute of the automatic style is taken for the
+        ///   style comparison. If a paragraph has a conditional style, the value of its text:cond-stylename 19.781 attribute is taken for the style comparison.
+        ///   The default value for this attribute is false.
         ///
         /// The style:contextual-spacing attribute is usable with the following element:
         /// style:paragraph-properties 17.6.
@@ -382,7 +382,7 @@ macro_rules! style_font_independent_line_spacing {
         /// The defined values for the style:font-independent-line-spacing attribute are:
         /// * false: font metric of the font is taken into account.
         /// * true: line height is calculated only from the font height as specified by the font size attributes
-        ///     fo:font-size 20.190, style:font-size-asian 20.284 and style:font-sizecomplex 20.285.
+        ///   fo:font-size 20.190, style:font-size-asian 20.284 and style:font-sizecomplex 20.285.
         ///
         /// The style:font-independent-line-spacing attribute is usable with the following
         /// element: style:paragraph-properties 17.6.
@@ -414,9 +414,9 @@ macro_rules! style_join_border {
         ///     1. All values are the same.
         ///     2. Values of the fo:margin-left attributes are the same and values of the fo:textindent attributes are non-negative.
         ///     3. Value of the fo:margin-left attribute of one paragraph whose value of the fo:textindent attribute is non-negative is the same as the sum of values of the fo:marginleft and fo:text-indent attributes of the other paragraph whose value of the
-        ///         fo:text-indent attribute is negative.
+        ///        fo:text-indent attribute is negative.
         ///     4. Both values of the fo:text-indent attributes are negative and the sums of values of the
-        ///         fo:margin-left and fo:text-indent attributes are equal.
+        ///        fo:margin-left and fo:text-indent attributes are equal.
         ///
         /// The default value of this attribute is true.
         ///
@@ -532,7 +532,7 @@ macro_rules! style_punctuation_wrap {
         /// The defined values for the style:punctuation-wrap attribute are:
         /// * hanging: a punctuation mark can be placed in the margin area at the end of a full line of text.
         /// * simple: a punctuation mark cannot be placed in the margin area at the end of a full line of
-        ///     text.
+        ///   text.
         ///
         /// The style:punctuation-wrap attribute is usable with the following element:
         /// style:paragraph-properties 17.6.
@@ -569,9 +569,9 @@ macro_rules! style_snap_to_layout_grid {
         ///
         /// The defined values for the style:snap-to-layout-grid attribute are:
         /// * false: layout of a paragraph should not consider the layout grid settings of the page where it
-        ///     appears.
+        ///   appears.
         /// * true: layout of a paragraph should consider the layout grid settings of the page where it
-        ///     appears.
+        ///   appears.
         ///
         /// The style:snap-to-layout-grid attribute is usable with the following element:
         /// style:paragraph-properties 17.6.
@@ -605,7 +605,7 @@ macro_rules! style_text_autospace {
         ///
         /// The defined values for the style:text-autospace attribute are:
         /// * ideograph-alpha: space should be added between portions of Asian, Western and
-        ///     complex texts.
+        ///   complex texts.
         /// * none: space should not be added between portions of Asian, Western and complex texts.
         ///
         /// The style:text-autospace attribute is usable with the following element:
@@ -624,8 +624,8 @@ macro_rules! style_vertical_align_para {
         ///
         /// The defined values for the style:vertical-align attribute are:
         /// * auto: automatically, which sets the vertical alignment to suit the text rotation. Text that is
-        ///     rotated 0 or 90 degrees is aligned to the baseline, while text that is rotated 270 degrees is
-        ///     aligned to the center of the line.
+        ///   rotated 0 or 90 degrees is aligned to the baseline, while text that is rotated 270 degrees is
+        ///   aligned to the center of the line.
         /// * baseline: to the baseline of the character.
         /// * bottom: to the bottom of the line.
         /// * middle: to the center of the line.
@@ -664,9 +664,9 @@ macro_rules! style_writing_mode_automatic {
         ///
         /// The defined values for the style:writing-mode-automatic attribute are:
         /// * false: consumers should not recalculate writing mode of a paragraph whenever its content
-        ///     is edited.
+        ///   is edited.
         /// * true: consumers should recalculate writing mode of a paragraph whenever its content is
-        ///     edited.
+        ///   edited.
         ///
         /// The style:writing-mode-automatic attribute is usable with the following element:
         /// style:paragraph-properties 17.6.
@@ -1025,11 +1025,11 @@ macro_rules! style_text_combine {
         ///
         /// The defined values for the style:text-combine attribute are:
         /// * letters: Display text in Kumimoji. Up to five (5) characters are combined within two lines
-        ///     and are displayed with a reduced size in a single wide-cell character. Additional characters
-        ///     are displayed as normal text.
+        ///   and are displayed with a reduced size in a single wide-cell character. Additional characters
+        ///   are displayed as normal text.
         /// * lines: Displays text in Warichu. All characters with the style:text-combine attribute that
-        ///     immediately follow each other are displayed within two lines of approximately the same length.
-        ///     A line break may occur between any two characters to meet this constraint.
+        ///   immediately follow each other are displayed within two lines of approximately the same length.
+        ///   A line break may occur between any two characters to meet this constraint.
         /// * none: characters should not be combined.
         pub fn set_text_combine(&mut self, pos: TextCombine) {
             self.$acc.set_attr("style:text-combine", pos.to_string());
@@ -1118,10 +1118,10 @@ macro_rules! style_text_line_through {
         /// * dash: text has a dashed line through it.
         /// * dot-dash: text has a line whose repeating pattern is a dot followed by a dash through it.
         /// * dot-dot-dash: text has a line whose repeating pattern is two dots followed by a dash
-        ///     through it.
+        ///   through it.
         /// * dotted: text has a dotted line through it.
         /// * long-dash: text has a dashed line whose dashes are longer than the ones from the dashed
-        ///     line for value dash through it.
+        ///   line for value dash through it.
         /// * solid: text has a solid line through it.
         /// * wave: text has a wavy line through it.
         ///
@@ -1184,9 +1184,9 @@ macro_rules! style_text_line_through {
         ///
         /// The defined values for the style:text-line-through-width attribute are:
         /// * auto: the width of a line-through should be calculated from the font size of the text where the
-        ///     line-through will appear.
+        ///   line-through will appear.
         /// * bold: the width of a line-through should be calculated from the font size of the text where the
-        ///     line-through will appear but is wider than for the value of auto.
+        ///   line-through will appear but is wider than for the value of auto.
         /// * a value of type percent 18.3.23
         /// * a value of type positiveInteger 18.2
         /// * a value of type positiveLength 18.3.26
@@ -1447,11 +1447,11 @@ macro_rules! style_num_letter_sync {
         /// place. If letters are used in alphabetical order for numbering, there are two ways to process
         /// overflows within a digit, as follows:
         /// * false: A new digit is inserted that always has the same value as the following digit. The
-        ///     numbering sequence (for lower case numberings) in that case is a, b, c, ..., z, aa, bb, cc, ...,
-        ///     zz, aaa, ..., and so on.
+        ///   numbering sequence (for lower case numberings) in that case is a, b, c, ..., z, aa, bb, cc, ...,
+        ///   zz, aaa, ..., and so on.
         /// * true: A new digit is inserted. Its start value is ”a” or ”A”, and it is incremented every time an
-        ///     overflow occurs in the following digit. The numbering sequence (for lower case numberings) in
-        ///     that case is a,b,c, ..., z, aa, ab, ac, ...,az, ba, ..., and so on
+        ///   overflow occurs in the following digit. The numbering sequence (for lower case numberings) in
+        ///   that case is a,b,c, ..., z, aa, ab, ac, ...,az, ba, ..., and so on
         pub fn set_num_letter_sync(&mut self, sync: bool) {
             self.style_mut()
                 .set_attr("style:num-letter-sync", sync.to_string());
@@ -1548,9 +1548,9 @@ macro_rules! style_print_page_order {
         ///
         /// The defined values for the style:print-page-order attribute are:
         /// * ltr: create pages from the first column to the last column before continuing with the next set
-        ///     of rows.
+        ///   of rows.
         /// * ttb: create pages from the top row to the bottom row before continuing with the next set of
-        ///     columns.
+        ///   columns.
         pub fn set_print_page_order(&mut self, order: PrintOrder) {
             self.$acc
                 .set_attr("style:print-page-order", order.to_string());
@@ -1590,10 +1590,10 @@ macro_rules! style_table_centering {
         ///
         /// The defined values for the style:table-centering attribute are:
         /// * both: tables should be centered both horizontally and vertically on the pages where they
-        ///     appear.
+        ///   appear.
         /// * horizontal: tables should be centered horizontally on the pages where they appear.
         /// * none: tables should not be centered both horizontally or vertically on the pages where they
-        ///     appear.
+        ///   appear.
         /// * vertical: tables should be centered vertically on the pages where they appear.
         pub fn set_table_centering(&mut self, center: PrintCentering) {
             self.$acc
@@ -1668,9 +1668,9 @@ macro_rules! style_rel_width {
         ///
         /// The defined values for the style:rel-width attribute are:
         /// * scale: the width should be calculated depending on the height, so that the ratio of width and
-        ///     height of the original image or object size is preserved.
+        ///   height of the original image or object size is preserved.
         /// * scale-min: the width should be calculated as for value scale, but the calculated width is a
-        ///     minimum width rather than an absolute one.
+        ///   minimum width rather than an absolute one.
         /// * a value of type percent 18.3.23.
         ///
         /// The interpretation of the percent value depends on the anchor of the drawing object. If the anchor
@@ -1693,9 +1693,9 @@ macro_rules! style_rel_height {
         ///
         /// The defined values for the style:rel-height attribute are:
         /// * scale: the height should be calculated depending on the width, so that the ratio of width and
-        ///     height of the original image or object size is preserved.
+        ///   height of the original image or object size is preserved.
         /// * scale-min: the height should be calculated as for value scale, but the calculated height is
-        ///     a minimum height rather than an absolute one.
+        ///   a minimum height rather than an absolute one.
         /// * a value of type percent 18.3.23.
         ///
         /// The interpretation of percentage values depends on the anchor of the drawing object. If the
@@ -1753,10 +1753,10 @@ macro_rules! style_leader_style {
         /// * dash: tab stop has a dashed leader line.
         /// * dot-dash: tab stop has a leader line whose repeating pattern is a dot followed by a dash.
         /// * dot-dot-dash: tab stop has a leader line whose repeating pattern has two dots followed by
-        ///     a dash.
+        ///   a dash.
         /// * dotted: tab stop has a dotted leader line.
         /// * long-dash: tab stop has a dashed leader line whose dashes are longer than the ones from
-        ///     the dashed line for value dash.
+        ///   the dashed line for value dash.
         /// * solid: tab stop has a solid leader line.
         /// * wave: tab stop has a wavy leader line.
         ///
@@ -1819,9 +1819,9 @@ macro_rules! style_leader_width {
         ///
         /// The defined values for the style:leader-width attribute are:
         /// * auto: the width of a leader line should be calculated from the font size of the text where the
-        ///     leader line will appear.
+        ///   leader line will appear.
         /// * bold: the width of a leader line should be calculated from the font size of the text where the
-        ///     leader line will appear but is wider than for the value of auto.
+        ///   leader line will appear but is wider than for the value of auto.
         /// * a value of type percent 18.3.23
         /// * a value of type positiveInteger 18.2
         /// * a value of type positiveLength 18.3.26
@@ -1909,11 +1909,11 @@ macro_rules! style_auto_update {
         ///
         /// The defined values for the style:auto-update attribute are:
         /// * false: a change to a formatting property is applied for the object where the change was
-        ///     made. If necessary, a new automatic style will be created which is applied to the object where
-        ///     the change was made.
+        ///   made. If necessary, a new automatic style will be created which is applied to the object where
+        ///   the change was made.
         /// * true: a change to a formatting property results in the updating of the common style that is
-        ///     applied to an object. The formatting change is applied to all objects subject to the common
-        ///     style where the change was made.
+        ///   applied to an object. The formatting change is applied to all objects subject to the common
+        ///   style where the change was made.
         ///
         /// The default value for this attribute is false.
         pub fn set_auto_update(&mut self, auto: bool) {

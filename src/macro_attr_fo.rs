@@ -334,7 +334,7 @@ macro_rules! fo_line_height {
         /// The defined values for the fo:line-height attribute are:
         /// * a value of type nonNegativeLength 18.3.20
         /// * normal: disables the effects of style:line-height-at-least 20.317 and
-        ///     style:line-spacing 20.318.
+        ///   style:line-spacing 20.318.
         /// * a value of type percent 18.3.23
         ///
         /// The fo:line-height attribute is usable with the following element:
