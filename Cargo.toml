@@ -31,7 +31,6 @@ dump_unused = []
 rust_decimal = { version = "1.36", optional = true }
 rust_decimal_macros = { version = "1.36", optional = true }
 color-rs2 = { version = "0.9.0" }
-num-traits = "0.2.19"
 string_cache = "0.8"
 nom = "7.1"
 nom_locate = "4.2"
@@ -40,7 +39,7 @@ lazy_static = "1.5"
 kparse = "3.0"
 base64 = "0.22"
 quick-xml = { version = "0.37", features = ["encoding"] }
-zip = { version = "2.2.0", default-features = false, features = ["deflate", "time"] }
+zip = { version = "4.0.0", default-features = false, features = ["deflate", "time"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "alloc"] }
 get-size2 = { version = "0.3", features = ["derive"] }
 
