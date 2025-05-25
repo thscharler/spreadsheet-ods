@@ -1,3 +1,12 @@
+# 0.25.0
+
+- update dependencies
+  - allow quick-xml encoding feature. not used here but other crates may want to use it.
+  - replace get-size with get-size2 to resolve https://rustsec.org/advisories/RUSTSEC-2024-0427 
+  - replace color-rs with color-rs2
+  - upgrade zip to 4.0.0
+- clippy
+
 # 0.24.0
 
 - update dependent crates
