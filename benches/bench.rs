@@ -50,13 +50,13 @@ fn create_wb(rows: u32, cols: u32) -> Result<WorkBook, OdsError> {
 
 fn write_wb<'a>(wb: &'a mut WorkBook) -> impl FnMut() -> Result<(), OdsError> + 'a {
     move || {
-        let buf = write_ods_buf_uncompressed(wb, Vec::new())?;
+        let _buf = write_ods_buf_uncompressed(wb, Vec::new())?;
         Ok(())
     }
 }
 
 fn criterion_read(c: &mut Criterion) {
-    c.bench_function("read", |b| b.iter(|| read_orders()));
+    c.bench_function("read", |b| b.iter(read_orders));
 }
 
 fn criterion_write(c: &mut Criterion) {

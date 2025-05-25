@@ -49,7 +49,7 @@ fn test_issue_54() {
             sh.set_col_width(6, spreadsheet_ods::Length::In(0.6));
             sh.set_value(i, 7, reel.paid_partnership);
             sh.set_col_width(7, spreadsheet_ods::Length::In(0.5));
-            sh.set_value(i, 8, &reel.date.format("%d-%m-%Y %H:%M:%S").to_string());
+            sh.set_value(i, 8, reel.date.format("%d-%m-%Y %H:%M:%S").to_string());
             sh.set_col_width(8, spreadsheet_ods::Length::In(1.35));
             sh.set_value(i, 9, &reel.caption);
             sh.set_col_width(9, spreadsheet_ods::Length::In(15.));

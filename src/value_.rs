@@ -313,7 +313,7 @@ impl Value {
     }
 
     /// Return the content as str if the value is text.
-    pub fn as_str_or_default<'a>(&'a self) -> &'a str {
+    pub fn as_str_or_default(&self) -> &str {
         self.as_str_opt().unwrap_or_default()
     }
 

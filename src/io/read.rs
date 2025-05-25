@@ -113,7 +113,7 @@ impl OdsOptions {
     /// Ignores cells without value and formula.
     ///
     /// This can be useful, if only the data is needed. If you store such
-    /// a spreadsheet you will loose cell-formating, spans etc.
+    /// a spreadsheet you will lose cell-formating, spans etc.
     pub fn ignore_empty_cells(mut self) -> Self {
         self.ignore_empty_cells = true;
         self
@@ -122,7 +122,7 @@ impl OdsOptions {
     /// Reads cells without value and formula.
     ///
     /// This is the default behaviour. As such cells can have a style,
-    /// annotations etc it is recommended to use this option.
+    /// annotations etc. it is recommended to use this option.
     ///
     /// Cells without any information, that are only structural are always
     /// ignored.
@@ -3921,7 +3921,7 @@ fn read_office_meta(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<
             }
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:editing-duration" => {
                 ctx.book.metadata.editing_duration =
-                    read_metadata_value(ctx, xml, xml_tag, parse_duration, || Duration::default())?;
+                    read_metadata_value(ctx, xml, xml_tag, parse_duration, Duration::default)?;
             }
 
             Event::Start(xml_tag) if xml_tag.name().as_ref() == b"meta:template" => {

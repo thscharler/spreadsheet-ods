@@ -1315,7 +1315,7 @@ impl Sheet {
     /// Returns the header rows.
     /// These rows are repeated when printing on multiple pages.
     pub fn header_rows(&self) -> Option<Header> {
-        self.header_rows.map(Into::into)
+        self.header_rows
     }
 
     /// Defines a range of columns as header columns.
@@ -1335,7 +1335,7 @@ impl Sheet {
     /// Returns the header columns.
     /// These columns are repeated when printing on multiple pages.
     pub fn header_cols(&self) -> Option<Header> {
-        self.header_cols.map(Into::into)
+        self.header_cols
     }
 
     /// Print ranges.
@@ -1442,12 +1442,12 @@ impl Sheet {
 
     /// Returns the nth column group.
     pub fn col_group(&self, idx: usize) -> Option<&Grouped> {
-        return self.group_cols.get(idx);
+        self.group_cols.get(idx)
     }
 
     /// Returns the nth column group.
     pub fn col_group_mut(&mut self, idx: usize) -> Option<&mut Grouped> {
-        return self.group_cols.get_mut(idx);
+        self.group_cols.get_mut(idx)
     }
 
     /// Iterate the column groups.
@@ -1512,7 +1512,7 @@ impl Sheet {
 
     /// Returns the nth row group.
     pub fn row_group(&self, idx: usize) -> Option<&Grouped> {
-        return self.group_rows.get(idx);
+        self.group_rows.get(idx)
     }
 
     /// Iterate row groups.

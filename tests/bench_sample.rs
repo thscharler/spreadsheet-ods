@@ -91,7 +91,7 @@ struct Sample {
     metadata: usize,
 }
 
-// #[test]
+#[test]
 fn test_samples() -> Result<(), OdsError> {
     let mut t = Timing::default().skip(1).runs(5);
 
@@ -110,137 +110,135 @@ fn test_samples() -> Result<(), OdsError> {
 }
 
 fn run_samples(t1: &mut Timing<Sample>, cat: &str, options: OdsOptions) -> Result<(), OdsError> {
-    let path = Path::new("C:\\Users\\stommy\\Documents\\StableProjects\\spreadsheet-ods-samples");
+    let path = Path::new("C:\\Users\\stommy\\Documents\\Workspaces\\spreadsheet-ods\\spreadsheet-ods-samples");
     if path.exists() {
         for f in path.read_dir()? {
             let f = f?;
 
-            if f.metadata()?.is_file() {
-                if f.file_name().to_string_lossy().ends_with(".ods") {
-                    t1.name = f
-                        .path()
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string();
-                    let name = t1.name.clone();
+            if f.metadata()?.is_file() && f.file_name().to_string_lossy().ends_with(".ods") {
+                t1.name = f
+                    .path()
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                let name = t1.name.clone();
 
-                    let mut buf = Vec::new();
-                    File::open(f.path())?.read_to_end(&mut buf)?;
+                let mut buf = Vec::new();
+                File::open(f.path())?.read_to_end(&mut buf)?;
 
-                    let _wb = t1.run_pp(
-                        || {
-                            let read = BufReader::new(Cursor::new(&buf));
-                            options.read_ods(read)
-                        },
-                        |r, s, x| {
-                            if let Ok(wb) = &r {
-                                // some cleanup ...
-                                let min = s.iter().fold(f64::MAX, |s, v| f64::min(s, *v));
-                                let max = s.iter().fold(0f64, |s, v| f64::max(s, *v));
-                                let sum = s.iter().fold(0f64, |s, v| s + *v) - min - max;
-                                let avg = sum / (s.len() - 2) as f64;
+                let _wb = t1.run_pp(
+                    || {
+                        let read = BufReader::new(Cursor::new(&buf));
+                        options.read_ods(read)
+                    },
+                    |r, s, x| {
+                        if let Ok(wb) = &r {
+                            // some cleanup ...
+                            let min = s.iter().fold(f64::MAX, |s, v| f64::min(s, *v));
+                            let max = s.iter().fold(0f64, |s, v| f64::max(s, *v));
+                            let sum = s.iter().fold(0f64, |s, v| s + *v) - min - max;
+                            let avg = sum / (s.len() - 2) as f64;
 
-                                s.clear();
-                                s.push(avg);
+                            s.clear();
+                            s.push(avg);
 
-                                // general stats
-                                let mut cell_count = 0;
-                                for sh in wb.iter_sheets() {
-                                    cell_count += sh.cell_count();
-                                }
+                            // general stats
+                            let mut cell_count = 0;
+                            for sh in wb.iter_sheets() {
+                                cell_count += sh.cell_count();
+                            }
 
-                                let mut attr = Vec::new();
-                                for v in wb.iter_table_styles() {
-                                    attr.push(v.attrmap().len());
-                                    attr.push(v.tablestyle().len());
-                                }
-                                for v in wb.iter_rowstyles() {
-                                    attr.push(v.attrmap().len());
-                                    attr.push(v.rowstyle().len());
-                                }
-                                for v in wb.iter_colstyles() {
-                                    attr.push(v.attrmap().len());
-                                    attr.push(v.colstyle().len());
-                                }
-                                for v in wb.iter_cellstyles() {
-                                    attr.push(v.attrmap().len());
-                                    attr.push(v.cellstyle().len());
-                                    attr.push(v.textstyle().len());
-                                    attr.push(v.paragraphstyle().len());
-                                }
-                                for v in wb.iter_paragraphstyles() {
-                                    attr.push(v.attrmap().len());
-                                    attr.push(v.paragraphstyle().len());
-                                    attr.push(v.textstyle().len());
-                                }
-                                for v in wb.iter_textstyles() {
-                                    attr.push(v.attrmap().len());
-                                    attr.push(v.textstyle().len());
-                                }
-                                for v in wb.iter_rubystyles() {
-                                    attr.push(v.attrmap().len());
-                                    attr.push(v.rubystyle().len());
-                                }
-                                for v in wb.iter_graphicstyles() {
-                                    attr.push(v.attrmap().len());
-                                    attr.push(v.paragraphstyle().len());
-                                    attr.push(v.textstyle().len());
-                                    attr.push(v.graphicstyle().len());
-                                }
-                                for v in wb.iter_boolean_formats() {
-                                    attr.push(v.attrmap().len());
-                                }
-                                for v in wb.iter_number_formats() {
-                                    attr.push(v.attrmap().len());
-                                }
-                                for v in wb.iter_percentage_formats() {
-                                    attr.push(v.attrmap().len());
-                                }
-                                for v in wb.iter_currency_formats() {
-                                    attr.push(v.attrmap().len());
-                                }
-                                for v in wb.iter_text_formats() {
-                                    attr.push(v.attrmap().len());
-                                }
-                                for v in wb.iter_datetime_formats() {
-                                    attr.push(v.attrmap().len());
-                                }
-                                for v in wb.iter_timeduration_formats() {
-                                    attr.push(v.attrmap().len());
-                                }
-                                for v in wb.iter_pagestyles() {
-                                    attr.push(v.style().len());
-                                }
-                                for sh in wb.iter_sheets() {
-                                    for (_, c) in sh.iter() {
-                                        if let Value::TextXml(xml) = c.value {
-                                            for x in xml {
-                                                attr.push(x.attrmap().len());
-                                            }
+                            let mut attr = Vec::new();
+                            for v in wb.iter_table_styles() {
+                                attr.push(v.attrmap().len());
+                                attr.push(v.tablestyle().len());
+                            }
+                            for v in wb.iter_rowstyles() {
+                                attr.push(v.attrmap().len());
+                                attr.push(v.rowstyle().len());
+                            }
+                            for v in wb.iter_colstyles() {
+                                attr.push(v.attrmap().len());
+                                attr.push(v.colstyle().len());
+                            }
+                            for v in wb.iter_cellstyles() {
+                                attr.push(v.attrmap().len());
+                                attr.push(v.cellstyle().len());
+                                attr.push(v.textstyle().len());
+                                attr.push(v.paragraphstyle().len());
+                            }
+                            for v in wb.iter_paragraphstyles() {
+                                attr.push(v.attrmap().len());
+                                attr.push(v.paragraphstyle().len());
+                                attr.push(v.textstyle().len());
+                            }
+                            for v in wb.iter_textstyles() {
+                                attr.push(v.attrmap().len());
+                                attr.push(v.textstyle().len());
+                            }
+                            for v in wb.iter_rubystyles() {
+                                attr.push(v.attrmap().len());
+                                attr.push(v.rubystyle().len());
+                            }
+                            for v in wb.iter_graphicstyles() {
+                                attr.push(v.attrmap().len());
+                                attr.push(v.paragraphstyle().len());
+                                attr.push(v.textstyle().len());
+                                attr.push(v.graphicstyle().len());
+                            }
+                            for v in wb.iter_boolean_formats() {
+                                attr.push(v.attrmap().len());
+                            }
+                            for v in wb.iter_number_formats() {
+                                attr.push(v.attrmap().len());
+                            }
+                            for v in wb.iter_percentage_formats() {
+                                attr.push(v.attrmap().len());
+                            }
+                            for v in wb.iter_currency_formats() {
+                                attr.push(v.attrmap().len());
+                            }
+                            for v in wb.iter_text_formats() {
+                                attr.push(v.attrmap().len());
+                            }
+                            for v in wb.iter_datetime_formats() {
+                                attr.push(v.attrmap().len());
+                            }
+                            for v in wb.iter_timeduration_formats() {
+                                attr.push(v.attrmap().len());
+                            }
+                            for v in wb.iter_pagestyles() {
+                                attr.push(v.style().len());
+                            }
+                            for sh in wb.iter_sheets() {
+                                for (_, c) in sh.iter() {
+                                    if let Value::TextXml(xml) = c.value {
+                                        for x in xml {
+                                            attr.push(x.attrmap().len());
                                         }
                                     }
                                 }
-                                let max = attr.iter().fold(0f64, |s, v| f64::max(s, *v as f64));
-                                let sum = attr.iter().fold(0.0, |s, v| s + *v as f64);
-                                let avg = sum / (attr.len() as f64 - 2.0);
-
-                                x.push(Sample {
-                                    category: cat.to_string(),
-                                    name: name.clone(),
-                                    file_size: f.metadata()?.len(),
-                                    cell_count,
-                                    mem_size: wb.get_size(),
-                                    col_header: avg as usize,
-                                    row_header: max as usize,
-                                    ..Sample::default()
-                                });
                             }
+                            let max = attr.iter().fold(0f64, |s, v| f64::max(s, *v as f64));
+                            let sum = attr.iter().fold(0.0, |s, v| s + *v as f64);
+                            let avg = sum / (attr.len() as f64 - 2.0);
 
-                            r
-                        },
-                    )?;
-                }
+                            x.push(Sample {
+                                category: cat.to_string(),
+                                name: name.clone(),
+                                file_size: f.metadata()?.len(),
+                                cell_count,
+                                mem_size: wb.get_size(),
+                                col_header: avg as usize,
+                                row_header: max as usize,
+                                ..Sample::default()
+                            });
+                        }
+
+                        r
+                    },
+                )?;
             }
         }
     }
