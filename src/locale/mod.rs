@@ -4,6 +4,8 @@
 
 mod default;
 
+#[cfg(feature = "locale_cs_CZ")]
+mod cs_cz;
 #[cfg(feature = "locale_de_AT")]
 mod de_at;
 #[cfg(feature = "locale_en_US")]
@@ -46,6 +48,10 @@ lazy_static! {
         let mut lm: HashMap<Locale, &'static dyn LocalizedValueFormat> = HashMap::new();
 
         lm.insert(icu_locid::locale!("en"), &default::LOCALE_DEFAULT);
+        #[cfg(feature = "locale_cs_CZ")]
+        {
+            lm.insert(icu_locid::locale!("cs_CZ"), &cs_cz::LOCALE_CS_CZ);
+        }
         #[cfg(feature = "locale_de_AT")]
         {
             lm.insert(icu_locid::locale!("de_AT"), &de_at::LOCALE_DE_AT);

@@ -18,7 +18,8 @@ rust_decimal = ["dep:rust_decimal", "dep:rust_decimal_macros"]
 # Check the xml output for wellformedness.
 check_xml = []
 
-all_locales = ["locale_de_AT", "locale_en_US"]
+all_locales = ["locale_cs_CZ", "locale_de_AT", "locale_en_US"]
+locale_cs_CZ = []
 locale_de_AT = []
 locale_en_US = []
 
