@@ -9,7 +9,7 @@ use std::str::from_utf8;
 
 use chrono::{Duration, NaiveDateTime};
 use quick_xml::events::attributes::Attribute;
-use quick_xml::events::{BytesStart, Event};
+use quick_xml::events::{BytesRef, BytesStart, Event};
 use quick_xml::{Decoder, Reader};
 use zip::ZipArchive;
 
@@ -2924,8 +2924,11 @@ fn read_part_text(
                 println!(" read_part_text {:?}", evt);
             }
             match &evt {
+                Event::GeneralRef(xml_ref) => {
+                    part.append_content(entity(xml_ref)?);
+                }
                 Event::Text(xml_text) => {
-                    part.set_content(xml_text.unescape()?);
+                    part.append_content(xml_text.decode()?);
                 }
                 Event::End(xml_tag) if xml_tag.name() == super_tag.name() => {
                     break;
@@ -4155,17 +4158,11 @@ fn read_metadata_user_defined(
             }
             Event::Text(xml_text) => {
                 user_defined.value = match value_type {
-                    Some("boolean") => {
-                        MetaValue::Boolean(parse_bool(xml_text.unescape()?.as_bytes())?)
-                    }
-                    Some("date") => {
-                        MetaValue::Datetime(parse_datetime(xml_text.unescape()?.as_bytes())?)
-                    }
-                    Some("float") => MetaValue::Float(parse_f64(xml_text.unescape()?.as_bytes())?),
-                    Some("time") => {
-                        MetaValue::TimeDuration(parse_duration(xml_text.unescape()?.as_bytes())?)
-                    }
-                    _ => MetaValue::String(xml_text.unescape()?.to_string()),
+                    Some("boolean") => MetaValue::Boolean(parse_bool(xml_text)?),
+                    Some("date") => MetaValue::Datetime(parse_datetime(xml_text)?),
+                    Some("float") => MetaValue::Float(parse_f64(xml_text)?),
+                    Some("time") => MetaValue::TimeDuration(parse_duration(xml_text)?),
+                    _ => MetaValue::String(xml_text.decode()?.to_string()),
                 };
             }
             Event::Eof => {
@@ -4192,7 +4189,7 @@ fn read_metadata_value<T>(
     default: fn() -> T,
 ) -> Result<T, OdsError> {
     let mut buf = ctx.pop_buf();
-    let mut value = None;
+    let mut text = String::new();
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         if cfg!(feature = "dump_xml") {
@@ -4203,8 +4200,11 @@ fn read_metadata_value<T>(
             Event::End(xml_tag) if xml_tag.name() == tag.name() => {
                 break;
             }
+            Event::GeneralRef(xml_ref) => {
+                text.push_str(entity(xml_ref)?.as_ref());
+            }
             Event::Text(xml_text) => {
-                value = Some(parse(xml_text.unescape()?.as_bytes())?);
+                text.push_str(xml_text.decode()?.as_ref());
             }
             Event::Eof => {
                 break;
@@ -4218,7 +4218,11 @@ fn read_metadata_value<T>(
     }
     ctx.push_buf(buf);
 
-    Ok(value.unwrap_or(default()))
+    if !text.is_empty() {
+        parse(text.as_bytes())
+    } else {
+        Ok(default())
+    }
 }
 
 fn read_ods_settings(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result<(), OdsError> {
@@ -4630,8 +4634,11 @@ fn read_config_item(
     loop {
         let evt = xml.read_event_into(&mut buf)?;
         match &evt {
+            Event::GeneralRef(xml_ref) => {
+                value.write_all(entity(xml_ref)?.as_bytes())?;
+            }
             Event::Text(xml_text) => {
-                value.write_all(xml_text.unescape()?.as_bytes())?;
+                value.write_all(xml_text.decode()?.as_bytes())?;
             }
             Event::End(xml_tag) if xml_tag.name().as_ref() == b"config:config-item" => {
                 let value = <Cow<'_, [u8]> as From<&Vec<u8>>>::from(value.as_ref());
@@ -4739,9 +4746,16 @@ fn read_xml(
                         unreachable!()
                     }
                 }
+                Event::GeneralRef(xml_ref) => {
+                    if let Some(parent) = stack.last_mut() {
+                        parent.add_text(entity(xml_ref)?.as_ref());
+                    } else {
+                        unreachable!()
+                    }
+                }
                 Event::Text(xml_text) => {
                     if let Some(parent) = stack.last_mut() {
-                        parent.add_text(xml_text.unescape()?.as_ref());
+                        parent.add_text(xml_text.decode()?.as_ref());
                     } else {
                         unreachable!()
                     }
@@ -4841,8 +4855,31 @@ fn read_text_or_tag(
                         unreachable!()
                     }
                 }
+                Event::GeneralRef(xml_ref) => {
+                    let v = entity(xml_ref)?;
+
+                    cellcontent = match cellcontent {
+                        TextContent::Empty => {
+                            // Fresh plain text string.
+                            TextContent::Text(v.to_string())
+                        }
+                        TextContent::Text(mut old_txt) => {
+                            // We have a previous plain text string. Append to it.
+                            old_txt.push_str(&v);
+                            TextContent::Text(old_txt)
+                        }
+                        TextContent::Xml(mut xml) => {
+                            // There is already a tag. Append the text to its children.
+                            xml.add_text(v);
+                            TextContent::Xml(xml)
+                        }
+                        TextContent::XmlVec(_) => {
+                            unreachable!()
+                        }
+                    };
+                }
                 Event::Text(xml_text) => {
-                    let v = xml_text.unescape()?;
+                    let v = xml_text.decode()?;
 
                     cellcontent = match cellcontent {
                         TextContent::Empty => {
@@ -4939,6 +4976,9 @@ where
                 println!(" read_text {:?}", evt);
             }
             match &evt {
+                Event::GeneralRef(xml_ref) => {
+                    result_buf.extend_from_slice(entity(xml_ref)?.as_bytes());
+                }
                 Event::Text(xml_text) => {
                     result_buf.extend_from_slice(xml_text.as_ref());
                 }
@@ -4968,6 +5008,22 @@ where
     }
 }
 
+fn entity(xml_ref: &BytesRef) -> Result<Cow<'static, str>, quick_xml::Error> {
+    if let Some(cc) = xml_ref.resolve_char_ref()? {
+        Ok(Cow::Owned(format!("{}", cc)))
+    } else {
+        let xml_ref = xml_ref.decode()?;
+        match xml_ref.as_ref() {
+            "lt" => Ok(Cow::Borrowed("<")),
+            "gt" => Ok(Cow::Borrowed(">")),
+            "amp" => Ok(Cow::Borrowed("&")),
+            "apos" => Ok(Cow::Borrowed("'")),
+            "quot" => Ok(Cow::Borrowed("\"")),
+            other => Ok(Cow::Owned(format!("&{};", other))),
+        }
+    }
+}
+
 #[inline(always)]
 fn unused_attr(func: &str, tag: &[u8], attr: &Attribute<'_>) -> Result<(), OdsError> {
     if cfg!(feature = "dump_unused") {
@@ -4984,7 +5040,7 @@ fn unused_event(func: &str, evt: &Event<'_>) -> Result<(), OdsError> {
     if cfg!(feature = "dump_unused") {
         match &evt {
             Event::Text(xml_text) => {
-                if !xml_text.unescape()?.trim().is_empty() {
+                if !xml_text.decode()?.trim().is_empty() {
                     println!("unused text: {} ({:?})", func, evt);
                 }
             }

@@ -1,10 +1,22 @@
+# 0.25.1
+
+- update quick-xml to 0.38
+    - Event::GeneralRef is used to decode the core entities and character references.
+      All other entities are passed through verbatim, which will be incorrect if
+      you write such a document. No sane person uses custom xml-entities, so this
+      is probably ok-ish.
+- update get-size2 to 0.6
+- note: not updated nom for now.
+
+- add cs_CZ locale
+
 # 0.25.0
 
 - update dependencies
-  - allow quick-xml encoding feature. not used here but other crates may want to use it.
-  - replace get-size with get-size2 to resolve https://rustsec.org/advisories/RUSTSEC-2024-0427 
-  - replace color-rs with color-rs2
-  - upgrade zip to 4.0.0
+    - allow quick-xml encoding feature. not used here but other crates may want to use it.
+    - replace get-size with get-size2 to resolve https://rustsec.org/advisories/RUSTSEC-2024-0427
+    - replace color-rs with color-rs2
+    - upgrade zip to 4.0.0
 - clippy
 
 # 0.24.0

@@ -404,6 +404,18 @@ impl FormatPart {
         self.content = Some(content.into());
     }
 
+    /// Append to the textual content of this part.
+    pub fn append_content<S: AsRef<str>>(&mut self, content: S) {
+        match &mut self.content {
+            None => {
+                self.content = Some(content.as_ref().to_string());
+            }
+            Some(v) => {
+                v.push_str(content.as_ref());
+            }
+        }
+    }
+
     /// Clear the textual content for this part. This is only used
     /// for text and currency-symbol.
     pub fn clear_content(&mut self) {

@@ -187,6 +187,25 @@ fn test_write_read() -> Result<(), OdsError> {
 }
 
 #[test]
+fn test_write_read_entity() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new_empty();
+    let mut sh = Sheet::new("1");
+
+    sh.set_value(0, 0, "&");
+
+    wb.push_sheet(sh);
+
+    test_write_ods(&mut wb, "test_out/test_write_read_8.ods")?;
+
+    let wi = read_ods("test_out/test_write_read_8.ods")?;
+    let si = wi.sheet(0);
+
+    assert_eq!(si.value(0, 0).as_str_or(""), "&");
+
+    Ok(())
+}
+
+#[test]
 fn read_text() -> Result<(), OdsError> {
     let wb = read_ods("tests/test_write_read_3.ods")?;
     let sh = wb.sheet(0);
