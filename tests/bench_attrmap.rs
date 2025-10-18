@@ -2,7 +2,7 @@
 #![allow(unreachable_pub)]
 
 use crate::lib_test::Timing;
-use criterion::black_box;
+use std::hint::black_box;
 
 mod lib_test;
 
