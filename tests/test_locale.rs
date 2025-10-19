@@ -1,20 +1,20 @@
 mod lib_test;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
-use icu_locid::{locale, Locale};
+use icu_locale_core::{locale, Locale};
 use lib_test::*;
 use spreadsheet_ods::defaultstyles::DefaultStyle;
 use spreadsheet_ods::{read_ods, CellStyle, OdsError, Sheet, Value, ValueFormatCurrency, WorkBook};
 
 #[test]
 pub fn test_locale1() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new(locale!("de_AT"));
+    let mut wb = WorkBook::new(locale!("de-AT"));
     let mut sheet = Sheet::new("sheet1");
 
-    let mut v0 = ValueFormatCurrency::new_localized("v0", locale!("ru_RU"));
+    let mut v0 = ValueFormatCurrency::new_localized("v0", locale!("ru-RU"));
     v0.part_number().decimal_places(2).grouping().build();
     v0.part_text(" ").build();
-    v0.part_currency().locale(locale!("ru_RU")).build();
+    v0.part_currency().locale(locale!("ru-RU")).build();
     let v0 = wb.add_currency_format(v0);
 
     let s0 = CellStyle::new("s0", &v0);
@@ -31,7 +31,7 @@ pub fn test_locale1() -> Result<(), OdsError> {
 
 #[test]
 pub fn test_locale2() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new(Locale::UND);
+    let mut wb = WorkBook::new(Locale::UNKNOWN);
     let mut sheet = Sheet::new("sheet1");
 
     sheet.set_styled_value(1, 1, 1234, &DefaultStyle::bool());
@@ -79,7 +79,11 @@ pub fn test_locale3() -> Result<(), OdsError> {
             NaiveTime::default(),
         )),
     );
-    sheet.set_value(8, 1, Value::TimeDuration(Duration::try_hours(1234).expect("hours")));
+    sheet.set_value(
+        8,
+        1,
+        Value::TimeDuration(Duration::try_hours(1234).expect("hours")),
+    );
 
     wb.push_sheet(sheet);
 
@@ -92,7 +96,7 @@ pub fn test_locale3() -> Result<(), OdsError> {
 
 #[test]
 pub fn test_locale4() -> Result<(), OdsError> {
-    let mut wb = WorkBook::new(locale!("en_GB"));
+    let mut wb = WorkBook::new(locale!("en-GB"));
     let mut sheet = Sheet::new("sheet1");
 
     sheet.set_styled_value(1, 1, Value::Boolean(true), &DefaultStyle::bool());

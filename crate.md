@@ -2,7 +2,7 @@ Implements reading and writing of ODS Files.
 
 ```rust
 use chrono::NaiveDate;
-use icu_locid::locale;
+use icu_locale_core::locale;
 use spreadsheet_ods::color::Rgb;
 use spreadsheet_ods::formula;
 use spreadsheet_ods::mm;
@@ -18,7 +18,7 @@ use std::fs;
   let mut wb = if path.exists() {
     spreadsheet_ods::read_ods(path).unwrap()
   } else {
-    WorkBook::new(locale!("en_US"))
+    WorkBook::new(locale!("en-US"))
   };
 
   if wb.num_sheets() == 0 {

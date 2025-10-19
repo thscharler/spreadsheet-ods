@@ -3,7 +3,7 @@
 //!
 
 use color::Rgb;
-use icu_locid::locale;
+use icu_locale_core::locale;
 use spreadsheet_ods::condition::ValueCondition;
 use spreadsheet_ods::format::{ValueFormatTrait, ValueStyleMap};
 use spreadsheet_ods::*;
@@ -19,10 +19,10 @@ pub fn main() -> Result<(), OdsError> {
 }
 
 fn negative_numbers_red() -> OdsResult<()> {
-    let mut wb = WorkBook::new(locale!("de_AT"));
+    let mut wb = WorkBook::new(locale!("de-AT"));
 
     // positive format
-    let mut f_number = ValueFormatNumber::new_localized("num0", locale!("de_AT"));
+    let mut f_number = ValueFormatNumber::new_localized("num0", locale!("de-AT"));
     f_number
         .part_number()
         .decimal_places(2)
@@ -32,7 +32,7 @@ fn negative_numbers_red() -> OdsResult<()> {
     let f_number = wb.add_number_format(f_number);
 
     // negative format
-    let mut f_number_red = ValueFormatNumber::new_localized("num0red", locale!("de_AT"));
+    let mut f_number_red = ValueFormatNumber::new_localized("num0red", locale!("de-AT"));
     f_number_red.part_text("-").build();
     f_number_red
         .part_number()

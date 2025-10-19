@@ -728,7 +728,7 @@ macro_rules! style_locale_asian {
         ///
         /// These attributes are evaluated for any UNICODE characters whose script type is asian.
         pub fn set_locale_asian(&mut self, locale: Locale) {
-            if locale != Locale::UND {
+            if locale != Locale::UNKNOWN {
                 self.$acc
                     .set_attr("style:language-asian", locale.id.language.to_string());
                 if let Some(region) = locale.id.region {
@@ -854,7 +854,7 @@ macro_rules! style_locale_complex {
         ///
         /// These attributes are evaluated for any UNICODE characters whose script type is complex.
         pub fn set_locale_complex(&mut self, locale: Locale) {
-            if locale != Locale::UND {
+            if locale != Locale::UNKNOWN {
                 self.$acc
                     .set_attr("style:language-complex", locale.id.language.to_string());
                 if let Some(region) = locale.id.region {

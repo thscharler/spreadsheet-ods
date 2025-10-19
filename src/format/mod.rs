@@ -58,8 +58,8 @@ use crate::style::{
 use crate::{OdsError, ValueType};
 use core::borrow::Borrow;
 use get_size2::GetSize;
-use icu_locid::subtags::{Language, Region, Script};
-use icu_locid::{LanguageIdentifier, Locale};
+use icu_locale_core::subtags::{Language, Region, Script};
+use icu_locale_core::{LanguageIdentifier, Locale};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 

@@ -3,7 +3,7 @@ use crate::{
     ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
     ValueFormatPercentage, ValueFormatTimeDuration,
 };
-use icu_locid::Locale;
+use icu_locale_core::Locale;
 
 /// Creates a new number format.
 pub fn create_loc_boolean_format<S: AsRef<str>>(name: S, locale: Locale) -> ValueFormatBoolean {

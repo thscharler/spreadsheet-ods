@@ -1,7 +1,7 @@
 //!
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use icu_locid::locale;
+use icu_locale_core::locale;
 use spreadsheet_ods::{
     read_ods, write_ods_buf, write_ods_buf_uncompressed, OdsError, Sheet, WorkBook,
 };
@@ -13,7 +13,7 @@ fn read_orders() -> Result<(), OdsError> {
 
 fn create_wb(rows: u32, cols: u32) -> Result<WorkBook, OdsError> {
     let mut wb = WorkBook::new_empty();
-    wb.locale_settings(locale!("en_US"));
+    wb.locale_settings(locale!("en-US"));
     let mut sh = Sheet::new("1");
 
     for r in 0..rows {

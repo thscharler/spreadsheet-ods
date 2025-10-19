@@ -5,14 +5,14 @@ use crate::{
     ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
     ValueFormatPercentage, ValueFormatTimeDuration,
 };
-use icu_locid::{locale, Locale};
+use icu_locale_core::{locale, Locale};
 
 pub(crate) struct LocaleDeAt {}
 
 pub(crate) static LOCALE_DE_AT: LocaleDeAt = LocaleDeAt {};
 
 impl LocaleDeAt {
-    const LOCALE: Locale = locale!("de_AT");
+    const LOCALE: Locale = locale!("de-AT");
 }
 
 impl LocalizedValueFormat for LocaleDeAt {

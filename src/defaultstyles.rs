@@ -5,7 +5,7 @@
 use crate::format::ValueFormatRef;
 use crate::style::CellStyle;
 use crate::{format, CellStyleRef, ValueType, WorkBook};
-use icu_locid::locale;
+use icu_locale_core::locale;
 
 ///
 /// Allows access to the value-format names for the default formats
@@ -126,7 +126,7 @@ pub fn create_default_styles(book: &mut WorkBook) {
     ));
     book.add_currency_format(format::create_currency_prefix(
         DefaultFormat::currency(),
-        locale!("de_AT"),
+        locale!("de-AT"),
         "€",
     ));
     book.add_datetime_format(format::create_date_dmy_format(DefaultFormat::date()));

@@ -14,11 +14,11 @@
 //! use spreadsheet_ods::{CellRef, Sheet, WorkBook};
 //! use spreadsheet_ods::style::{StyleOrigin, StyleUse, CellStyle};
 //! use spreadsheet_ods::color::Rgb;
-//! use icu_locid::locale;
+//! use icu_locale_core::locale;
 //! use spreadsheet_ods::style::stylemap::StyleMap;
 //! use spreadsheet_ods::condition::{Condition};
 //!
-//! let mut wb = WorkBook::new(locale!("en_US"));
+//! let mut wb = WorkBook::new(locale!("en-US"));
 //!
 //! let mut cs1 = CellStyle::new("ce12", &"num2".into());
 //! cs1.set_color(Rgb::new(192, 128, 0));

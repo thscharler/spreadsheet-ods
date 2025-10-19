@@ -1,3 +1,11 @@
+# 0.26.0
+
+- update string_cache = "0.9"
+- update icu_locale_core = "2.0"
+    - locale strings must be "en-US" instead of "en_US" now.
+- update zip = "6.0.0"
+- update get-size2 = "0.7"
+
 # 0.25.1
 
 - update quick-xml to 0.38
@@ -19,7 +27,7 @@
     - upgrade zip to 4.0.0
 - clippy
 
-# 0.24.0
+# 0.26.0
 
 - update dependent crates
     - rust_decimal 1.36

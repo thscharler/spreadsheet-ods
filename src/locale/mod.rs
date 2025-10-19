@@ -16,7 +16,7 @@ use crate::{
     ValueFormatBoolean, ValueFormatCurrency, ValueFormatDateTime, ValueFormatNumber,
     ValueFormatPercentage, ValueFormatTimeDuration,
 };
-use icu_locid::Locale;
+use icu_locale_core::Locale;
 use lazy_static::lazy_static;
 
 /// Defines functions that generate the standard formats for various
@@ -47,18 +47,18 @@ lazy_static! {
         #[allow(unused_mut)]
         let mut lm: HashMap<Locale, &'static dyn LocalizedValueFormat> = HashMap::new();
 
-        lm.insert(icu_locid::locale!("en"), &default::LOCALE_DEFAULT);
+        lm.insert(icu_locale_core::locale!("en"), &default::LOCALE_DEFAULT);
         #[cfg(feature = "locale_cs_CZ")]
         {
-            lm.insert(icu_locid::locale!("cs_CZ"), &cs_cz::LOCALE_CS_CZ);
+            lm.insert(icu_locale_core::locale!("cs-CZ"), &cs_cz::LOCALE_CS_CZ);
         }
         #[cfg(feature = "locale_de_AT")]
         {
-            lm.insert(icu_locid::locale!("de_AT"), &de_at::LOCALE_DE_AT);
+            lm.insert(icu_locale_core::locale!("de-AT"), &de_at::LOCALE_DE_AT);
         }
         #[cfg(feature = "locale_en_US")]
         {
-            lm.insert(icu_locid::locale!("en_US"), &en_us::LOCALE_EN_US);
+            lm.insert(icu_locale_core::locale!("en-US"), &en_us::LOCALE_EN_US);
         }
         lm
     };

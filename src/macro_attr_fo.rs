@@ -535,7 +535,7 @@ macro_rules! fo_locale {
         ///
         /// These attributes are evaluated for any UNICODE characters whose script type is latin.
         pub fn set_locale(&mut self, locale: Locale) {
-            if locale != Locale::UND {
+            if locale != Locale::UNKNOWN {
                 self.$acc
                     .set_attr("fo:language", locale.id.language.to_string());
                 if let Some(region) = locale.id.region {

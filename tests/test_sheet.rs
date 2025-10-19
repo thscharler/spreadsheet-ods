@@ -1,6 +1,6 @@
 mod lib_test;
 
-use icu_locid::locale;
+use icu_locale_core::locale;
 use lib_test::*;
 use spreadsheet_ods::defaultstyles::DefaultFormat;
 use spreadsheet_ods::{
@@ -235,7 +235,7 @@ fn test_iterator() {
 
 #[test]
 fn test_cell_style() {
-    let mut wb = WorkBook::new(locale!("de_AT"));
+    let mut wb = WorkBook::new(locale!("de-AT"));
 
     let s0 = CellStyle::new("a21", &DefaultFormat::number());
     let s0 = wb.add_cellstyle(s0);

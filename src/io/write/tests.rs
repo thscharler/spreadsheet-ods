@@ -1,10 +1,10 @@
 use crate::io::write::calc_col_headers;
 use crate::sheet_::dedup_colheader;
 use crate::{Sheet, WorkBook};
-use icu_locid::locale;
+use icu_locale_core::locale;
 
 fn setup_test_calc_col_headers() -> WorkBook {
-    let mut wb = WorkBook::new(locale!("de_AT"));
+    let mut wb = WorkBook::new(locale!("de-AT"));
 
     let mut sh0 = Sheet::new("1");
     sh0.set_col_width(0, cm!(2.54));
@@ -59,7 +59,7 @@ fn test_calc_col_headers() {
     assert_eq!(sh0.col_header.get(&0).unwrap().span, 4);
     assert_eq!(sh0.col_header.get(&4).unwrap().span, 3);
 
-    let mut wb = WorkBook::new(locale!("de_AT"));
+    let mut wb = WorkBook::new(locale!("de-AT"));
     let mut sh0 = Sheet::new("1");
     sh0.add_col_group(4, 9);
     calc_col_headers(&mut wb).unwrap();

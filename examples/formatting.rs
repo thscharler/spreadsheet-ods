@@ -4,7 +4,7 @@
 
 use std::fs;
 
-use icu_locid::locale;
+use icu_locale_core::locale;
 use spreadsheet_ods::format::create_number_format_fixed;
 use spreadsheet_ods::{
     defaultstyles::{DefaultFormat, DefaultStyle},
@@ -25,7 +25,7 @@ pub fn main() -> OdsResult<()> {
 
 /// Use predefined formats.
 fn default_format() -> OdsResult<()> {
-    let mut wb = WorkBook::new(locale!("de_AT"));
+    let mut wb = WorkBook::new(locale!("de-AT"));
 
     let mut sheet = Sheet::new("one");
 
@@ -44,7 +44,7 @@ fn default_format() -> OdsResult<()> {
 
 /// Apply a cell-style.
 fn cell_style() -> OdsResult<()> {
-    let mut wb = WorkBook::new(locale!("de_AT"));
+    let mut wb = WorkBook::new(locale!("de-AT"));
 
     let mut style_bold = CellStyle::new("s_bold", &DefaultFormat::number());
     // origin + styleuse to show the style in the style-chooser.
@@ -66,7 +66,7 @@ fn cell_style() -> OdsResult<()> {
 
 /// Use number formatting.
 fn number_format() -> OdsResult<()> {
-    let mut wb = WorkBook::new(locale!("de_AT"));
+    let mut wb = WorkBook::new(locale!("de-AT"));
 
     // use a helper function
     let f_0 = create_number_format_fixed("numeric_0", 0, false);

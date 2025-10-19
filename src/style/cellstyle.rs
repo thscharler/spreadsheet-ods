@@ -18,7 +18,7 @@ use crate::style::{
 };
 use core::borrow::Borrow;
 use get_size2::GetSize;
-use icu_locid::Locale;
+use icu_locale_core::Locale;
 
 style_ref2!(CellStyleRef);
 
@@ -28,9 +28,9 @@ style_ref2!(CellStyleRef);
 /// use spreadsheet_ods::{pt, Length, CellStyle, WorkBook, Sheet, CellStyleRef};
 /// use spreadsheet_ods::defaultstyles::DefaultFormat;
 /// use spreadsheet_ods::color::Rgb;
-/// use icu_locid::locale;
+/// use icu_locale_core::locale;
 ///
-/// let mut book = WorkBook::new(locale!("en_US"));
+/// let mut book = WorkBook::new(locale!("en-US"));
 ///
 /// let mut st_header = CellStyle::new("header", &DefaultFormat::default());
 /// st_header.set_font_bold();

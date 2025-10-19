@@ -31,7 +31,7 @@ macro_rules! number_locale {
         /// properties whose evaluation is locale-dependent. The attribute should be used only if necessary
         /// according to the rules of §2.2.3 of [RFC5646](https://datatracker.ietf.org/doc/html/rfc5646), or its successors.
         pub fn set_locale(&mut self, locale: Locale) {
-            if locale != Locale::UND {
+            if locale != Locale::UNKNOWN {
                 self.attr
                     .set_attr("number:language", locale.id.language.to_string());
                 if let Some(region) = locale.id.region {
@@ -54,14 +54,14 @@ macro_rules! number_locale {
         /// Returns number:language, number:country and number:script as a locale.
         pub fn locale(&self) -> Option<Locale> {
             if let Some(language) = self.attr.attr("number:language") {
-                if let Ok(language) = Language::try_from_bytes(language.as_bytes()) {
+                if let Ok(language) = Language::try_from_utf8(language.as_bytes()) {
                     let region = if let Some(region) = self.attr.attr("number:country") {
-                        Region::try_from_bytes(region.as_bytes()).ok()
+                        Region::try_from_utf8(region.as_bytes()).ok()
                     } else {
                         None
                     };
                     let script = if let Some(script) = self.attr.attr("number:script") {
-                        Script::try_from_bytes(script.as_bytes()).ok()
+                        Script::try_from_utf8(script.as_bytes()).ok()
                     } else {
                         None
                     };
@@ -91,7 +91,7 @@ macro_rules! number_transliteration_locale {
         /// with [RFC5646](https://datatracker.ietf.org/doc/html/rfc5646).
         /// If no language/country (locale) combination is specified, the locale of the data style is used.
         pub fn set_transliteration_locale(&mut self, locale: Locale) {
-            if locale != Locale::UND {
+            if locale != Locale::UNKNOWN {
                 self.attr.set_attr(
                     "number:transliteration-language",
                     locale.id.language.to_string(),
@@ -111,9 +111,9 @@ macro_rules! number_transliteration_locale {
         /// Returns number:transliteration_language and number:transliteration_country as a locale.
         pub fn transliteration_locale(&self) -> Option<Locale> {
             if let Some(language) = self.attr.attr("number:language") {
-                if let Ok(language) = Language::try_from_bytes(language.as_bytes()) {
+                if let Ok(language) = Language::try_from_utf8(language.as_bytes()) {
                     let region = if let Some(region) = self.attr.attr("number:country") {
-                        Region::try_from_bytes(region.as_bytes()).ok()
+                        Region::try_from_utf8(region.as_bytes()).ok()
                     } else {
                         None
                     };

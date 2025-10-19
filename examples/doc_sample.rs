@@ -1,7 +1,7 @@
 //! Sample for docs
 
 use chrono::NaiveDate;
-use icu_locid::locale;
+use icu_locale_core::locale;
 use spreadsheet_ods::color::Rgb;
 use spreadsheet_ods::format;
 use spreadsheet_ods::formula;
@@ -19,7 +19,7 @@ pub fn main() {
     let mut wb = if path.exists() {
         spreadsheet_ods::read_ods(path).unwrap()
     } else {
-        WorkBook::new(locale!("en_US"))
+        WorkBook::new(locale!("en-US"))
     };
 
     if wb.num_sheets() == 0 {

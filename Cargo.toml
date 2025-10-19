@@ -1,6 +1,6 @@
 [package]
 name = "spreadsheet-ods"
-version = "0.25.1"
+version = "0.26.0"
 authors = ["thomasscharler <thscharler@gmail.com>"]
 edition = "2021"
 description = "Read and write ODS files"
@@ -32,17 +32,17 @@ dump_unused = []
 rust_decimal = { version = "1.36", optional = true }
 rust_decimal_macros = { version = "1.36", optional = true }
 color-rs2 = { version = "0.9.0" }
-string_cache = "0.8"
+string_cache = "0.9"
 nom = "7.1"
 nom_locate = "4.2"
-icu_locid = "1.5"
+icu_locale_core = "2.0"
 lazy_static = "1.5"
 kparse = "3.0"
 base64 = "0.22"
 quick-xml = { version = "0.38", features = ["encoding"] }
-zip = { version = "4.0.0", default-features = false, features = ["deflate", "time"] }
+zip = { version = "6.0.0", default-features = false, features = ["deflate", "time"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "alloc"] }
-get-size2 = { version = "0.6", features = ["derive"] }
+get-size2 = { version = "0.7", features = ["derive"] }
 
 [dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }

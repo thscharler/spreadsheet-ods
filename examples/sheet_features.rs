@@ -1,6 +1,6 @@
 //! show some features of sheets
 use color::Rgb;
-use icu_locid::locale;
+use icu_locale_core::locale;
 use spreadsheet_ods::style::units::{Border, Margin, PrintCentering};
 use spreadsheet_ods::style::{HeaderFooter, MasterPage, PageStyle, TableStyle};
 use spreadsheet_ods::text::{
@@ -18,7 +18,7 @@ pub fn main() -> OdsResult<()> {
 
 // visual stuff with a sheet
 fn cell_grid() -> OdsResult<()> {
-    let mut wb = WorkBook::new(locale!("de_AT"));
+    let mut wb = WorkBook::new(locale!("de-AT"));
 
     let mut sh = Sheet::new("grouping");
     sheet_data(&mut sh);
@@ -52,7 +52,7 @@ fn cell_grid() -> OdsResult<()> {
 
 // print ranges & headers & footers
 fn printing() -> OdsResult<()> {
-    let mut wb = WorkBook::new(locale!("de_AT"));
+    let mut wb = WorkBook::new(locale!("de-AT"));
 
     // page styling
     let mut s_page = PageStyle::new("one");

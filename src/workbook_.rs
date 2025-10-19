@@ -8,7 +8,7 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::hash::Hash;
 
-use icu_locid::{locale, Locale};
+use icu_locale_core::{locale, Locale};
 
 use crate::config::Config;
 use crate::defaultstyles::{DefaultFormat, DefaultStyle};

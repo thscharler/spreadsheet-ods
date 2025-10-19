@@ -1,7 +1,7 @@
 mod lib_test;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
-use icu_locid::locale;
+use icu_locale_core::locale;
 use lib_test::*;
 use spreadsheet_ods::format::{FormatCalendarStyle, FormatNumberStyle};
 use spreadsheet_ods::style::CellStyle;
@@ -37,7 +37,7 @@ fn write_format() -> Result<(), OdsError> {
 
     let mut v4 = ValueFormatCurrency::new_named("f4");
     v4.part_currency()
-        .locale(locale!("de_AT"))
+        .locale(locale!("de-AT"))
         .symbol("€")
         .build();
     v4.part_text(" ").build();

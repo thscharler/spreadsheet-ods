@@ -9,7 +9,7 @@ use crate::style::AnyStyleRef;
 use crate::style::{color_string, shadow_string, text_position, StyleOrigin, StyleUse};
 use core::borrow::Borrow;
 use get_size2::GetSize;
-use icu_locid::Locale;
+use icu_locale_core::Locale;
 
 style_ref2!(TextStyleRef);
 

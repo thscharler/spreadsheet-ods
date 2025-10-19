@@ -16,7 +16,7 @@ use crate::style::{
     StyleOrigin, StyleUse, TextStyleRef,
 };
 use get_size2::GetSize;
-use icu_locid::Locale;
+use icu_locale_core::Locale;
 use std::borrow::Borrow;
 
 style_ref2!(ParagraphStyleRef);

@@ -1,7 +1,7 @@
 use crate::format::{
     FormatCalendarStyle, FormatNumberStyle, FormatPart, FormatPartType, ValueFormatTrait,
 };
-use icu_locid::Locale;
+use icu_locale_core::Locale;
 
 /// Builder for FormatPart with type Number.
 #[derive(Debug)]
