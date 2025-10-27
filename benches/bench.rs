@@ -2,9 +2,7 @@
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use icu_locale_core::locale;
-use spreadsheet_ods::{
-    read_ods, write_ods_buf, write_ods_buf_uncompressed, OdsError, Sheet, WorkBook,
-};
+use spreadsheet_ods::{read_ods, write_ods_buf_uncompressed, OdsError, Sheet, WorkBook};
 
 fn read_orders() -> Result<(), OdsError> {
     let _ = read_ods("test_write_read_1.ods")?;
