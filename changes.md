@@ -1,10 +1,16 @@
 # 0.26.0
 
+- BREAK: switch from icu_locid to icu_locale_core = "2.0"
+    - locale strings must be "en-US" with dash instead of "en_US" with underscore now.
+
 - update string_cache = "0.9"
-- update icu_locale_core = "2.0"
-    - locale strings must be "en-US" instead of "en_US" now.
 - update zip = "6.0.0"
 - update get-size2 = "0.7"
+
+- **NOT** updated:
+    - nom and nom_locate: Version 8.0 breaks almost everything...
+      This will require starting from scratch essentially, a task
+      that I postponed for now.
 
 # 0.25.1
 
