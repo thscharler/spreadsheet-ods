@@ -1,3 +1,8 @@
+# 1.0.0
+
+It is usable as is, and any plans I have are long-term.
+So there is no particular reason to wait any longer.
+
 # 0.26.0
 
 - BREAK: switch from icu_locid to icu_locale_core = "2.0"
