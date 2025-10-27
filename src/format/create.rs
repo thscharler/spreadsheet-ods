@@ -21,6 +21,7 @@ pub fn create_loc_number_format<S: AsRef<str>>(
 ) -> ValueFormatNumber {
     let mut v = ValueFormatNumber::new_localized(name, locale);
     v.part_number()
+        .min_integer_digits(1)
         .decimal_places(decimal)
         .if_then(grouping, |p| p.grouping())
         .build();
