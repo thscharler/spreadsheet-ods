@@ -8,24 +8,16 @@
 
 This crate can read and write back ODS spreadsheet files.
 
-Not all the specification is implemented yet. And there are parts for
-which there is no public API, but which are preserved as raw xml. More
-details in the documentation.
+Not all the specification is implemented yet.
 
-## Usage
+But it covers everything if you
 
-Add the following to your `Cargo.toml`:
+- just want to extract the data.
+- need a round-trip. Any unparsed parts are kept as blobs or raw xml
+  and are written again.
 
-```toml
-[dependencies]
-spreadsheet-ods = "0.17.0"
-```
-
-Or use `cargo add`
-
-```sh
-$ cargo add spreadsheet-ods
-```
+See the [todos]([changes.md](https://github.com/thscharler/spreadsheet-ods/blob/master/TODO.md)
+) for the missing parts.
 
 ## Features
 
@@ -33,9 +25,11 @@ $ cargo add spreadsheet-ods
   stored as f64 nonetheless.
 
 * Locales
-    * all_locales = [ "locale_de_AT", "locale_en_US" ]
+    * all_locales = [ "locale_de_AT", "locale_en_US", "locale_cs_CZ" ]
     * locale_de_AT
     * locale_en_US
+
+  ... send me an issue if you need more ...
 
 ## License
 
@@ -51,7 +45,7 @@ at your option.
 
 ## Changes
 
-[changes.md](https://github.com/thscharler/spreadsheet-ods/blob/master/changes.md)
+[changes](https://github.com/thscharler/spreadsheet-ods/blob/master/changes.md)
 
 ## Contributing
 

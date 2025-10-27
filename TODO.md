@@ -1,4 +1,3 @@
-
 # NEAR TERM
 
 - text.rs: add ruby tag
@@ -6,8 +5,6 @@
 - cell: table:protected
 
 # MAYBE
-
-
 
 # FAR FUTURE
 
@@ -22,6 +19,7 @@
   They are also conserved during a read/write cycle.
 
 - There is also no current plan to add charts and drawings.
+    - There is already limited support for images and annotations.
 
 - Support to parse/create formulas will be bigger projects, and I will rather
   support them with additional crates. There are some blueprints lying around
