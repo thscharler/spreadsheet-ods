@@ -332,12 +332,10 @@ fn token_datetime(input: KSpan<'_>) -> KTokenResult<'_, NaiveDateTime> {
         p.minute = Some(0);
         p.second = Some(0);
     }
+
     match p.to_naive_datetime_with_offset(0) {
         Ok(v) => Ok(v),
-        Err(_) => Err(nom::Err::Error(KTokenizerError::new(
-            RCode::DateTime,
-            input,
-        ))),
+        Err(_) => Ok(NaiveDateTime::default()),
     }
 }
 
