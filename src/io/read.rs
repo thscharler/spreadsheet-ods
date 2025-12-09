@@ -1436,7 +1436,9 @@ fn read_table_cell(
                 println!(" read_table_cell {:?}", evt);
             }
             match &evt {
-                Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"text:p" => {}
+                Event::Empty(xml_tag) if xml_tag.name().as_ref() == b"text:p" => {
+                    tc.content = append_text(TextContent::Text(String::new()), tc.content);
+                }
                 Event::Start(xml_tag) if xml_tag.name().as_ref() == b"text:p" => {
                     let new_txt = read_text_or_tag(ctx, xml, xml_tag, false)?;
                     tc.content = append_text(new_txt, tc.content);

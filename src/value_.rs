@@ -330,11 +330,13 @@ impl Value {
             Value::Text(s) => Cow::from(s),
             Value::TextXml(v) => {
                 let mut buf = String::new();
+                let mut add_newline = false;
                 for t in v {
-                    if !buf.is_empty() {
+                    if add_newline {
                         buf.push('\n');
                     }
                     t.extract_text(&mut buf);
+                    add_newline = true;
                 }
                 Cow::from(buf)
             }
