@@ -19,6 +19,7 @@ use nom::AsChar;
 use std::fmt::{Display, Formatter};
 use std::str::{from_utf8, from_utf8_unchecked};
 
+#[allow(dead_code)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub(crate) enum RCode {
     NomError,

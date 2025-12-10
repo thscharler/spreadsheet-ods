@@ -1,3 +1,12 @@
+# 1.0.2
+
+* fix #67: Empty newlines are ignored
+* fix #68: Failure to open ODS with invalid datetime in settings.xml
+
+# 1.0.1
+
+* missing docs
+
 # 1.0.0
 
 It is usable as is, and any plans I have are long-term.
