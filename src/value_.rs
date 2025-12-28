@@ -2,9 +2,11 @@ use std::borrow::Cow;
 
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 use get_size2::GetSize;
-use rust_decimal::prelude::FromPrimitive;
-use rust_decimal::prelude::ToPrimitive;
-use rust_decimal::Decimal;
+#[cfg(feature = "rust_decimal")]
+use rust_decimal::{
+    prelude::{FromPrimitive, ToPrimitive},
+    Decimal,
+};
 
 use crate::text::TextTag;
 
