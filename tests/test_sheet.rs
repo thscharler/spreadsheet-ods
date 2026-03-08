@@ -243,3 +243,20 @@ fn test_cell_style() {
     let ss0 = wb.cellstyle(&s0).expect("style");
     assert_eq!(ss0.name(), "a21");
 }
+
+#[test]
+fn test_sheetname() -> Result<(), OdsError> {
+    let mut wb = WorkBook::new_empty();
+
+    let mut sh = Sheet::new("Sheets & Sheeps");
+    sh.set_value(0, 0, 1234);
+    wb.push_sheet(sh);
+
+    test_write_ods(&mut wb, "test_out/test_sheet_7.ods")?;
+
+    let wb = read_ods("test_out/test_sheet_7.ods")?;
+
+    assert_eq!(wb.sheet(0).name(), "Sheets & Sheeps");
+
+    Ok(())
+}
