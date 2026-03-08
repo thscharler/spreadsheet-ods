@@ -1,3 +1,9 @@
+# 1.0.3
+
+* #70: Allow builds without default features.
+* fix #71: Escape sheet names in config.
+* #72: Make Detached public to allow its use in some scenarios.
+
 # 1.0.2
 
 * fix #67: Empty newlines are ignored
