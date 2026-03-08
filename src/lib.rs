@@ -22,6 +22,7 @@ pub use crate::style::units::{Angle, Length};
 pub use crate::style::{CellStyle, CellStyleRef};
 pub use crate::value_::{Value, ValueType};
 pub use crate::workbook_::WorkBook;
+pub use crate::ds::detach::Detached;
 
 #[macro_use]
 mod macro_attr_draw;
