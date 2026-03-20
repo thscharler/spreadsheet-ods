@@ -1,3 +1,7 @@
+# 1.0.4
+
+* #74: remove spurious dbg!
+
 # 1.0.3
 
 * #70: Allow builds without default features.
