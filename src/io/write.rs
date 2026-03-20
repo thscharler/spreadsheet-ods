@@ -1579,7 +1579,6 @@ fn write_sheet(
     xml_out: &mut OdsXmlWriter<'_>,
 ) -> Result<(), OdsError> {
     xml_out.elem("table:table")?;
-    dbg!(&sheet.name);
     xml_out.attr_esc("table:name", &sheet.name)?;
     if let Some(style) = sheet.style.as_ref() {
         xml_out.attr_esc("table:style-name", style.as_str())?;
