@@ -375,7 +375,12 @@ impl WorkBook {
 
     /// Finds the sheet index by the sheet-name.
     pub fn sheet_idx<S: AsRef<str>>(&self, name: S) -> Option<usize> {
-        for (idx, sheet) in self.sheets.iter().enumerate() {
+        for (idx, sheet) in self
+            .sheets
+            .iter()
+            .enumerate()
+            .filter(|(_, det)| !det.is_detached())
+        {
             if sheet.name() == name.as_ref() {
                 return Some(idx);
             }
