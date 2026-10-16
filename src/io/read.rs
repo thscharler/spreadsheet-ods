@@ -10,7 +10,7 @@ use std::str::from_utf8;
 use chrono::{Duration, NaiveDateTime};
 use quick_xml::events::attributes::Attribute;
 use quick_xml::events::{BytesRef, BytesStart, Event};
-use quick_xml::{Decoder, Reader};
+use quick_xml::{Decoder, Reader, XmlVersion};
 use zip::ZipArchive;
 
 use crate::attrmap2::AttrMap2;
@@ -466,13 +466,13 @@ fn read_ods_manifest(ctx: &mut OdsContext, xml: &mut OdsXmlReader<'_>) -> Result
 
                     if attr.key.as_ref() == b"manifest:full-path" {
                         manifest.full_path =
-                            attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+                            attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
                     } else if attr.key.as_ref() == b"manifest:version" {
                         manifest.version =
-                            Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                            Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
                     } else if attr.key.as_ref() == b"manifest:media-type" {
                         manifest.media_type =
-                            attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+                            attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
                     }
                 }
 
@@ -881,20 +881,20 @@ fn read_namespaces_and_version(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"office:version" => {
-                version = Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                version = Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
             }
             attr if attr.key.as_ref().starts_with(b"xmlns:") => {
                 let k = from_utf8(attr.key.as_ref())?.to_string();
-                let v = attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+                let v = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
                 xmlns.insert(k, v);
             }
             attr if attr.key.as_ref() == b"office:mimetype" => {
-                if attr.decode_and_unescape_value(ctx.decoder)?
+                if attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?
                     != "application/vnd.oasis.opendocument.spreadsheet"
                 {
                     return Err(OdsError::Parse(
                         "invalid content-type",
-                        Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string()),
+                        Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string()),
                     ));
                 }
             }
@@ -1102,10 +1102,10 @@ fn read_table_attr(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"table:name" => {
-                sheet.set_name(attr.decode_and_unescape_value(ctx.decoder)?);
+                sheet.set_name(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?);
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                let name = &attr.decode_and_unescape_value(ctx.decoder)?;
+                let name = &attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 sheet.style = Some(TableStyleRef::from(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"table:print" => {
@@ -1115,7 +1115,7 @@ fn read_table_attr(
                 sheet.set_display(parse_bool(&attr.value)?);
             }
             attr if attr.key.as_ref() == b"table:print-ranges" => {
-                let v = attr.decode_and_unescape_value(ctx.decoder)?;
+                let v = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 sheet.print_ranges = parse_cellranges(v.as_ref())?;
             }
             attr => {
@@ -1144,12 +1144,12 @@ fn read_table_row_attr(
                 row_repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                let name = attr.decode_and_unescape_value(ctx.decoder)?;
+                let name = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 row_header.get_or_insert_with(RowHeader::default).style =
                     Some(RowStyleRef::from(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
-                let name = attr.decode_and_unescape_value(ctx.decoder)?;
+                let name = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 row_header.get_or_insert_with(RowHeader::default).cellstyle =
                     Some(CellStyleRef::from(name.as_ref()));
             }
@@ -1242,12 +1242,12 @@ fn read_table_col_attr(
                 col_repeat = parse_u32(&attr.value)?;
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                let name = attr.decode_and_unescape_value(ctx.decoder)?;
+                let name = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 col_header.get_or_insert_with(ColHeader::default).style =
                     Some(ColStyleRef::from(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"table:default-cell-style-name" => {
-                let name = attr.decode_and_unescape_value(ctx.decoder)?;
+                let name = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 col_header.get_or_insert_with(ColHeader::default).cellstyle =
                     Some(CellStyleRef::from(name.as_ref()));
             }
@@ -1363,7 +1363,7 @@ fn read_table_cell(
                 }
             }
             attr if attr.key.as_ref() == b"table:content-validation-name" => {
-                let name = attr.decode_and_unescape_value(ctx.decoder)?;
+                let name = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 cell.get_or_insert_with(CellData::default)
                     .extra_mut()
                     .validation_name = Some(ValidationRef::from(name.as_ref()));
@@ -1407,7 +1407,7 @@ fn read_table_cell(
             }
             attr if attr.key.as_ref() == b"office:string-value" => {
                 cell.get_or_insert_with(CellData::default);
-                tc.val_string = Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                tc.val_string = Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
             }
             attr if attr.key.as_ref() == b"office:currency" => {
                 cell.get_or_insert_with(CellData::default);
@@ -1415,10 +1415,10 @@ fn read_table_cell(
             }
             attr if attr.key.as_ref() == b"table:formula" => {
                 cell.get_or_insert_with(CellData::default).formula =
-                    Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                    Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
             }
             attr if attr.key.as_ref() == b"table:style-name" => {
-                let name = attr.decode_and_unescape_value(ctx.decoder)?;
+                let name = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 cell.get_or_insert_with(CellData::default).style =
                     Some(CellStyleRef::from(name.as_ref()));
             }
@@ -1665,11 +1665,11 @@ fn read_annotation(
                 annotation.set_display(parse_bool(&attr.value)?);
             }
             attr if attr.key.as_ref() == b"office:name" => {
-                annotation.set_name(attr.decode_and_unescape_value(ctx.decoder)?);
+                annotation.set_name(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?);
             }
             attr => {
                 let k = from_utf8(attr.key.as_ref())?;
-                let v = attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+                let v = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
                 annotation.attrmap_mut().push_attr(k, v);
             }
         }
@@ -1894,24 +1894,24 @@ fn read_event_listener(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"script:event-name" => {
-                evt.event_name = attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+                evt.event_name = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
             }
             attr if attr.key.as_ref() == b"script:language" => {
-                evt.script_lang = attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+                evt.script_lang = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
             }
             attr if attr.key.as_ref() == b"script:macro-name" => {
-                evt.macro_name = attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+                evt.macro_name = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
             }
             attr if attr.key.as_ref() == b"xlink:actuate" => {
                 evt.actuate =
-                    parse_xlink_actuate(attr.decode_and_unescape_value(ctx.decoder)?.as_bytes())?;
+                    parse_xlink_actuate(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes())?;
             }
             attr if attr.key.as_ref() == b"xlink:href" => {
-                evt.href = attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+                evt.href = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
             }
             attr if attr.key.as_ref() == b"xlink:type" => {
                 evt.link_type =
-                    parse_xlink_type(attr.decode_and_unescape_value(ctx.decoder)?.as_bytes())?;
+                    parse_xlink_type(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes())?;
             }
             attr => {
                 unused_attr("read_event_listener", super_tag.name().as_ref(), &attr)?;
@@ -1975,11 +1975,11 @@ fn read_page_style(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"style:name" => {
-                let value = attr.decode_and_unescape_value(ctx.decoder)?;
+                let value = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 pl.set_name(value);
             }
             attr if attr.key.as_ref() == b"style:page-usage" => {
-                let value = attr.decode_and_unescape_value(ctx.decoder)?;
+                let value = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 pl.master_page_usage = Some(value.to_string());
             }
             attr => {
@@ -2129,7 +2129,7 @@ fn read_validation_help(
             }
             attr if attr.key.as_ref() == b"table:title" => {
                 vh.set_title(Some(
-                    attr.decode_and_unescape_value(ctx.decoder)?.to_string(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string(),
                 ));
             }
             attr => {
@@ -2177,7 +2177,7 @@ fn read_validation_error(
                     _ => {
                         return Err(OdsError::Parse(
                             "unknown message-type",
-                            Some(attr.decode_and_unescape_value(ctx.decoder)?.into()),
+                            Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.into()),
                         ));
                     }
                 };
@@ -2185,7 +2185,7 @@ fn read_validation_error(
             }
             attr if attr.key.as_ref() == b"table:title" => {
                 ve.set_title(Some(
-                    attr.decode_and_unescape_value(ctx.decoder)?.to_string(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string(),
                 ));
             }
             attr => {
@@ -2220,18 +2220,18 @@ fn read_validation(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"table:name" => {
-                valid.set_name(attr.decode_and_unescape_value(ctx.decoder)?);
+                valid.set_name(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?);
             }
             attr if attr.key.as_ref() == b"table:condition" => {
                 // split off 'of:' prefix
-                let v = attr.decode_and_unescape_value(ctx.decoder)?;
+                let v = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 valid.set_condition(Condition::new(v.split_at(3).1));
             }
             attr if attr.key.as_ref() == b"table:allow-empty-cell" => {
                 valid.set_allow_empty(parse_bool(&attr.value)?);
             }
             attr if attr.key.as_ref() == b"table:base-cell-address" => {
-                let v = attr.decode_and_unescape_value(ctx.decoder)?;
+                let v = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 valid.set_base_cell(parse_cellref(&v)?);
             }
             attr if attr.key.as_ref() == b"table:display-list" => {
@@ -2292,18 +2292,18 @@ fn read_master_page(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"style:name" => {
-                masterpage.set_name(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                masterpage.set_name(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
             }
             attr if attr.key.as_ref() == b"style:page-layout-name" => {
                 masterpage
-                    .set_pagestyle(&attr.decode_and_unescape_value(ctx.decoder)?.as_ref().into());
+                    .set_pagestyle(&attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_ref().into());
             }
             attr if attr.key.as_ref() == b"style:display-name" => {
                 masterpage
-                    .set_display_name(attr.decode_and_unescape_value(ctx.decoder)?.as_ref().into());
+                    .set_display_name(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_ref().into());
             }
             attr if attr.key.as_ref() == b"style:next-style-name" => {
-                let v = attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+                let v = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
                 masterpage.set_next_masterpage(&MasterPageRef::from(v));
             }
             attr => {
@@ -3546,11 +3546,11 @@ fn read_value_stylemap(
         match attr? {
             attr if attr.key.as_ref() == b"style:condition" => {
                 sm.set_condition(ValueCondition::new(
-                    attr.decode_and_unescape_value(ctx.decoder)?.to_string(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string(),
                 ));
             }
             attr if attr.key.as_ref() == b"style:apply-style-name" => {
-                sm.set_applied_style(attr.decode_and_unescape_value(ctx.decoder)?);
+                sm.set_applied_style(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?);
             }
             attr => {
                 unused_attr("read_value_stylemap", super_tag.name().as_ref(), &attr)?;
@@ -3567,15 +3567,15 @@ fn read_stylemap(ctx: &mut OdsContext, super_tag: &BytesStart<'_>) -> Result<Sty
         match attr? {
             attr if attr.key.as_ref() == b"style:condition" => {
                 sm.set_condition(Condition::new(
-                    attr.decode_and_unescape_value(ctx.decoder)?.to_string(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string(),
                 ));
             }
             attr if attr.key.as_ref() == b"style:apply-style-name" => {
-                let name = attr.decode_and_unescape_value(ctx.decoder)?;
+                let name = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 sm.set_applied_style(AnyStyleRef::from(name.as_ref()));
             }
             attr if attr.key.as_ref() == b"style:base-cell-address" => {
-                let v = attr.decode_and_unescape_value(ctx.decoder)?;
+                let v = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?;
                 sm.set_base_cell(Some(parse_cellref(v.as_ref())?));
             }
             attr => {
@@ -3598,11 +3598,11 @@ fn copy_style_attr(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"style:name" => {
-                name = Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                name = Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
             }
             attr => {
                 let k = from_utf8(attr.key.as_ref())?;
-                let v = attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+                let v = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
                 attrmap.push_attr(k, v);
             }
         }
@@ -3621,7 +3621,7 @@ fn copy_attr2(
         let attr = attr?;
 
         let k = from_utf8(attr.key.as_ref())?;
-        let v = attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+        let v = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
         attrmap.push_attr(k, v);
     }
 
@@ -3983,23 +3983,23 @@ fn read_metadata_template(
         match attr? {
             attr if attr.key.as_ref() == b"meta:date" => {
                 template.date = Some(parse_datetime(
-                    attr.decode_and_unescape_value(ctx.decoder)?.as_bytes(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes(),
                 )?);
             }
             attr if attr.key.as_ref() == b"xlink:actuate" => {
                 template.actuate = Some(parse_xlink_actuate(
-                    attr.decode_and_unescape_value(ctx.decoder)?.as_bytes(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes(),
                 )?);
             }
             attr if attr.key.as_ref() == b"xlink:href" => {
-                template.href = Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string())
+                template.href = Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string())
             }
             attr if attr.key.as_ref() == b"xlink:title" => {
-                template.title = Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string())
+                template.title = Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string())
             }
             attr if attr.key.as_ref() == b"xlink:type" => {
                 template.link_type = Some(parse_xlink_type(
-                    attr.decode_and_unescape_value(ctx.decoder)?.as_bytes(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes(),
                 )?);
             }
             attr => {
@@ -4021,25 +4021,25 @@ fn read_metadata_auto_reload(
         match attr? {
             attr if attr.key.as_ref() == b"meta:delay" => {
                 auto_reload.delay = Some(parse_duration(
-                    attr.decode_and_unescape_value(ctx.decoder)?.as_bytes(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes(),
                 )?);
             }
             attr if attr.key.as_ref() == b"xlink:actuate" => {
                 auto_reload.actuate = Some(parse_xlink_actuate(
-                    attr.decode_and_unescape_value(ctx.decoder)?.as_bytes(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes(),
                 )?);
             }
             attr if attr.key.as_ref() == b"xlink:href" => {
-                auto_reload.href = Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string())
+                auto_reload.href = Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string())
             }
             attr if attr.key.as_ref() == b"xlink:show" => {
                 auto_reload.show = Some(parse_xlink_show(
-                    attr.decode_and_unescape_value(ctx.decoder)?.as_bytes(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes(),
                 )?);
             }
             attr if attr.key.as_ref() == b"xlink:type" => {
                 auto_reload.link_type = Some(parse_xlink_type(
-                    attr.decode_and_unescape_value(ctx.decoder)?.as_bytes(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes(),
                 )?);
             }
             attr => {
@@ -4061,11 +4061,11 @@ fn read_metadata_hyperlink_behaviour(
         match attr? {
             attr if attr.key.as_ref() == b"office:targetframe-name" => {
                 hyperlink_behaviour.target_frame_name =
-                    Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                    Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
             }
             attr if attr.key.as_ref() == b"xlink:show" => {
                 hyperlink_behaviour.show = Some(parse_xlink_show(
-                    attr.decode_and_unescape_value(ctx.decoder)?.as_bytes(),
+                    attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes(),
                 )?);
             }
             attr => {
@@ -4091,19 +4091,19 @@ fn read_metadata_document_statistics(
         match attr? {
             attr if attr.key.as_ref() == b"meta:cell-count" => {
                 document_statistics.cell_count =
-                    parse_u32(attr.decode_and_unescape_value(ctx.decoder)?.as_bytes())?;
+                    parse_u32(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes())?;
             }
             attr if attr.key.as_ref() == b"meta:object-count" => {
                 document_statistics.object_count =
-                    parse_u32(attr.decode_and_unescape_value(ctx.decoder)?.as_bytes())?;
+                    parse_u32(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes())?;
             }
             attr if attr.key.as_ref() == b"meta:ole-object-count" => {
                 document_statistics.ole_object_count =
-                    parse_u32(attr.decode_and_unescape_value(ctx.decoder)?.as_bytes())?;
+                    parse_u32(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes())?;
             }
             attr if attr.key.as_ref() == b"meta:table-count" => {
                 document_statistics.table_count =
-                    parse_u32(attr.decode_and_unescape_value(ctx.decoder)?.as_bytes())?;
+                    parse_u32(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_bytes())?;
             }
             attr => {
                 unused_attr(
@@ -4128,11 +4128,11 @@ fn read_metadata_user_defined(
     for attr in tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"meta:name" => {
-                user_defined.name = attr.decode_and_unescape_value(ctx.decoder)?.to_string();
+                user_defined.name = attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string();
             }
             attr if attr.key.as_ref() == b"meta:value-type" => {
                 value_type = Some(
-                    match attr.decode_and_unescape_value(ctx.decoder)?.as_ref() {
+                    match attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.as_ref() {
                         "boolean" => "boolean",
                         "date" => "date",
                         "float" => "float",
@@ -4309,7 +4309,7 @@ fn read_config_item_set(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"config:name" => {
-                name = Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                name = Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
             }
             attr => {
                 unused_attr("read_config_item_set", super_tag.name().as_ref(), &attr)?;
@@ -4377,7 +4377,7 @@ fn read_config_item_map_indexed(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"config:name" => {
-                name = Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                name = Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
             }
             attr => {
                 unused_attr(
@@ -4439,7 +4439,7 @@ fn read_config_item_map_named(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"config:name" => {
-                name = Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                name = Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
             }
             attr => {
                 unused_attr(
@@ -4507,7 +4507,7 @@ fn read_config_item_map_entry(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"config:name" => {
-                name = Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                name = Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
             }
             attr => {
                 unused_attr(
@@ -4591,7 +4591,7 @@ fn read_config_item(
     for attr in super_tag.attributes().with_checks(false) {
         match attr? {
             attr if attr.key.as_ref() == b"config:name" => {
-                name = Some(attr.decode_and_unescape_value(ctx.decoder)?.to_string());
+                name = Some(attr.decoded_and_normalized_value(XmlVersion::Implicit1_0, ctx.decoder)?.to_string());
             }
             attr if attr.key.as_ref() == b"config:type" => {
                 val_type = match attr.value.as_ref() {
